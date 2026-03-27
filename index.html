@@ -22,7 +22,7 @@
                     <h2>Sou Professor</h2>
                     <p>Crie quizzes sem limites, gerencie salas e desafie seus alunos</p>
                     <button id="hostBtn" class="btn btn-primary">Criar Quiz</button>
-                    <button id="loginBtn" class="btn btn-outline">Entrar</button>
+                    <button id="loginBtn" class="btn btn-google">🔐 Entrar com Google</button>
                 </div>
                 
                 <div class="card player-card">
@@ -60,30 +60,15 @@
         </div>
     </div>
     
+    <!-- Modal de Login (apenas Google) -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Login no KINK</h2>
-            <form id="loginForm">
-                <input type="email" id="email" placeholder="E-mail" required>
-                <input type="password" id="password" placeholder="Senha" required>
-                <button type="submit" class="btn btn-primary">Entrar</button>
-                <button type="button" id="googleLogin" class="btn btn-google">Entrar com Google</button>
-            </form>
-            <p>Não tem conta? <a href="#" id="showRegister">Registre-se no KINK</a></p>
-        </div>
-    </div>
-    
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Registro KINK</h2>
-            <form id="registerForm">
-                <input type="text" id="regName" placeholder="Nome" required>
-                <input type="email" id="regEmail" placeholder="E-mail" required>
-                <input type="password" id="regPassword" placeholder="Senha" required>
-                <button type="submit" class="btn btn-primary">Registrar</button>
-            </form>
+            <p>Use sua conta Google para acessar o KINK</p>
+            <button id="googleLogin" class="btn btn-google btn-large" style="width: 100%; margin-top: 1rem;">
+                🔐 Entrar com Google
+            </button>
         </div>
     </div>
     
@@ -95,6 +80,7 @@
     <script src="js/auth.js"></script>
     <script src="js/utils.js"></script>
     <script>
+        // Botão Criar Quiz
         document.getElementById('hostBtn').addEventListener('click', () => {
             const user = auth.currentUser;
             if (user) {
@@ -104,16 +90,33 @@
             }
         });
         
+        // Botão Entrar como Aluno
         document.getElementById('joinBtn').addEventListener('click', () => {
             const code = document.getElementById('roomCode').value.toUpperCase();
             if (code && code.length === 6) {
                 window.location.href = `player.html?code=${code}`;
             } else {
-                alert('Por favor, insira um código KINK válido de 6 caracteres');
+                Utils.showToast('Por favor, insira um código KINK válido de 6 caracteres', 'warning');
             }
         });
         
-        // Fechar modais ao clicar fora
+        // Botão Login (já no modal, mas também no card)
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                document.getElementById('loginModal').style.display = 'block';
+            });
+        }
+        
+        // Fechar modal ao clicar no X
+        const closeBtns = document.querySelectorAll('.close');
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.modal').style.display = 'none';
+            });
+        });
+        
+        // Fechar modal ao clicar fora
         window.onclick = function(event) {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {

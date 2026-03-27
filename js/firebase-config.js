@@ -15,13 +15,22 @@ firebase.initializeApp(firebaseConfig);
 // Inicializar serviços
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
-// Configuração para persistência offline
+// Configuração de cache (nova forma - sem warning)
+// Para Firestore 9+, use esta configuração para persistência offline
+// Se quiser persistência offline, configure assim:
+db.settings({
+  cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+});
+
+// Habilitar persistência offline (forma atualizada)
 db.enablePersistence()
   .catch((err) => {
     console.log("KINK: Erro na persistência offline:", err);
+    // Se falhar, continua sem persistência (funciona normalmente)
   });
+
+const storage = firebase.storage();
 
 // Utilitário para gerar código de sala (estilo KINK)
 function generateRoomCode() {

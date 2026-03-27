@@ -1,4 +1,4 @@
-// Sistema de Autenticação KINK
+// Sistema de Autenticação KINK - Versão Simplificada (Apenas Google)
 class AuthManager {
     constructor() {
         this.user = null;
@@ -17,10 +17,11 @@ class AuthManager {
     }
 
     setupUI() {
+        // Fechar modais ao clicar no X ou fora
         window.addEventListener('click', (e) => {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
-                if (e.target === modal) {
+                if (e.target === modal || e.target.classList.contains('close')) {
                     modal.style.display = 'none';
                 }
             });
@@ -33,9 +34,8 @@ class AuthManager {
 
     setupIndexPageModals() {
         const loginModal = document.getElementById('loginModal');
-        const registerModal = document.getElementById('registerModal');
         
-        if (!loginModal || !registerModal) return;
+        if (!loginModal) return;
 
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
@@ -44,44 +44,19 @@ class AuthManager {
             });
         }
 
-        const showRegister = document.getElementById('showRegister');
-        if (showRegister) {
-            showRegister.addEventListener('click', (e) => {
-                e.preventDefault();
-                loginModal.style.display = 'none';
-                registerModal.style.display = 'block';
-            });
-        }
-
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('email')?.value;
-                const password = document.getElementById('password')?.value;
-                
-                if (!email || !password) {
-                    Utils.showToast('Preencha todos os campos', 'warning');
-                    return;
-                }
-                
-                const result = await this.login(email, password);
-                if (result.success) {
-                    loginModal.style.display = 'none';
-                    Utils.showToast(`Bem-vindo de volta, ${result.user.displayName || result.user.email}!`, 'success');
-                    setTimeout(() => {
-                        window.location.href = 'my-quizzes.html';
-                    }, 500);
-                } else {
-                    Utils.showToast(result.error, 'error');
-                }
-            });
-        }
-
+        // Botão de login com Google
         const googleLogin = document.getElementById('googleLogin');
         if (googleLogin) {
             googleLogin.addEventListener('click', async () => {
+                // Mostrar loading
+                googleLogin.disabled = true;
+                googleLogin.textContent = '🔄 Entrando...';
+                
                 const result = await this.loginWithGoogle();
+                
+                googleLogin.disabled = false;
+                googleLogin.textContent = 'Entrar com Google';
+                
                 if (result.success) {
                     loginModal.style.display = 'none';
                     Utils.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
@@ -94,87 +69,23 @@ class AuthManager {
             });
         }
 
-        const registerForm = document.getElementById('registerForm');
-        if (registerForm) {
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const name = document.getElementById('regName')?.value;
-                const email = document.getElementById('regEmail')?.value;
-                const password = document.getElementById('regPassword')?.value;
-                
-                if (!name || !email || !password) {
-                    Utils.showToast('Preencha todos os campos', 'warning');
-                    return;
-                }
-                
-                if (password.length < 6) {
-                    Utils.showToast('A senha deve ter pelo menos 6 caracteres', 'warning');
-                    return;
-                }
-                
-                const result = await this.register(name, email, password);
-                if (result.success) {
-                    registerModal.style.display = 'none';
-                    Utils.showToast(`Conta criada com sucesso! Bem-vindo, ${name}!`, 'success');
-                    setTimeout(() => {
-                        window.location.href = 'my-quizzes.html';
-                    }, 500);
-                } else {
-                    Utils.showToast(result.error, 'error');
-                }
+        // Botão de fechar manual (garantir)
+        const closeButtons = document.querySelectorAll('.close');
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const modal = btn.closest('.modal');
+                if (modal) modal.style.display = 'none';
             });
-        }
-    }
-
-    async login(email, password) {
-        try {
-            const result = await auth.signInWithEmailAndPassword(email, password);
-            return { success: true, user: result.user };
-        } catch (error) {
-            console.error('Erro no login:', error);
-            let errorMessage = 'Erro ao fazer login';
-            switch (error.code) {
-                case 'auth/user-not-found': errorMessage = 'Usuário não encontrado'; break;
-                case 'auth/wrong-password': errorMessage = 'Senha incorreta'; break;
-                case 'auth/invalid-email': errorMessage = 'E-mail inválido'; break;
-                case 'auth/user-disabled': errorMessage = 'Usuário desabilitado'; break;
-                case 'auth/too-many-requests': errorMessage = 'Muitas tentativas. Tente novamente mais tarde'; break;
-            }
-            return { success: false, error: errorMessage };
-        }
-    }
-
-    async register(name, email, password) {
-        try {
-            const result = await auth.createUserWithEmailAndPassword(email, password);
-            await result.user.updateProfile({ displayName: name });
-            
-            await db.collection('users').doc(result.user.uid).set({
-                uid: result.user.uid,
-                name: name,
-                email: email,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                quizzesCreated: 0,
-                totalPlays: 0
-            });
-            
-            return { success: true, user: result.user };
-        } catch (error) {
-            console.error('Erro no registro:', error);
-            let errorMessage = 'Erro ao criar conta';
-            switch (error.code) {
-                case 'auth/email-already-in-use': errorMessage = 'Este e-mail já está em uso'; break;
-                case 'auth/invalid-email': errorMessage = 'E-mail inválido'; break;
-                case 'auth/weak-password': errorMessage = 'Senha muito fraca. Use pelo menos 6 caracteres'; break;
-            }
-            return { success: false, error: errorMessage };
-        }
+        });
     }
 
     async loginWithGoogle() {
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
+            provider.setCustomParameters({ 
+                prompt: 'select_account'
+            });
+            
             const result = await auth.signInWithPopup(provider);
             
             if (result.additionalUserInfo.isNewUser) {
@@ -193,8 +104,15 @@ class AuthManager {
         } catch (error) {
             console.error('Erro no login com Google:', error);
             let errorMessage = 'Erro ao fazer login com Google';
-            if (error.code === 'auth/popup-closed-by-user') errorMessage = 'Login cancelado';
-            else if (error.code === 'auth/popup-blocked') errorMessage = 'Pop-up bloqueado. Permita pop-ups para este site';
+            
+            if (error.code === 'auth/popup-closed-by-user') {
+                errorMessage = 'Login cancelado';
+            } else if (error.code === 'auth/popup-blocked') {
+                errorMessage = 'Pop-up bloqueado. Permita pop-ups para este site';
+            } else if (error.code === 'auth/unauthorized-domain') {
+                errorMessage = 'Domínio não autorizado. Contate o administrador.';
+            }
+            
             return { success: false, error: errorMessage };
         }
     }
@@ -209,37 +127,12 @@ class AuthManager {
         }
     }
 
-    async updateProfile(data) {
-        if (!this.user) return { success: false, error: 'Usuário não autenticado' };
-        try {
-            if (data.displayName) await this.user.updateProfile({ displayName: data.displayName });
-            if (data.photoURL) await this.user.updateProfile({ photoURL: data.photoURL });
-            await db.collection('users').doc(this.user.uid).update({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            Utils.showToast('Perfil atualizado!', 'success');
-            return { success: true };
-        } catch (error) {
-            Utils.showToast('Erro ao atualizar perfil', 'error');
-            return { success: false, error: error.message };
-        }
-    }
-
-    async getUserInfo(uid = null) {
-        const userId = uid || (this.user ? this.user.uid : null);
-        if (!userId) return null;
-        try {
-            const doc = await db.collection('users').doc(userId).get();
-            return doc.exists ? { uid: doc.id, ...doc.data() } : null;
-        } catch (error) {
-            return null;
-        }
-    }
-
     updateUI() {
         const userNameElements = document.querySelectorAll('#userName');
         const userAvatarElements = document.querySelectorAll('.user-avatar');
         
         if (this.user) {
-            const displayName = this.user.displayName || this.user.email.split('@')[0];
+            const displayName = this.user.displayName || this.user.email?.split('@')[0] || 'Usuário';
             userNameElements.forEach(el => {
                 el.textContent = displayName;
                 el.style.display = 'inline';
