@@ -9,8 +9,12 @@ class QuizEditor {
     }
 
     async init() {
+        console.log('🔧 QuizEditor inicializando...');
+        
         // Aguardar autenticação
         auth.onAuthStateChanged(async (user) => {
+            console.log('📡 Auth state changed:', user ? `Usuário: ${user.displayName}` : 'Nenhum usuário');
+            
             if (!user) {
                 Utils.showToast('Você precisa estar logado', 'warning');
                 setTimeout(() => window.location.href = 'index.html', 1500);
@@ -20,6 +24,7 @@ class QuizEditor {
             // Verificar se é edição
             const urlParams = new URLSearchParams(window.location.search);
             this.quizId = urlParams.get('edit') || urlParams.get('view');
+            console.log('📝 Quiz ID:', this.quizId || 'Novo quiz');
             
             if (this.quizId) {
                 this.isEditMode = true;
@@ -28,11 +33,13 @@ class QuizEditor {
             
             this.setupEventListeners();
             this.renderQuestions();
+            console.log('✅ QuizEditor pronto!');
         });
     }
 
     async loadQuiz() {
         try {
+            console.log('📖 Carregando quiz para edição...');
             const quizDoc = await db.collection('quizzes').doc(this.quizId).get();
             if (!quizDoc.exists) {
                 Utils.showToast('Quiz não encontrado', 'error');
@@ -41,6 +48,7 @@ class QuizEditor {
             }
             
             const quiz = { id: quizDoc.id, ...quizDoc.data() };
+            console.log('📖 Quiz carregado:', quiz.title);
             
             // Verificar se o usuário é o criador
             if (quiz.creatorId !== auth.currentUser.uid) {
@@ -61,16 +69,23 @@ class QuizEditor {
             Utils.showToast('Quiz carregado para edição', 'success');
             
         } catch (error) {
-            console.error('Erro ao carregar quiz:', error);
+            console.error('❌ Erro ao carregar quiz:', error);
             Utils.showToast('Erro ao carregar quiz: ' + error.message, 'error');
         }
     }
 
     setupEventListeners() {
+        console.log('🔧 Configurando event listeners...');
+        
         // Botão adicionar pergunta
         const addBtn = document.getElementById('addQuestionBtn');
         if (addBtn) {
-            addBtn.addEventListener('click', () => this.openQuestionModal());
+            addBtn.addEventListener('click', () => {
+                console.log('➕ Botão "Adicionar Pergunta" clicado');
+                this.openQuestionModal();
+            });
+        } else {
+            console.error('❌ Botão "addQuestionBtn" não encontrado!');
         }
         
         // Fechar modal
@@ -89,6 +104,7 @@ class QuizEditor {
         if (questionForm) {
             questionForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                console.log('💾 Formulário de pergunta submetido');
                 this.saveQuestion();
             });
         }
@@ -96,38 +112,68 @@ class QuizEditor {
         // Adicionar opção
         const addOptionBtn = document.getElementById('addOptionBtn');
         if (addOptionBtn) {
-            addOptionBtn.addEventListener('click', () => this.addOption());
+            addOptionBtn.addEventListener('click', () => {
+                console.log('➕ Adicionando nova opção');
+                this.addOption();
+            });
         }
         
         // Salvar quiz
         const saveQuizBtn = document.getElementById('saveQuizBtn');
         if (saveQuizBtn) {
-            saveQuizBtn.addEventListener('click', async () => {
+            console.log('✅ Botão "Salvar Quiz" encontrado');
+            saveQuizBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log('💾 Botão "Salvar Quiz" clicado!');
+                
                 saveQuizBtn.disabled = true;
                 saveQuizBtn.textContent = '💾 Salvando...';
+                
                 const success = await this.saveQuiz();
+                
                 if (success) {
+                    console.log('✅ Quiz salvo com sucesso!');
                     Utils.showToast('Quiz salvo com sucesso!', 'success');
                     setTimeout(() => {
                         window.location.href = 'my-quizzes.html';
                     }, 1500);
                 } else {
+                    console.log('❌ Erro ao salvar quiz');
                     saveQuizBtn.disabled = false;
                     saveQuizBtn.textContent = '💾 Salvar Quiz';
                 }
             });
+        } else {
+            console.error('❌ Botão "saveQuizBtn" não encontrado!');
         }
         
         // Cancelar
         const cancelQuizBtn = document.getElementById('cancelBtn');
         if (cancelQuizBtn) {
+            console.log('✅ Botão "Cancelar" encontrado');
             cancelQuizBtn.addEventListener('click', () => {
+                console.log('❌ Botão "Cancelar" clicado');
                 window.location.href = 'my-quizzes.html';
             });
+        } else {
+            console.error('❌ Botão "cancelBtn" não encontrado!');
         }
+        
+        // Botão logout
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await auth.signOut();
+                window.location.href = 'index.html';
+            });
+        }
+        
+        console.log('✅ Event listeners configurados');
     }
 
     openQuestionModal(questionIndex = null) {
+        console.log('📝 Abrindo modal de pergunta:', questionIndex !== null ? `editando index ${questionIndex}` : 'nova pergunta');
+        
         this.editingQuestionIndex = questionIndex;
         const modal = document.getElementById('questionModal');
         const modalTitle = document.getElementById('modalTitle');
@@ -206,6 +252,8 @@ class QuizEditor {
     }
 
     saveQuestion() {
+        console.log('💾 Salvando pergunta...');
+        
         const questionText = document.getElementById('questionText').value.trim();
         const timeLimit = parseInt(document.getElementById('timeLimit').value);
         
@@ -256,9 +304,11 @@ class QuizEditor {
         if (this.editingQuestionIndex !== null) {
             this.questions[this.editingQuestionIndex] = question;
             Utils.showToast('Pergunta atualizada!', 'success');
+            console.log('✅ Pergunta atualizada no índice', this.editingQuestionIndex);
         } else {
             this.questions.push(question);
             Utils.showToast('Pergunta adicionada!', 'success');
+            console.log('✅ Nova pergunta adicionada. Total:', this.questions.length);
         }
         
         this.renderQuestions();
@@ -318,10 +368,14 @@ class QuizEditor {
     }
 
     async saveQuiz() {
+        console.log('💾 Iniciando salvamento do quiz...');
+        
         const title = document.getElementById('quizTitle').value.trim();
         const description = document.getElementById('quizDescription').value.trim();
         const randomize = document.getElementById('randomizeQuestions').checked;
         const showCorrect = document.getElementById('showCorrectAnswer').checked;
+        
+        console.log('📝 Dados do quiz:', { title, description, randomize, showCorrect, questionsCount: this.questions.length });
         
         if (!title) {
             Utils.showToast('Por favor, insira um título para o quiz', 'warning');
@@ -364,12 +418,12 @@ class QuizEditor {
         
         try {
             if (this.isEditMode && this.quizId) {
-                // Atualizar quiz existente
+                console.log('📝 Atualizando quiz existente:', this.quizId);
                 await db.collection('quizzes').doc(this.quizId).update(quizData);
                 Utils.showToast('Quiz atualizado com sucesso!', 'success');
                 return true;
             } else {
-                // Criar novo quiz
+                console.log('📝 Criando novo quiz...');
                 const quizId = Utils.generateId();
                 await db.collection('quizzes').doc(quizId).set({
                     ...quizData,
@@ -379,11 +433,12 @@ class QuizEditor {
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     timesPlayed: 0
                 });
+                console.log('✅ Quiz criado com ID:', quizId);
                 Utils.showToast('Quiz criado com sucesso!', 'success');
                 return true;
             }
         } catch (error) {
-            console.error('Erro ao salvar quiz:', error);
+            console.error('❌ Erro ao salvar quiz:', error);
             Utils.showToast('Erro ao salvar quiz: ' + error.message, 'error');
             return false;
         }
@@ -396,7 +451,8 @@ class QuizEditor {
     }
 }
 
-// Inicializar
+// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 DOM carregado, iniciando QuizEditor...');
     window.quizEditor = new QuizEditor();
 });
