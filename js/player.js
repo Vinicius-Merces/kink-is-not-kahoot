@@ -187,30 +187,63 @@ class PlayerManager {
     async submitAnswer(selectedOption) {
         if (this.hasAnswered) return;
         this.hasAnswered = true;
+        
         if (this.timerInterval) clearInterval(this.timerInterval);
+        
+        // Calcular tempo de resposta em segundos
         const responseTime = (new Date() - this.questionStartTime) / 1000;
-        const isCorrect = selectedOption === this.currentQuestion.correct;
+        const timeLimit = this.currentQuestion.timeLimit;
+        const isCorrect = (selectedOption === this.currentQuestion.correct);
+        
+        // Calcular pontos (temporário, o host vai recalcular)
         let points = 0;
         if (isCorrect && selectedOption !== null) {
-            const timeLimit = this.currentQuestion.timeLimit;
-            const speedBonus = Math.max(0, (timeLimit - responseTime) / timeLimit);
-            points = Math.floor(1000 * speedBonus);
+            const timeRemaining = Math.max(0, timeLimit - responseTime);
+            points = Math.floor(1000 * (timeRemaining / timeLimit));
+            points = Math.min(1000, Math.max(0, points));
         }
+        
+        console.log(`📤 Resposta enviada:`);
+        console.log(`   Jogador: ${this.playerName}`);
+        console.log(`   Resposta: ${selectedOption !== null ? String.fromCharCode(65 + selectedOption) : 'Nenhuma'}`);
+        console.log(`   Correta: ${isCorrect ? 'Sim' : 'Não'}`);
+        console.log(`   Tempo: ${responseTime.toFixed(1)}s / ${timeLimit}s`);
+        console.log(`   Pontos (provisório): ${points}`);
+        
         try {
+            // Salvar resposta no Firestore
             await db.collection(`rooms/${this.room.id}/answers`).doc(`${this.currentQuestion.index}_${this.playerId}`).set({
-                playerId: this.playerId, playerName: this.playerName, avatar: this.playerAvatar,
-                questionIndex: this.currentQuestion.index, answer: selectedOption,
-                isCorrect: isCorrect, responseTime: responseTime, points: points,
+                playerId: this.playerId,
+                playerName: this.playerName,
+                avatar: this.playerAvatar,
+                questionIndex: this.currentQuestion.index,
+                answer: selectedOption,
+                isCorrect: isCorrect,
+                responseTime: responseTime,
+                points: points, // pontos provisórios, serão recalculados pelo host
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            console.log(`✅ Resposta salva com sucesso!`);
+            
+            // Atualizar pontuação local (apenas visual)
             const currentScoreElem = document.getElementById('currentScore');
             if (currentScoreElem) {
                 const currentScore = parseInt(currentScoreElem.textContent) || 0;
                 currentScoreElem.textContent = currentScore + points;
             }
+            
+            // Mostrar feedback visual
             this.showQuestionFeedback(isCorrect, points, this.currentQuestion.options[this.currentQuestion.correct]);
-            document.querySelectorAll('.option-btn').forEach(btn => { btn.disabled = true; btn.classList.add('disabled'); });
+            
+            // Desabilitar opções
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('disabled');
+            });
+            
         } catch (error) {
+            console.error('❌ Erro ao enviar resposta:', error);
             Utils.showToast('Erro ao enviar resposta', 'error');
         }
     }
@@ -218,10 +251,23 @@ class PlayerManager {
     showQuestionFeedback(isCorrect, points, correctAnswer) {
         const feedbackDiv = document.getElementById('feedbackMessage');
         const resultIcon = isCorrect ? '✅' : '❌';
-        const message = isCorrect ? `Correto! +${points} pontos!` : `Errou! A resposta correta era: ${correctAnswer}`;
-        feedbackDiv.innerHTML = `<div class="feedback ${isCorrect ? 'correct' : 'incorrect'}"><span class="feedback-icon">${resultIcon}</span><span class="feedback-text">${message}</span></div>`;
+        const message = isCorrect 
+            ? `Correto! +${points} pontos!` 
+            : `Errou! A resposta correta era: ${correctAnswer}`;
+        
+        feedbackDiv.innerHTML = `
+            <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
+                <span class="feedback-icon">${resultIcon}</span>
+                <span class="feedback-text">${message}</span>
+            </div>
+        `;
+        
         feedbackDiv.style.display = 'block';
-        setTimeout(() => { feedbackDiv.style.display = 'none'; }, 3000);
+        
+        // Esconder após 3 segundos
+        setTimeout(() => {
+            feedbackDiv.style.display = 'none';
+        }, 3000);
     }
 
     showResultScreen() {

@@ -186,50 +186,101 @@ class HostManager {
     }
 
     async finishQuestion() {
-        if (this.timerInterval) clearInterval(this.timerInterval);
-        const currentIndex = this.room.currentQuestionIndex;
-        const question = this.quiz.questions[currentIndex];
-        const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`).where('questionIndex', '==', currentIndex).get();
-        const answers = [];
-        answersSnapshot.forEach(doc => answers.push({ id: doc.id, ...doc.data() }));
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    
+    const currentIndex = this.room.currentQuestionIndex;
+    const question = this.quiz.questions[currentIndex];
+    const timeLimit = question.timeLimit || 30;
+    
+    console.log(`🏁 Finalizando pergunta ${currentIndex + 1}`);
+    console.log(`   Tempo limite: ${timeLimit}s`);
+    
+    // Buscar todas as respostas desta pergunta
+    const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`)
+        .where('questionIndex', '==', currentIndex)
+        .get();
+    
+    const answers = [];
+    answersSnapshot.forEach(doc => answers.push({ id: doc.id, ...doc.data() }));
+    
+    console.log(`   Total de respostas: ${answers.length}`);
+    
+    // Calcular pontuação para cada resposta
+    for (const answer of answers) {
+        const isCorrect = (answer.answer === question.correct);
+        let points = 0;
         
-        for (const answer of answers) {
-            const isCorrect = answer.answer === question.correct;
-            const timeSpent = answer.responseTime || 0;
-            const timeLimit = question.timeLimit || 30;
-            let points = 0;
-            if (isCorrect) {
-                const speedBonus = Math.max(0, (timeLimit - timeSpent) / timeLimit);
-                points = Math.floor(1000 * speedBonus);
-            }
-            const playerScoreRef = db.collection(`rooms/${this.roomId}/scores`).doc(answer.playerId);
-            const playerScoreDoc = await playerScoreRef.get();
-            if (playerScoreDoc.exists) {
-                const currentScore = playerScoreDoc.data().totalScore || 0;
-                await playerScoreRef.update({
-                    totalScore: currentScore + points,
-                    [`answers.q${currentIndex}`]: { points: points, correct: isCorrect, time: timeSpent },
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } else {
-                await playerScoreRef.set({
-                    playerId: answer.playerId,
-                    playerName: answer.playerName,
-                    avatar: answer.avatar,
-                    totalScore: points,
-                    [`answers.q${currentIndex}`]: { points: points, correct: isCorrect, time: timeSpent },
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
+        if (isCorrect) {
+            // Calcular tempo de resposta
+            const responseTime = answer.responseTime || timeLimit;
+            // Calcular tempo restante (não pode ser negativo)
+            const timeRemaining = Math.max(0, timeLimit - responseTime);
+            // Pontuação baseada na velocidade
+            points = Math.floor(1000 * (timeRemaining / timeLimit));
+            // Garantir que não ultrapasse 1000 e não seja negativo
+            points = Math.min(1000, Math.max(0, points));
+            
+            console.log(`   ✅ ${answer.playerName}: Acertou! Tempo: ${responseTime.toFixed(1)}s -> ${points} pontos`);
+        } else {
+            console.log(`   ❌ ${answer.playerName}: Errou! 0 pontos`);
         }
-        const totalAnswers = answers.length;
-        const correctAnswers = answers.filter(a => a.answer === question.correct).length;
-        const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers * 100).toFixed(1) : 0;
-        document.getElementById('answersCount').textContent = totalAnswers;
-        document.getElementById('accuracyRate').textContent = `${accuracy}%`;
-        await db.collection('rooms').doc(this.roomId).update({ status: 'active' });
-        Utils.showToast(`Pergunta finalizada! ${correctAnswers}/${totalAnswers} acertos`, 'info');
+        
+        // Atualizar pontuação do jogador
+        const playerScoreRef = db.collection(`rooms/${this.roomId}/scores`).doc(answer.playerId);
+        const playerScoreDoc = await playerScoreRef.get();
+        
+        if (playerScoreDoc.exists) {
+            const currentScore = playerScoreDoc.data().totalScore || 0;
+            await playerScoreRef.update({
+                totalScore: currentScore + points,
+                [`answers.q${currentIndex}`]: {
+                    points: points,
+                    correct: isCorrect,
+                    time: answer.responseTime,
+                    answer: answer.answer
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await playerScoreRef.set({
+                playerId: answer.playerId,
+                playerName: answer.playerName,
+                avatar: answer.avatar,
+                totalScore: points,
+                [`answers.q${currentIndex}`]: {
+                    points: points,
+                    correct: isCorrect,
+                    time: answer.responseTime,
+                    answer: answer.answer
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        // Atualizar o documento da resposta com os pontos calculados
+        await db.collection(`rooms/${this.roomId}/answers`).doc(answer.id).update({
+            points: points,
+            isCorrect: isCorrect,
+            calculatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
     }
+    
+    // Calcular estatísticas da pergunta
+    const totalAnswers = answers.length;
+    const correctAnswers = answers.filter(a => a.answer === question.correct).length;
+    const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers * 100).toFixed(1) : 0;
+    
+    document.getElementById('answersCount').textContent = totalAnswers;
+    document.getElementById('accuracyRate').textContent = `${accuracy}%`;
+    
+    // Atualizar status da sala
+    await db.collection('rooms').doc(this.roomId).update({ 
+        status: 'active' 
+    });
+    
+    console.log(`📊 Estatísticas: ${correctAnswers}/${totalAnswers} acertos (${accuracy}%)`);
+    Utils.showToast(`Pergunta finalizada! ${correctAnswers}/${totalAnswers} acertos`, 'info');
+}
 
     async nextQuestion() {
         const nextIndex = this.room.currentQuestionIndex + 1;
