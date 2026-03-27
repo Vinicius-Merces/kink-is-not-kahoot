@@ -42,12 +42,24 @@ db.enablePersistence()
         console.log("⚠️ Persistência offline não disponível:", err.message);
     });
 
-// Utilitário para gerar código de sala
+// Utilitário para gerar código de sala (estilo KINK) - GARANTINDO 6 DÍGITOS
 function generateRoomCode() {
     const prefixes = ['K', 'NK', 'INK'];
-    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase(); // 5 caracteres
     const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    return (prefix + randomPart).substring(0, 6);
+    let code = prefix + randomPart;
+    
+    // Garantir que tenha exatamente 6 caracteres
+    if (code.length > 6) {
+        code = code.substring(0, 6);
+    } else if (code.length < 6) {
+        // Se for menor, completar com números aleatórios
+        while (code.length < 6) {
+            code += Math.floor(Math.random() * 10);
+        }
+    }
+    
+    return code;
 }
 
 // Utilitário para validar código

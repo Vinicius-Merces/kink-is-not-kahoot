@@ -10,11 +10,57 @@ class MusicPlayer {
     }
 
     init() {
-        // Carregar playlist do localStorage ou usar padrão
-        this.loadPlaylist();
-        this.setupAudioEvents();
-        this.createPlayerUI();
-        this.setupKeyboardShortcuts();
+    // Carregar playlist do localStorage ou usar padrão
+    this.loadPlaylist();
+    this.setupAudioEvents();
+    this.createPlayerUI();
+    this.setupKeyboardShortcuts();
+    
+    // Tentar auto-play quando o usuário interagir com a página
+    this.setupAutoPlay();
+    }
+
+    setupAutoPlay() {
+        // Verificar se já está tocando
+        const wasPlaying = localStorage.getItem('kink_was_playing');
+        
+        // Tentar iniciar auto-play imediatamente (pode ser bloqueado pelo navegador)
+        this.audio.play().then(() => {
+            this.isPlaying = true;
+            this.updatePlayButton();
+            console.log('🎵 Auto-play iniciado com sucesso!');
+        }).catch(e => {
+            console.log('🎵 Auto-play bloqueado pelo navegador. Aguardando interação do usuário.');
+            // Se bloqueado, aguardar clique do usuário na página
+            this.waitForUserInteraction();
+        });
+    }
+
+    waitForUserInteraction() {
+        const startPlayback = () => {
+            this.audio.play().then(() => {
+                this.isPlaying = true;
+                this.updatePlayButton();
+                console.log('🎵 Playback iniciado após interação do usuário');
+            }).catch(e => console.log('Erro ao iniciar playback:', e));
+            
+            // Remover listeners após primeira interação
+            document.removeEventListener('click', startPlayback);
+            document.removeEventListener('keydown', startPlayback);
+            document.removeEventListener('touchstart', startPlayback);
+        };
+        
+        // Aguardar qualquer interação do usuário
+        document.addEventListener('click', startPlayback);
+        document.addEventListener('keydown', startPlayback);
+        document.addEventListener('touchstart', startPlayback);
+    }
+
+    updatePlayButton() {
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        if (playPauseBtn) {
+            playPauseBtn.innerHTML = this.isPlaying ? '<span>⏸️</span>' : '<span>▶️</span>';
+        }
     }
 
     loadPlaylist() {
