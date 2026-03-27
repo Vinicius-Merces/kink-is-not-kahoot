@@ -146,10 +146,16 @@ class HostManager {
             this.endGame();
             return;
         }
+        
         const question = this.quiz.questions[currentIndex];
+        const startTime = firebase.firestore.FieldValue.serverTimestamp();
+        
+        console.log(`🎯 Iniciando pergunta ${currentIndex + 1}: ${question.text}`);
+        console.log(`   Tempo limite: ${question.timeLimit || 30}s`);
+        
         await db.collection('rooms').doc(this.roomId).update({
             status: 'question_active',
-            currentQuestionStartTime: firebase.firestore.FieldValue.serverTimestamp(),
+            currentQuestionStartTime: startTime,
             currentQuestionData: {
                 text: question.text,
                 options: question.options,
@@ -157,6 +163,7 @@ class HostManager {
                 correct: question.correct
             }
         });
+        
         document.getElementById('startQuestionBtn').style.display = 'none';
         document.getElementById('nextQuestionBtn').style.display = 'block';
         Utils.showToast(`Pergunta ${currentIndex + 1} iniciada!`, 'info');
@@ -171,6 +178,7 @@ class HostManager {
         let timeLeft = limit;
         timerSeconds.textContent = timeLeft;
         if (timerBar) timerBar.style.width = '100%';
+        
         this.timerInterval = setInterval(() => {
             timeLeft--;
             timerSeconds.textContent = Math.max(0, timeLeft);
@@ -180,107 +188,139 @@ class HostManager {
                 this.finishQuestion();
             }
         }, 1000);
+        
         setTimeout(() => {
-            if (this.room.status === 'question_active') this.finishQuestion();
+            if (this.room.status === 'question_active') {
+                this.finishQuestion();
+            }
         }, limit * 1000);
     }
 
     async finishQuestion() {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    
-    const currentIndex = this.room.currentQuestionIndex;
-    const question = this.quiz.questions[currentIndex];
-    const timeLimit = question.timeLimit || 30;
-    
-    console.log(`🏁 Finalizando pergunta ${currentIndex + 1}`);
-    console.log(`   Tempo limite: ${timeLimit}s`);
-    
-    // Buscar todas as respostas desta pergunta
-    const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`)
-        .where('questionIndex', '==', currentIndex)
-        .get();
-    
-    const answers = [];
-    answersSnapshot.forEach(doc => answers.push({ id: doc.id, ...doc.data() }));
-    
-    console.log(`   Total de respostas: ${answers.length}`);
-    
-    // Calcular pontuação para cada resposta
-    for (const answer of answers) {
-        const isCorrect = (answer.answer === question.correct);
-        let points = 0;
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+        }
         
-        if (isCorrect) {
-            // Calcular tempo de resposta
-            const responseTime = answer.responseTime || timeLimit;
-            // Calcular tempo restante (não pode ser negativo)
-            const timeRemaining = Math.max(0, timeLimit - responseTime);
-            // Pontuação baseada na velocidade
-            points = Math.floor(1000 * (timeRemaining / timeLimit));
-            // Garantir que não ultrapasse 1000 e não seja negativo
-            points = Math.min(1000, Math.max(0, points));
+        const currentIndex = this.room.currentQuestionIndex;
+        const question = this.quiz.questions[currentIndex];
+        const timeLimit = question.timeLimit || 30;
+        const startTime = this.room.currentQuestionStartTime?.toDate();
+        
+        console.log(`\n🏁 ========== FINALIZANDO PERGUNTA ${currentIndex + 1} ==========`);
+        console.log(`   Título: ${question.text}`);
+        console.log(`   Tempo limite: ${timeLimit}s`);
+        
+        // Buscar todas as respostas desta pergunta
+        const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`)
+            .where('questionIndex', '==', currentIndex)
+            .get();
+        
+        const answers = [];
+        answersSnapshot.forEach(doc => answers.push({ id: doc.id, ...doc.data() }));
+        
+        console.log(`   Total de respostas: ${answers.length}`);
+        
+        let correctCount = 0;
+        
+        // Calcular pontuação para cada resposta
+        for (const answer of answers) {
+            const isCorrect = (answer.answer === question.correct);
+            let points = 0;
             
-            console.log(`   ✅ ${answer.playerName}: Acertou! Tempo: ${responseTime.toFixed(1)}s -> ${points} pontos`);
-        } else {
-            console.log(`   ❌ ${answer.playerName}: Errou! 0 pontos`);
-        }
-        
-        // Atualizar pontuação do jogador
-        const playerScoreRef = db.collection(`rooms/${this.roomId}/scores`).doc(answer.playerId);
-        const playerScoreDoc = await playerScoreRef.get();
-        
-        if (playerScoreDoc.exists) {
-            const currentScore = playerScoreDoc.data().totalScore || 0;
-            await playerScoreRef.update({
-                totalScore: currentScore + points,
-                [`answers.q${currentIndex}`]: {
+            if (isCorrect) {
+                // Calcular tempo de resposta em segundos
+                let responseTime = answer.responseTime;
+                
+                // Se não tiver responseTime, tentar calcular pelo timestamp
+                if (!responseTime && answer.timestamp && startTime) {
+                    responseTime = (answer.timestamp.toDate() - startTime) / 1000;
+                }
+                
+                // Garantir que responseTime seja um número válido
+                responseTime = Math.min(responseTime || timeLimit, timeLimit);
+                
+                // Calcular tempo restante
+                const timeRemaining = Math.max(0, timeLimit - responseTime);
+                
+                // FÓRMULA DE PONTUAÇÃO: pontos = 1000 × (tempo_restante / tempo_limite)
+                points = Math.floor(1000 * (timeRemaining / timeLimit));
+                
+                // Garantir que pontos não ultrapassem 1000
+                points = Math.min(1000, Math.max(0, points));
+                
+                console.log(`   ✅ ${answer.playerName}: ACERTOU!`);
+                console.log(`      Tempo: ${responseTime.toFixed(2)}s | Restante: ${timeRemaining.toFixed(2)}s`);
+                console.log(`      Pontos: ${points} (${((timeRemaining / timeLimit) * 100).toFixed(0)}% da pontuação máxima)`);
+                correctCount++;
+            } else {
+                points = 0;
+                console.log(`   ❌ ${answer.playerName}: ERROU! 0 pontos`);
+            }
+            
+            // Atualizar o documento da resposta com os pontos
+            await db.collection(`rooms/${this.roomId}/answers`).doc(answer.id).update({
+                points: points,
+                isCorrect: isCorrect,
+                calculatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Atualizar pontuação do jogador
+            const playerScoreRef = db.collection(`rooms/${this.roomId}/scores`).doc(answer.playerId);
+            const playerScoreDoc = await playerScoreRef.get();
+            
+            if (playerScoreDoc.exists) {
+                const currentScore = playerScoreDoc.data().totalScore || 0;
+                const answersHistory = playerScoreDoc.data().answers || {};
+                answersHistory[`q${currentIndex}`] = {
                     points: points,
                     correct: isCorrect,
                     time: answer.responseTime,
                     answer: answer.answer
-                },
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } else {
-            await playerScoreRef.set({
-                playerId: answer.playerId,
-                playerName: answer.playerName,
-                avatar: answer.avatar,
-                totalScore: points,
-                [`answers.q${currentIndex}`]: {
-                    points: points,
-                    correct: isCorrect,
-                    time: answer.responseTime,
-                    answer: answer.answer
-                },
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+                };
+                
+                await playerScoreRef.update({
+                    totalScore: currentScore + points,
+                    answers: answersHistory,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } else {
+                await playerScoreRef.set({
+                    playerId: answer.playerId,
+                    playerName: answer.playerName,
+                    avatar: answer.avatar,
+                    totalScore: points,
+                    answers: {
+                        [`q${currentIndex}`]: {
+                            points: points,
+                            correct: isCorrect,
+                            time: answer.responseTime,
+                            answer: answer.answer
+                        }
+                    },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
         }
         
-        // Atualizar o documento da resposta com os pontos calculados
-        await db.collection(`rooms/${this.roomId}/answers`).doc(answer.id).update({
-            points: points,
-            isCorrect: isCorrect,
-            calculatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        // Calcular estatísticas da pergunta
+        const totalAnswers = answers.length;
+        const accuracy = totalAnswers > 0 ? (correctCount / totalAnswers * 100).toFixed(1) : 0;
+        
+        document.getElementById('answersCount').textContent = totalAnswers;
+        document.getElementById('accuracyRate').textContent = `${accuracy}%`;
+        
+        console.log(`\n📊 ESTATÍSTICAS DA PERGUNTA:`);
+        console.log(`   Acertos: ${correctCount}/${totalAnswers} (${accuracy}%)`);
+        console.log(`   Pontuação média: ${totalAnswers > 0 ? (answers.reduce((sum, a) => sum + (a.points || 0), 0) / totalAnswers).toFixed(0) : 0} pontos`);
+        console.log(`=========================================\n`);
+        
+        // Atualizar status da sala
+        await db.collection('rooms').doc(this.roomId).update({ 
+            status: 'active' 
         });
+        
+        Utils.showToast(`Pergunta finalizada! ${correctCount}/${totalAnswers} acertos (${accuracy}%)`, 'info');
     }
-    
-    // Calcular estatísticas da pergunta
-    const totalAnswers = answers.length;
-    const correctAnswers = answers.filter(a => a.answer === question.correct).length;
-    const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers * 100).toFixed(1) : 0;
-    
-    document.getElementById('answersCount').textContent = totalAnswers;
-    document.getElementById('accuracyRate').textContent = `${accuracy}%`;
-    
-    // Atualizar status da sala
-    await db.collection('rooms').doc(this.roomId).update({ 
-        status: 'active' 
-    });
-    
-    console.log(`📊 Estatísticas: ${correctAnswers}/${totalAnswers} acertos (${accuracy}%)`);
-    Utils.showToast(`Pergunta finalizada! ${correctAnswers}/${totalAnswers} acertos`, 'info');
-}
 
     async nextQuestion() {
         const nextIndex = this.room.currentQuestionIndex + 1;
@@ -288,7 +328,12 @@ class HostManager {
             this.endGame();
             return;
         }
-        await db.collection('rooms').doc(this.roomId).update({ currentQuestionIndex: nextIndex, status: 'active' });
+        
+        await db.collection('rooms').doc(this.roomId).update({ 
+            currentQuestionIndex: nextIndex, 
+            status: 'active' 
+        });
+        
         document.getElementById('startQuestionBtn').style.display = 'block';
         document.getElementById('nextQuestionBtn').style.display = 'none';
         document.getElementById('questionTimer').style.display = 'none';
@@ -298,8 +343,16 @@ class HostManager {
 
     async endGame() {
         if (this.timerInterval) clearInterval(this.timerInterval);
-        await db.collection('rooms').doc(this.roomId).update({ status: 'finished', active: false, endedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        
+        await db.collection('rooms').doc(this.roomId).update({ 
+            status: 'finished', 
+            active: false, 
+            endedAt: firebase.firestore.FieldValue.serverTimestamp() 
+        });
+        
+        console.log(`\n🏆 QUIZ FINALIZADO! 🏆`);
         Utils.showToast('Quiz finalizado! Obrigado a todos os participantes!', 'success');
+        
         document.getElementById('startQuestionBtn').style.display = 'none';
         document.getElementById('nextQuestionBtn').style.display = 'none';
         document.getElementById('startGameBtn').style.display = 'none';

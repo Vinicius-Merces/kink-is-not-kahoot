@@ -143,28 +143,47 @@ class PlayerManager {
 
     async handleQuestionStart(roomData) {
         if (this.currentScreen === 'questionScreen') return;
+        
         const currentIndex = roomData.currentQuestionIndex;
         const questionData = roomData.currentQuestionData;
         if (!questionData) return;
+        
         this.currentQuestion = {
-            index: currentIndex, text: questionData.text, options: questionData.options,
-            timeLimit: questionData.timeLimit, correct: questionData.correct
+            index: currentIndex,
+            text: questionData.text,
+            options: questionData.options,
+            timeLimit: questionData.timeLimit,
+            correct: questionData.correct
         };
-        this.questionStartTime = roomData.currentQuestionStartTime?.toDate() || new Date();
+        
+        this.questionStartTime = new Date(); // Registrar momento exato
         this.hasAnswered = false;
+        
         if (this.timerInterval) clearInterval(this.timerInterval);
+        
         this.showScreen('questionScreen');
         this.displayQuestion();
         this.startQuestionTimer();
+        
+        console.log(`🎯 Pergunta ${currentIndex + 1} iniciada!`);
+        console.log(`   Tempo limite: ${this.currentQuestion.timeLimit}s`);
     }
 
     displayQuestion() {
         document.getElementById('questionText').textContent = this.currentQuestion.text;
         const optionsGrid = document.getElementById('optionsGrid');
         const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-        optionsGrid.innerHTML = this.currentQuestion.options.map((option, index) => `<button class="option-btn" data-option="${index}"><div class="option-letter">${letters[index]}</div><div class="option-text">${Utils.escapeHtml(option)}</div></button>`).join('');
+        optionsGrid.innerHTML = this.currentQuestion.options.map((option, index) => `
+            <button class="option-btn" data-option="${index}">
+                <div class="option-letter">${letters[index]}</div>
+                <div class="option-text">${Utils.escapeHtml(option)}</div>
+            </button>
+        `).join('');
+        
         document.querySelectorAll('.option-btn').forEach(btn => {
-            btn.addEventListener('click', () => { if (!this.hasAnswered) this.submitAnswer(parseInt(btn.dataset.option)); });
+            btn.addEventListener('click', () => {
+                if (!this.hasAnswered) this.submitAnswer(parseInt(btn.dataset.option));
+            });
         });
     }
 
@@ -173,6 +192,7 @@ class PlayerManager {
         const timerValue = document.getElementById('timerValue');
         let timeLeft = this.currentQuestion.timeLimit;
         timerValue.textContent = timeLeft;
+        
         this.timerInterval = setInterval(() => {
             timeLeft--;
             timerValue.textContent = Math.max(0, timeLeft);
@@ -195,20 +215,20 @@ class PlayerManager {
         const timeLimit = this.currentQuestion.timeLimit;
         const isCorrect = (selectedOption === this.currentQuestion.correct);
         
-        // Calcular pontos (temporário, o host vai recalcular)
-        let points = 0;
+        // Calcular pontos (o host vai recalcular, mas mostramos uma prévia)
+        let previewPoints = 0;
         if (isCorrect && selectedOption !== null) {
             const timeRemaining = Math.max(0, timeLimit - responseTime);
-            points = Math.floor(1000 * (timeRemaining / timeLimit));
-            points = Math.min(1000, Math.max(0, points));
+            previewPoints = Math.floor(1000 * (timeRemaining / timeLimit));
+            previewPoints = Math.min(1000, Math.max(0, previewPoints));
         }
         
-        console.log(`📤 Resposta enviada:`);
+        console.log(`\n📤 RESPOSTA ENVIADA:`);
         console.log(`   Jogador: ${this.playerName}`);
         console.log(`   Resposta: ${selectedOption !== null ? String.fromCharCode(65 + selectedOption) : 'Nenhuma'}`);
-        console.log(`   Correta: ${isCorrect ? 'Sim' : 'Não'}`);
-        console.log(`   Tempo: ${responseTime.toFixed(1)}s / ${timeLimit}s`);
-        console.log(`   Pontos (provisório): ${points}`);
+        console.log(`   Correta: ${isCorrect ? 'SIM' : 'NÃO'}`);
+        console.log(`   Tempo: ${responseTime.toFixed(2)}s / ${timeLimit}s`);
+        console.log(`   Pontos (prévia): ${previewPoints}`);
         
         try {
             // Salvar resposta no Firestore
@@ -220,21 +240,20 @@ class PlayerManager {
                 answer: selectedOption,
                 isCorrect: isCorrect,
                 responseTime: responseTime,
-                points: points, // pontos provisórios, serão recalculados pelo host
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             
             console.log(`✅ Resposta salva com sucesso!`);
             
-            // Atualizar pontuação local (apenas visual)
+            // Atualizar pontuação local (prévia visual)
             const currentScoreElem = document.getElementById('currentScore');
             if (currentScoreElem) {
                 const currentScore = parseInt(currentScoreElem.textContent) || 0;
-                currentScoreElem.textContent = currentScore + points;
+                currentScoreElem.textContent = currentScore + previewPoints;
             }
             
             // Mostrar feedback visual
-            this.showQuestionFeedback(isCorrect, points, this.currentQuestion.options[this.currentQuestion.correct]);
+            this.showQuestionFeedback(isCorrect, previewPoints, this.currentQuestion.options[this.currentQuestion.correct]);
             
             // Desabilitar opções
             document.querySelectorAll('.option-btn').forEach(btn => {
@@ -264,7 +283,6 @@ class PlayerManager {
         
         feedbackDiv.style.display = 'block';
         
-        // Esconder após 3 segundos
         setTimeout(() => {
             feedbackDiv.style.display = 'none';
         }, 3000);
@@ -302,7 +320,16 @@ class PlayerManager {
             list.innerHTML = '<p class="placeholder">Nenhum jogador</p>';
             return;
         }
-        list.innerHTML = rankings.map((player, index) => `<div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}"><div class="ranking-position">${index + 1}º</div><div class="player-info"><span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span><span>${Utils.escapeHtml(player.playerName)}</span></div><div class="ranking-score">${player.totalScore || 0} pts</div></div>`).join('');
+        list.innerHTML = rankings.map((player, index) => `
+            <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+                <div class="ranking-position">${index + 1}º</div>
+                <div class="player-info">
+                    <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                    <span>${Utils.escapeHtml(player.playerName)}</span>
+                </div>
+                <div class="ranking-score">${player.totalScore || 0} pts</div>
+            </div>
+        `).join('');
     }
 
     updateWaitingPlayers(snapshot) {
