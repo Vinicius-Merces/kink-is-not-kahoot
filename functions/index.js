@@ -8,7 +8,6 @@ const db = admin.firestore();
 // ============================================
 // 1. FUNÇÃO: CALCULAR PONTUAÇÃO DA RESPOSTA
 // ============================================
-// Executa automaticamente quando uma resposta é criada
 exports.calculateScore = functions.firestore
     .document('rooms/{roomId}/answers/{answerId}')
     .onCreate(async (snap, context) => {
@@ -20,7 +19,7 @@ exports.calculateScore = functions.firestore
         console.log(`   Pergunta: ${answerData.questionIndex}`);
         
         try {
-            // 1. Buscar informações da sala
+            // Buscar informações da sala
             const roomDoc = await db.collection('rooms').doc(roomId).get();
             if (!roomDoc.exists) {
                 console.log('❌ Sala não encontrada');
@@ -29,7 +28,7 @@ exports.calculateScore = functions.firestore
             
             const room = roomDoc.data();
             
-            // 2. Buscar o quiz para obter a resposta correta
+            // Buscar o quiz
             const quizDoc = await db.collection('quizzes').doc(room.quizId).get();
             if (!quizDoc.exists) {
                 console.log('❌ Quiz não encontrado');
@@ -44,18 +43,15 @@ exports.calculateScore = functions.firestore
                 return null;
             }
             
-            // 3. Calcular pontuação
+            // Calcular pontuação
             const isCorrect = (answerData.answer === question.correct);
             let points = 0;
             
             if (isCorrect) {
                 const timeLimit = question.timeLimit || 30;
-                const responseTime = answerData.responseTime || timeLimit;
-                // Fórmula: quanto mais rápido, mais pontos (máximo 1000)
+                const responseTime = Math.min(answerData.responseTime || timeLimit, timeLimit);
                 const speedBonus = Math.max(0, (timeLimit - responseTime) / timeLimit);
                 points = Math.floor(1000 * speedBonus);
-                
-                // Garantir que pontos não sejam negativos
                 points = Math.max(0, Math.min(1000, points));
                 
                 console.log(`✅ Resposta correta! ${points} pontos (tempo: ${responseTime}s)`);
@@ -63,14 +59,14 @@ exports.calculateScore = functions.firestore
                 console.log(`❌ Resposta errada! 0 pontos`);
             }
             
-            // 4. Atualizar o documento da resposta com os pontos
+            // Atualizar resposta
             await snap.ref.update({
                 points: points,
                 isCorrect: isCorrect,
                 calculatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
             
-            // 5. Atualizar pontuação do jogador
+            // Atualizar pontuação do jogador
             const scoreRef = db.collection('rooms').doc(roomId)
                 .collection('scores').doc(answerData.playerId);
             
@@ -78,7 +74,6 @@ exports.calculateScore = functions.firestore
             const currentScore = scoreDoc.exists ? scoreDoc.data().totalScore || 0 : 0;
             const newScore = currentScore + points;
             
-            // Atualizar ou criar documento de pontuação
             await scoreRef.set({
                 playerId: answerData.playerId,
                 playerName: answerData.playerName,
@@ -93,12 +88,11 @@ exports.calculateScore = functions.firestore
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             
-            console.log(`🏆 Nova pontuação para ${answerData.playerName}: ${newScore} pontos`);
-            
+            console.log(`🏆 ${answerData.playerName}: ${newScore} pontos`);
             return { success: true, points: points };
             
         } catch (error) {
-            console.error('❌ Erro ao calcular pontuação:', error);
+            console.error('❌ Erro:', error);
             return null;
         }
     });
@@ -106,7 +100,6 @@ exports.calculateScore = functions.firestore
 // ============================================
 // 2. FUNÇÃO: FINALIZAR PERGUNTA AUTOMATICAMENTE
 // ============================================
-// Executa quando o timer da pergunta expira
 exports.autoFinishQuestion = functions.firestore
     .document('rooms/{roomId}')
     .onUpdate(async (change, context) => {
@@ -114,31 +107,21 @@ exports.autoFinishQuestion = functions.firestore
         const before = change.before.data();
         const after = change.after.data();
         
-        // Verificar se a pergunta foi iniciada e ainda está ativa
-        if (after.status === 'question_active' && 
-            before.status !== 'question_active') {
-            
+        if (after.status === 'question_active' && before.status !== 'question_active') {
             const timeLimit = after.currentQuestionData?.timeLimit || 30;
+            console.log(`⏰ Timer iniciado: ${timeLimit}s para pergunta ${after.currentQuestionIndex}`);
             
-            console.log(`⏰ Timer iniciado para pergunta ${after.currentQuestionIndex} na sala ${roomId}`);
-            console.log(`   Tempo limite: ${timeLimit} segundos`);
-            
-            // Aguardar o tempo limite
             await new Promise(resolve => setTimeout(resolve, timeLimit * 1000));
             
-            // Verificar se ainda está ativa (não foi finalizada manualmente)
             const roomNow = await db.collection('rooms').doc(roomId).get();
             const roomData = roomNow.data();
             
-            if (roomData.status === 'question_active') {
-                console.log(`⏰ Tempo esgotado! Finalizando pergunta ${roomData.currentQuestionIndex}`);
-                
-                // Finalizar a pergunta
+            if (roomData && roomData.status === 'question_active') {
                 await db.collection('rooms').doc(roomId).update({
                     status: 'active'
                 });
                 
-                // Calcular estatísticas da pergunta
+                // Estatísticas
                 const answersSnapshot = await db.collection('rooms')
                     .doc(roomId)
                     .collection('answers')
@@ -147,36 +130,29 @@ exports.autoFinishQuestion = functions.firestore
                 
                 const totalAnswers = answersSnapshot.size;
                 let correctAnswers = 0;
-                
                 answersSnapshot.forEach(doc => {
                     if (doc.data().isCorrect) correctAnswers++;
                 });
                 
-                console.log(`📊 Estatísticas da pergunta:`);
-                console.log(`   Total respostas: ${totalAnswers}`);
-                console.log(`   Acertos: ${correctAnswers}`);
-                console.log(`   Taxa de acerto: ${totalAnswers > 0 ? (correctAnswers/totalAnswers*100).toFixed(1) : 0}%`);
+                console.log(`⏰ Pergunta finalizada! Acertos: ${correctAnswers}/${totalAnswers}`);
             }
         }
-        
         return null;
     });
 
 // ============================================
-// 3. FUNÇÃO: LIMPAR SALAS ANTIGAS
+// 3. FUNÇÃO: LIMPAR SALAS ANTIGAS (diária)
 // ============================================
-// Executa a cada 24h para limpar salas com mais de 24h
 exports.cleanOldRooms = functions.pubsub
-    .schedule('0 0 * * *') // Executa todos os dias à meia-noite
+    .schedule('0 0 * * *')
     .timeZone('America/Sao_Paulo')
-    .onRun(async (context) => {
-        console.log('🧹 Iniciando limpeza de salas antigas...');
+    .onRun(async () => {
+        console.log('🧹 Limpando salas antigas...');
         
         const cutoffDate = new Date();
         cutoffDate.setHours(cutoffDate.getHours() - 24);
         
         try {
-            // Buscar salas com mais de 24h
             const roomsSnapshot = await db.collection('rooms')
                 .where('createdAt', '<', cutoffDate)
                 .where('active', '==', false)
@@ -186,15 +162,11 @@ exports.cleanOldRooms = functions.pubsub
             
             for (const roomDoc of roomsSnapshot.docs) {
                 const roomId = roomDoc.id;
-                console.log(`🗑️ Removendo sala antiga: ${roomId}`);
+                const batch = db.batch();
                 
-                // Remover subcoleções
                 const players = await db.collection('rooms').doc(roomId).collection('players').get();
                 const answers = await db.collection('rooms').doc(roomId).collection('answers').get();
                 const scores = await db.collection('rooms').doc(roomId).collection('scores').get();
-                
-                // Deletar em lote
-                const batch = db.batch();
                 
                 players.forEach(doc => batch.delete(doc.ref));
                 answers.forEach(doc => batch.delete(doc.ref));
@@ -205,25 +177,21 @@ exports.cleanOldRooms = functions.pubsub
                 deletedCount++;
             }
             
-            console.log(`✅ Limpeza concluída! ${deletedCount} salas removidas.`);
-            
+            console.log(`✅ ${deletedCount} salas removidas`);
         } catch (error) {
-            console.error('❌ Erro na limpeza:', error);
+            console.error('❌ Erro:', error);
         }
-        
         return null;
     });
 
 // ============================================
-// 4. FUNÇÃO: ATUALIZAR RANKING AO VIVO
+// 4. FUNÇÃO: ATUALIZAR RANKING
 // ============================================
-// Notifica todos os jogadores quando o ranking muda
 exports.onScoreUpdate = functions.firestore
     .document('rooms/{roomId}/scores/{playerId}')
     .onWrite(async (change, context) => {
         const { roomId } = context.params;
         
-        // Buscar todos os scores da sala
         const scoresSnapshot = await db.collection('rooms')
             .doc(roomId)
             .collection('scores')
@@ -241,28 +209,23 @@ exports.onScoreUpdate = functions.firestore
             });
         });
         
-        // Atualizar o documento de ranking da sala
         await db.collection('rooms').doc(roomId).update({
             ranking: ranking,
             lastRankingUpdate: admin.firestore.FieldValue.serverTimestamp()
         });
         
-        console.log(`📊 Ranking atualizado na sala ${roomId}`);
-        
         return null;
     });
 
 // ============================================
-// 5. FUNÇÃO: VALIDAR RESPOSTAS DUPLICADAS
+// 5. FUNÇÃO: PREVENIR RESPOSTAS DUPLICADAS
 // ============================================
-// Impede que o mesmo jogador responda duas vezes à mesma pergunta
 exports.preventDuplicateAnswers = functions.firestore
     .document('rooms/{roomId}/answers/{answerId}')
     .onCreate(async (snap, context) => {
         const { roomId } = context.params;
         const answerData = snap.data();
         
-        // Verificar se já existe resposta deste jogador para esta pergunta
         const existingAnswers = await db.collection('rooms')
             .doc(roomId)
             .collection('answers')
@@ -271,10 +234,6 @@ exports.preventDuplicateAnswers = functions.firestore
             .get();
         
         if (existingAnswers.size > 1) {
-            // Mais de uma resposta - deletar a mais recente
-            console.log(`⚠️ Resposta duplicada detectada para ${answerData.playerName}`);
-            
-            // Manter a primeira resposta, deletar as demais
             const answers = existingAnswers.docs;
             answers.sort((a, b) => {
                 const aTime = a.data().timestamp?.toDate() || new Date(0);
@@ -282,20 +241,17 @@ exports.preventDuplicateAnswers = functions.firestore
                 return aTime - bTime;
             });
             
-            // Manter a primeira, deletar as outras
             for (let i = 1; i < answers.length; i++) {
                 await answers[i].ref.delete();
-                console.log(`🗑️ Resposta duplicada removida`);
             }
+            console.log(`🗑️ Resposta duplicada removida para ${answerData.playerName}`);
         }
-        
         return null;
     });
 
 // ============================================
 // 6. FUNÇÃO: GERAR RELATÓRIO DO QUIZ
 // ============================================
-// Gera um relatório detalhado quando o quiz termina
 exports.generateQuizReport = functions.firestore
     .document('rooms/{roomId}')
     .onUpdate(async (change, context) => {
@@ -303,12 +259,10 @@ exports.generateQuizReport = functions.firestore
         const after = change.after.data();
         const before = change.before.data();
         
-        // Verificar se o quiz foi finalizado
         if (after.status === 'finished' && before.status !== 'finished') {
             console.log(`📊 Gerando relatório para sala ${roomId}`);
             
             try {
-                // Buscar todos os scores
                 const scoresSnapshot = await db.collection('rooms')
                     .doc(roomId)
                     .collection('scores')
@@ -320,69 +274,39 @@ exports.generateQuizReport = functions.firestore
                     players.push({
                         playerId: doc.id,
                         playerName: doc.data().playerName,
-                        totalScore: doc.data().totalScore,
-                        answers: doc.data().answers
+                        totalScore: doc.data().totalScore
                     });
                 });
                 
-                // Buscar o quiz
                 const quizDoc = await db.collection('quizzes').doc(after.quizId).get();
                 const quiz = quizDoc.data();
                 
-                // Calcular estatísticas gerais
-                const totalPlayers = players.length;
-                const averageScore = players.reduce((sum, p) => sum + p.totalScore, 0) / totalPlayers;
-                const highestScore = players.length > 0 ? players[0].totalScore : 0;
-                
-                // Criar relatório
-                const report = {
+                await db.collection('reports').doc(roomId).set({
                     roomId: roomId,
-                    quizTitle: quiz.title,
+                    quizTitle: quiz?.title || 'Quiz desconhecido',
+                    quizId: after.quizId,
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                    totalPlayers: totalPlayers,
-                    averageScore: averageScore,
-                    highestScore: highestScore,
+                    totalPlayers: players.length,
                     players: players,
-                    questions: quiz.questions.map((q, idx) => {
-                        // Calcular acertos por pergunta
-                        const correctCount = players.filter(p => 
-                            p.answers && p.answers[`q${idx}`] && p.answers[`q${idx}`].correct
-                        ).length;
-                        
-                        return {
-                            text: q.text,
-                            correctAnswer: q.options[q.correct],
-                            totalCorrect: correctCount,
-                            correctRate: (correctCount / totalPlayers * 100).toFixed(1)
-                        };
-                    })
-                };
+                    finishedAt: after.endedAt || admin.firestore.FieldValue.serverTimestamp()
+                });
                 
-                // Salvar relatório
-                await db.collection('reports').doc(roomId).set(report);
-                
-                console.log(`✅ Relatório gerado com sucesso!`);
-                console.log(`   Total de jogadores: ${totalPlayers}`);
-                console.log(`   Pontuação média: ${averageScore.toFixed(0)}`);
-                
+                console.log(`✅ Relatório gerado! ${players.length} jogadores`);
             } catch (error) {
-                console.error('❌ Erro ao gerar relatório:', error);
+                console.error('❌ Erro:', error);
             }
         }
-        
         return null;
     });
 
 // ============================================
-// 7. FUNÇÃO: WEBHOOK PARA NOTIFICAÇÕES (OPCIONAL)
+// 7. FUNÇÃO: NOTIFICAÇÃO DE PARTICIPAÇÃO
 // ============================================
-// Envia notificação quando um quiz atinge 10 jogadores
 exports.notifyHighParticipation = functions.firestore
     .document('rooms/{roomId}/players/{playerId}')
     .onCreate(async (snap, context) => {
         const { roomId } = context.params;
         
-        // Contar número de jogadores
         const playersSnapshot = await db.collection('rooms')
             .doc(roomId)
             .collection('players')
@@ -390,48 +314,35 @@ exports.notifyHighParticipation = functions.firestore
         
         const playerCount = playersSnapshot.size;
         
-        if (playerCount === 10) {
-            console.log(`🎉 Sala ${roomId} atingiu 10 jogadores!`);
+        if (playerCount === 5 || playerCount === 10 || playerCount === 20) {
+            console.log(`🎉 Sala ${roomId} atingiu ${playerCount} jogadores!`);
             
-            // Buscar informações da sala
             const roomDoc = await db.collection('rooms').doc(roomId).get();
             const room = roomDoc.data();
             
-            // Buscar criador da sala
-            const creatorDoc = await db.collection('users').doc(room.creatorId).get();
-            const creator = creatorDoc.data();
-            
-            console.log(`   Professor: ${creator?.name || room.creatorId}`);
-            console.log(`   Quiz: ${room.quizTitle}`);
-            console.log(`   Total jogadores: ${playerCount}`);
-            
-            // Aqui você pode adicionar integrações como:
-            // - Enviar email para o professor
-            // - Enviar notificação push
-            // - Registrar em analytics
+            if (room) {
+                console.log(`   Quiz: ${room.quizTitle}`);
+                console.log(`   Total jogadores: ${playerCount}`);
+            }
         }
-        
         return null;
     });
 
 // ============================================
-// 8. FUNÇÃO: BACKUP AUTOMÁTICO (OPCIONAL)
+// 8. FUNÇÃO: BACKUP AUTOMÁTICO (semanal)
 // ============================================
-// Faz backup de quizzes importantes a cada semana
 exports.backupImportantQuizzes = functions.pubsub
-    .schedule('0 0 * * 0') // Executa todo domingo à meia-noite
+    .schedule('0 0 * * 0')
     .timeZone('America/Sao_Paulo')
-    .onRun(async (context) => {
+    .onRun(async () => {
         console.log('💾 Iniciando backup de quizzes...');
         
         try {
-            // Buscar quizzes com mais de 50 jogadas
             const quizzesSnapshot = await db.collection('quizzes')
-                .where('timesPlayed', '>=', 50)
+                .where('timesPlayed', '>=', 10)
                 .get();
             
             const backups = [];
-            
             for (const doc of quizzesSnapshot.docs) {
                 backups.push({
                     quizId: doc.id,
@@ -440,18 +351,36 @@ exports.backupImportantQuizzes = functions.pubsub
                 });
             }
             
-            // Salvar backup
-            await db.collection('backups').doc(`backup_${Date.now()}`).set({
-                quizzes: backups,
-                totalQuizzes: backups.length,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            
-            console.log(`✅ Backup concluído! ${backups.length} quizzes salvos.`);
-            
+            if (backups.length > 0) {
+                await db.collection('backups').doc(`backup_${Date.now()}`).set({
+                    quizzes: backups,
+                    totalQuizzes: backups.length,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                console.log(`✅ Backup concluído! ${backups.length} quizzes salvos.`);
+            } else {
+                console.log('ℹ️ Nenhum quiz elegível para backup');
+            }
         } catch (error) {
             console.error('❌ Erro no backup:', error);
         }
-        
         return null;
     });
+
+// Exportar funções adicionais para debug
+exports.healthCheck = functions.https.onRequest(async (req, res) => {
+    res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        functions: [
+            'calculateScore',
+            'autoFinishQuestion',
+            'cleanOldRooms',
+            'onScoreUpdate',
+            'preventDuplicateAnswers',
+            'generateQuizReport',
+            'notifyHighParticipation',
+            'backupImportantQuizzes'
+        ]
+    });
+});
