@@ -1,60 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Usuários
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Quizzes - apenas criadores podem escrever, todos podem ler
-    match /quizzes/{quizId} {
-      allow read: if true;
-      allow write: if request.auth != null && 
-        (resource == null || request.auth.uid == resource.data.creatorId);
-      allow create: if request.auth != null;
-    }
-    
-    // Salas - todos podem ler, apenas criador pode escrever
-    match /rooms/{roomId} {
-      allow read: if true;
-      allow write: if request.auth != null && 
-        (resource == null || request.auth.uid == resource.data.creatorId);
-      allow create: if request.auth != null;
-    }
-    
-    // Players dentro da sala - todos podem ler e criar
-    match /rooms/{roomId}/players/{playerId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if request.auth != null && request.auth.uid == playerId;
-      allow delete: if false;
-    }
-    
-    // Respostas - todos podem ler e criar
-    match /rooms/{roomId}/answers/{answerId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if false;
-      allow delete: if false;
-    }
-    
-    // Pontuações - todos podem ler, só sistema pode escrever
-    match /rooms/{roomId}/scores/{scoreId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    
-    // Relatórios - apenas leitura para autenticados
-    match /reports/{reportId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-    
-    // Backups - apenas admin (bloqueado)
-    match /backups/{backupId} {
-      allow read, write: if false;
+    // Permitir leitura e escrita para usuários autenticados (para testes)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

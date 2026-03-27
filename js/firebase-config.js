@@ -20,7 +20,16 @@ if (!firebase.apps.length) {
 // Inicializar serviços
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+
+// IMPORTANTE: Storage só está disponível se o módulo foi carregado
+// Verificar se storage está disponível antes de usar
+let storage = null;
+if (typeof firebase.storage === 'function') {
+    storage = firebase.storage();
+    console.log("✅ Firebase Storage inicializado");
+} else {
+    console.log("⚠️ Firebase Storage não disponível (módulo não carregado)");
+}
 
 // Configuração de cache do Firestore
 db.settings({
@@ -30,7 +39,7 @@ db.settings({
 // Habilitar persistência offline
 db.enablePersistence()
     .catch((err) => {
-        console.log("⚠️ Persistência offline não disponível:", err);
+        console.log("⚠️ Persistência offline não disponível:", err.message);
     });
 
 // Utilitário para gerar código de sala
