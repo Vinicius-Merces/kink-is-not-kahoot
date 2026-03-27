@@ -8,13 +8,17 @@ class QuizManager {
     }
 
     setupAuthListener() {
-        auth.onAuthStateChanged((user) => {
-            this.currentUser = user;
-            if (user && window.location.pathname.includes('my-quizzes.html')) {
-                this.loadUserQuizzes();
-            }
-        });
-    }
+    auth.onAuthStateChanged((user) => {
+        this.currentUser = user;
+        if (user && window.location.pathname.includes('my-quizzes.html')) {
+            console.log('Usuário logado, carregando quizzes...');
+            this.loadUserQuizzes();
+        } else if (!user && window.location.pathname.includes('my-quizzes.html')) {
+            console.log('Usuário não logado, redirecionando...');
+            // Não fazer nada aqui - o auth.js já redireciona
+        }
+    });
+}
 
     async createQuiz(quizData) {
         if (!this.currentUser) {
@@ -84,64 +88,69 @@ class QuizManager {
     }
 
     renderQuizzesList(quizzes) {
-        const grid = document.getElementById('quizzesGrid');
-        if (!grid) return;
+    const grid = document.getElementById('quizzesGrid');
+    if (!grid) return;
 
-        if (quizzes.length === 0) {
-            grid.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📚</div>
-                    <h3>Nenhum quiz criado ainda</h3>
-                    <p>Clique em "Criar Novo Quiz" para começar</p>
-                    <button onclick="window.location.href='create-quiz.html'" class="btn btn-primary">
-                        Criar Meu Primeiro Quiz
-                    </button>
-                </div>
-            `;
-            return;
-        }
-
-        grid.innerHTML = quizzes.map(quiz => `
-            <div class="quiz-card" data-quiz-id="${quiz.id}">
-                <div class="quiz-actions">
-                    <button class="btn-icon edit-quiz" data-id="${quiz.id}">✏️</button>
-                    <button class="btn-icon delete-quiz" data-id="${quiz.id}">🗑️</button>
-                    <button class="btn-icon play-quiz" data-id="${quiz.id}">🎮</button>
-                </div>
-                <h3>${Utils.escapeHtml(quiz.title)}</h3>
-                <p>${Utils.escapeHtml(quiz.description || 'Sem descrição')}</p>
-                <div class="quiz-stats">
-                    <span>📊 ${quiz.questions?.length || 0} perguntas</span>
-                    <span>🎯 ${quiz.timesPlayed || 0} jogadas</span>
-                    <span>📅 ${Utils.formatDate(quiz.createdAt)}</span>
-                </div>
+    if (!quizzes || quizzes.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📚</div>
+                <h3>Nenhum quiz criado ainda</h3>
+                <p>Clique no botão acima para criar seu primeiro quiz</p>
+                <button onclick="window.location.href='create-quiz.html'" class="btn btn-primary" style="margin-top: 1rem;">
+                    🎯 Criar Meu Primeiro Quiz
+                </button>
             </div>
-        `).join('');
-
-        document.querySelectorAll('.edit-quiz').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.location.href = `create-quiz.html?edit=${btn.dataset.id}`;
-            });
-        });
-        document.querySelectorAll('.delete-quiz').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.confirmDeleteQuiz(btn.dataset.id);
-            });
-        });
-        document.querySelectorAll('.play-quiz').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.startQuizSession(btn.dataset.id);
-            });
-        });
-        document.querySelectorAll('.quiz-card').forEach(card => {
-            card.addEventListener('click', () => {
-                window.location.href = `create-quiz.html?view=${card.dataset.quizId}`;
-            });
-        });
+        `;
+        return;
     }
+
+    grid.innerHTML = quizzes.map(quiz => `
+        <div class="quiz-card" data-quiz-id="${quiz.id}">
+            <div class="quiz-actions">
+                <button class="btn-icon edit-quiz" data-id="${quiz.id}" title="Editar">✏️</button>
+                <button class="btn-icon delete-quiz" data-id="${quiz.id}" title="Excluir">🗑️</button>
+                <button class="btn-icon play-quiz" data-id="${quiz.id}" title="Jogar">🎮</button>
+            </div>
+            <h3>${Utils.escapeHtml(quiz.title)}</h3>
+            <p>${Utils.escapeHtml(quiz.description || 'Sem descrição')}</p>
+            <div class="quiz-stats">
+                <span>📊 ${quiz.questions?.length || 0} perguntas</span>
+                <span>🎯 ${quiz.timesPlayed || 0} jogadas</span>
+                <span>📅 ${Utils.formatDate(quiz.createdAt)}</span>
+            </div>
+        </div>
+    `).join('');
+
+    // Adicionar event listeners
+    document.querySelectorAll('.edit-quiz').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.location.href = `create-quiz.html?edit=${btn.dataset.id}`;
+        });
+    });
+    
+    document.querySelectorAll('.delete-quiz').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.confirmDeleteQuiz(btn.dataset.id);
+        });
+    });
+    
+    document.querySelectorAll('.play-quiz').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.startQuizSession(btn.dataset.id);
+        });
+    });
+    
+    document.querySelectorAll('.quiz-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const quizId = card.dataset.quizId;
+            window.location.href = `create-quiz.html?view=${quizId}`;
+        });
+    });
+}
 
     updateStats(quizzes) {
         const totalQuizzes = quizzes.length;
