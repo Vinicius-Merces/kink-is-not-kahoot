@@ -11,6 +11,7 @@ class QuizEditor {
 
     async init() {
         console.log('🔧 QuizEditor inicializando...');
+        // Aguardar autenticação
         auth.onAuthStateChanged(async (user) => {
             console.log('📡 Auth state changed:', user ? user.displayName : 'null');
             if (!user) {
@@ -64,19 +65,16 @@ class QuizEditor {
     setupEventListeners() {
         console.log('🔧 Configurando event listeners...');
 
-        // Botão Adicionar Pergunta
+        // Adicionar pergunta
         const addBtn = document.getElementById('addQuestionBtn');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => this.openQuestionModal());
-        } else {
-            console.error('❌ addQuestionBtn não encontrado');
-        }
+        if (addBtn) addBtn.addEventListener('click', () => this.openQuestionModal());
+        else console.error('❌ addQuestionBtn não encontrado');
 
         // Fechar modal (X)
         const closeModal = document.querySelector('#questionModal .close');
         if (closeModal) closeModal.addEventListener('click', () => this.closeModal());
 
-        // Botão Cancelar dentro do modal
+        // Cancelar no modal
         const cancelModal = document.getElementById('cancelQuestionBtn');
         if (cancelModal) cancelModal.addEventListener('click', () => this.closeModal());
 
@@ -89,12 +87,11 @@ class QuizEditor {
             });
         }
 
-        // Botão Adicionar Opção
+        // Adicionar opção
         const addOptionBtn = document.getElementById('addOptionBtn');
         if (addOptionBtn) addOptionBtn.addEventListener('click', () => this.addOption());
 
-        // --- NOVOS LISTENERS QUE ESTAVAM FALTANDO ---
-        // Botão Salvar Quiz
+        // Botão Salvar Quiz (CRUCIAL)
         const saveQuizBtn = document.getElementById('saveQuizBtn');
         if (saveQuizBtn) {
             console.log('✅ Botão Salvar Quiz encontrado');
@@ -152,6 +149,7 @@ class QuizEditor {
         document.getElementById('timeLimit').value = '30';
         const optionsList = document.getElementById('optionsList');
         optionsList.innerHTML = '';
+        // Adicionar 4 opções vazias
         for (let i = 0; i < 4; i++) this.addOption();
         // Resetar radio buttons
         const radios = document.querySelectorAll('input[name="correctOption"]');
@@ -295,7 +293,7 @@ class QuizEditor {
             return false;
         }
 
-        // Validar todas as perguntas
+        // Validação individual das perguntas
         for (let i = 0; i < this.questions.length; i++) {
             const q = this.questions[i];
             if (!q.text || q.text.trim() === '') {
@@ -346,8 +344,7 @@ class QuizEditor {
     }
 
     closeModal() {
-        const modal = document.getElementById('questionModal');
-        modal.style.display = 'none';
+        document.getElementById('questionModal').style.display = 'none';
         this.editingQuestionIndex = null;
     }
 }
