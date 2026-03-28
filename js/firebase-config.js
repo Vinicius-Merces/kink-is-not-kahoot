@@ -9,60 +9,29 @@ const firebaseConfig = {
   measurementId: "G-WM76QF6DV1"
 };
 
-// Verificar se Firebase já foi inicializado
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-    console.log("🔥 Firebase inicializado com sucesso!");
-} else {
-    console.log("🔥 Firebase já estava inicializado");
-}
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
 
 // Inicializar serviços
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// IMPORTANTE: Storage só está disponível se o módulo foi carregado
-// Verificar se storage está disponível antes de usar
+// Storage opcional (não é obrigatório)
 let storage = null;
 if (typeof firebase.storage === 'function') {
     storage = firebase.storage();
-    console.log("✅ Firebase Storage inicializado");
-} else {
-    console.log("⚠️ Firebase Storage não disponível (módulo não carregado)");
 }
 
-// Configuração de cache do Firestore
-db.settings({
-    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
-});
-
-// Habilitar persistência offline
-db.enablePersistence()
-    .catch((err) => {
-        console.log("⚠️ Persistência offline não disponível:", err.message);
-    });
-
-// Utilitário para gerar código de sala (estilo KINK) - GARANTINDO 6 DÍGITOS
+// Utilitários
 function generateRoomCode() {
-    const prefixes = ['K', 'NK', 'INK'];
-    const randomPart = Math.random().toString(36).substring(2, 7).toUpperCase(); // 5 caracteres
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    let code = prefix + randomPart;
-    
-    // Garantir que tenha exatamente 6 caracteres
-    if (code.length > 6) {
-        code = code.substring(0, 6);
-    } else if (code.length < 6) {
-        // Se for menor, completar com números aleatórios
-        while (code.length < 6) {
-            code += Math.floor(Math.random() * 10);
-        }
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += characters.charAt(Math.floor(Math.random() * characters.length));
     }
-    
     return code;
 }
 
-// Utilitário para validar código
 function isValidRoomCode(code) {
     return /^[A-Z0-9]{6}$/.test(code);
 }
@@ -74,13 +43,3 @@ window.db = db;
 window.storage = storage;
 window.generateRoomCode = generateRoomCode;
 window.isValidRoomCode = isValidRoomCode;
-
-// Verificar se os serviços foram inicializados
-console.log("✅ Serviços Firebase inicializados:");
-console.log("   Auth:", !!auth);
-console.log("   Firestore:", !!db);
-console.log("   Storage:", !!storage);
-
-// Console branding
-console.log("%c🔥 KINK is not Kahoot 🔥", "color: #ff6b6b; font-size: 16px; font-weight: bold;");
-console.log("%cThe rebellious quiz platform is ready!", "color: #4ecdc4; font-size: 12px;");
