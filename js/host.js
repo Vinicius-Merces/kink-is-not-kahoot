@@ -44,562 +44,272 @@ class HostManager {
                 window.location.href = 'my-quizzes.html';
                 return;
             }
-            this.room = { id: roomDoc.id, ...roomDoc.data() };
-            if (this.room.creatorId !== auth.currentUser.uid) {
-                Utils.showToast('Você não é o criador desta sala', 'error');
-                window.location.href = 'my-quizzes.html';
-                return;
-            }
-            // Usar as perguntas já carregadas na sala
-            this.quiz = {
-                id: this.room.quizId,
-                title: this.room.quizTitle,
-                questions: this.room.questions || []  // <-- usar do room
-            };
-            this.currentQuestionIndex = this.room.currentQuestionIndex || 0;
-            this.updateUI();
+            this.room = roomDoc.data();
+            this.renderRoomInfo();
         } catch (error) {
-            Utils.showToast('Erro ao carregar sala', 'error');
+            console.error("Erro ao carregar sala:", error);
         }
     }
 
     setupListeners() {
+        // Monitorar jogadores
+        this.playersUnsubscribe = db.collection('rooms').doc(this.roomId).collection('players')
+            .onSnapshot(snapshot => {
+                this.totalPlayers = snapshot.size;
+                this.updatePlayersList(snapshot);
+            });
+
+        // Monitorar a própria sala para mudanças de status/pergunta
         this.roomUnsubscribe = db.collection('rooms').doc(this.roomId)
-            .onSnapshot((doc) => {
-                if (doc.exists) {
-                    this.room = { id: doc.id, ...doc.data() };
-                    this.updateRoomStatus();
+            .onSnapshot(doc => {
+                const data = doc.data();
+                if (data) {
+                    this.room = data;
+                    this.currentQuestionIndex = data.currentQuestionIndex || 0;
+                    this.updateUIStatus(data.status);
                 }
             });
-        this.playersUnsubscribe = db.collection(`rooms/${this.roomId}/players`)
-            .onSnapshot((snapshot) => {
-                const players = [];
-                snapshot.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
-                this.totalPlayers = players.length;
-                this.updatePlayersList(players);
-            });
-        this.rankingUnsubscribe = db.collection(`rooms/${this.roomId}/scores`)
-            .orderBy('totalScore', 'desc')
-            .onSnapshot((snapshot) => {
-                const rankings = [];
-                snapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
-                this.updateRanking(rankings);
-            });
 
-        this.answersUnsubscribe = db.collection(`rooms/${this.roomId}/answers`)
-            .onSnapshot((snapshot) => {
-                if (this.room.status === 'answering') {
-                    const answers = [];
-                    snapshot.forEach(doc => {
-                        if (doc.data().questionIndex === this.currentQuestionIndex) {
-                            answers.push(doc.data());
-                        }
-                    });
-                    this.answeredPlayers = new Set(answers.map(a => a.playerId));
-                    if (this.answeredPlayers.size === this.totalPlayers && this.totalPlayers > 0) {
-                        console.log(`🎉 Todos os ${this.totalPlayers} jogadores responderam! Finalizando pergunta...`);
-                        this.finishQuestion();
-                    }
-                    this.updateAnsweredCount();
-                }
-            });
-    }
-
-    updateUI() {
-        const roomCodeElem = document.getElementById('roomCode');
-        if (roomCodeElem) roomCodeElem.textContent = this.room.code;
-
-        const quizInfoElem = document.getElementById('quizInfo');
-        if (quizInfoElem) quizInfoElem.innerHTML = `<strong>Quiz:</strong> ${this.room.quizTitle} | <strong>Perguntas:</strong> ${this.room.questions?.length || 0}`;
-
-        const copyBtn = document.getElementById('copyCodeBtn');
-        if (copyBtn) copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(this.room.code);
-            Utils.showToast('Código copiado!', 'success');
-        });
-
-        const shareBtn = document.getElementById('shareRoomBtn');
-        if (shareBtn) shareBtn.addEventListener('click', () => {
-            const url = `${window.location.origin}/player.html?code=${this.room.code}`;
-            navigator.clipboard.writeText(url);
-            Utils.showToast('Link copiado! Compartilhe com seus alunos', 'success');
-        });
-
-        const startGameBtn = document.getElementById('startGameBtn');
-        const startQuestionBtn = document.getElementById('startQuestionBtn');
-        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
-        const endGameBtn = document.getElementById('endGameBtn');
-
-        if (startGameBtn) startGameBtn.addEventListener('click', () => this.startGame());
-        if (startQuestionBtn) startQuestionBtn.addEventListener('click', () => {
-            console.log('🖱️ Botão "Iniciar Pergunta" clicado');
-            this.startCurrentQuestion();
-        });
-        if (nextQuestionBtn) nextQuestionBtn.addEventListener('click', () => this.nextQuestion());
-        if (endGameBtn) endGameBtn.addEventListener('click', () => this.endGame());
-    }
-
-    updateRoomStatus() {
-        const questionControls = document.getElementById('questionControls');
-        const startGameBtn = document.getElementById('startGameBtn');
-
-        if (this.room.status === 'waiting') {
-            startGameBtn.style.display = 'block';
-            questionControls.style.display = 'none';
-        } else if (this.room.status === 'active') {
-            startGameBtn.style.display = 'none';
-            questionControls.style.display = 'block';
-            this.updateCurrentQuestionDisplay();
-        } else if (this.room.status === 'loading') {
-            this.showLoadingScreen();
-        } else if (this.room.status === 'reading') {
-            this.updateReadingPhase();
-        } else if (this.room.status === 'answering') {
-            this.updateAnsweringPhase();
-        }
-    }
-
-    showLoadingScreen() {
-        const display = document.getElementById('currentQuestionDisplay');
-        display.innerHTML = `
-            <div class="current-question" style="background: rgba(78, 205, 196, 0.2);">
-                <strong>🔄 Carregando Quiz...</strong>
-                <div class="loading-spinner" style="margin: 1rem auto;">
-                    <div class="spinner"></div>
-                </div>
-                <p>Preparando perguntas e sistema...</p>
-                <small id="loadingTimer">5</small>s
-            </div>
-        `;
-
-        let timeLeft = 5;
-        const timerSpan = document.getElementById('loadingTimer');
-        const loadingInterval = setInterval(() => {
-            timeLeft--;
-            if (timerSpan) timerSpan.textContent = timeLeft;
-            if (timeLeft <= 0) {
-                clearInterval(loadingInterval);
-                db.collection('rooms').doc(this.roomId).update({ status: 'active' });
-            }
-        }, 1000);
-    }
-
-    updateCurrentQuestionDisplay() {
-        const display = document.getElementById('currentQuestionDisplay');
-        const questions = this.room.questions || [];
-        if (this.currentQuestionIndex < questions.length) {
-            const question = questions[this.currentQuestionIndex];
-            display.innerHTML = `<div class="current-question"><strong>Pergunta ${this.currentQuestionIndex + 1}/${questions.length}</strong><p>${Utils.escapeHtml(question.text)}</p><small>Tempo limite: ${question.timeLimit || 30}s</small></div>`;
-        } else {
-            display.innerHTML = '<p class="placeholder">Quiz finalizado!</p>';
-        }
+        // Eventos de botões
+        document.getElementById('startQuizBtn')?.addEventListener('click', () => this.startGame());
+        document.getElementById('nextQuestionBtn')?.addEventListener('click', () => this.nextQuestion());
+        document.getElementById('finishQuizBtn')?.addEventListener('click', () => this.finishQuiz());
+        document.getElementById('startQuestionBtn')?.addEventListener('click', () => this.startQuestionReading());
     }
 
     async startGame() {
         if (this.room.status !== 'waiting') return;
+        
+        console.log('🎮 Iniciando quiz - fase de loading...');
+        
+        try {
+            // 1. Ativa estado de loading para todos
+            await db.collection('rooms').doc(this.roomId).update({
+                status: 'loading',
+                currentQuestionIndex: 0
+            });
 
-        console.log('🎮 Iniciando quiz - tela de carregamento por 5s...');
+            Utils.showToast('Preparando quiz...', 'info');
 
-        await db.collection('rooms').doc(this.roomId).update({ 
-            status: 'loading', 
-            currentQuestionIndex: 0 
-        });
+            // 2. Aguarda 5 segundos para garantir que os players viram a tela de loading
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
-        Utils.showToast('Carregando quiz...', 'info');
-
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        await db.collection('rooms').doc(this.roomId).update({ status: 'active' });
-
-        Utils.showToast('Quiz carregado! Clique em "Iniciar Pergunta" para começar', 'success');
+            // 3. Muda para active para mostrar o botão de "Iniciar Pergunta"
+            await db.collection('rooms').doc(this.roomId).update({
+                status: 'active'
+            });
+            
+            Utils.showToast('Pronto! Clique em Iniciar Pergunta.', 'success');
+        } catch (error) {
+            console.error("Erro ao iniciar jogo:", error);
+        }
     }
 
-    async startCurrentQuestion() {
-        if (this.isProcessing) {
-            console.log('⚠️ Processando pergunta, aguarde...');
-            return;
-        }
-        if (this.currentQuestionIndex >= this.quiz.questions.length) {
-            this.endGame();
-            return;
-        }
-
+    async startQuestionReading() {
+        if (this.isProcessing) return;
         this.isProcessing = true;
-        this.answeredPlayers.clear();
-        const currentQuestion = this.quiz.questions[this.currentQuestionIndex];
-        const timeLimit = currentQuestion.timeLimit || 30;
 
-        console.log(`\n🎯 ========== PERGUNTA ${this.currentQuestionIndex + 1} ==========`);
-        console.log(`   ${currentQuestion.text}`);
-        console.log(`   Tempo para responder: ${timeLimit}s`);
+        const question = this.room.questions[this.currentQuestionIndex];
+        
+        try {
+            // Limpa respostas da rodada anterior no Firestore se necessário
+            this.answeredPlayers.clear();
+            
+            // Define status como READING (tempo para o aluno ler a pergunta)
+            await db.collection('rooms').doc(this.roomId).update({
+                status: 'reading',
+                currentQuestionStartTime: null // Só começa a contar no answering
+            });
 
-        // Fase de leitura (5s)
-        console.log('📖 Iniciando fase de leitura...');
-        await db.collection('rooms').doc(this.roomId).update({
-            status: 'reading',
-            currentQuestionData: {
-                text: currentQuestion.text,
-                options: currentQuestion.options,
-                timeLimit: timeLimit,
-                correct: currentQuestion.correct,
-                readingTime: 5
-            },
-            currentQuestionIndex: this.currentQuestionIndex
-        });
+            console.log('📖 Fase de leitura iniciada (5s)');
+            
+            // Timer de 5 segundos de leitura
+            let timeLeft = 5;
+            this.updateTimerDisplay(timeLeft, 'Leitura...');
 
-        Utils.showToast(`Pergunta ${this.currentQuestionIndex + 1} - Leia a pergunta!`, 'info');
+            this.readingTimer = setInterval(async () => {
+                timeLeft--;
+                this.updateTimerDisplay(timeLeft, 'Leitura...');
+                
+                if (timeLeft <= 0) {
+                    clearInterval(this.readingTimer);
+                    await this.startAnsweringPhase(question);
+                }
+            }, 1000);
 
-        // Aguardar 5 segundos de leitura
-        await new Promise(resolve => {
-            this.readingTimer = setTimeout(resolve, 5000);
-        });
+        } catch (error) {
+            console.error("Erro ao iniciar leitura:", error);
+            this.isProcessing = false;
+        }
+    }
 
-        // Fase de respostas
-        console.log('⚡ Fase de respostas iniciada');
+    async startAnsweringPhase(question) {
+        const startTime = firebase.firestore.Timestamp.now();
+        
         await db.collection('rooms').doc(this.roomId).update({
             status: 'answering',
-            currentQuestionStartTime: firebase.firestore.FieldValue.serverTimestamp()
+            currentQuestionStartTime: startTime
         });
 
-        Utils.showToast(`Respondam! Você tem ${timeLimit} segundos!`, 'info');
-
-        // Aguardar tempo de resposta OU todos responderem
-        await new Promise(resolve => {
-            this.answerTimer = setTimeout(resolve, timeLimit * 1000);
-        });
-
-        await this.finishQuestion();
+        console.log('⚡ Fase de respostas iniciada');
         this.isProcessing = false;
-    }
 
-    updateReadingPhase() {
-        const display = document.getElementById('currentQuestionDisplay');
-        const questions = this.room.questions || [];
-        const question = questions[this.currentQuestionIndex];
-        if (!question) return;
-        display.innerHTML = `
-            <div class="current-question" style="background: rgba(78, 205, 196, 0.2);">
-                <strong>📖 Leia a pergunta (5s)</strong>
-                <p style="font-size: 1.2rem; margin-top: 1rem;">${Utils.escapeHtml(question.text)}</p>
-                <small>As opções aparecerão em breve...</small>
-            </div>
-        `;
-        document.getElementById('questionTimer').style.display = 'none';
-    }
-
-    updateAnsweringPhase() {
-        const display = document.getElementById('currentQuestionDisplay');
-        const questions = this.room.questions || [];
-        const question = questions[this.currentQuestionIndex];
-        if (!question) return;
-        display.innerHTML = `
-            <div class="current-question">
-                <strong>⚡ Responda agora!</strong>
-                <p>${Utils.escapeHtml(question.text)}</p>
-                <small>Tempo limite: ${question.timeLimit || 30}s</small>
-                <div style="margin-top: 0.5rem; font-size: 0.8rem;">
-                    Respondidos: <span id="answeredCount">0</span>/${this.totalPlayers}
-                </div>
-            </div>
-        `;
-        this.startTimer(question.timeLimit || 30);
-        this.updateAnsweredCount();
-    }
-
-    updateAnsweredCount() {
-        const countSpan = document.getElementById('answeredCount');
-        if (countSpan) {
-            countSpan.textContent = this.answeredPlayers.size;
-        }
-    }
-
-    startTimer(limit = 30) {
-        const timerDisplay = document.getElementById('questionTimer');
-        const timerSeconds = document.getElementById('timerSeconds');
-        const timerBar = document.querySelector('.timer-bar');
-        timerDisplay.style.display = 'block';
-        let timeLeft = limit;
-        timerSeconds.textContent = timeLeft;
-        if (timerBar) timerBar.style.width = '100%';
-
-        if (this.answerTimer) clearInterval(this.answerTimer);
+        let timeLeft = question.timeLimit || 30;
+        this.updateTimerDisplay(timeLeft, 'Respondendo!');
 
         this.answerTimer = setInterval(() => {
             timeLeft--;
-            timerSeconds.textContent = Math.max(0, timeLeft);
-            if (timerBar) timerBar.style.width = `${Math.max(0, (timeLeft / limit) * 100)}%`;
-            if (timeLeft <= 0) {
-                clearInterval(this.answerTimer);
+            this.updateTimerDisplay(timeLeft, 'Respondendo!');
+            
+            if (timeLeft <= 0 || this.answeredPlayers.size >= this.totalPlayers) {
+                this.stopQuestion();
             }
         }, 1000);
+
+        // Listen para respostas em tempo real
+        this.setupAnswersListener();
     }
 
-    async finishQuestion() {
-        if (this.isFinishing) return;
-        this.isFinishing = true;
-
-        if (this.readingTimer) clearTimeout(this.readingTimer);
-        if (this.answerTimer) clearInterval(this.answerTimer);
-
-        const questions = this.room.questions || [];
-        const question = questions[this.currentQuestionIndex];
-        const timeLimit = question.timeLimit || 30;
-
-        console.log(`\n🏁 ========== FINALIZANDO PERGUNTA ${this.currentQuestionIndex + 1} ==========`);
-
-        const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`)
+    setupAnswersListener() {
+        if (this.answersUnsubscribe) this.answersUnsubscribe();
+        
+        this.answersUnsubscribe = db.collection('rooms').doc(this.roomId)
+            .collection('answers')
             .where('questionIndex', '==', this.currentQuestionIndex)
-            .get();
-
-        const answers = [];
-        answersSnapshot.forEach(doc => answers.push({ id: doc.id, ...doc.data() }));
-
-        console.log(`   Total de respostas: ${answers.length}`);
-
-        let correctCount = 0;
-
-        for (const answer of answers) {
-            const isCorrect = (answer.answer === question.correct);
-            let points = 0;
-
-            if (isCorrect) {
-                let responseTime = answer.responseTime || timeLimit;
-                responseTime = Math.min(responseTime, timeLimit);
-                const timeRemaining = Math.max(0, timeLimit - responseTime);
-                points = Math.floor(1000 * (timeRemaining / timeLimit));
-                points = Math.min(1000, Math.max(0, points));
-
-                console.log(`   ✅ ${answer.playerName}: ACERTOU! Tempo: ${responseTime.toFixed(2)}s -> ${points} pts`);
-                correctCount++;
-            } else {
-                console.log(`   ❌ ${answer.playerName}: ERROU! 0 pts`);
-            }
-
-            await db.collection(`rooms/${this.roomId}/answers`).doc(answer.id).update({
-                points: points,
-                isCorrect: isCorrect,
-                calculatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        this.answeredPlayers.add(change.doc.data().playerId);
+                        this.updateAnsweredCount();
+                    }
+                });
             });
-
-            const playerScoreRef = db.collection(`rooms/${this.roomId}/scores`).doc(answer.playerId);
-            const playerScoreDoc = await playerScoreRef.get();
-            const currentScore = playerScoreDoc.exists ? playerScoreDoc.data().totalScore || 0 : 0;
-
-            await playerScoreRef.set({
-                playerId: answer.playerId,
-                playerName: answer.playerName,
-                avatar: answer.avatar,
-                totalScore: currentScore + points,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        }
-
-        const totalAnswers = answers.length;
-        const accuracy = totalAnswers > 0 ? (correctCount / totalAnswers * 100).toFixed(1) : 0;
-
-        document.getElementById('answersCount').textContent = totalAnswers;
-        document.getElementById('accuracyRate').textContent = `${accuracy}%`;
-
-        console.log(`\n📊 ESTATÍSTICAS:`);
-        console.log(`   Acertos: ${correctCount}/${totalAnswers} (${accuracy}%)`);
-        console.log(`=========================================\n`);
-
-        await this.showRankingModal();
-
-        await db.collection('rooms').doc(this.roomId).update({ status: 'active' });
-
-        document.getElementById('questionTimer').style.display = 'none';
-        document.getElementById('startQuestionBtn').style.display = 'block';
-        document.getElementById('nextQuestionBtn').style.display = 'none';
-
-        Utils.showToast(`Pergunta finalizada! ${correctCount}/${totalAnswers} acertos`, 'info');
-
-        this.isProcessing = false;
-        this.isFinishing = false;
     }
 
-    async showRankingModal() {
-        const scoresSnapshot = await db.collection(`rooms/${this.roomId}/scores`)
-            .orderBy('totalScore', 'desc')
-            .limit(5)
-            .get();
-
-        const rankings = [];
-        scoresSnapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
-
-        if (rankings.length === 0) return;
-
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 500px; text-align: center;">
-                    <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                    <div style="margin: 1rem 0;">
-                        ${rankings.map((player, index) => `
-                            <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                                <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
-                                <span style="color: #ff6b6b; font-weight: bold;">${player.totalScore || 0} pts</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button id="continueBtn" class="btn btn-primary btn-large" style="margin-top: 1rem;">
-                        ➡️ Próxima Pergunta
-                    </button>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            const continueBtn = modal.querySelector('#continueBtn');
-            const closeModal = () => {
-                modal.remove();
-                console.log('🔁 Modal fechado, chamando nextQuestion()');
-                this.nextQuestion();
-                resolve();
-            };
-
-            continueBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
+    async stopQuestion() {
+        clearInterval(this.answerTimer);
+        if (this.answersUnsubscribe) this.answersUnsubscribe();
+        
+        await db.collection('rooms').doc(this.roomId).update({
+            status: 'active' // Volta para active para mostrar ranking e botão de próxima
         });
+
+        this.showRoundRanking();
     }
 
     async nextQuestion() {
         const nextIndex = this.currentQuestionIndex + 1;
-
-        console.log(`🔄 Avançando para pergunta ${nextIndex + 1}...`);
-
-        const questions = this.room.questions || [];
-        if (nextIndex >= questions.length) {
-            this.endGame();
+        
+        if (nextIndex >= this.room.questions.length) {
+            this.finishQuiz();
             return;
         }
 
-        this.currentQuestionIndex = nextIndex;
-
-        await db.collection('rooms').doc(this.roomId).update({ 
-            currentQuestionIndex: nextIndex, 
-            status: 'active' 
+        await db.collection('rooms').doc(this.roomId).update({
+            currentQuestionIndex: nextIndex,
+            status: 'active'
         });
-
-        document.getElementById('startQuestionBtn').style.display = 'block';
-        document.getElementById('nextQuestionBtn').style.display = 'none';
-
-        this.updateCurrentQuestionDisplay();
-
-        Utils.showToast(`Preparando pergunta ${nextIndex + 1}...`, 'info');
-
-        // Importante: resetar isProcessing após a transição para a próxima pergunta
-        this.isProcessing = false;
+        
+        // Esconde modal de ranking se houver
+        document.getElementById('rankingModal').style.display = 'none';
     }
 
-    async endGame() {
-        await db.collection('rooms').doc(this.roomId).update({ 
-            status: 'finished', 
-            active: false, 
-            endedAt: firebase.firestore.FieldValue.serverTimestamp() 
-        });
-
-        console.log(`\n🏆 QUIZ FINALIZADO! 🏆`);
-
-        await this.showFinalRanking();
-
-        document.getElementById('startQuestionBtn').style.display = 'none';
-        document.getElementById('nextQuestionBtn').style.display = 'none';
-        document.getElementById('startGameBtn').style.display = 'none';
-        Utils.showToast('Quiz finalizado! Obrigado a todos!', 'success');
-    }
-
-    async showFinalRanking() {
-        const scoresSnapshot = await db.collection(`rooms/${this.roomId}/scores`)
-            .orderBy('totalScore', 'desc')
-            .limit(10)
-            .get();
-
-        const rankings = [];
-        scoresSnapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
-
-        if (rankings.length === 0) return;
-
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 500px; text-align: center;">
-                    <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Final 🏆</h2>
-                    <div style="margin: 1rem 0; max-height: 400px; overflow-y: auto;">
-                        ${rankings.map((player, index) => `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-size: 1.2rem; font-weight: bold; width: 40px;">${index + 1}º</span>
-                                    <span style="font-size: 1.5rem;">${Utils.getAvatarEmoji(player.avatar)}</span>
-                                    <span>${Utils.escapeHtml(player.playerName)}</span>
-                                </div>
-                                <span style="color: #ff6b6b; font-weight: bold; font-size: 1.2rem;">${player.totalScore || 0} pts</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button id="closeFinalRankingBtn" class="btn btn-primary btn-large" style="margin-top: 1rem;">Fechar</button>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            const closeBtn = modal.querySelector('#closeFinalRankingBtn');
-            closeBtn.addEventListener('click', () => {
-                modal.remove();
-                resolve();
-            });
-
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.remove();
-                    resolve();
-                }
-            });
+    async finishQuiz() {
+        await db.collection('rooms').doc(this.roomId).update({
+            status: 'finished'
         });
     }
 
-    updatePlayersList(players) {
+    // Métodos de UI resumidos (baseados no seu original)
+    updateUIStatus(status) {
+        const startBtn = document.getElementById('startQuizBtn');
+        const nextBtn = document.getElementById('nextQuestionBtn');
+        const startQuestionBtn = document.getElementById('startQuestionBtn');
+        const lobbySection = document.getElementById('lobbySection');
+        const gameSection = document.getElementById('gameSection');
+
+        if (status === 'waiting') {
+            if (lobbySection) lobbySection.style.display = 'block';
+            if (gameSection) gameSection.style.display = 'none';
+        } else {
+            if (lobbySection) lobbySection.style.display = 'none';
+            if (gameSection) gameSection.style.display = 'block';
+        }
+
+        // Controle de botões conforme status
+        if (startBtn) startBtn.style.display = status === 'waiting' ? 'block' : 'none';
+        if (startQuestionBtn) startQuestionBtn.style.display = status === 'active' ? 'block' : 'none';
+        if (nextBtn) nextBtn.style.display = 'none'; // Só aparece após a pergunta
+    }
+
+    updateTimerDisplay(time, label) {
+        const timerEl = document.getElementById('timerDisplay');
+        if (timerEl) timerEl.innerHTML = `<span>${label}</span> <strong>${time}s</strong>`;
+    }
+
+    updateAnsweredCount() {
+        const el = document.getElementById('answersCount');
+        if (el) el.textContent = `${this.answeredPlayers.size} / ${this.totalPlayers}`;
+    }
+
+    renderRoomInfo() {
+        const titleEl = document.getElementById('quizTitle');
+        const codeEl = document.getElementById('roomCodeDisplay');
+        if (titleEl) titleEl.textContent = this.room.quizTitle;
+        if (codeEl) codeEl.textContent = this.room.id;
+    }
+
+    updatePlayersList(snapshot) {
         const list = document.getElementById('playersList');
         const count = document.getElementById('playersCount');
         if (!list) return;
-        if (players.length === 0) {
-            list.innerHTML = '<p class="placeholder">Aguardando jogadores...</p>';
-            count.textContent = '0';
-            return;
-        }
-        list.innerHTML = players.map(player => `<div class="player-item"><div class="player-info"><span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span><span>${Utils.escapeHtml(player.name)}</span></div><div class="player-status">${player.status === 'ready' ? '✓' : '⏳'}</div></div>`).join('');
+        const players = [];
+        snapshot.forEach(doc => players.push(doc.data()));
+        list.innerHTML = players.map(player => `
+            <div class="player-card">
+                <div class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</div>
+                <div class="player-name"><span>${Utils.escapeHtml(player.name)}</span></div>
+            </div>`).join('');
         count.textContent = players.length;
-        this.updateAnsweredCount();
+    }
+
+    async showRoundRanking() {
+        // Lógica para buscar scores e exibir no modal do host
+        const snapshot = await db.collection('rooms').doc(this.roomId).collection('players').orderBy('totalScore', 'desc').limit(5).get();
+        const rankings = [];
+        snapshot.forEach(doc => rankings.push(doc.data()));
+        this.updateRanking(rankings);
+        
+        const modal = document.getElementById('rankingModal');
+        if (modal) modal.style.display = 'block';
+        
+        const nextBtn = document.getElementById('nextQuestionBtn');
+        if (nextBtn) nextBtn.style.display = 'block';
     }
 
     updateRanking(rankings) {
         const list = document.getElementById('rankingList');
         if (!list) return;
-        if (rankings.length === 0) {
-            list.innerHTML = '<p class="placeholder">Aguardando respostas...</p>';
-            return;
-        }
-        list.innerHTML = rankings.slice(0, 10).map((player, index) => `<div class="ranking-item"><div class="ranking-position">${index + 1}º</div><div class="player-info"><span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span><span>${Utils.escapeHtml(player.playerName)}</span></div><div class="ranking-score">${player.totalScore || 0} pts</div></div>`).join('');
+        list.innerHTML = rankings.map((player, index) => `
+            <div class="ranking-item">
+                <div class="ranking-position">${index + 1}º</div>
+                <div class="player-info">
+                    <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                    <span>${Utils.escapeHtml(player.playerName || player.name)}</span>
+                </div>
+                <div class="ranking-score">${player.totalScore || 0} pts</div>
+            </div>`).join('');
     }
 
     cleanup() {
         if (this.playersUnsubscribe) this.playersUnsubscribe();
-        if (this.rankingUnsubscribe) this.rankingUnsubscribe();
         if (this.roomUnsubscribe) this.roomUnsubscribe();
         if (this.answersUnsubscribe) this.answersUnsubscribe();
-        if (this.readingTimer) clearTimeout(this.readingTimer);
+        if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     window.hostManager = new HostManager();
-    window.addEventListener('beforeunload', () => { if (window.hostManager) window.hostManager.cleanup(); });
 });

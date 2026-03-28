@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Professor - KINK is not Kahoot</title>
+    <title>Painel do Professor - KINK</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/player.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -29,78 +30,86 @@
 
     <div class="container host-container">
         <div class="host-header">
-            <h1>🎮 Painel do Professor</h1>
-            <div id="quizInfo" class="quiz-info-badge"></div>
+            <div class="header-main">
+                <h1>🎮 Painel do Professor</h1>
+                <p id="quizTitleDisplay" class="quiz-title-sub">Carregando quiz...</p>
+            </div>
+            <div id="quizStatusBadge" class="status-badge-live">LOBBY</div>
         </div>
 
         <div class="host-layout">
-            <!-- Coluna Esquerda - Controles -->
+            
             <div class="host-controls">
-                <div class="control-card">
+                
+                <div class="control-card highlight-card">
                     <h3>Código da Sala</h3>
                     <div class="room-code-display">
-                        <span id="roomCode">XXXXXX</span>
-                        <button id="copyCodeBtn" class="btn-icon">📋</button>
+                        <span id="roomCode">------</span>
+                        <button id="copyCodeBtn" class="btn-icon" title="Copiar Código">📋</button>
                     </div>
-                    <button id="shareRoomBtn" class="btn btn-outline btn-small">Compartilhar Link</button>
+                    <button id="shareRoomBtn" class="btn btn-outline btn-small">Copiar Link de Convite</button>
                 </div>
 
                 <div class="control-card">
-                    <h3>Controles do Jogo</h3>
-                    <div class="game-controls">
-                        <button id="startGameBtn" class="btn btn-success btn-large">🚀 Iniciar Quiz</button>
-                        <div id="questionControls" style="display: none;">
-                            <button id="startQuestionBtn" class="btn btn-primary">📢 Iniciar Pergunta</button>
-                            <button id="nextQuestionBtn" class="btn btn-primary" style="display: none;">⏩ Próxima Pergunta</button>
-                            <button id="endGameBtn" class="btn btn-danger">🏁 Encerrar Quiz</button>
+                    <h3>Gerenciar Jogo</h3>
+                    <div id="lobbyControls">
+                        <button id="startGameBtn" class="btn btn-success btn-large w-100">🚀 INICIAR QUIZ</button>
+                        <p class="help-text">Clique para fechar a sala e preparar a 1ª pergunta.</p>
+                    </div>
+                    
+                    <div id="gameControls" style="display: none;">
+                        <div class="action-buttons">
+                            <button id="startQuestionBtn" class="btn btn-primary btn-large">📢 DISPARAR PERGUNTA</button>
+                            <button id="nextQuestionBtn" class="btn btn-success btn-large" style="display: none;">⏩ PRÓXIMA RODADA</button>
                         </div>
                     </div>
+
+                    <div id="finishControls" style="display: none;">
+                        <button id="endGameBtn" class="btn btn-danger btn-large w-100">🏁 ENCERRAR E SAIR</button>
+                    </div>
                 </div>
 
-                <div class="control-card">
-                    <h3>Pergunta Atual</h3>
-                    <div id="currentQuestionDisplay">
-                        <p class="placeholder">Nenhuma pergunta ativa</p>
+                <div class="control-card question-preview-card">
+                    <div class="card-header-flex">
+                        <h3>Pergunta <span id="currentQNumber">0</span>/<span id="totalQNumber">0</span></h3>
+                        <div id="hostTimer" class="host-timer-circle" style="display: none;">
+                            <span id="timerSeconds">30</span>
+                        </div>
                     </div>
-                    <div id="questionTimer" class="timer-display" style="display: none;">
-                        <div class="timer-bar"></div>
-                        <span id="timerSeconds">0</span>s
+                    
+                    <div id="currentQuestionDisplay" class="question-preview">
+                        <p class="placeholder">Aguardando início...</p>
+                    </div>
+
+                    <div id="roundStats" class="mini-stats" style="display: none;">
+                        <div class="stat">
+                            <span class="stat-label">Respostas:</span>
+                            <span id="answersCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Precisão:</span>
+                            <span id="accuracyRate" class="stat-value">0%</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Coluna Direita - Status e Ranking -->
             <div class="host-status">
-                <div class="status-card">
-                    <h3>👥 Jogadores Conectados</h3>
-                    <div id="playersList" class="players-list">
-                        <p class="placeholder">Aguardando jogadores...</p>
-                    </div>
-                    <div class="players-count">
-                        Total: <span id="playersCount">0</span>
+                
+                <div class="status-card" id="playersCard">
+                    <h3>👥 Alunos na Sala (<span id="playersCount">0</span>)</h3>
+                    <div id="playersList" class="players-grid-host">
+                        <p class="placeholder">Aguardando conexão...</p>
                     </div>
                 </div>
 
-                <div class="status-card">
-                    <h3>🏆 Ranking Atual</h3>
-                    <div id="rankingList" class="ranking-list">
-                        <p class="placeholder">Aguardando respostas...</p>
+                <div class="status-card" id="rankingCard">
+                    <h3>🏆 Classificação</h3>
+                    <div id="rankingList" class="ranking-list-host">
+                        <p class="placeholder">O ranking aparecerá após as respostas.</p>
                     </div>
                 </div>
 
-                <div class="status-card">
-                    <h3>📊 Estatísticas da Rodada</h3>
-                    <div id="roundStats">
-                        <div class="stat-item">
-                            <span>Respostas:</span>
-                            <span id="answersCount">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span>Taxa de Acerto:</span>
-                            <span id="accuracyRate">0%</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -108,14 +117,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/host.js"></script>
 
-        <!-- Music Player -->
-    <link rel="stylesheet" href="css/player.css">
     <script src="js/music-player.js"></script>
     
 </body>
