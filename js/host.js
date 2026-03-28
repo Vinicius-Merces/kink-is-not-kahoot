@@ -11,6 +11,8 @@ class HostManager {
         this.rankingUnsubscribe = null;
         this.roomUnsubscribe = null;
         this.isProcessing = false;
+        this.totalPlayers = 0;
+        this.answeredPlayers = new Set();
         this.init();
     }
 
@@ -68,6 +70,7 @@ class HostManager {
             .onSnapshot((snapshot) => {
                 const players = [];
                 snapshot.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
+                this.totalPlayers = players.length;
                 this.updatePlayersList(players);
             });
         this.rankingUnsubscribe = db.collection(`rooms/${this.roomId}/scores`)
@@ -76,6 +79,26 @@ class HostManager {
                 const rankings = [];
                 snapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
                 this.updateRanking(rankings);
+            });
+        
+        // Ouvir respostas para saber quando todos responderam
+        this.answersUnsubscribe = db.collection(`rooms/${this.roomId}/answers`)
+            .onSnapshot((snapshot) => {
+                if (this.room.status === 'answering') {
+                    const answers = [];
+                    snapshot.forEach(doc => {
+                        if (doc.data().questionIndex === this.currentQuestionIndex) {
+                            answers.push(doc.data());
+                        }
+                    });
+                    this.answeredPlayers = new Set(answers.map(a => a.playerId));
+                    
+                    // Se todos responderam, finalizar pergunta
+                    if (this.answeredPlayers.size === this.totalPlayers && this.totalPlayers > 0) {
+                        console.log(`🎉 Todos os ${this.totalPlayers} jogadores responderam! Finalizando pergunta...`);
+                        this.finishQuestion();
+                    }
+                }
             });
     }
 
@@ -121,11 +144,41 @@ class HostManager {
             startGameBtn.style.display = 'none';
             questionControls.style.display = 'block';
             this.updateCurrentQuestionDisplay();
+        } else if (this.room.status === 'loading') {
+            this.showLoadingScreen();
         } else if (this.room.status === 'reading') {
             this.updateReadingPhase();
         } else if (this.room.status === 'answering') {
             this.updateAnsweringPhase();
         }
+    }
+
+    showLoadingScreen() {
+        const display = document.getElementById('currentQuestionDisplay');
+        display.innerHTML = `
+            <div class="current-question" style="background: rgba(78, 205, 196, 0.2);">
+                <strong>🔄 Carregando Quiz...</strong>
+                <div class="loading-spinner" style="margin: 1rem auto;">
+                    <div class="spinner"></div>
+                </div>
+                <p>Preparando perguntas e sistema...</p>
+                <small id="loadingTimer">5</small>s
+            </div>
+        `;
+        
+        let timeLeft = 5;
+        const timerSpan = document.getElementById('loadingTimer');
+        const loadingInterval = setInterval(() => {
+            timeLeft--;
+            if (timerSpan) timerSpan.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(loadingInterval);
+                // Após o carregamento, ativar o quiz
+                db.collection('rooms').doc(this.roomId).update({ 
+                    status: 'active' 
+                });
+            }
+        }, 1000);
     }
 
     updateCurrentQuestionDisplay() {
@@ -138,17 +191,28 @@ class HostManager {
         }
     }
 
-    startGame() {
+    async startGame() {
         if (this.room.status !== 'waiting') return;
         
-        console.log('🎮 Iniciando quiz...');
+        console.log('🎮 Iniciando quiz - tela de carregamento por 5s...');
         
-        db.collection('rooms').doc(this.roomId).update({ 
-            status: 'active', 
+        // Mostrar tela de carregamento
+        await db.collection('rooms').doc(this.roomId).update({ 
+            status: 'loading', 
             currentQuestionIndex: 0 
         });
         
-        Utils.showToast('Jogo iniciado! Clique em "Iniciar Pergunta" para começar', 'success');
+        Utils.showToast('Carregando quiz...', 'info');
+        
+        // Aguardar 5 segundos de carregamento
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Após carregamento, ativar o quiz
+        await db.collection('rooms').doc(this.roomId).update({ 
+            status: 'active' 
+        });
+        
+        Utils.showToast('Quiz carregado! Clique em "Iniciar Pergunta" para começar', 'success');
     }
 
     async startCurrentQuestion() {
@@ -159,6 +223,7 @@ class HostManager {
         }
         
         this.isProcessing = true;
+        this.answeredPlayers.clear();
         const currentQuestion = this.quiz.questions[this.currentQuestionIndex];
         const timeLimit = currentQuestion.timeLimit || 30;
         
@@ -166,7 +231,7 @@ class HostManager {
         console.log(`   ${currentQuestion.text}`);
         console.log(`   Tempo para responder: ${timeLimit}s`);
         
-        // Atualizar status para leitura
+        // Fase de leitura (5s)
         await db.collection('rooms').doc(this.roomId).update({
             status: 'reading',
             currentQuestionData: {
@@ -194,12 +259,12 @@ class HostManager {
         
         Utils.showToast(`Respondam! Você tem ${timeLimit} segundos!`, 'info');
         
-        // Aguardar tempo de resposta
+        // Aguardar tempo de resposta OU todos responderem
         await new Promise(resolve => {
             this.answerTimer = setTimeout(resolve, timeLimit * 1000);
         });
         
-        // Finalizar pergunta e calcular pontuação
+        // Finalizar pergunta
         await this.finishQuestion();
         this.isProcessing = false;
     }
@@ -225,9 +290,20 @@ class HostManager {
                 <strong>⚡ Responda agora!</strong>
                 <p>${Utils.escapeHtml(question.text)}</p>
                 <small>Tempo limite: ${question.timeLimit || 30}s</small>
+                <div style="margin-top: 0.5rem; font-size: 0.8rem;">
+                    Respondidos: <span id="answeredCount">0</span>/${this.totalPlayers}
+                </div>
             </div>
         `;
         this.startTimer(question.timeLimit || 30);
+        this.updateAnsweredCount();
+    }
+
+    updateAnsweredCount() {
+        const countSpan = document.getElementById('answeredCount');
+        if (countSpan) {
+            countSpan.textContent = this.answeredPlayers.size;
+        }
     }
 
     startTimer(limit = 30) {
@@ -252,6 +328,9 @@ class HostManager {
     }
 
     async finishQuestion() {
+        if (this.isFinishing) return;
+        this.isFinishing = true;
+        
         if (this.readingTimer) clearTimeout(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
         
@@ -336,6 +415,8 @@ class HostManager {
         document.getElementById('nextQuestionBtn').style.display = 'none';
         
         Utils.showToast(`Pergunta finalizada! ${correctCount}/${totalAnswers} acertos`, 'info');
+        
+        this.isFinishing = false;
     }
     
     async showRankingModal() {
@@ -494,6 +575,7 @@ class HostManager {
         }
         list.innerHTML = players.map(player => `<div class="player-item"><div class="player-info"><span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span><span>${Utils.escapeHtml(player.name)}</span></div><div class="player-status">${player.status === 'ready' ? '✓' : '⏳'}</div></div>`).join('');
         count.textContent = players.length;
+        this.updateAnsweredCount();
     }
 
     updateRanking(rankings) {
@@ -510,6 +592,7 @@ class HostManager {
         if (this.playersUnsubscribe) this.playersUnsubscribe();
         if (this.rankingUnsubscribe) this.rankingUnsubscribe();
         if (this.roomUnsubscribe) this.roomUnsubscribe();
+        if (this.answersUnsubscribe) this.answersUnsubscribe();
         if (this.readingTimer) clearTimeout(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
     }

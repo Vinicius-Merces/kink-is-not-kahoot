@@ -151,19 +151,58 @@ class PlayerManager {
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
         
-        if (roomData.status === 'reading') {
+        if (roomData.status === 'loading') {
+            this.showLoadingScreen();
+        } else if (roomData.status === 'reading') {
             this.handleReadingPhase(roomData);
         } else if (roomData.status === 'answering') {
             this.handleAnsweringPhase(roomData);
         } else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') {
-            // Voltar para espera após a pergunta
-            this.showScreen('waitingScreen');
+            // Mostrar ranking após a pergunta
+            this.showRankingAfterQuestion();
         } else if (roomData.status === 'active' && this.currentScreen === 'rankingScreen') {
-            // Fechar ranking e voltar para espera
             this.closeRankingModal();
+            this.showScreen('waitingScreen');
         } else if (roomData.status === 'finished') {
             this.showFinalScreen();
         }
+    }
+
+    showLoadingScreen() {
+        this.showScreen('loadingScreen');
+        this.createLoadingScreen();
+        
+        let timeLeft = 5;
+        const timerSpan = document.getElementById('loadingTimer');
+        const loadingInterval = setInterval(() => {
+            timeLeft--;
+            if (timerSpan) timerSpan.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(loadingInterval);
+            }
+        }, 1000);
+    }
+
+    createLoadingScreen() {
+        if (document.getElementById('loadingScreen')) return;
+        
+        const loadingHTML = `
+            <div id="loadingScreen" class="player-screen">
+                <div class="loading-card">
+                    <h2>🔄 Carregando Quiz...</h2>
+                    <div class="loading-spinner" style="margin: 1rem auto;">
+                        <div class="spinner"></div>
+                    </div>
+                    <p>Preparando perguntas e sistema...</p>
+                    <div class="loading-timer">
+                        <span id="loadingTimer">5</span>s
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const container = document.querySelector('.player-container');
+        container.insertAdjacentHTML('beforeend', loadingHTML);
     }
 
     handleReadingPhase(roomData) {
@@ -186,7 +225,6 @@ class PlayerManager {
         
         document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
         
-        // Timer de leitura
         let timeLeft = 5;
         const timerSpan = document.getElementById('readingTimer');
         timerSpan.textContent = timeLeft;
@@ -359,66 +397,56 @@ class PlayerManager {
         }, 3000);
     }
 
-    showRankingModal(rankings) {
-        if (this.rankingModal) return;
-        
+    showRankingAfterQuestion() {
         this.showScreen('rankingScreen');
+        this.createRankingScreen();
+    }
+
+    createRankingScreen() {
+        if (document.getElementById('rankingScreen')) return;
         
-        const modal = document.createElement('div');
-        modal.className = 'modal ranking-modal';
-        modal.style.display = 'block';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px; text-align: center;">
-                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                <div id="rankingModalList" style="margin: 1rem 0;">
-                    ${rankings.map((player, index) => `
-                        <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                            <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
-                            <span style="color: #ff6b6b; font-weight: bold;">${player.totalScore || 0} pts</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="next-question-timer">
-                    Aguardando próxima pergunta...
+        const rankingHTML = `
+            <div id="rankingScreen" class="player-screen">
+                <div class="ranking-card">
+                    <h2>🏆 Ranking Parcial 🏆</h2>
+                    <div id="rankingListModal" class="ranking-list-modal"></div>
+                    <div class="next-question-timer">
+                        Aguardando próxima pergunta...
+                    </div>
                 </div>
             </div>
         `;
         
-        document.body.appendChild(modal);
-        this.rankingModal = modal;
+        const container = document.querySelector('.player-container');
+        container.insertAdjacentHTML('beforeend', rankingHTML);
     }
-    
+
     updateRankingModal(snapshot) {
-        if (!this.rankingModal) return;
+        const listDiv = document.getElementById('rankingListModal');
+        if (!listDiv) return;
         
         const rankings = [];
         snapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
         
-        const listDiv = this.rankingModal.querySelector('#rankingModalList');
-        if (listDiv) {
-            listDiv.innerHTML = rankings.map((player, index) => `
-                <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                    <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
-                    <span style="color: #ff6b6b; font-weight: bold;">${player.totalScore || 0} pts</span>
+        listDiv.innerHTML = rankings.slice(0, 5).map((player, index) => `
+            <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+                <div class="ranking-position">${index + 1}º</div>
+                <div class="player-info">
+                    <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                    <span>${Utils.escapeHtml(player.playerName)}</span>
                 </div>
-            `).join('');
-        }
+                <div class="ranking-score">${player.totalScore || 0} pts</div>
+            </div>
+        `).join('');
     }
     
     closeRankingModal() {
-        if (this.rankingModal) {
-            this.rankingModal.remove();
-            this.rankingModal = null;
-        }
         this.showScreen('waitingScreen');
     }
 
     async showFinalScreen() {
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
-        if (this.rankingModal) this.closeRankingModal();
         
         this.showScreen('finalScreen');
         const scoresSnapshot = await db.collection(`rooms/${this.room.id}/scores`).orderBy('totalScore', 'desc').limit(10).get();
@@ -470,7 +498,6 @@ class PlayerManager {
         if (this.scoresUnsubscribe) this.scoresUnsubscribe();
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
-        if (this.rankingModal) this.rankingModal.remove();
     }
 }
 
