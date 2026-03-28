@@ -187,18 +187,20 @@ class PlayerManager {
     }
 
     setupGameListeners() {
-        // Listener da sala principal
+        // Listener da sala
         this.roomUnsubscribe = db.collection('rooms').doc(this.room.id)
             .onSnapshot((doc) => {
                 if (doc.exists) this.handleRoomUpdate(doc.data());
             });
 
-        // Listener de scores (ranking)
+        // Listener de scores - sempre ativo
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
+                console.log('📈 Snapshot de scores recebido');
+                
                 if (this.currentScreen === 'rankingScreen') {
-                    this.updateRankingModal(snapshot);
+                    this.updateRankingModal(snapshot);   // atualiza em tempo real
                 } else if (this.currentScreen === 'finalScreen') {
                     this.updateFinalRanking(snapshot);
                 }
@@ -375,7 +377,52 @@ class PlayerManager {
     }
 
     showRankingAfterQuestion() {
+        console.log('🏆 Mostrando ranking parcial para o aluno...');
         this.showScreen('rankingScreen');
+        
+        // Força atualização imediata do ranking
+        setTimeout(() => {
+            this.updateRankingFromFirestore();
+        }, 300); // pequeno delay para garantir que o Firestore atualizou os scores
+    }
+
+    updateRankingFromFirestore() {
+        const container = document.getElementById('rankingListModal');
+        if (!container) {
+            console.warn('❌ rankingListModal não encontrado');
+            return;
+        }
+
+        db.collection(`rooms/${this.room.id}/scores`)
+            .orderBy('totalScore', 'desc')
+            .limit(8)
+            .get()
+            .then(snapshot => {
+                const rankings = [];
+                snapshot.forEach(doc => rankings.push(doc.data()));
+
+                console.log(`📊 Ranking carregado: ${rankings.length} jogadores`);
+
+                if (rankings.length === 0) {
+                    container.innerHTML = '<p style="opacity:0.6;">Aguardando pontuação...</p>';
+                    return;
+                }
+
+                container.innerHTML = rankings.map((player, index) => `
+                    <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+                        <div class="ranking-position">${index + 1}º</div>
+                        <div class="player-info">
+                            <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                            <span>${Utils.escapeHtml(player.playerName)}</span>
+                        </div>
+                        <div class="ranking-score">${player.totalScore || 0} pts</div>
+                    </div>
+                `).join('');
+            })
+            .catch(err => {
+                console.error('Erro ao carregar ranking:', err);
+                container.innerHTML = '<p style="color:#ff6b6b;">Erro ao carregar ranking</p>';
+            });
     }
 
     updateRankingModal(snapshot) {
@@ -385,11 +432,19 @@ class PlayerManager {
         const rankings = [];
         snapshot.forEach(doc => rankings.push(doc.data()));
 
-        container.innerHTML = rankings.slice(0, 8).map((p, i) => `
-            <div class="ranking-item ${p.playerId === this.playerId ? 'current-player' : ''}">
-                <span class="ranking-position">${i+1}º</span>
-                <span>${Utils.getAvatarEmoji(p.avatar)} ${Utils.escapeHtml(p.playerName)}</span>
-                <span class="ranking-score">${p.totalScore || 0} pts</span>
+        if (rankings.length === 0) {
+            container.innerHTML = '<p style="opacity:0.6; text-align:center;">Calculando pontuação...</p>';
+            return;
+        }
+
+        container.innerHTML = rankings.map((player, index) => `
+            <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+                <div class="ranking-position">${index + 1}º</div>
+                <div class="player-info">
+                    <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                    <span>${Utils.escapeHtml(player.playerName)}</span>
+                </div>
+                <div class="ranking-score">${player.totalScore || 0} pts</div>
             </div>
         `).join('');
     }
