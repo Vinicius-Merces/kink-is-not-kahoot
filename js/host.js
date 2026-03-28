@@ -219,15 +219,14 @@ class HostManager {
             console.log('⚠️ Processando pergunta, aguarde...');
             return;
         }
-        const questions = this.room.questions || [];
-        if (this.currentQuestionIndex >= questions.length) {
+        if (this.currentQuestionIndex >= this.quiz.questions.length) {
             this.endGame();
             return;
         }
 
         this.isProcessing = true;
         this.answeredPlayers.clear();
-        const currentQuestion = questions[this.currentQuestionIndex];
+        const currentQuestion = this.quiz.questions[this.currentQuestionIndex];
         const timeLimit = currentQuestion.timeLimit || 30;
 
         console.log(`\n🎯 ========== PERGUNTA ${this.currentQuestionIndex + 1} ==========`);
@@ -235,6 +234,7 @@ class HostManager {
         console.log(`   Tempo para responder: ${timeLimit}s`);
 
         // Fase de leitura (5s)
+        console.log('📖 Iniciando fase de leitura...');
         await db.collection('rooms').doc(this.roomId).update({
             status: 'reading',
             currentQuestionData: {
@@ -249,11 +249,13 @@ class HostManager {
 
         Utils.showToast(`Pergunta ${this.currentQuestionIndex + 1} - Leia a pergunta!`, 'info');
 
+        // Aguardar 5 segundos de leitura
         await new Promise(resolve => {
             this.readingTimer = setTimeout(resolve, 5000);
         });
 
         // Fase de respostas
+        console.log('⚡ Fase de respostas iniciada');
         await db.collection('rooms').doc(this.roomId).update({
             status: 'answering',
             currentQuestionStartTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -267,7 +269,7 @@ class HostManager {
         });
 
         await this.finishQuestion();
-        // Não resetar isProcessing aqui, pois finishQuestion já o faz
+        this.isProcessing = false;
     }
 
     updateReadingPhase() {

@@ -160,8 +160,10 @@ class PlayerManager {
         } else if (roomData.status === 'answering') {
             this.handleAnsweringPhase(roomData);
         } else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') {
+            // Mostrar ranking após a pergunta
             this.showRankingAfterQuestion();
         } else if (roomData.status === 'active' && this.currentScreen === 'rankingScreen') {
+            // Fechar ranking e aguardar próxima pergunta
             this.closeRankingModal();
             this.showScreen('waitingScreen');
         } else if (roomData.status === 'finished') {
@@ -400,6 +402,12 @@ class PlayerManager {
     showRankingAfterQuestion() {
         this.showScreen('rankingScreen');
         this.createRankingScreen();
+        // Forçar uma atualização do ranking
+        this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
+            .orderBy('totalScore', 'desc')
+            .onSnapshot((snapshot) => {
+                this.updateRankingModal(snapshot);
+            });
     }
 
     createRankingScreen() {
