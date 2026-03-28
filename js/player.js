@@ -131,6 +131,7 @@ class PlayerManager {
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`).orderBy('totalScore', 'desc').onSnapshot((snapshot) => {
             if (this.currentScreen === 'finalScreen') this.updateFinalRanking(snapshot);
             else if (this.currentScreen === 'waitingScreen') this.updateWaitingPlayers(snapshot);
+            else if (this.currentScreen === 'rankingScreen') this.updateRankingModal(snapshot);
             else if (this.currentScreen === 'questionScreen') this.updateCurrentScore();
         });
     }
@@ -155,7 +156,11 @@ class PlayerManager {
         } else if (roomData.status === 'answering') {
             this.handleAnsweringPhase(roomData);
         } else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') {
-            this.showResultScreen();
+            // Voltar para espera após a pergunta
+            this.showScreen('waitingScreen');
+        } else if (roomData.status === 'active' && this.currentScreen === 'rankingScreen') {
+            // Fechar ranking e voltar para espera
+            this.closeRankingModal();
         } else if (roomData.status === 'finished') {
             this.showFinalScreen();
         }
@@ -177,20 +182,19 @@ class PlayerManager {
         
         this.hasAnswered = false;
         this.showScreen('readingScreen');
-        
-        // Criar tela de leitura se não existir
         this.createReadingScreen();
         
         document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
-        document.getElementById('readingTimer').textContent = '5';
         
         // Timer de leitura
         let timeLeft = 5;
+        const timerSpan = document.getElementById('readingTimer');
+        timerSpan.textContent = timeLeft;
+        
         if (this.readingTimer) clearInterval(this.readingTimer);
         
         this.readingTimer = setInterval(() => {
             timeLeft--;
-            const timerSpan = document.getElementById('readingTimer');
             if (timerSpan) timerSpan.textContent = timeLeft;
             if (timeLeft <= 0) {
                 clearInterval(this.readingTimer);
@@ -355,13 +359,66 @@ class PlayerManager {
         }, 3000);
     }
 
-    showResultScreen() {
+    showRankingModal(rankings) {
+        if (this.rankingModal) return;
+        
+        this.showScreen('rankingScreen');
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal ranking-modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px; text-align: center;">
+                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
+                <div id="rankingModalList" style="margin: 1rem 0;">
+                    ${rankings.map((player, index) => `
+                        <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
+                            <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
+                            <span style="color: #ff6b6b; font-weight: bold;">${player.totalScore || 0} pts</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="next-question-timer">
+                    Aguardando próxima pergunta...
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        this.rankingModal = modal;
+    }
+    
+    updateRankingModal(snapshot) {
+        if (!this.rankingModal) return;
+        
+        const rankings = [];
+        snapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
+        
+        const listDiv = this.rankingModal.querySelector('#rankingModalList');
+        if (listDiv) {
+            listDiv.innerHTML = rankings.map((player, index) => `
+                <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
+                    <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
+                    <span style="color: #ff6b6b; font-weight: bold;">${player.totalScore || 0} pts</span>
+                </div>
+            `).join('');
+        }
+    }
+    
+    closeRankingModal() {
+        if (this.rankingModal) {
+            this.rankingModal.remove();
+            this.rankingModal = null;
+        }
         this.showScreen('waitingScreen');
     }
 
     async showFinalScreen() {
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
+        if (this.rankingModal) this.closeRankingModal();
         
         this.showScreen('finalScreen');
         const scoresSnapshot = await db.collection(`rooms/${this.room.id}/scores`).orderBy('totalScore', 'desc').limit(10).get();
@@ -413,6 +470,7 @@ class PlayerManager {
         if (this.scoresUnsubscribe) this.scoresUnsubscribe();
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
+        if (this.rankingModal) this.rankingModal.remove();
     }
 }
 
