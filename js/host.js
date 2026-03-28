@@ -1,8 +1,9 @@
-// Painel do Professor - Gerenciamento de sala ao vivo
+// Painel do Professor - Gerenciamento de sala ao vivo (VERSÃO FINAL CORRIGIDA)
 class HostManager {
     constructor() {
         this.roomId = null;
         this.room = null;
+        this.quiz = null;
         this.currentQuestionIndex = 0;
         this.readingTimer = null;
         this.answerTimer = null;
@@ -33,6 +34,7 @@ class HostManager {
             }
             await this.loadRoom();
             this.setupListeners();
+            this.updateUI();
         });
     }
 
@@ -54,7 +56,7 @@ class HostManager {
             this.quiz = {
                 id: this.room.quizId,
                 title: this.room.quizTitle,
-                questions: this.room.questions || []  // <-- usar do room
+                questions: this.room.questions || []
             };
             this.currentQuestionIndex = this.room.currentQuestionIndex || 0;
             this.updateUI();
@@ -71,6 +73,7 @@ class HostManager {
                     this.updateRoomStatus();
                 }
             });
+
         this.playersUnsubscribe = db.collection(`rooms/${this.roomId}/players`)
             .onSnapshot((snapshot) => {
                 const players = [];
@@ -78,6 +81,7 @@ class HostManager {
                 this.totalPlayers = players.length;
                 this.updatePlayersList(players);
             });
+
         this.rankingUnsubscribe = db.collection(`rooms/${this.roomId}/scores`)
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
@@ -404,6 +408,10 @@ class HostManager {
         console.log(`   Acertos: ${correctCount}/${totalAnswers} (${accuracy}%)`);
         console.log(`=========================================\n`);
 
+        // NOVO: Mostra distribuição de respostas com gráfico de barras
+        await this.showAnswerDistribution(question);
+
+        // Mostra ranking parcial
         await this.showRankingModal();
 
         await db.collection('rooms').doc(this.roomId).update({ status: 'active' });
@@ -416,6 +424,52 @@ class HostManager {
 
         this.isProcessing = false;
         this.isFinishing = false;
+    }
+
+    // ====================== GRÁFICO DE DISTRIBUIÇÃO DE RESPOSTAS ======================
+    async showAnswerDistribution(question) {
+        const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`)
+            .where('questionIndex', '==', this.currentQuestionIndex)
+            .get();
+
+        const choiceCount = new Array(question.options.length).fill(0);
+
+        answersSnapshot.forEach(doc => {
+            const ans = doc.data();
+            if (ans.answer >= 0 && ans.answer < question.options.length) {
+                choiceCount[ans.answer]++;
+            }
+        });
+
+        let html = `<h3 style="margin-bottom: 1rem; color: #ff6b6b;">Distribuição de Respostas</h3>`;
+
+        question.options.forEach((option, index) => {
+            const count = choiceCount[index];
+            const percentage = answersSnapshot.size > 0 ? Math.round((count / answersSnapshot.size) * 100) : 0;
+            const isCorrect = index === question.correct;
+
+            html += `
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.95rem;">
+                        <span><strong>${String.fromCharCode(65 + index)}.</strong> ${Utils.escapeHtml(option)}</span>
+                        <span><strong>${count}</strong> (${percentage}%)</span>
+                    </div>
+                    <div style="background: #333; height: 24px; border-radius: 6px; overflow: hidden;">
+                        <div style="background: ${isCorrect ? '#48bb78' : '#ff6b6b'}; width: ${percentage}%; height: 100%; transition: width 0.6s ease;"></div>
+                    </div>
+                </div>`;
+        });
+
+        const display = document.getElementById('currentQuestionDisplay');
+        if (display) {
+            display.innerHTML = `
+                <div style="background: rgba(255,255,255,0.08); padding: 1.5rem; border-radius: 12px;">
+                    ${html}
+                </div>`;
+        }
+
+        // Aguarda 4 segundos para o professor ver o gráfico antes de mostrar o ranking
+        await new Promise(resolve => setTimeout(resolve, 4000));
     }
 
     async showRankingModal() {
@@ -493,7 +547,6 @@ class HostManager {
 
         Utils.showToast(`Preparando pergunta ${nextIndex + 1}...`, 'info');
 
-        // Importante: resetar isProcessing após a transição para a próxima pergunta
         this.isProcessing = false;
     }
 
