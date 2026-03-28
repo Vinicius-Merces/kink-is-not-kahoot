@@ -124,9 +124,9 @@ class HostManager {
             questionControls.style.display = 'block';
             this.updateCurrentQuestionDisplay();
         } else if (this.room.status === 'reading') {
-            this.updateReadingPhase();
+            // Não precisa fazer nada aqui, pois a UI será atualizada pelo método startCurrentQuestion
         } else if (this.room.status === 'answering') {
-            this.updateAnsweringPhase();
+            // Não precisa fazer nada aqui
         }
     }
 
@@ -167,6 +167,7 @@ class HostManager {
         // Fase 1: Leitura (5 segundos)
         await db.collection('rooms').doc(this.roomId).update({
             status: 'reading',
+            currentQuestionIndex: this.currentQuestionIndex,
             currentQuestionData: {
                 text: this.currentQuestion.text,
                 options: this.currentQuestion.options,
@@ -193,7 +194,9 @@ class HostManager {
         
         // Aguardar tempo de resposta
         await new Promise(resolve => {
-            this.answerTimer = setTimeout(resolve, timeLimit * 1000);
+            this.answerTimer = setTimeout(() => {
+                resolve();
+            }, timeLimit * 1000);
         });
         
         // Finalizar pergunta
@@ -201,56 +204,9 @@ class HostManager {
         this.isProcessing = false;
     }
     
-    updateReadingPhase() {
-        const display = document.getElementById('currentQuestionDisplay');
-        const question = this.quiz.questions[this.currentQuestionIndex];
-        display.innerHTML = `
-            <div class="current-question" style="background: rgba(78, 205, 196, 0.2);">
-                <strong>📖 Leia a pergunta (5s)</strong>
-                <p style="font-size: 1.2rem; margin-top: 1rem;">${Utils.escapeHtml(question.text)}</p>
-                <small>As opções aparecerão em breve...</small>
-            </div>
-        `;
-        document.getElementById('questionTimer').style.display = 'none';
-    }
-    
-    updateAnsweringPhase() {
-        const display = document.getElementById('currentQuestionDisplay');
-        const question = this.quiz.questions[this.currentQuestionIndex];
-        display.innerHTML = `
-            <div class="current-question">
-                <strong>⚡ Responda agora!</strong>
-                <p>${Utils.escapeHtml(question.text)}</p>
-                <small>Tempo limite: ${question.timeLimit || 30}s</small>
-            </div>
-        `;
-        this.startTimer(question.timeLimit || 30);
-    }
-
-    startTimer(limit = 30) {
-        const timerDisplay = document.getElementById('questionTimer');
-        const timerSeconds = document.getElementById('timerSeconds');
-        const timerBar = document.querySelector('.timer-bar');
-        timerDisplay.style.display = 'block';
-        let timeLeft = limit;
-        timerSeconds.textContent = timeLeft;
-        if (timerBar) timerBar.style.width = '100%';
-        
-        if (this.answerTimer) clearInterval(this.answerTimer);
-        
-        this.answerTimer = setInterval(() => {
-            timeLeft--;
-            timerSeconds.textContent = Math.max(0, timeLeft);
-            if (timerBar) timerBar.style.width = `${Math.max(0, (timeLeft / limit) * 100)}%`;
-            if (timeLeft <= 0) {
-                clearInterval(this.answerTimer);
-            }
-        }, 1000);
-    }
-
     async finishQuestion() {
         if (this.readingTimer) clearTimeout(this.readingTimer);
-        if (this.answerTimer) clearInterval(this.answerTimer);
+        if (this.answerTimer) clearTimeout(this.answerTimer);
         
         const question = this.currentQuestion;
         const timeLimit = question.timeLimit || 30;
@@ -268,7 +224,6 @@ class HostManager {
         console.log(`   Total de respostas: ${answers.length}`);
         
         let correctCount = 0;
-        const scores = [];
         
         // Calcular pontuação para cada resposta
         for (const answer of answers) {
@@ -287,8 +242,6 @@ class HostManager {
             } else {
                 console.log(`   ❌ ${answer.playerName}: ERROU! 0 pts`);
             }
-            
-            scores.push({ playerId: answer.playerId, playerName: answer.playerName, points, isCorrect });
             
             // Atualizar resposta
             await db.collection(`rooms/${this.roomId}/answers`).doc(answer.id).update({
@@ -502,7 +455,7 @@ class HostManager {
         if (this.rankingUnsubscribe) this.rankingUnsubscribe();
         if (this.roomUnsubscribe) this.roomUnsubscribe();
         if (this.readingTimer) clearTimeout(this.readingTimer);
-        if (this.answerTimer) clearInterval(this.answerTimer);
+        if (this.answerTimer) clearTimeout(this.answerTimer);
     }
 }
 
