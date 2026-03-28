@@ -10,8 +10,8 @@ class PlayerManager {
         this.currentQuestion = null;
         this.questionStartTime = null;
         this.hasAnswered = false;
-        this.timerInterval = null;
-        this.nextTimerInterval = null;
+        this.readingTimer = null;
+        this.answerTimer = null;
         this.roomUnsubscribe = null;
         this.scoresUnsubscribe = null;
         this.init();
@@ -131,42 +131,122 @@ class PlayerManager {
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`).orderBy('totalScore', 'desc').onSnapshot((snapshot) => {
             if (this.currentScreen === 'finalScreen') this.updateFinalRanking(snapshot);
             else if (this.currentScreen === 'waitingScreen') this.updateWaitingPlayers(snapshot);
+            else if (this.currentScreen === 'questionScreen') this.updateCurrentScore();
+        });
+    }
+    
+    updateCurrentScore() {
+        const scoreRef = db.collection(`rooms/${this.room.id}/scores`).doc(this.playerId);
+        scoreRef.get().then(doc => {
+            if (doc.exists) {
+                const currentScoreElem = document.getElementById('currentScore');
+                if (currentScoreElem) {
+                    currentScoreElem.textContent = doc.data().totalScore || 0;
+                }
+            }
         });
     }
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
-        if (roomData.status === 'question_active') this.handleQuestionStart(roomData);
-        else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') this.showResultScreen();
-        else if (roomData.status === 'finished') this.showFinalScreen();
+        
+        if (roomData.status === 'reading') {
+            this.handleReadingPhase(roomData);
+        } else if (roomData.status === 'answering') {
+            this.handleAnsweringPhase(roomData);
+        } else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') {
+            this.showResultScreen();
+        } else if (roomData.status === 'finished') {
+            this.showFinalScreen();
+        }
     }
 
-    async handleQuestionStart(roomData) {
+    handleReadingPhase(roomData) {
         if (this.currentScreen === 'questionScreen') return;
         
-        const currentIndex = roomData.currentQuestionIndex;
         const questionData = roomData.currentQuestionData;
         if (!questionData) return;
         
         this.currentQuestion = {
-            index: currentIndex,
+            index: roomData.currentQuestionIndex,
             text: questionData.text,
             options: questionData.options,
             timeLimit: questionData.timeLimit,
             correct: questionData.correct
         };
         
-        this.questionStartTime = new Date(); // Registrar momento exato
+        this.hasAnswered = false;
+        this.showScreen('readingScreen');
+        
+        // Criar tela de leitura se não existir
+        this.createReadingScreen();
+        
+        document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
+        document.getElementById('readingTimer').textContent = '5';
+        
+        // Timer de leitura
+        let timeLeft = 5;
+        if (this.readingTimer) clearInterval(this.readingTimer);
+        
+        this.readingTimer = setInterval(() => {
+            timeLeft--;
+            const timerSpan = document.getElementById('readingTimer');
+            if (timerSpan) timerSpan.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(this.readingTimer);
+            }
+        }, 1000);
+    }
+    
+    createReadingScreen() {
+        if (document.getElementById('readingScreen')) return;
+        
+        const readingHTML = `
+            <div id="readingScreen" class="player-screen">
+                <div class="reading-card">
+                    <h2>📖 Leia a pergunta</h2>
+                    <div class="question-reading">
+                        <p id="readingQuestionText" style="font-size: 1.3rem; margin: 1rem 0;"></p>
+                    </div>
+                    <div class="reading-timer">
+                        <div class="timer-circle" id="readingTimerCircle">
+                            <span id="readingTimer">5</span>
+                        </div>
+                        <p>Segundos para responder</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const container = document.querySelector('.player-container');
+        container.insertAdjacentHTML('beforeend', readingHTML);
+    }
+
+    handleAnsweringPhase(roomData) {
+        if (this.currentScreen === 'questionScreen') return;
+        
+        const questionData = roomData.currentQuestionData;
+        if (!questionData) return;
+        
+        this.currentQuestion = {
+            index: roomData.currentQuestionIndex,
+            text: questionData.text,
+            options: questionData.options,
+            timeLimit: questionData.timeLimit,
+            correct: questionData.correct
+        };
+        
+        this.questionStartTime = new Date();
         this.hasAnswered = false;
         
-        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.readingTimer) clearInterval(this.readingTimer);
+        if (this.answerTimer) clearInterval(this.answerTimer);
         
         this.showScreen('questionScreen');
         this.displayQuestion();
         this.startQuestionTimer();
         
-        console.log(`🎯 Pergunta ${currentIndex + 1} iniciada!`);
-        console.log(`   Tempo limite: ${this.currentQuestion.timeLimit}s`);
+        console.log(`🎯 Pergunta ${this.currentQuestion.index + 1} iniciada!`);
     }
 
     displayQuestion() {
@@ -193,12 +273,12 @@ class PlayerManager {
         let timeLeft = this.currentQuestion.timeLimit;
         timerValue.textContent = timeLeft;
         
-        this.timerInterval = setInterval(() => {
+        this.answerTimer = setInterval(() => {
             timeLeft--;
             timerValue.textContent = Math.max(0, timeLeft);
             if (timeLeft <= 5) timerCircle.style.animation = 'pulse 0.5s infinite';
             if (timeLeft <= 0) {
-                clearInterval(this.timerInterval);
+                clearInterval(this.answerTimer);
                 if (!this.hasAnswered) this.submitAnswer(null);
             }
         }, 1000);
@@ -208,14 +288,12 @@ class PlayerManager {
         if (this.hasAnswered) return;
         this.hasAnswered = true;
         
-        if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.answerTimer) clearInterval(this.answerTimer);
         
-        // Calcular tempo de resposta em segundos
         const responseTime = (new Date() - this.questionStartTime) / 1000;
         const timeLimit = this.currentQuestion.timeLimit;
         const isCorrect = (selectedOption === this.currentQuestion.correct);
         
-        // Calcular pontos (o host vai recalcular, mas mostramos uma prévia)
         let previewPoints = 0;
         if (isCorrect && selectedOption !== null) {
             const timeRemaining = Math.max(0, timeLimit - responseTime);
@@ -223,15 +301,9 @@ class PlayerManager {
             previewPoints = Math.min(1000, Math.max(0, previewPoints));
         }
         
-        console.log(`\n📤 RESPOSTA ENVIADA:`);
-        console.log(`   Jogador: ${this.playerName}`);
-        console.log(`   Resposta: ${selectedOption !== null ? String.fromCharCode(65 + selectedOption) : 'Nenhuma'}`);
-        console.log(`   Correta: ${isCorrect ? 'SIM' : 'NÃO'}`);
-        console.log(`   Tempo: ${responseTime.toFixed(2)}s / ${timeLimit}s`);
-        console.log(`   Pontos (prévia): ${previewPoints}`);
+        console.log(`📤 ${this.playerName}: ${isCorrect ? 'ACERTOU' : 'ERROU'} em ${responseTime.toFixed(2)}s`);
         
         try {
-            // Salvar resposta no Firestore
             await db.collection(`rooms/${this.room.id}/answers`).doc(`${this.currentQuestion.index}_${this.playerId}`).set({
                 playerId: this.playerId,
                 playerName: this.playerName,
@@ -243,26 +315,21 @@ class PlayerManager {
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            console.log(`✅ Resposta salva com sucesso!`);
-            
-            // Atualizar pontuação local (prévia visual)
             const currentScoreElem = document.getElementById('currentScore');
             if (currentScoreElem) {
                 const currentScore = parseInt(currentScoreElem.textContent) || 0;
                 currentScoreElem.textContent = currentScore + previewPoints;
             }
             
-            // Mostrar feedback visual
             this.showQuestionFeedback(isCorrect, previewPoints, this.currentQuestion.options[this.currentQuestion.correct]);
             
-            // Desabilitar opções
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
             });
             
         } catch (error) {
-            console.error('❌ Erro ao enviar resposta:', error);
+            console.error('Erro ao enviar resposta:', error);
             Utils.showToast('Erro ao enviar resposta', 'error');
         }
     }
@@ -289,23 +356,13 @@ class PlayerManager {
     }
 
     showResultScreen() {
-        if (this.nextTimerInterval) clearInterval(this.nextTimerInterval);
-        this.showScreen('resultScreen');
-        let timeLeft = 5;
-        const nextTimerSpan = document.getElementById('nextTimer');
-        this.nextTimerInterval = setInterval(() => {
-            timeLeft--;
-            if (nextTimerSpan) nextTimerSpan.textContent = timeLeft;
-            if (timeLeft <= 0) {
-                clearInterval(this.nextTimerInterval);
-                this.showScreen('waitingScreen');
-            }
-        }, 1000);
+        this.showScreen('waitingScreen');
     }
 
     async showFinalScreen() {
-        if (this.timerInterval) clearInterval(this.timerInterval);
-        if (this.nextTimerInterval) clearInterval(this.nextTimerInterval);
+        if (this.readingTimer) clearInterval(this.readingTimer);
+        if (this.answerTimer) clearInterval(this.answerTimer);
+        
         this.showScreen('finalScreen');
         const scoresSnapshot = await db.collection(`rooms/${this.room.id}/scores`).orderBy('totalScore', 'desc').limit(10).get();
         const rankings = [];
@@ -347,14 +404,15 @@ class PlayerManager {
     showScreen(screenId) {
         this.currentScreen = screenId;
         document.querySelectorAll('.player-screen').forEach(screen => screen.classList.remove('active'));
-        document.getElementById(screenId).classList.add('active');
+        const screen = document.getElementById(screenId);
+        if (screen) screen.classList.add('active');
     }
 
     cleanup() {
         if (this.roomUnsubscribe) this.roomUnsubscribe();
         if (this.scoresUnsubscribe) this.scoresUnsubscribe();
-        if (this.timerInterval) clearInterval(this.timerInterval);
-        if (this.nextTimerInterval) clearInterval(this.nextTimerInterval);
+        if (this.readingTimer) clearInterval(this.readingTimer);
+        if (this.answerTimer) clearInterval(this.answerTimer);
     }
 }
 
