@@ -151,6 +151,7 @@ class PlayerManager {
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
+        console.log('📡 Status da sala:', roomData.status);
 
         if (roomData.status === 'loading') {
             this.showLoadingScreen();

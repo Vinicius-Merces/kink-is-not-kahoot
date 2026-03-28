@@ -83,7 +83,6 @@ class HostManager {
                 this.updateRanking(rankings);
             });
 
-        // Monitorar respostas para saber quando todos responderam
         this.answersUnsubscribe = db.collection(`rooms/${this.roomId}/answers`)
             .onSnapshot((snapshot) => {
                 if (this.room.status === 'answering') {
@@ -94,7 +93,6 @@ class HostManager {
                         }
                     });
                     this.answeredPlayers = new Set(answers.map(a => a.playerId));
-
                     if (this.answeredPlayers.size === this.totalPlayers && this.totalPlayers > 0) {
                         console.log(`🎉 Todos os ${this.totalPlayers} jogadores responderam! Finalizando pergunta...`);
                         this.finishQuestion();
@@ -130,7 +128,10 @@ class HostManager {
         const endGameBtn = document.getElementById('endGameBtn');
 
         if (startGameBtn) startGameBtn.addEventListener('click', () => this.startGame());
-        if (startQuestionBtn) startQuestionBtn.addEventListener('click', () => this.startCurrentQuestion());
+        if (startQuestionBtn) startQuestionBtn.addEventListener('click', () => {
+            console.log('🖱️ Botão "Iniciar Pergunta" clicado');
+            this.startCurrentQuestion();
+        });
         if (nextQuestionBtn) nextQuestionBtn.addEventListener('click', () => this.nextQuestion());
         if (endGameBtn) endGameBtn.addEventListener('click', () => this.endGame());
     }
@@ -175,7 +176,6 @@ class HostManager {
             if (timerSpan) timerSpan.textContent = timeLeft;
             if (timeLeft <= 0) {
                 clearInterval(loadingInterval);
-                // Após o carregamento, ativar o quiz
                 db.collection('rooms').doc(this.roomId).update({ status: 'active' });
             }
         }, 1000);
@@ -211,7 +211,10 @@ class HostManager {
     }
 
     async startCurrentQuestion() {
-        if (this.isProcessing) return;
+        if (this.isProcessing) {
+            console.log('⚠️ Processando pergunta, aguarde...');
+            return;
+        }
         if (this.currentQuestionIndex >= this.quiz.questions.length) {
             this.endGame();
             return;
@@ -440,7 +443,8 @@ class HostManager {
             const continueBtn = modal.querySelector('#continueBtn');
             const closeModal = () => {
                 modal.remove();
-                this.nextQuestion();  // <--- CORREÇÃO: avança para a próxima pergunta
+                console.log('🔁 Modal fechado, chamando nextQuestion()');
+                this.nextQuestion();
                 resolve();
             };
 
