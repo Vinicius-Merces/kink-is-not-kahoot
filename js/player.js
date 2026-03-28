@@ -151,22 +151,38 @@ class PlayerManager {
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
-        console.log('📡 Status da sala:', roomData.status);
+
+        // ← LOG OBRIGATÓRIO para debug (deixe enquanto estiver testando)
+        console.log('📡 Status recebido:', roomData.status, '| Tela atual:', this.currentScreen);
 
         if (roomData.status === 'loading') {
             this.showLoadingScreen();
-        } else if (roomData.status === 'reading') {
+        } 
+        else if (roomData.status === 'reading') {
             this.handleReadingPhase(roomData);
-        } else if (roomData.status === 'answering') {
+        } 
+        else if (roomData.status === 'answering') {
             this.handleAnsweringPhase(roomData);
-        } else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') {
-            // Mostrar ranking após a pergunta
-            this.showRankingAfterQuestion();
-        } else if (roomData.status === 'active' && this.currentScreen === 'rankingScreen') {
-            // Fechar ranking e aguardar próxima pergunta
-            this.closeRankingModal();
-            this.showScreen('waitingScreen');
-        } else if (roomData.status === 'finished') {
+        } 
+        else if (roomData.status === 'active') {
+            // === CORREÇÃO PRINCIPAL ===
+            if (this.currentScreen === 'questionScreen') {
+                this.showRankingAfterQuestion();
+            } 
+            else if (this.currentScreen === 'rankingScreen') {
+                this.closeRankingModal();
+                this.showScreen('waitingScreen');
+            } 
+            else if (this.currentScreen === 'loadingScreen') {
+                // Depois do carregamento inicial volta para waiting
+                this.showScreen('waitingScreen');
+            } 
+            else {
+                // Já está em waiting ou outra tela neutra
+                this.showScreen('waitingScreen');
+            }
+        } 
+        else if (roomData.status === 'finished') {
             this.showFinalScreen();
         }
     }
