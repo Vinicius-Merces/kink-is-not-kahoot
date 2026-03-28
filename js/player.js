@@ -14,6 +14,7 @@ class PlayerManager {
         this.answerTimer = null;
         this.roomUnsubscribe = null;
         this.scoresUnsubscribe = null;
+        this.rankingModal = null;
         this.init();
     }
 
@@ -35,7 +36,7 @@ class PlayerManager {
         if (joinGameBtn) joinGameBtn.addEventListener('click', () => this.joinGame());
         const exitGameBtn = document.getElementById('exitGameBtn');
         if (exitGameBtn) exitGameBtn.addEventListener('click', () => window.location.href = 'index.html');
-        
+
         const roomCodeInput = document.getElementById('roomCodeInput');
         if (roomCodeInput) roomCodeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.checkRoom(); });
         const playerNameInput = document.getElementById('playerName');
@@ -135,7 +136,7 @@ class PlayerManager {
             else if (this.currentScreen === 'questionScreen') this.updateCurrentScore();
         });
     }
-    
+
     updateCurrentScore() {
         const scoreRef = db.collection(`rooms/${this.room.id}/scores`).doc(this.playerId);
         scoreRef.get().then(doc => {
@@ -150,7 +151,7 @@ class PlayerManager {
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
-        
+
         if (roomData.status === 'loading') {
             this.showLoadingScreen();
         } else if (roomData.status === 'reading') {
@@ -158,7 +159,6 @@ class PlayerManager {
         } else if (roomData.status === 'answering') {
             this.handleAnsweringPhase(roomData);
         } else if (roomData.status === 'active' && this.currentScreen === 'questionScreen') {
-            // Mostrar ranking após a pergunta
             this.showRankingAfterQuestion();
         } else if (roomData.status === 'active' && this.currentScreen === 'rankingScreen') {
             this.closeRankingModal();
@@ -171,7 +171,7 @@ class PlayerManager {
     showLoadingScreen() {
         this.showScreen('loadingScreen');
         this.createLoadingScreen();
-        
+
         let timeLeft = 5;
         const timerSpan = document.getElementById('loadingTimer');
         const loadingInterval = setInterval(() => {
@@ -185,7 +185,7 @@ class PlayerManager {
 
     createLoadingScreen() {
         if (document.getElementById('loadingScreen')) return;
-        
+
         const loadingHTML = `
             <div id="loadingScreen" class="player-screen">
                 <div class="loading-card">
@@ -200,17 +200,17 @@ class PlayerManager {
                 </div>
             </div>
         `;
-        
+
         const container = document.querySelector('.player-container');
         container.insertAdjacentHTML('beforeend', loadingHTML);
     }
 
     handleReadingPhase(roomData) {
         if (this.currentScreen === 'questionScreen') return;
-        
+
         const questionData = roomData.currentQuestionData;
         if (!questionData) return;
-        
+
         this.currentQuestion = {
             index: roomData.currentQuestionIndex,
             text: questionData.text,
@@ -218,19 +218,18 @@ class PlayerManager {
             timeLimit: questionData.timeLimit,
             correct: questionData.correct
         };
-        
+
         this.hasAnswered = false;
         this.showScreen('readingScreen');
         this.createReadingScreen();
-        
+
         document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
-        
+
         let timeLeft = 5;
         const timerSpan = document.getElementById('readingTimer');
         timerSpan.textContent = timeLeft;
-        
+
         if (this.readingTimer) clearInterval(this.readingTimer);
-        
         this.readingTimer = setInterval(() => {
             timeLeft--;
             if (timerSpan) timerSpan.textContent = timeLeft;
@@ -239,10 +238,10 @@ class PlayerManager {
             }
         }, 1000);
     }
-    
+
     createReadingScreen() {
         if (document.getElementById('readingScreen')) return;
-        
+
         const readingHTML = `
             <div id="readingScreen" class="player-screen">
                 <div class="reading-card">
@@ -259,17 +258,17 @@ class PlayerManager {
                 </div>
             </div>
         `;
-        
+
         const container = document.querySelector('.player-container');
         container.insertAdjacentHTML('beforeend', readingHTML);
     }
 
     handleAnsweringPhase(roomData) {
         if (this.currentScreen === 'questionScreen') return;
-        
+
         const questionData = roomData.currentQuestionData;
         if (!questionData) return;
-        
+
         this.currentQuestion = {
             index: roomData.currentQuestionIndex,
             text: questionData.text,
@@ -277,17 +276,17 @@ class PlayerManager {
             timeLimit: questionData.timeLimit,
             correct: questionData.correct
         };
-        
+
         this.questionStartTime = new Date();
         this.hasAnswered = false;
-        
+
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
-        
+
         this.showScreen('questionScreen');
         this.displayQuestion();
         this.startQuestionTimer();
-        
+
         console.log(`🎯 Pergunta ${this.currentQuestion.index + 1} iniciada!`);
     }
 
@@ -301,7 +300,7 @@ class PlayerManager {
                 <div class="option-text">${Utils.escapeHtml(option)}</div>
             </button>
         `).join('');
-        
+
         document.querySelectorAll('.option-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (!this.hasAnswered) this.submitAnswer(parseInt(btn.dataset.option));
@@ -314,7 +313,7 @@ class PlayerManager {
         const timerValue = document.getElementById('timerValue');
         let timeLeft = this.currentQuestion.timeLimit;
         timerValue.textContent = timeLeft;
-        
+
         this.answerTimer = setInterval(() => {
             timeLeft--;
             timerValue.textContent = Math.max(0, timeLeft);
@@ -329,22 +328,22 @@ class PlayerManager {
     async submitAnswer(selectedOption) {
         if (this.hasAnswered) return;
         this.hasAnswered = true;
-        
+
         if (this.answerTimer) clearInterval(this.answerTimer);
-        
+
         const responseTime = (new Date() - this.questionStartTime) / 1000;
         const timeLimit = this.currentQuestion.timeLimit;
         const isCorrect = (selectedOption === this.currentQuestion.correct);
-        
+
         let previewPoints = 0;
         if (isCorrect && selectedOption !== null) {
             const timeRemaining = Math.max(0, timeLimit - responseTime);
             previewPoints = Math.floor(1000 * (timeRemaining / timeLimit));
             previewPoints = Math.min(1000, Math.max(0, previewPoints));
         }
-        
+
         console.log(`📤 ${this.playerName}: ${isCorrect ? 'ACERTOU' : 'ERROU'} em ${responseTime.toFixed(2)}s`);
-        
+
         try {
             await db.collection(`rooms/${this.room.id}/answers`).doc(`${this.currentQuestion.index}_${this.playerId}`).set({
                 playerId: this.playerId,
@@ -356,20 +355,20 @@ class PlayerManager {
                 responseTime: responseTime,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            
+
             const currentScoreElem = document.getElementById('currentScore');
             if (currentScoreElem) {
                 const currentScore = parseInt(currentScoreElem.textContent) || 0;
                 currentScoreElem.textContent = currentScore + previewPoints;
             }
-            
+
             this.showQuestionFeedback(isCorrect, previewPoints, this.currentQuestion.options[this.currentQuestion.correct]);
-            
+
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
             });
-            
+
         } catch (error) {
             console.error('Erro ao enviar resposta:', error);
             Utils.showToast('Erro ao enviar resposta', 'error');
@@ -379,19 +378,19 @@ class PlayerManager {
     showQuestionFeedback(isCorrect, points, correctAnswer) {
         const feedbackDiv = document.getElementById('feedbackMessage');
         const resultIcon = isCorrect ? '✅' : '❌';
-        const message = isCorrect 
-            ? `Correto! +${points} pontos!` 
+        const message = isCorrect
+            ? `Correto! +${points} pontos!`
             : `Errou! A resposta correta era: ${correctAnswer}`;
-        
+
         feedbackDiv.innerHTML = `
             <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
                 <span class="feedback-icon">${resultIcon}</span>
                 <span class="feedback-text">${message}</span>
             </div>
         `;
-        
+
         feedbackDiv.style.display = 'block';
-        
+
         setTimeout(() => {
             feedbackDiv.style.display = 'none';
         }, 3000);
@@ -404,7 +403,7 @@ class PlayerManager {
 
     createRankingScreen() {
         if (document.getElementById('rankingScreen')) return;
-        
+
         const rankingHTML = `
             <div id="rankingScreen" class="player-screen">
                 <div class="ranking-card">
@@ -416,7 +415,7 @@ class PlayerManager {
                 </div>
             </div>
         `;
-        
+
         const container = document.querySelector('.player-container');
         container.insertAdjacentHTML('beforeend', rankingHTML);
     }
@@ -424,10 +423,10 @@ class PlayerManager {
     updateRankingModal(snapshot) {
         const listDiv = document.getElementById('rankingListModal');
         if (!listDiv) return;
-        
+
         const rankings = [];
         snapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
-        
+
         listDiv.innerHTML = rankings.slice(0, 5).map((player, index) => `
             <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
                 <div class="ranking-position">${index + 1}º</div>
@@ -439,7 +438,7 @@ class PlayerManager {
             </div>
         `).join('');
     }
-    
+
     closeRankingModal() {
         this.showScreen('waitingScreen');
     }
@@ -447,7 +446,8 @@ class PlayerManager {
     async showFinalScreen() {
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
-        
+        if (this.rankingModal) this.rankingModal.remove();
+
         this.showScreen('finalScreen');
         const scoresSnapshot = await db.collection(`rooms/${this.room.id}/scores`).orderBy('totalScore', 'desc').limit(10).get();
         const rankings = [];
@@ -498,6 +498,7 @@ class PlayerManager {
         if (this.scoresUnsubscribe) this.scoresUnsubscribe();
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
+        if (this.rankingModal) this.rankingModal.remove();
     }
 }
 
