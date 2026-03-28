@@ -208,7 +208,7 @@ class QuizManager {
             const quiz = { id: quizDoc.id, ...quizDoc.data() };
             const roomCode = generateRoomCode();
             const roomId = Utils.generateId();
-            
+
             const room = {
                 id: roomId,
                 quizId: quizId,
@@ -221,22 +221,23 @@ class QuizManager {
                 players: {},
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 active: true,
-                quizTitle: quiz.title
+                quizTitle: quiz.title,
+                questions: quiz.questions  // <-- guardar todas as perguntas na sala
             };
-            
+
             await db.collection('rooms').doc(roomId).set(room);
             await db.collection('quizzes').doc(quizId).update({
                 timesPlayed: firebase.firestore.FieldValue.increment(1)
             });
-            
+
             window.location.href = `host.html?room=${roomId}`;
         } catch (error) {
-            console.error('Erro ao iniciar sessão:', error);
             Utils.showToast('Erro ao iniciar sessão: ' + error.message, 'error');
         }
     }
 }
 
+// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 DOM carregado, iniciando QuizManager V2...');
     window.quizManager = new QuizManager();

@@ -3,7 +3,6 @@ class HostManager {
     constructor() {
         this.roomId = null;
         this.room = null;
-        this.quiz = null;
         this.currentQuestionIndex = 0;
         this.readingTimer = null;
         this.answerTimer = null;
@@ -51,8 +50,12 @@ class HostManager {
                 window.location.href = 'my-quizzes.html';
                 return;
             }
-            const quizDoc = await db.collection('quizzes').doc(this.room.quizId).get();
-            this.quiz = { id: quizDoc.id, ...quizDoc.data() };
+            // Usar as perguntas já carregadas na sala
+            this.quiz = {
+                id: this.room.quizId,
+                title: this.room.quizTitle,
+                questions: this.room.questions || []  // <-- usar do room
+            };
             this.currentQuestionIndex = this.room.currentQuestionIndex || 0;
             this.updateUI();
         } catch (error) {
@@ -107,7 +110,7 @@ class HostManager {
         if (roomCodeElem) roomCodeElem.textContent = this.room.code;
 
         const quizInfoElem = document.getElementById('quizInfo');
-        if (quizInfoElem) quizInfoElem.innerHTML = `<strong>Quiz:</strong> ${this.quiz.title} | <strong>Perguntas:</strong> ${this.quiz.questions.length}`;
+        if (quizInfoElem) quizInfoElem.innerHTML = `<strong>Quiz:</strong> ${this.room.quizTitle} | <strong>Perguntas:</strong> ${this.room.questions?.length || 0}`;
 
         const copyBtn = document.getElementById('copyCodeBtn');
         if (copyBtn) copyBtn.addEventListener('click', () => {
@@ -183,9 +186,10 @@ class HostManager {
 
     updateCurrentQuestionDisplay() {
         const display = document.getElementById('currentQuestionDisplay');
-        if (this.currentQuestionIndex < this.quiz.questions.length) {
-            const question = this.quiz.questions[this.currentQuestionIndex];
-            display.innerHTML = `<div class="current-question"><strong>Pergunta ${this.currentQuestionIndex + 1}/${this.quiz.questions.length}</strong><p>${Utils.escapeHtml(question.text)}</p><small>Tempo limite: ${question.timeLimit || 30}s</small></div>`;
+        const questions = this.room.questions || [];
+        if (this.currentQuestionIndex < questions.length) {
+            const question = questions[this.currentQuestionIndex];
+            display.innerHTML = `<div class="current-question"><strong>Pergunta ${this.currentQuestionIndex + 1}/${questions.length}</strong><p>${Utils.escapeHtml(question.text)}</p><small>Tempo limite: ${question.timeLimit || 30}s</small></div>`;
         } else {
             display.innerHTML = '<p class="placeholder">Quiz finalizado!</p>';
         }
@@ -215,14 +219,15 @@ class HostManager {
             console.log('⚠️ Processando pergunta, aguarde...');
             return;
         }
-        if (this.currentQuestionIndex >= this.quiz.questions.length) {
+        const questions = this.room.questions || [];
+        if (this.currentQuestionIndex >= questions.length) {
             this.endGame();
             return;
         }
 
         this.isProcessing = true;
         this.answeredPlayers.clear();
-        const currentQuestion = this.quiz.questions[this.currentQuestionIndex];
+        const currentQuestion = questions[this.currentQuestionIndex];
         const timeLimit = currentQuestion.timeLimit || 30;
 
         console.log(`\n🎯 ========== PERGUNTA ${this.currentQuestionIndex + 1} ==========`);
@@ -262,12 +267,14 @@ class HostManager {
         });
 
         await this.finishQuestion();
-        this.isProcessing = false;
+        // Não resetar isProcessing aqui, pois finishQuestion já o faz
     }
 
     updateReadingPhase() {
         const display = document.getElementById('currentQuestionDisplay');
-        const question = this.quiz.questions[this.currentQuestionIndex];
+        const questions = this.room.questions || [];
+        const question = questions[this.currentQuestionIndex];
+        if (!question) return;
         display.innerHTML = `
             <div class="current-question" style="background: rgba(78, 205, 196, 0.2);">
                 <strong>📖 Leia a pergunta (5s)</strong>
@@ -280,7 +287,9 @@ class HostManager {
 
     updateAnsweringPhase() {
         const display = document.getElementById('currentQuestionDisplay');
-        const question = this.quiz.questions[this.currentQuestionIndex];
+        const questions = this.room.questions || [];
+        const question = questions[this.currentQuestionIndex];
+        if (!question) return;
         display.innerHTML = `
             <div class="current-question">
                 <strong>⚡ Responda agora!</strong>
@@ -330,7 +339,8 @@ class HostManager {
         if (this.readingTimer) clearTimeout(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
 
-        const question = this.quiz.questions[this.currentQuestionIndex];
+        const questions = this.room.questions || [];
+        const question = questions[this.currentQuestionIndex];
         const timeLimit = question.timeLimit || 30;
 
         console.log(`\n🏁 ========== FINALIZANDO PERGUNTA ${this.currentQuestionIndex + 1} ==========`);
@@ -402,6 +412,7 @@ class HostManager {
 
         Utils.showToast(`Pergunta finalizada! ${correctCount}/${totalAnswers} acertos`, 'info');
 
+        this.isProcessing = false;
         this.isFinishing = false;
     }
 
@@ -460,7 +471,8 @@ class HostManager {
 
         console.log(`🔄 Avançando para pergunta ${nextIndex + 1}...`);
 
-        if (nextIndex >= this.quiz.questions.length) {
+        const questions = this.room.questions || [];
+        if (nextIndex >= questions.length) {
             this.endGame();
             return;
         }
@@ -478,6 +490,9 @@ class HostManager {
         this.updateCurrentQuestionDisplay();
 
         Utils.showToast(`Preparando pergunta ${nextIndex + 1}...`, 'info');
+
+        // Importante: resetar isProcessing após a transição para a próxima pergunta
+        this.isProcessing = false;
     }
 
     async endGame() {
