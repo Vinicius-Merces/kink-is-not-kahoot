@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO FINAL CORRIGIDA - Feedback só no ranking)
+// Player - Tela do Aluno (VERSÃO FINAL - Casada com Host + Pódio)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -26,34 +26,29 @@ class PlayerManager {
         }
         this.setupEventListeners();
         this.loadAvatars();
-        this.createAllDynamicScreens();   // Cria todas as telas antes de qualquer listener
+        this.createAllDynamicScreens();
     }
 
-    // ====================== CRIAÇÃO ANTECIPADA DAS TELAS ======================
     createAllDynamicScreens() {
         const container = document.querySelector('.player-container');
 
         // Loading Screen
         if (!document.getElementById('loadingScreen')) {
-            const loadingHTML = `
+            container.insertAdjacentHTML('beforeend', `
                 <div id="loadingScreen" class="player-screen">
                     <div class="loading-card">
                         <h2>🔄 Carregando Quiz...</h2>
-                        <div class="loading-spinner">
-                            <div class="spinner"></div>
-                        </div>
+                        <div class="loading-spinner"><div class="spinner"></div></div>
                         <p>Preparando perguntas...</p>
-                        <div class="loading-timer">
-                            <span id="loadingTimer">5</span>s
-                        </div>
+                        <div class="loading-timer"><span id="loadingTimer">5</span>s</div>
                     </div>
-                </div>`;
-            container.insertAdjacentHTML('beforeend', loadingHTML);
+                </div>
+            `);
         }
 
         // Reading Screen
         if (!document.getElementById('readingScreen')) {
-            const readingHTML = `
+            container.insertAdjacentHTML('beforeend', `
                 <div id="readingScreen" class="player-screen">
                     <div class="reading-card">
                         <h2>📖 Leia atentamente</h2>
@@ -61,41 +56,48 @@ class PlayerManager {
                             <p id="readingQuestionText" style="font-size: 1.35rem; line-height: 1.4;"></p>
                         </div>
                         <div class="reading-timer">
-                            <div class="timer-circle">
-                                <span id="readingTimer">5</span>
-                            </div>
+                            <div class="timer-circle"><span id="readingTimer">5</span></div>
                             <p>segundos</p>
                         </div>
                     </div>
-                </div>`;
-            container.insertAdjacentHTML('beforeend', readingHTML);
+                </div>
+            `);
         }
 
-        // Ranking Screen (Parcial)
+        // Ranking Parcial
         if (!document.getElementById('rankingScreen')) {
-            const rankingHTML = `
+            container.insertAdjacentHTML('beforeend', `
                 <div id="rankingScreen" class="player-screen">
                     <div class="ranking-card">
                         <h2>🏆 Ranking Parcial 🏆</h2>
                         <div id="rankingListModal" class="ranking-list-modal"></div>
                         <div id="answerFeedback" class="feedback-message" style="margin-top: 1.5rem; display: none;"></div>
-                        <p style="margin-top: 2rem; opacity: 0.8;">Aguardando o professor iniciar a próxima pergunta...</p>
+                        <p style="margin-top: 2rem; opacity: 0.8; text-align:center;">Aguardando próxima pergunta...</p>
                     </div>
-                </div>`;
-            container.insertAdjacentHTML('beforeend', rankingHTML);
+                </div>
+            `);
+        }
+
+        // Final Screen (Pódio)
+        if (!document.getElementById('finalScreen')) {
+            container.insertAdjacentHTML('beforeend', `
+                <div id="finalScreen" class="player-screen">
+                    <div class="final-card">
+                        <h2>🏆 Quiz Finalizado! 🏆</h2>
+                        <div id="finalPodium" class="podium"></div>
+                        <div id="finalRankingList" class="ranking-list-large"></div>
+                        <button id="exitGameBtn" class="btn btn-primary">Sair</button>
+                    </div>
+                </div>
+            `);
         }
     }
 
     setupEventListeners() {
         document.getElementById('checkRoomBtn').addEventListener('click', () => this.checkRoom());
         document.getElementById('joinGameBtn').addEventListener('click', () => this.joinGame());
-        document.getElementById('exitGameBtn').addEventListener('click', () => window.location.href = 'index.html');
-
-        const roomCodeInput = document.getElementById('roomCodeInput');
-        if (roomCodeInput) roomCodeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.checkRoom(); });
-
-        const playerNameInput = document.getElementById('playerName');
-        if (playerNameInput) playerNameInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.joinGame(); });
+        const exitBtn = document.getElementById('exitGameBtn');
+        if (exitBtn) exitBtn.addEventListener('click', () => window.location.href = 'index.html');
     }
 
     loadAvatars() {
@@ -111,7 +113,6 @@ class PlayerManager {
             </div>
         `).join('');
 
-        // Seleciona primeiro avatar por padrão
         document.querySelector('.avatar-option').classList.add('selected');
         this.playerAvatar = 'avatar1';
 
@@ -131,10 +132,7 @@ class PlayerManager {
             return;
         }
         try {
-            const snapshot = await db.collection('rooms')
-                .where('code', '==', code)
-                .where('active', '==', true)
-                .get();
+            const snapshot = await db.collection('rooms').where('code', '==', code).where('active', '==', true).get();
             if (snapshot.empty) {
                 Utils.showToast('Sala não encontrada ou encerrada', 'error');
                 return;
@@ -157,17 +155,11 @@ class PlayerManager {
         this.playerName = name;
         try {
             await db.collection(`rooms/${this.room.id}/players`).doc(this.playerId).set({
-                id: this.playerId,
-                name: name,
-                avatar: this.playerAvatar,
-                joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'ready'
+                id: this.playerId, name: name, avatar: this.playerAvatar,
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp(), status: 'ready'
             });
             await db.collection(`rooms/${this.room.id}/scores`).doc(this.playerId).set({
-                playerId: this.playerId,
-                playerName: name,
-                avatar: this.playerAvatar,
-                totalScore: 0
+                playerId: this.playerId, playerName: name, avatar: this.playerAvatar, totalScore: 0
             });
             this.showScreen('waitingScreen');
             document.getElementById('waitingRoomCode').textContent = this.roomCode;
@@ -178,16 +170,14 @@ class PlayerManager {
     }
 
     setupGameListeners() {
-        this.roomUnsubscribe = db.collection('rooms').doc(this.room.id)
-            .onSnapshot((doc) => {
-                if (doc.exists) this.handleRoomUpdate(doc.data());
-            });
+        this.roomUnsubscribe = db.collection('rooms').doc(this.room.id).onSnapshot((doc) => {
+            if (doc.exists) this.handleRoomUpdate(doc.data());
+        });
 
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
-                console.log('📈 Snapshot de scores recebido');
-                if (this.currentScreen === 'rankingScreen') {
+                if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
                     this.updateRankingModal(snapshot);
                 }
             });
@@ -195,7 +185,7 @@ class PlayerManager {
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
-        console.log(`📡 Status recebido: ${roomData.status} | Tela atual: ${this.currentScreen}`);
+        console.log(`📡 Status recebido: ${roomData.status} | Tela: ${this.currentScreen}`);
 
         switch (roomData.status) {
             case 'loading':
@@ -222,15 +212,6 @@ class PlayerManager {
 
     showLoadingScreen() {
         this.showScreen('loadingScreen');
-        const timerEl = document.getElementById('loadingTimer');
-        if (timerEl) {
-            let time = 5;
-            const interval = setInterval(() => {
-                time--;
-                timerEl.textContent = time;
-                if (time <= 0) clearInterval(interval);
-            }, 1000);
-        }
     }
 
     handleReadingPhase(roomData) {
@@ -327,9 +308,6 @@ class PlayerManager {
         const isCorrect = selectedOption === this.currentQuestion.correct;
 
         this.currentQuestion.lastAnswerCorrect = isCorrect;
-        this.currentQuestion.selectedOption = selectedOption;
-
-        console.log(`📤 ${this.playerName} respondeu: ${selectedOption} (correto? ${isCorrect})`);
 
         try {
             await db.collection(`rooms/${this.room.id}/answers`)
@@ -345,30 +323,20 @@ class PlayerManager {
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-            // Desabilita todas as opções
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
-                if (parseInt(btn.dataset.option) === selectedOption) {
-                    btn.style.borderColor = '#ff6b6b';
-                }
+                if (parseInt(btn.dataset.option) === selectedOption) btn.style.borderColor = '#ff6b6b';
             });
-
-            // NÃO mostra feedback aqui (só no ranking)
-
         } catch (error) {
             console.error('Erro ao enviar resposta:', error);
-            Utils.showToast('Erro ao enviar resposta', 'error');
         }
     }
 
     showRankingAfterQuestion() {
-        console.log('🏆 Mostrando ranking + feedback da pergunta...');
         this.showScreen('rankingScreen');
-        this.showAnswerFeedback();           // Feedback só aparece aqui
-        setTimeout(() => {
-            this.updateRankingFromFirestore();
-        }, 200);
+        this.showAnswerFeedback();
+        setTimeout(() => this.updateRankingFromFirestore(), 300);
     }
 
     showAnswerFeedback() {
@@ -386,26 +354,16 @@ class PlayerManager {
 
     async updateRankingFromFirestore() {
         const container = document.getElementById('rankingListModal');
-        if (!container) {
-            console.warn('❌ rankingListModal não encontrado');
-            return;
-        }
+        if (!container) return;
 
         try {
             const snapshot = await db.collection(`rooms/${this.room.id}/scores`)
                 .orderBy('totalScore', 'desc')
-                .limit(8)
+                .limit(10)
                 .get();
 
             const rankings = [];
             snapshot.forEach(doc => rankings.push(doc.data()));
-
-            console.log(`📊 Ranking carregado: ${rankings.length} jogadores`);
-
-            if (rankings.length === 0) {
-                container.innerHTML = '<p style="opacity:0.6;">Aguardando pontuação...</p>';
-                return;
-            }
 
             container.innerHTML = rankings.map((player, index) => `
                 <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
@@ -418,8 +376,7 @@ class PlayerManager {
                 </div>
             `).join('');
         } catch (err) {
-            console.error('Erro ao carregar ranking:', err);
-            container.innerHTML = '<p style="color:#ff6b6b;">Erro ao carregar ranking</p>';
+            console.error(err);
         }
     }
 
@@ -427,8 +384,43 @@ class PlayerManager {
         this.updateRankingFromFirestore();
     }
 
-    showFinalScreen() {
+    async showFinalScreen() {
         this.showScreen('finalScreen');
+        const snapshot = await db.collection(`rooms/${this.room.id}/scores`)
+            .orderBy('totalScore', 'desc')
+            .limit(10)
+            .get();
+
+        this.updateFinalPodium(snapshot);
+    }
+
+    updateFinalPodium(snapshot) {
+        const container = document.getElementById('finalPodium');
+        const rankings = [];
+        snapshot.forEach(doc => rankings.push(doc.data()));
+
+        let html = `<h3 style="color:#ff6b6b; margin-bottom:1rem;">Pódio Final</h3>`;
+
+        if (rankings[0]) html += `<div style="font-size:2.2rem; margin:1rem 0;">🥇 ${Utils.getAvatarEmoji(rankings[0].avatar)} ${rankings[0].playerName} — ${rankings[0].totalScore} pts</div>`;
+        if (rankings[1]) html += `<div style="font-size:1.8rem; margin:0.8rem 0;">🥈 ${Utils.getAvatarEmoji(rankings[1].avatar)} ${rankings[1].playerName} — ${rankings[1].totalScore} pts</div>`;
+        if (rankings[2]) html += `<div style="font-size:1.5rem; margin:0.8rem 0;">🥉 ${Utils.getAvatarEmoji(rankings[2].avatar)} ${rankings[2].playerName} — ${rankings[2].totalScore} pts</div>`;
+
+        if (container) container.innerHTML = html;
+
+        // Ranking completo abaixo do pódio
+        const fullList = document.getElementById('finalRankingList');
+        if (fullList) {
+            fullList.innerHTML = rankings.map((p, i) => `
+                <div class="ranking-item ${p.playerId === this.playerId ? 'current-player' : ''}">
+                    <div class="ranking-position">${i+1}º</div>
+                    <div class="player-info">
+                        <span class="player-avatar">${Utils.getAvatarEmoji(p.avatar)}</span>
+                        <span>${Utils.escapeHtml(p.playerName)}</span>
+                    </div>
+                    <div class="ranking-score">${p.totalScore || 0} pts</div>
+                </div>
+            `).join('');
+        }
     }
 
     showScreen(screenId) {
@@ -446,7 +438,6 @@ class PlayerManager {
     }
 }
 
-// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     window.playerManager = new PlayerManager();
     window.addEventListener('beforeunload', () => window.playerManager?.cleanup());
