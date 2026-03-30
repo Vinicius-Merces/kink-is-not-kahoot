@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO ESTÁVEL - Leitura + Ranking + Pódio corrigidos)
+// Player - Tela do Aluno (VERSÃO ESTÁVEL - Leitura e Ranking funcionando)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -26,6 +26,44 @@ class PlayerManager {
         }
         this.setupEventListeners();
         this.loadAvatars();
+        this.createMissingScreens();   // Cria apenas o que falta
+    }
+
+    // Cria apenas as telas que não existem no HTML
+    createMissingScreens() {
+        const container = document.querySelector('.player-container');
+
+        // Loading Screen
+        if (!document.getElementById('loadingScreen')) {
+            container.insertAdjacentHTML('beforeend', `
+                <div id="loadingScreen" class="player-screen">
+                    <div class="loading-card">
+                        <h2>🔄 Carregando Quiz...</h2>
+                        <div class="loading-spinner"><div class="spinner"></div></div>
+                        <p>Preparando perguntas...</p>
+                        <div class="loading-timer"><span id="loadingTimer">5</span>s</div>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Reading Screen
+        if (!document.getElementById('readingScreen')) {
+            container.insertAdjacentHTML('beforeend', `
+                <div id="readingScreen" class="player-screen">
+                    <div class="reading-card">
+                        <h2>📖 Leia atentamente</h2>
+                        <div class="question-reading">
+                            <p id="readingQuestionText" style="font-size: 1.35rem; line-height: 1.4;"></p>
+                        </div>
+                        <div class="reading-timer">
+                            <div class="timer-circle"><span id="readingTimer">5</span></div>
+                            <p>segundos</p>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
     }
 
     setupEventListeners() {
@@ -104,13 +142,13 @@ class PlayerManager {
     }
 
     setupGameListeners() {
-        this.roomUnsubscribe = db.collection('rooms').doc(this.room.id).onSnapshot(doc => {
+        this.roomUnsubscribe = db.collection('rooms').doc(this.room.id).onSnapshot((doc) => {
             if (doc.exists) this.handleRoomUpdate(doc.data());
         });
 
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
-            .onSnapshot(snapshot => {
+            .onSnapshot((snapshot) => {
                 if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
                     this.updateRanking(snapshot);
                 }
@@ -125,15 +163,12 @@ class PlayerManager {
             case 'loading':
                 this.showScreen('loadingScreen');
                 break;
-
             case 'reading':
                 this.handleReadingPhase(roomData);
                 break;
-
             case 'answering':
                 this.handleAnsweringPhase(roomData);
                 break;
-
             case 'active':
                 if (this.currentScreen === 'questionScreen' || this.currentScreen === 'readingScreen') {
                     this.showRankingAfterQuestion();
@@ -141,7 +176,6 @@ class PlayerManager {
                     this.showScreen('waitingScreen');
                 }
                 break;
-
             case 'finished':
                 this.showFinalScreen();
                 break;
@@ -161,19 +195,9 @@ class PlayerManager {
         };
 
         this.hasAnswered = false;
-        this.showScreen('readingScreen');                    // ← Garantido
-        document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
-
-        let timeLeft = 5;
-        const timerEl = document.getElementById('readingTimer');
-        if (timerEl) timerEl.textContent = timeLeft;
-
-        if (this.readingTimer) clearInterval(this.readingTimer);
-        this.readingTimer = setInterval(() => {
-            timeLeft--;
-            if (timerEl) timerEl.textContent = timeLeft;
-            if (timeLeft <= 0) clearInterval(this.readingTimer);
-        }, 1000);
+        this.showScreen('readingScreen');
+        const textEl = document.getElementById('readingQuestionText');
+        if (textEl) textEl.textContent = this.currentQuestion.text;
     }
 
     handleAnsweringPhase(roomData) {
@@ -191,9 +215,7 @@ class PlayerManager {
         this.questionStartTime = new Date();
         this.hasAnswered = false;
 
-        if (this.readingTimer) clearInterval(this.readingTimer);
-
-        this.showScreen('questionScreen');                   // ← Garantido
+        this.showScreen('questionScreen');
         this.displayQuestion();
         this.startQuestionTimer();
     }
@@ -274,7 +296,7 @@ class PlayerManager {
     }
 
     showAnswerFeedback() {
-        const feedbackDiv = document.getElementById('answerFeedback');
+        const feedbackDiv = document.getElementById('answerFeedback') || document.getElementById('feedbackMessage');
         if (!feedbackDiv || !this.currentQuestion) return;
 
         const isCorrect = this.currentQuestion.lastAnswerCorrect;
@@ -287,7 +309,7 @@ class PlayerManager {
     }
 
     async updateRankingFromFirestore() {
-        const container = document.getElementById('rankingListModal');
+        const container = document.getElementById('rankingListModal') || document.getElementById('finalRankingList');
         if (!container) return;
 
         try {
@@ -314,10 +336,6 @@ class PlayerManager {
         }
     }
 
-    updateRankingModal(snapshot) {
-        this.updateRankingFromFirestore();
-    }
-
     showFinalScreen() {
         this.showScreen('finalScreen');
     }
@@ -326,8 +344,11 @@ class PlayerManager {
         this.currentScreen = screenId;
         document.querySelectorAll('.player-screen').forEach(s => s.classList.remove('active'));
         const screen = document.getElementById(screenId);
-        if (screen) screen.classList.add('active');
-        else console.error(`Tela ${screenId} não encontrada!`);
+        if (screen) {
+            screen.classList.add('active');
+        } else {
+            console.error(`Tela não encontrada: ${screenId}`);
+        }
     }
 
     cleanup() {
