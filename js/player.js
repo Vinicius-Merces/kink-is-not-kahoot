@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO ESTÁVEL - Leitura e Ranking funcionando)
+// Player - Tela do Aluno (VERSÃO FINAL - Feedback SOMENTE no Ranking)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -26,44 +26,6 @@ class PlayerManager {
         }
         this.setupEventListeners();
         this.loadAvatars();
-        this.createMissingScreens();   // Cria apenas o que falta
-    }
-
-    // Cria apenas as telas que não existem no HTML
-    createMissingScreens() {
-        const container = document.querySelector('.player-container');
-
-        // Loading Screen
-        if (!document.getElementById('loadingScreen')) {
-            container.insertAdjacentHTML('beforeend', `
-                <div id="loadingScreen" class="player-screen">
-                    <div class="loading-card">
-                        <h2>🔄 Carregando Quiz...</h2>
-                        <div class="loading-spinner"><div class="spinner"></div></div>
-                        <p>Preparando perguntas...</p>
-                        <div class="loading-timer"><span id="loadingTimer">5</span>s</div>
-                    </div>
-                </div>
-            `);
-        }
-
-        // Reading Screen
-        if (!document.getElementById('readingScreen')) {
-            container.insertAdjacentHTML('beforeend', `
-                <div id="readingScreen" class="player-screen">
-                    <div class="reading-card">
-                        <h2>📖 Leia atentamente</h2>
-                        <div class="question-reading">
-                            <p id="readingQuestionText" style="font-size: 1.35rem; line-height: 1.4;"></p>
-                        </div>
-                        <div class="reading-timer">
-                            <div class="timer-circle"><span id="readingTimer">5</span></div>
-                            <p>segundos</p>
-                        </div>
-                    </div>
-                </div>
-            `);
-        }
     }
 
     setupEventListeners() {
@@ -149,7 +111,7 @@ class PlayerManager {
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
-                if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
+                if (this.currentScreen === 'rankingScreen') {
                     this.updateRanking(snapshot);
                 }
             });
@@ -162,6 +124,7 @@ class PlayerManager {
         switch (roomData.status) {
             case 'loading':
                 this.showScreen('loadingScreen');
+                this.startLoadingTimer();
                 break;
             case 'reading':
                 this.handleReadingPhase(roomData);
@@ -170,6 +133,7 @@ class PlayerManager {
                 this.handleAnsweringPhase(roomData);
                 break;
             case 'active':
+                // Só mostra ranking se veio de uma pergunta respondida
                 if (this.currentScreen === 'questionScreen' || this.currentScreen === 'readingScreen') {
                     this.showRankingAfterQuestion();
                 } else {
@@ -180,6 +144,18 @@ class PlayerManager {
                 this.showFinalScreen();
                 break;
         }
+    }
+
+    startLoadingTimer() {
+        const timerEl = document.getElementById('loadingTimer');
+        if (!timerEl) return;
+        let time = 5;
+        timerEl.textContent = time;
+        const interval = setInterval(() => {
+            time--;
+            timerEl.textContent = time;
+            if (time <= 0) clearInterval(interval);
+        }, 1000);
     }
 
     handleReadingPhase(roomData) {
@@ -196,8 +172,18 @@ class PlayerManager {
 
         this.hasAnswered = false;
         this.showScreen('readingScreen');
-        const textEl = document.getElementById('readingQuestionText');
-        if (textEl) textEl.textContent = this.currentQuestion.text;
+        document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
+
+        let timeLeft = 5;
+        const timerEl = document.getElementById('readingTimer');
+        if (timerEl) timerEl.textContent = timeLeft;
+
+        if (this.readingTimer) clearInterval(this.readingTimer);
+        this.readingTimer = setInterval(() => {
+            timeLeft--;
+            if (timerEl) timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) clearInterval(this.readingTimer);
+        }, 1000);
     }
 
     handleAnsweringPhase(roomData) {
@@ -279,24 +265,28 @@ class PlayerManager {
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+            // Apenas desabilita as opções, NÃO mostra feedback aqui
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
-                if (parseInt(btn.dataset.option) === selectedOption) btn.style.borderColor = '#ff6b6b';
+                if (parseInt(btn.dataset.option) === selectedOption) {
+                    btn.style.borderColor = '#ff6b6b';
+                }
             });
         } catch (e) {
             console.error(e);
         }
     }
 
+    // Feedback SÓ aparece aqui, quando o professor finaliza a rodada
     showRankingAfterQuestion() {
         this.showScreen('rankingScreen');
-        this.showAnswerFeedback();
-        setTimeout(() => this.updateRankingFromFirestore(), 300);
+        this.showAnswerFeedback();        // ← Aqui é o único lugar que mostra acertou/errou
+        setTimeout(() => this.updateRankingFromFirestore(), 400);
     }
 
     showAnswerFeedback() {
-        const feedbackDiv = document.getElementById('answerFeedback') || document.getElementById('feedbackMessage');
+        const feedbackDiv = document.getElementById('answerFeedback');
         if (!feedbackDiv || !this.currentQuestion) return;
 
         const isCorrect = this.currentQuestion.lastAnswerCorrect;
@@ -309,7 +299,7 @@ class PlayerManager {
     }
 
     async updateRankingFromFirestore() {
-        const container = document.getElementById('rankingListModal') || document.getElementById('finalRankingList');
+        const container = document.getElementById('rankingListModal');
         if (!container) return;
 
         try {
@@ -344,11 +334,8 @@ class PlayerManager {
         this.currentScreen = screenId;
         document.querySelectorAll('.player-screen').forEach(s => s.classList.remove('active'));
         const screen = document.getElementById(screenId);
-        if (screen) {
-            screen.classList.add('active');
-        } else {
-            console.error(`Tela não encontrada: ${screenId}`);
-        }
+        if (screen) screen.classList.add('active');
+        else console.error(`Tela não encontrada: ${screenId}`);
     }
 
     cleanup() {
