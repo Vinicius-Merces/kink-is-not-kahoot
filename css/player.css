@@ -121,7 +121,7 @@
     font-size: 0.9rem;
 }
 
-/* Playlist Panel */
+/* Playlist Panel - CORRIGIDO (sem embaçar no hover) */
 .playlist-panel {
     position: absolute;
     bottom: 70px;
@@ -135,10 +135,22 @@
     display: none;
     animation: slideUp 0.3s ease;
     z-index: 1002;
+    pointer-events: auto; /* Garante que a playlist seja clicável */
 }
 
 .playlist-panel.show {
     display: block;
+}
+
+/* Impede que o hover do player afete a playlist */
+.music-player:has(.playlist-panel.show) {
+    z-index: 1001;
+}
+
+/* Remove o efeito de blur/scale quando a playlist está aberta */
+.music-player:has(.playlist-panel.show):hover {
+    transform: none;
+    box-shadow: none;
 }
 
 @keyframes slideUp {
@@ -184,6 +196,7 @@
 .playlist-list {
     max-height: 300px;
     overflow-y: auto;
+    pointer-events: auto; /* Garante que os itens sejam clicáveis */
 }
 
 .playlist-list::-webkit-scrollbar {
@@ -250,7 +263,7 @@
 }
 
 /* ============================================ */
-/* ESTADO MINIMIZADO - CORRETO                 */
+/* ESTADO MINIMIZADO                           */
 /* ============================================ */
 
 .music-player.minimized {
@@ -286,6 +299,85 @@
     border-radius: 50%;
     margin: 0;
     font-size: 1.5rem;
+}
+
+/* Indicador visual no player minimizado - Letra K */
+.music-player.minimized .player-icon span {
+    display: none;
+}
+
+.music-player.minimized .player-icon::before {
+    content: "K";
+    font-weight: bold;
+    font-size: 1.6rem;
+    color: white;
+    text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* ============================================ */
+/* BOTÃO EXPANDIR (SETA CLICÁVEL)              */
+/* ============================================ */
+
+/* Botão expandir - sempre visível ao lado do círculo minimizado */
+.expand-btn {
+    position: absolute;
+    left: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 107, 107, 0.8);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1004;
+    box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
+}
+
+.expand-btn:hover {
+    background: #ff6b6b;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+}
+
+.expand-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Tooltip do botão expandir */
+.expand-btn::after {
+    content: "Expandir";
+    position: absolute;
+    left: -50px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 1003;
+}
+
+.expand-btn:hover::after {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Indicador de música tocando - modo normal */
@@ -341,7 +433,7 @@
 }
 
 /* ============================================ */
-/* BOTÃO MINIMIZAR                             */
+/* BOTÃO MINIMIZAR (quando expandido)          */
 /* ============================================ */
 
 .minimize-btn {
@@ -368,7 +460,6 @@
     transform: scale(1.05);
 }
 
-/* Tooltip do botão minimizar */
 .minimize-btn::after {
     content: "Minimizar";
     position: absolute;
@@ -392,83 +483,7 @@
     visibility: visible;
 }
 
-/* ============================================ */
-/* INDICADOR PARA MAXIMIZAR (seta pulsante)    */
-/* ============================================ */
-
-/* Indicador visual no player minimizado - Letra K */
-.music-player.minimized .player-icon span {
-    display: none;
-}
-
-.music-player.minimized .player-icon::before {
-    content: "K";
-    font-weight: bold;
-    font-size: 1.6rem;
-    color: white;
-    text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
-}
-
-/* Seta indicadora para maximizar (aparece no hover do minimizado) */
-.music-player.minimized::before {
-    content: "◀";
-    position: absolute;
-    left: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1rem;
-    color: #ff6b6b;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease;
-    text-shadow: 0 0 5px #ff6b6b;
-    pointer-events: none;
-}
-
-/* Seta pulsante ao passar o mouse */
-.music-player.minimized:hover::before {
-    opacity: 1;
-    visibility: visible;
-    animation: arrowPulse 0.8s ease-in-out infinite;
-}
-
-@keyframes arrowPulse {
-    0%, 100% {
-        transform: translateY(-50%) translateX(0);
-        opacity: 0.6;
-    }
-    50% {
-        transform: translateY(-50%) translateX(-5px);
-        opacity: 1;
-    }
-}
-
-/* Tooltip de expandir (alternativo) */
-.music-player.minimized::after {
-    content: "Expandir";
-    position: absolute;
-    left: -65px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    font-size: 0.7rem;
-    padding: 4px 8px;
-    border-radius: 6px;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s;
-    pointer-events: none;
-    z-index: 1003;
-}
-
-.music-player.minimized:hover::after {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Tooltip da música atual (quando minimizado) - aparece acima */
+/* Tooltip da música atual (quando minimizado) */
 .music-player.minimized .player-icon {
     position: relative;
 }
@@ -532,19 +547,20 @@
         font-size: 1.3rem;
     }
     
-    .minimize-btn::after {
-        bottom: -25px;
+    .expand-btn {
+        left: -24px;
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
+    
+    .expand-btn::after {
+        left: -45px;
         font-size: 0.6rem;
     }
     
-    /* Ajuste da seta em mobile */
-    .music-player.minimized::before {
-        left: -15px;
-        font-size: 0.8rem;
-    }
-    
-    .music-player.minimized::after {
-        left: -55px;
+    .minimize-btn::after {
+        bottom: -25px;
         font-size: 0.6rem;
     }
     
