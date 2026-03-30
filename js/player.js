@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO FINAL - Header + Pontuação + Streak 🔥)
+// Player - Tela do Aluno (VERSÃO FINAL CORRIGIDA - Pontuação no Header + Pódio Final)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -28,10 +28,10 @@ class PlayerManager {
         }
         this.setupEventListeners();
         this.loadAvatars();
-        this.createPlayerHeader();   // ← Header fixo com pontuação e streak
+        this.createPlayerHeader();
     }
 
-    // ====================== HEADER FIXO (Pontuação + Streak) ======================
+    // ====================== HEADER FIXO ======================
     createPlayerHeader() {
         if (document.getElementById('playerHeader')) return;
 
@@ -51,22 +51,15 @@ class PlayerManager {
     }
 
     updatePlayerHeader() {
-        const avatarEl = document.getElementById('playerHeaderAvatar');
-        const nameEl = document.getElementById('playerHeaderName');
-        const scoreEl = document.getElementById('playerHeaderScore');
+        document.getElementById('playerHeaderAvatar').textContent = Utils.getAvatarEmoji(this.playerAvatar || 'avatar1');
+        document.getElementById('playerHeaderName').textContent = this.playerName || 'Jogador';
+        document.getElementById('playerHeaderScore').textContent = `${this.currentScore} pts`;
+
         const streakEl = document.getElementById('playerStreak');
-
-        if (avatarEl) avatarEl.textContent = Utils.getAvatarEmoji(this.playerAvatar);
-        if (nameEl) nameEl.textContent = this.playerName || 'Jogador';
-        if (scoreEl) scoreEl.textContent = `${this.currentScore} pts`;
-
-        // Streak com fogo 🔥
-        if (streakEl) {
-            if (this.streak >= 2) {
-                streakEl.innerHTML = '🔥'.repeat(Math.min(this.streak, 6)) + ` <span style="font-size:1.1rem;">${this.streak}x</span>`;
-            } else {
-                streakEl.textContent = '';
-            }
+        if (this.streak >= 2) {
+            streakEl.innerHTML = '🔥'.repeat(Math.min(this.streak, 6)) + ` <span style="font-size:1.1rem;">${this.streak}x</span>`;
+        } else {
+            streakEl.textContent = '';
         }
     }
 
@@ -150,13 +143,24 @@ class PlayerManager {
             if (doc.exists) this.handleRoomUpdate(doc.data());
         });
 
+        // Listener forte para atualizar pontuação em tempo real
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
+                let myScore = 0;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.playerId === this.playerId) {
+                        myScore = data.totalScore || 0;
+                    }
+                });
+                this.currentScore = myScore;
+                this.updatePlayerHeader();
+
+                // Atualiza ranking quando estiver na tela de ranking ou final
                 if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
                     this.updateRanking(snapshot);
                 }
-                this.updatePlayerHeader();   // Atualiza pontuação e streak em tempo real
             });
     }
 
@@ -319,9 +323,9 @@ class PlayerManager {
 
     showRankingAfterQuestion() {
         this.showScreen('rankingScreen');
-        this.showAnswerFeedback();        // Feedback só aqui
+        this.showAnswerFeedback();
         setTimeout(() => this.updateRankingFromFirestore(), 300);
-        this.updatePlayerHeader();        // Atualiza pontuação e streak
+        this.updatePlayerHeader();
     }
 
     showAnswerFeedback() {
@@ -330,11 +334,8 @@ class PlayerManager {
 
         const isCorrect = this.currentQuestion.lastAnswerCorrect;
 
-        if (isCorrect) {
-            this.streak++;
-        } else {
-            this.streak = 0;
-        }
+        if (isCorrect) this.streak++;
+        else this.streak = 0;
 
         feedbackDiv.innerHTML = isCorrect 
             ? `<div class="feedback correct">✅ Parabéns! Você acertou!</div>`
@@ -373,6 +374,36 @@ class PlayerManager {
 
     showFinalScreen() {
         this.showScreen('finalScreen');
+        this.updatePlayerHeader();
+        this.updateFinalRanking();
+    }
+
+    async updateFinalRanking() {
+        const container = document.getElementById('finalRankingList');
+        if (!container) return;
+
+        try {
+            const snapshot = await db.collection(`rooms/${this.room.id}/scores`)
+                .orderBy('totalScore', 'desc')
+                .limit(10)
+                .get();
+
+            const rankings = [];
+            snapshot.forEach(doc => rankings.push(doc.data()));
+
+            container.innerHTML = rankings.map((player, index) => `
+                <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+                    <div class="ranking-position">${index + 1}º</div>
+                    <div class="player-info">
+                        <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                        <span>${Utils.escapeHtml(player.playerName)}</span>
+                    </div>
+                    <div class="ranking-score">${player.totalScore || 0} pts</div>
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error('Erro ao carregar pódio final:', err);
+        }
     }
 
     showScreen(screenId) {
