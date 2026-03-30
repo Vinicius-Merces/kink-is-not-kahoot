@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO FINAL - Casada com Host + Pódio)
+// Player - Tela do Aluno (VERSÃO ESTÁVEL - Perguntas aparecendo corretamente)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -26,78 +26,12 @@ class PlayerManager {
         }
         this.setupEventListeners();
         this.loadAvatars();
-        this.createAllDynamicScreens();
-    }
-
-    createAllDynamicScreens() {
-        const container = document.querySelector('.player-container');
-
-        // Loading Screen
-        if (!document.getElementById('loadingScreen')) {
-            container.insertAdjacentHTML('beforeend', `
-                <div id="loadingScreen" class="player-screen">
-                    <div class="loading-card">
-                        <h2>🔄 Carregando Quiz...</h2>
-                        <div class="loading-spinner"><div class="spinner"></div></div>
-                        <p>Preparando perguntas...</p>
-                        <div class="loading-timer"><span id="loadingTimer">5</span>s</div>
-                    </div>
-                </div>
-            `);
-        }
-
-        // Reading Screen
-        if (!document.getElementById('readingScreen')) {
-            container.insertAdjacentHTML('beforeend', `
-                <div id="readingScreen" class="player-screen">
-                    <div class="reading-card">
-                        <h2>📖 Leia atentamente</h2>
-                        <div class="question-reading">
-                            <p id="readingQuestionText" style="font-size: 1.35rem; line-height: 1.4;"></p>
-                        </div>
-                        <div class="reading-timer">
-                            <div class="timer-circle"><span id="readingTimer">5</span></div>
-                            <p>segundos</p>
-                        </div>
-                    </div>
-                </div>
-            `);
-        }
-
-        // Ranking Parcial
-        if (!document.getElementById('rankingScreen')) {
-            container.insertAdjacentHTML('beforeend', `
-                <div id="rankingScreen" class="player-screen">
-                    <div class="ranking-card">
-                        <h2>🏆 Ranking Parcial 🏆</h2>
-                        <div id="rankingListModal" class="ranking-list-modal"></div>
-                        <div id="answerFeedback" class="feedback-message" style="margin-top: 1.5rem; display: none;"></div>
-                        <p style="margin-top: 2rem; opacity: 0.8; text-align:center;">Aguardando próxima pergunta...</p>
-                    </div>
-                </div>
-            `);
-        }
-
-        // Final Screen (Pódio)
-        if (!document.getElementById('finalScreen')) {
-            container.insertAdjacentHTML('beforeend', `
-                <div id="finalScreen" class="player-screen">
-                    <div class="final-card">
-                        <h2>🏆 Quiz Finalizado! 🏆</h2>
-                        <div id="finalPodium" class="podium"></div>
-                        <div id="finalRankingList" class="ranking-list-large"></div>
-                        <button id="exitGameBtn" class="btn btn-primary">Sair</button>
-                    </div>
-                </div>
-            `);
-        }
     }
 
     setupEventListeners() {
         document.getElementById('checkRoomBtn').addEventListener('click', () => this.checkRoom());
         document.getElementById('joinGameBtn').addEventListener('click', () => this.joinGame());
-        const exitBtn = document.getElementById('exitGameBtn');
-        if (exitBtn) exitBtn.addEventListener('click', () => window.location.href = 'index.html');
+        document.getElementById('exitGameBtn').addEventListener('click', () => window.location.href = 'index.html');
     }
 
     loadAvatars() {
@@ -132,7 +66,10 @@ class PlayerManager {
             return;
         }
         try {
-            const snapshot = await db.collection('rooms').where('code', '==', code).where('active', '==', true).get();
+            const snapshot = await db.collection('rooms')
+                .where('code', '==', code)
+                .where('active', '==', true)
+                .get();
             if (snapshot.empty) {
                 Utils.showToast('Sala não encontrada ou encerrada', 'error');
                 return;
@@ -155,11 +92,17 @@ class PlayerManager {
         this.playerName = name;
         try {
             await db.collection(`rooms/${this.room.id}/players`).doc(this.playerId).set({
-                id: this.playerId, name: name, avatar: this.playerAvatar,
-                joinedAt: firebase.firestore.FieldValue.serverTimestamp(), status: 'ready'
+                id: this.playerId,
+                name: name,
+                avatar: this.playerAvatar,
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'ready'
             });
             await db.collection(`rooms/${this.room.id}/scores`).doc(this.playerId).set({
-                playerId: this.playerId, playerName: name, avatar: this.playerAvatar, totalScore: 0
+                playerId: this.playerId,
+                playerName: name,
+                avatar: this.playerAvatar,
+                totalScore: 0
             });
             this.showScreen('waitingScreen');
             document.getElementById('waitingRoomCode').textContent = this.roomCode;
@@ -178,18 +121,18 @@ class PlayerManager {
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
                 if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
-                    this.updateRankingModal(snapshot);
+                    this.updateRanking(snapshot);
                 }
             });
     }
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
-        console.log(`📡 Status recebido: ${roomData.status} | Tela: ${this.currentScreen}`);
+        console.log(`📡 Status recebido: ${roomData.status} | Tela atual: ${this.currentScreen || 'none'}`);
 
         switch (roomData.status) {
             case 'loading':
-                this.showLoadingScreen();
+                this.showScreen('loadingScreen');
                 break;
             case 'reading':
                 this.handleReadingPhase(roomData);
@@ -210,10 +153,6 @@ class PlayerManager {
         }
     }
 
-    showLoadingScreen() {
-        this.showScreen('loadingScreen');
-    }
-
     handleReadingPhase(roomData) {
         const qData = roomData.currentQuestionData;
         if (!qData) return;
@@ -229,17 +168,6 @@ class PlayerManager {
         this.hasAnswered = false;
         this.showScreen('readingScreen');
         document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
-
-        let timeLeft = 5;
-        const timerEl = document.getElementById('readingTimer');
-        if (timerEl) timerEl.textContent = timeLeft;
-
-        if (this.readingTimer) clearInterval(this.readingTimer);
-        this.readingTimer = setInterval(() => {
-            timeLeft--;
-            if (timerEl) timerEl.textContent = timeLeft;
-            if (timeLeft <= 0) clearInterval(this.readingTimer);
-        }, 1000);
     }
 
     handleAnsweringPhase(roomData) {
@@ -256,8 +184,6 @@ class PlayerManager {
 
         this.questionStartTime = new Date();
         this.hasAnswered = false;
-
-        if (this.readingTimer) clearInterval(this.readingTimer);
 
         this.showScreen('questionScreen');
         this.displayQuestion();
@@ -326,7 +252,9 @@ class PlayerManager {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
-                if (parseInt(btn.dataset.option) === selectedOption) btn.style.borderColor = '#ff6b6b';
+                if (parseInt(btn.dataset.option) === selectedOption) {
+                    btn.style.borderColor = '#ff6b6b';
+                }
             });
         } catch (error) {
             console.error('Erro ao enviar resposta:', error);
@@ -376,51 +304,12 @@ class PlayerManager {
                 </div>
             `).join('');
         } catch (err) {
-            console.error(err);
+            console.error('Erro ao carregar ranking:', err);
         }
     }
 
-    updateRankingModal(snapshot) {
-        this.updateRankingFromFirestore();
-    }
-
-    async showFinalScreen() {
+    showFinalScreen() {
         this.showScreen('finalScreen');
-        const snapshot = await db.collection(`rooms/${this.room.id}/scores`)
-            .orderBy('totalScore', 'desc')
-            .limit(10)
-            .get();
-
-        this.updateFinalPodium(snapshot);
-    }
-
-    updateFinalPodium(snapshot) {
-        const container = document.getElementById('finalPodium');
-        const rankings = [];
-        snapshot.forEach(doc => rankings.push(doc.data()));
-
-        let html = `<h3 style="color:#ff6b6b; margin-bottom:1rem;">Pódio Final</h3>`;
-
-        if (rankings[0]) html += `<div style="font-size:2.2rem; margin:1rem 0;">🥇 ${Utils.getAvatarEmoji(rankings[0].avatar)} ${rankings[0].playerName} — ${rankings[0].totalScore} pts</div>`;
-        if (rankings[1]) html += `<div style="font-size:1.8rem; margin:0.8rem 0;">🥈 ${Utils.getAvatarEmoji(rankings[1].avatar)} ${rankings[1].playerName} — ${rankings[1].totalScore} pts</div>`;
-        if (rankings[2]) html += `<div style="font-size:1.5rem; margin:0.8rem 0;">🥉 ${Utils.getAvatarEmoji(rankings[2].avatar)} ${rankings[2].playerName} — ${rankings[2].totalScore} pts</div>`;
-
-        if (container) container.innerHTML = html;
-
-        // Ranking completo abaixo do pódio
-        const fullList = document.getElementById('finalRankingList');
-        if (fullList) {
-            fullList.innerHTML = rankings.map((p, i) => `
-                <div class="ranking-item ${p.playerId === this.playerId ? 'current-player' : ''}">
-                    <div class="ranking-position">${i+1}º</div>
-                    <div class="player-info">
-                        <span class="player-avatar">${Utils.getAvatarEmoji(p.avatar)}</span>
-                        <span>${Utils.escapeHtml(p.playerName)}</span>
-                    </div>
-                    <div class="ranking-score">${p.totalScore || 0} pts</div>
-                </div>
-            `).join('');
-        }
     }
 
     showScreen(screenId) {
