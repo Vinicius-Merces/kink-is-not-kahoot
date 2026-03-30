@@ -93,7 +93,7 @@ class MusicPlayer {
                 title: 'Background Lo-Fi',
                 artist: 'KINK Original',
                 url: '/assets/music/instrumental/KINK - Lofi Session.mp3',
-                cover: '🎷🎼',
+                cover: '🎷',
                 duration: '2:08'
             },
             {
@@ -101,7 +101,7 @@ class MusicPlayer {
                 title: 'Quizz Lo-Fi',
                 artist: 'KINK Original',
                 url: '/assets/music/instrumental/KINK - Lofi Session 2.mp3',
-                cover: '🎹🎸',
+                cover: '🎸',
                 duration: '1:48'
             },
             {

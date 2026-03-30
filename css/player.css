@@ -4,7 +4,7 @@
     bottom: 20px;
     right: 20px;
     z-index: 1000;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     border-radius: 60px;
     padding: 8px 16px;
@@ -66,28 +66,29 @@
 .player-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .player-controls button {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
     color: white;
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.2s;
-    padding: 4px;
+    padding: 6px;
     border-radius: 50%;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .player-controls button:hover {
+    background: rgba(255, 107, 107, 0.5);
     color: #ff6b6b;
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .player-volume {
@@ -120,6 +121,7 @@
     font-size: 0.9rem;
 }
 
+/* Playlist Panel - CORRIGIDO (hover não fica embaçado) */
 .playlist-panel {
     position: absolute;
     bottom: 70px;
@@ -128,14 +130,20 @@
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 12px;
-    min-width: 250px;
+    min-width: 260px;
     border: 1px solid rgba(255, 107, 107, 0.3);
     display: none;
     animation: slideUp 0.3s ease;
+    z-index: 1002;
 }
 
 .playlist-panel.show {
     display: block;
+}
+
+/* Corrigindo hover do player quando playlist está aberta */
+.music-player:has(.playlist-panel.show) {
+    z-index: 1001;
 }
 
 @keyframes slideUp {
@@ -159,19 +167,42 @@
 }
 
 .playlist-header h4 {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #ff6b6b;
+    margin: 0;
 }
 
 .playlist-close {
     cursor: pointer;
     font-size: 1.2rem;
     line-height: 1;
+    padding: 2px 6px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.playlist-close:hover {
+    background: rgba(255, 107, 107, 0.3);
+    color: #ff6b6b;
 }
 
 .playlist-list {
     max-height: 300px;
     overflow-y: auto;
+}
+
+.playlist-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.playlist-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.playlist-list::-webkit-scrollbar-thumb {
+    background: #ff6b6b;
+    border-radius: 2px;
 }
 
 .playlist-item {
@@ -229,13 +260,15 @@
 
 /* Estado minimizado do player */
 .music-player.minimized {
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.3s ease;
     cursor: pointer;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
 }
 
 .music-player.minimized .player-toggle {
@@ -319,7 +352,7 @@
         box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
     }
     50% {
-        transform: scale(1.05);
+        transform: scale(1.08);
         box-shadow: 0 0 15px rgba(255, 107, 107, 0.8);
     }
 }
@@ -335,32 +368,84 @@
     }
 }
 
-/* Botão minimizar/expandir */
+/* ============================================ */
+/* BOTÃO MINIMIZAR REDESENHADO                 */
+/* ============================================ */
+
 .minimize-btn {
-    background: transparent;
-    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     font-size: 0.9rem;
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-    margin-left: 8px;
+    position: relative;
 }
 
 .minimize-btn:hover {
+    background: rgba(255, 107, 107, 0.5);
+    border-color: #ff6b6b;
     color: #ff6b6b;
-    transform: scale(1.1);
-    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
 }
 
-.music-player.minimized .minimize-btn {
-    display: none;
+/* Tooltip do botão minimizar */
+.minimize-btn::after {
+    content: "Minimizar";
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 1003;
+}
+
+.minimize-btn:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Tooltip do player minimizado (expandir) */
+.music-player.minimized {
+    position: relative;
+}
+
+.music-player.minimized::after {
+    content: "Expandir";
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 1003;
+}
+
+.music-player.minimized:hover::after {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Indicador visual no player minimizado - Letra K */
@@ -371,16 +456,16 @@
 .music-player.minimized .player-icon::before {
     content: "K";
     font-weight: bold;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     color: white;
     text-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
 }
 
-/* Tooltip para mostrar música atual no minimizado */
-.music-player.minimized:hover::after {
+/* Tooltip para mostrar música atual no minimizado (mantido) */
+.music-player.minimized:hover::before {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: 60px;
+    bottom: 55px;
     right: 0;
     background: rgba(0, 0, 0, 0.9);
     color: white;
@@ -390,7 +475,16 @@
     white-space: nowrap;
     pointer-events: none;
     border: 1px solid rgba(255, 107, 107, 0.3);
-    z-index: 1001;
+    z-index: 1003;
+}
+
+/* Ajuste para não conflitar com o tooltip de expandir */
+.music-player.minimized:hover::before {
+    bottom: 55px;
+}
+
+.music-player.minimized:hover::after {
+    bottom: -30px;
 }
 
 /* Responsivo */
@@ -412,21 +506,36 @@
     .playlist-panel {
         bottom: 60px;
         right: 0;
-        min-width: 200px;
+        min-width: 220px;
     }
     
     .minimize-btn {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         font-size: 0.7rem;
-    }
-    
-    .music-player.minimized .player-icon::before {
-        font-size: 1.4rem;
     }
     
     .music-player.minimized {
         width: 40px;
         height: 40px;
+    }
+    
+    .music-player.minimized .player-icon::before {
+        font-size: 1.3rem;
+    }
+    
+    .minimize-btn::after {
+        bottom: -25px;
+        font-size: 0.6rem;
+    }
+    
+    .music-player.minimized:hover::before {
+        bottom: 45px;
+        font-size: 0.6rem;
+    }
+    
+    .music-player.minimized:hover::after {
+        bottom: -25px;
+        font-size: 0.6rem;
     }
 }
