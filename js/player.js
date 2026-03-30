@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO FINAL - Feedback SOMENTE no Ranking)
+// Player - Tela do Aluno (VERSÃO FINAL - Header + Pontuação + Streak 🔥)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -14,6 +14,8 @@ class PlayerManager {
         this.scoresUnsubscribe = null;
         this.readingTimer = null;
         this.answerTimer = null;
+        this.currentScore = 0;
+        this.streak = 0;
         this.init();
     }
 
@@ -26,6 +28,46 @@ class PlayerManager {
         }
         this.setupEventListeners();
         this.loadAvatars();
+        this.createPlayerHeader();   // ← Header fixo com pontuação e streak
+    }
+
+    // ====================== HEADER FIXO (Pontuação + Streak) ======================
+    createPlayerHeader() {
+        if (document.getElementById('playerHeader')) return;
+
+        const headerHTML = `
+            <div id="playerHeader" style="position:fixed;top:0;left:0;right:0;background:rgba(15,15,15,0.95);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;z-index:9999;border-bottom:2px solid #ff6b6b;box-shadow:0 2px 10px rgba(0,0,0,0.5);">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span id="playerHeaderAvatar" style="font-size:2rem;"></span>
+                    <div>
+                        <div id="playerHeaderName" style="font-weight:700;font-size:1.1rem;"></div>
+                        <div id="playerHeaderScore" style="color:#ff6b6b;font-size:1.25rem;font-weight:bold;">0 pts</div>
+                    </div>
+                </div>
+                <div id="playerStreak" style="font-size:2rem;display:flex;align-items:center;gap:4px;"></div>
+            </div>`;
+
+        document.body.insertAdjacentHTML('afterbegin', headerHTML);
+    }
+
+    updatePlayerHeader() {
+        const avatarEl = document.getElementById('playerHeaderAvatar');
+        const nameEl = document.getElementById('playerHeaderName');
+        const scoreEl = document.getElementById('playerHeaderScore');
+        const streakEl = document.getElementById('playerStreak');
+
+        if (avatarEl) avatarEl.textContent = Utils.getAvatarEmoji(this.playerAvatar);
+        if (nameEl) nameEl.textContent = this.playerName || 'Jogador';
+        if (scoreEl) scoreEl.textContent = `${this.currentScore} pts`;
+
+        // Streak com fogo 🔥
+        if (streakEl) {
+            if (this.streak >= 2) {
+                streakEl.innerHTML = '🔥'.repeat(Math.min(this.streak, 6)) + ` <span style="font-size:1.1rem;">${this.streak}x</span>`;
+            } else {
+                streakEl.textContent = '';
+            }
+        }
     }
 
     setupEventListeners() {
@@ -111,9 +153,10 @@ class PlayerManager {
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
             .onSnapshot((snapshot) => {
-                if (this.currentScreen === 'rankingScreen') {
+                if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
                     this.updateRanking(snapshot);
                 }
+                this.updatePlayerHeader();   // Atualiza pontuação e streak em tempo real
             });
     }
 
@@ -133,7 +176,6 @@ class PlayerManager {
                 this.handleAnsweringPhase(roomData);
                 break;
             case 'active':
-                // Só mostra ranking se veio de uma pergunta respondida
                 if (this.currentScreen === 'questionScreen' || this.currentScreen === 'readingScreen') {
                     this.showRankingAfterQuestion();
                 } else {
@@ -265,24 +307,21 @@ class PlayerManager {
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-            // Apenas desabilita as opções, NÃO mostra feedback aqui
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
-                if (parseInt(btn.dataset.option) === selectedOption) {
-                    btn.style.borderColor = '#ff6b6b';
-                }
+                if (parseInt(btn.dataset.option) === selectedOption) btn.style.borderColor = '#ff6b6b';
             });
         } catch (e) {
             console.error(e);
         }
     }
 
-    // Feedback SÓ aparece aqui, quando o professor finaliza a rodada
     showRankingAfterQuestion() {
         this.showScreen('rankingScreen');
-        this.showAnswerFeedback();        // ← Aqui é o único lugar que mostra acertou/errou
-        setTimeout(() => this.updateRankingFromFirestore(), 400);
+        this.showAnswerFeedback();        // Feedback só aqui
+        setTimeout(() => this.updateRankingFromFirestore(), 300);
+        this.updatePlayerHeader();        // Atualiza pontuação e streak
     }
 
     showAnswerFeedback() {
@@ -290,6 +329,12 @@ class PlayerManager {
         if (!feedbackDiv || !this.currentQuestion) return;
 
         const isCorrect = this.currentQuestion.lastAnswerCorrect;
+
+        if (isCorrect) {
+            this.streak++;
+        } else {
+            this.streak = 0;
+        }
 
         feedbackDiv.innerHTML = isCorrect 
             ? `<div class="feedback correct">✅ Parabéns! Você acertou!</div>`

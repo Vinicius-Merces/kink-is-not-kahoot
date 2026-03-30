@@ -1,4 +1,4 @@
-// Painel do Professor - Gerenciamento de sala ao vivo (VERSÃO CORRIGIDA - Foco em Pontuação e Ranking)
+// Painel do Professor - Gerenciamento de sala ao vivo (VERSÃO FINAL - Ranking com Distribuição)
 class HostManager {
     constructor() {
         this.roomId = null;
@@ -12,7 +12,7 @@ class HostManager {
         this.roomUnsubscribe = null;
         this.answersUnsubscribe = null;
         this.isProcessing = false;
-        this.isFinishing = false;           // Proteção contra duplicação
+        this.isFinishing = false;
         this.totalPlayers = 0;
         this.answeredPlayers = new Set();
         this.init();
@@ -90,7 +90,6 @@ class HostManager {
                 this.updateRanking(rankings);
             });
 
-        // Listener de answers com proteção
         this.answersUnsubscribe = db.collection(`rooms/${this.roomId}/answers`)
             .onSnapshot((snapshot) => {
                 if (this.room.status === 'answering' && !this.isFinishing) {
@@ -254,8 +253,6 @@ class HostManager {
         this.isProcessing = false;
     }
 
-    // ... (mantenha updateReadingPhase, updateAnsweringPhase, updateAnsweredCount, startTimer iguais ao seu código original)
-
     updateReadingPhase() {
         const display = document.getElementById('currentQuestionDisplay');
         const questions = this.room.questions || [];
@@ -314,9 +311,8 @@ class HostManager {
         }, 1000);
     }
 
-    // ====================== FINALIZAÇÃO DA PERGUNTA (CORRIGIDA) ======================
     async finishQuestion() {
-        if (this.isFinishing) return;   // Proteção contra chamadas duplicadas
+        if (this.isFinishing) return;
         this.isFinishing = true;
 
         if (this.readingTimer) clearTimeout(this.readingTimer);
@@ -384,11 +380,8 @@ class HostManager {
 
         console.log(`\n📊 ESTATÍSTICAS: ${correctCount}/${totalAnswers} acertos (${accuracy}%)`);
 
-        // 1. Mostra gráfico de distribuição
-        await this.showAnswerDistribution(question);
-
-        // 2. Mostra ranking parcial
-        await this.showRankingModal();
+        // Ranking com distribuição incluída
+        await this.showRankingModalWithDistribution(question);
 
         await db.collection('rooms').doc(this.roomId).update({ status: 'active' });
 
@@ -402,95 +395,71 @@ class HostManager {
         this.isProcessing = false;
     }
 
-    async showAnswerDistribution(question) {
+    // Ranking + Distribuição no mesmo modal
+    async showRankingModalWithDistribution(question) {
+        const scoresSnapshot = await db.collection(`rooms/${this.roomId}/scores`)
+            .orderBy('totalScore', 'desc')
+            .limit(8)
+            .get();
+
+        const rankings = [];
+        scoresSnapshot.forEach(doc => rankings.push(doc.data()));
+
         const answersSnapshot = await db.collection(`rooms/${this.roomId}/answers`)
             .where('questionIndex', '==', this.currentQuestionIndex)
             .get();
 
         const choiceCount = new Array(question.options.length).fill(0);
         answersSnapshot.forEach(doc => {
-            const ans = doc.data();
-            if (ans.answer >= 0 && ans.answer < question.options.length) {
-                choiceCount[ans.answer]++;
+            const a = doc.data();
+            if (a.answer >= 0 && a.answer < question.options.length) {
+                choiceCount[a.answer]++;
             }
         });
 
-        let html = `<h3 style="margin-bottom:1rem;color:#ff6b6b;">Distribuição de Respostas</h3>`;
-
-        question.options.forEach((option, index) => {
-            const count = choiceCount[index];
-            const percentage = answersSnapshot.size > 0 ? Math.round((count / answersSnapshot.size) * 100) : 0;
-            const isCorrect = index === question.correct;
-
-            html += `
-                <div style="margin-bottom:14px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.95rem;">
-                        <span><strong>${String.fromCharCode(65 + index)}.</strong> ${Utils.escapeHtml(option)}</span>
-                        <span><strong>${count}</strong> (${percentage}%)</span>
+        let distributionHTML = `<h3 style="margin:1rem 0 0.5rem;color:#ff6b6b;">Distribuição de Respostas</h3>`;
+        question.options.forEach((opt, i) => {
+            const count = choiceCount[i];
+            const perc = answersSnapshot.size > 0 ? Math.round((count / answersSnapshot.size) * 100) : 0;
+            const isCorrect = i === question.correct;
+            distributionHTML += `
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                        <span><strong>${String.fromCharCode(65+i)}.</strong> ${Utils.escapeHtml(opt)}</span>
+                        <span>${count} (${perc}%)</span>
                     </div>
-                    <div style="background:#333;height:24px;border-radius:6px;overflow:hidden;">
-                        <div style="background:${isCorrect ? '#48bb78' : '#ff6b6b'};width:${percentage}%;height:100%;"></div>
+                    <div style="background:#333;height:22px;border-radius:6px;overflow:hidden;">
+                        <div style="background:${isCorrect ? '#48bb78' : '#ff6b6b'};width:${perc}%;height:100%;"></div>
                     </div>
                 </div>`;
         });
 
-        const display = document.getElementById('currentQuestionDisplay');
-        if (display) {
-            display.innerHTML = `
-                <div style="background:rgba(255,255,255,0.08);padding:1.5rem;border-radius:12px;">
-                    ${html}
-                </div>`;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 4000)); // tempo para ver o gráfico
-    }
-
-    async showRankingModal() {
-        const scoresSnapshot = await db.collection(`rooms/${this.roomId}/scores`)
-            .orderBy('totalScore', 'desc')
-            .limit(5)
-            .get();
-
-        const rankings = [];
-        scoresSnapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
-
-        if (rankings.length === 0) return;
-
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 500px; text-align: center;">
-                    <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                    <div style="margin: 1rem 0;">
-                        ${rankings.map((player, index) => `
-                            <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                                <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
-                                <span style="color: #ff6b6b; font-weight: bold;">${player.totalScore || 0} pts</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button id="continueBtn" class="btn btn-primary btn-large" style="margin-top: 1rem;">
-                        ➡️ Próxima Pergunta
-                    </button>
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:580px;">
+                <h2 style="color:#ff6b6b;margin-bottom:1rem;">🏆 Ranking Parcial 🏆</h2>
+                <div style="margin:1rem 0;">
+                    ${rankings.map((p,i) => `
+                        <div style="display:flex;justify-content:space-between;padding:0.8rem;border-bottom:1px solid rgba(255,255,255,0.1);">
+                            <span style="font-weight:bold;">${i+1}º</span>
+                            <span>${Utils.getAvatarEmoji(p.avatar)} ${Utils.escapeHtml(p.playerName)}</span>
+                            <span style="color:#ff6b6b;font-weight:bold;">${p.totalScore||0} pts</span>
+                        </div>
+                    `).join('')}
                 </div>
-            `;
+                ${distributionHTML}
+                <button id="continueBtn" class="btn btn-primary btn-large" style="margin-top:1.5rem;width:100%;">
+                    ➡️ Próxima Pergunta
+                </button>
+            </div>`;
 
-            document.body.appendChild(modal);
+        document.body.appendChild(modal);
 
-            const continueBtn = modal.querySelector('#continueBtn');
-            const closeModal = () => {
-                modal.remove();
-                this.nextQuestion();
-                resolve();
-            };
-
-            continueBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
+        modal.querySelector('#continueBtn').addEventListener('click', () => {
+            modal.remove();
+            this.nextQuestion();
         });
     }
 
@@ -539,21 +508,12 @@ class HostManager {
             .get();
 
         const rankings = [];
-        scoresSnapshot.forEach(doc => rankings.push({ id: doc.id, ...doc.data() }));
+        scoresSnapshot.forEach(doc => rankings.push(doc.data()));
 
-        if (rankings.length === 0) return;
-
-        // Pódio com top 3 + lista completa
         let podiumHTML = `<h2 style="color:#ff6b6b;">🏆 Pódio Final 🏆</h2>`;
-        if (rankings.length >= 1) {
-            podiumHTML += `<div style="font-size:2rem;margin:1rem 0;">🥇 ${Utils.getAvatarEmoji(rankings[0].avatar)} ${rankings[0].playerName} - ${rankings[0].totalScore} pts</div>`;
-        }
-        if (rankings.length >= 2) {
-            podiumHTML += `<div style="font-size:1.6rem;margin:0.5rem 0;">🥈 ${Utils.getAvatarEmoji(rankings[1].avatar)} ${rankings[1].playerName} - ${rankings[1].totalScore} pts</div>`;
-        }
-        if (rankings.length >= 3) {
-            podiumHTML += `<div style="font-size:1.4rem;margin:0.5rem 0;">🥉 ${Utils.getAvatarEmoji(rankings[2].avatar)} ${rankings[2].playerName} - ${rankings[2].totalScore} pts</div>`;
-        }
+        if (rankings.length >= 1) podiumHTML += `<div style="font-size:2rem;margin:1rem 0;">🥇 ${Utils.getAvatarEmoji(rankings[0].avatar)} ${rankings[0].playerName} — ${rankings[0].totalScore} pts</div>`;
+        if (rankings.length >= 2) podiumHTML += `<div style="font-size:1.6rem;margin:0.5rem 0;">🥈 ${Utils.getAvatarEmoji(rankings[1].avatar)} ${rankings[1].playerName} — ${rankings[1].totalScore} pts</div>`;
+        if (rankings.length >= 3) podiumHTML += `<div style="font-size:1.4rem;margin:0.5rem 0;">🥉 ${Utils.getAvatarEmoji(rankings[2].avatar)} ${rankings[2].playerName} — ${rankings[2].totalScore} pts</div>`;
 
         return new Promise((resolve) => {
             const modal = document.createElement('div');
