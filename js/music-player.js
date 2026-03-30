@@ -39,7 +39,7 @@ class MusicPlayer {
                 id: 'menu1',
                 title: 'KINK Theme',
                 artist: 'KINK Original',
-                url: '/assets/music/index/KINK - Ta pronto pro jogo.mp3',
+                url: '/assets/music/Index/KINK - Ta pronto pro jogo.mp3',
                 cover: '🎵',
                 duration: '2:34'
             },
@@ -47,7 +47,7 @@ class MusicPlayer {
                 id: 'menu2',
                 title: 'Rebel Rhythm',
                 artist: 'KINK Original',
-                url: '/assets/music/index/KINK - EletroVibe.mp3',
+                url: '/assets/music/Index/KINK - EletroVibe.mp3',
                 cover: '⚡',
                 duration: '2:09'
             },
@@ -55,7 +55,7 @@ class MusicPlayer {
                 id: 'menu3',
                 title: 'Yeah! KINK',
                 artist: 'KINK Original',
-                url: '/assets/music/index/KINK - Yeah!.mp3',
+                url: '/assets/music/Index/KINK - Yeah!.mp3',
                 cover: '⚛️',
                 duration: '2:24'
             },
@@ -63,7 +63,7 @@ class MusicPlayer {
                 id: 'menu4',
                 title: 'Just KINK',
                 artist: 'KINK Original',
-                url: '/assets/music/index/KINK - Pulsating Vibe.mp3',
+                url: '/assets/music/Index/KINK - Pulsating Vibe.mp3',
                 cover: '⚛️',
                 duration: '2:13'
             },
