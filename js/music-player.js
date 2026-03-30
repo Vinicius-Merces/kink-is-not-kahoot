@@ -1,85 +1,164 @@
-// Music Player - KINK Style
+// Music Player - KINK Style (Playlists Separadas por Página)
 class MusicPlayer {
     constructor() {
         this.audio = new Audio();
         this.currentTrackIndex = 0;
         this.isPlaying = false;
-        this.volume = 0.5;
+        this.volume = 0.6;
         this.playlist = [];
+        this.currentPlaylist = [];
+        this.playlistType = 'menu'; // 'menu' ou 'game'
         this.init();
     }
 
     init() {
-        // Carregar playlist do localStorage ou usar padrão
+        this.detectPageType();
         this.loadPlaylist();
         this.setupAudioEvents();
         this.createPlayerUI();
         this.setupKeyboardShortcuts();
-        
-        // Tentar auto-play
         this.setupAutoPlay();
     }
 
+    // Detecta qual página estamos para escolher a playlist certa
+    detectPageType() {
+        const path = window.location.pathname.toLowerCase();
+        
+        if (path.includes('host.html') || path.includes('player.html')) {
+            this.playlistType = 'game';     // Instrumental durante o jogo
+        } else {
+            this.playlistType = 'menu';     // Playlist normal na tela inicial
+        }
+        
+        console.log(`🎵 MusicPlayer: Modo ${this.playlistType} detectado`);
+    }
+
     loadPlaylist() {
-        // Playlist padrão (adicione suas músicas aqui)
-        const defaultPlaylist = [
+        // Playlist Menu (Tela inicial - mais energética)
+        const menuPlaylist = [
             {
-                id: 'track1',
+                id: 'menu1',
                 title: 'KINK Theme',
                 artist: 'KINK Original',
-                url: '/assets/music/kink-theme.mp3',
+                url: '/assets/music/Index/KINK - Ta pronto pro jogo.mp3',
                 cover: '🎵',
-                duration: '2:30'
+                duration: '2:34'
             },
             {
-                id: 'track2',
+                id: 'menu2',
                 title: 'Rebel Rhythm',
                 artist: 'KINK Original',
-                url: '/assets/music/rebel-rhythm.mp3',
-                cover: '🎸',
-                duration: '3:15'
+                url: '/assets/music/Index/KINK - EletroVibe.mp3',
+                cover: '⚡',
+                duration: '2:09'
             },
             {
-                id: 'track3',
-                title: 'Quiz Energy',
+                id: 'menu3',
+                title: 'Yeah! KINK',
                 artist: 'KINK Original',
-                url: '/assets/music/quiz-energy.mp3',
-                cover: '⚡',
-                duration: '2:45'
+                url: '/assets/music/Index/KINK - Yeah!.mp3',
+                cover: '⚛️',
+                duration: '2:24'
+            },
+            {
+                id: 'menu4',
+                title: 'Just KINK',
+                artist: 'KINK Original',
+                url: '/assets/music/Index/KINK - Pulsating Vibe.mp3',
+                cover: '⚛️',
+                duration: '2:13'
             }
         ];
 
-        // Tentar carregar do localStorage
-        const savedPlaylist = localStorage.getItem('kink_playlist');
-        if (savedPlaylist) {
-            this.playlist = JSON.parse(savedPlaylist);
-        } else {
-            this.playlist = defaultPlaylist;
-            this.savePlaylist();
-        }
+        // Playlist Game (Host + Player) - Instrumental
+        const gamePlaylist = [
+            {
+                id: 'game1',
+                title: 'Epic Tension',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Play! 2.mp3',
+                cover: '⚡',
+                duration: '2:51'
+            },
+            {
+                id: 'game2',
+                title: 'Quiz Pulse',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher 2.mp3',
+                cover: '🎯',
+                duration: '2:16'
+            },
+            {
+                id: 'game3',
+                title: 'Background Lo-Fi',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Lofi Session.mp3',
+                cover: '🎷🎼',
+                duration: '2:08'
+            },
+            {
+                id: 'game4',
+                title: 'Quizz Lo-Fi',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Lofi Session 2.mp3',
+                cover: '🎹🎸',
+                duration: '1:48'
+            },
+            {
+                id: 'game5',
+                title: 'Epic Suspense',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Dark drama.mp3',
+                cover: '🎹',
+                duration: '1:50'
+            },
+            {
+                id: 'game6',
+                title: 'Epic Answers',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Play!.mp3',
+                cover: '☯️',
+                duration: '2:42'
+            },
+            {
+                id: 'game7',
+                title: 'KINK Drama',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Dark drama 2.mp3',
+                cover: '⚛️',
+                duration: '2:14'
+            },
+            {
+                id: 'game8',
+                title: 'Be KINK',
+                artist: 'KINK Original',
+                url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher.mp3',
+                cover: '🪯',
+                duration: '1:36'
+            }
+        ];
 
-        // Carregar última música tocada
-        const lastTrack = localStorage.getItem('kink_last_track');
-        if (lastTrack) {
-            this.currentTrackIndex = parseInt(lastTrack);
-        }
-        
+        this.currentPlaylist = (this.playlistType === 'game') ? gamePlaylist : menuPlaylist;
+
         // Carregar volume salvo
         const savedVolume = localStorage.getItem('kink_volume');
         if (savedVolume !== null) {
             this.volume = parseFloat(savedVolume);
             this.audio.volume = this.volume;
         }
-        
-        // Carregar estado de reprodução anterior
-        const wasPlaying = localStorage.getItem('kink_was_playing');
-        if (wasPlaying === 'true') {
-            this.isPlaying = true;
+
+        // Carregar última faixa (por tipo de playlist)
+        const lastTrackKey = `kink_last_track_${this.playlistType}`;
+        const lastTrack = localStorage.getItem(lastTrackKey);
+        if (lastTrack !== null && lastTrack < this.currentPlaylist.length) {
+            this.currentTrackIndex = parseInt(lastTrack);
+        } else {
+            this.currentTrackIndex = 0;
         }
     }
 
     savePlaylist() {
-        localStorage.setItem('kink_playlist', JSON.stringify(this.playlist));
+        // Não é mais necessário salvar playlist, pois são fixas
     }
 
     setupAudioEvents() {
@@ -113,7 +192,6 @@ class MusicPlayer {
             console.log('🎵 Auto-play iniciado com sucesso!');
         }).catch(e => {
             console.log('🎵 Auto-play bloqueado pelo navegador. Aguardando interação do usuário.');
-            // Se bloqueado, aguardar clique do usuário na página
             this.waitForUserInteraction();
         });
     }
@@ -126,13 +204,11 @@ class MusicPlayer {
                 console.log('🎵 Playback iniciado após interação do usuário');
             }).catch(e => console.log('Erro ao iniciar playback:', e));
             
-            // Remover listeners após primeira interação
             document.removeEventListener('click', startPlayback);
             document.removeEventListener('keydown', startPlayback);
             document.removeEventListener('touchstart', startPlayback);
         };
         
-        // Aguardar qualquer interação do usuário
         document.addEventListener('click', startPlayback);
         document.addEventListener('keydown', startPlayback);
         document.addEventListener('touchstart', startPlayback);
@@ -143,7 +219,7 @@ class MusicPlayer {
         const player = document.getElementById('kinkMusicPlayer');
         
         if (playPauseBtn) {
-            playPauseBtn.innerHTML = this.isPlaying ? '<span>⏸️</span>' : '<span>▶️</span>';
+            playPauseBtn.innerHTML = this.isPlaying ? '⏸️' : '▶️';
         }
         
         if (player) {
@@ -158,7 +234,6 @@ class MusicPlayer {
     }
 
     createPlayerUI() {
-        // Verificar se já existe
         if (document.getElementById('kinkMusicPlayer')) return;
 
         const playerHTML = `
@@ -169,7 +244,7 @@ class MusicPlayer {
                     </div>
                     <div class="player-info">
                         <div class="player-title" id="currentTitle">Carregando...</div>
-                        <div class="player-artist" id="currentArtist">KINK</div>
+                        <div class="player-artist" id="currentArtist">KINK Music</div>
                     </div>
                     <div class="player-controls">
                         <button id="prevBtn" title="Anterior (←)">⏮️</button>
@@ -184,7 +259,7 @@ class MusicPlayer {
                 </div>
                 <div id="playlistPanel" class="playlist-panel">
                     <div class="playlist-header">
-                        <h4>Playlist KINK</h4>
+                        <h4>${this.playlistType === 'game' ? '🎮 Playlist de Jogo (Instrumental)' : '🎵 Playlist KINK'}</h4>
                         <span class="playlist-close" id="closePlaylist">✕</span>
                     </div>
                     <div class="playlist-list" id="playlistList"></div>
@@ -218,7 +293,6 @@ class MusicPlayer {
         if (volumeIcon) volumeIcon.addEventListener('click', () => this.toggleMute());
         if (minimizeBtn) minimizeBtn.addEventListener('click', () => this.toggleMinimize());
         if (player) player.addEventListener('click', (e) => {
-            // Se estiver minimizado e clicar no player (não nos botões), expandir
             if (player.classList.contains('minimized') && e.target === player) {
                 this.toggleMinimize();
             }
@@ -240,9 +314,8 @@ class MusicPlayer {
         
         player.classList.toggle('minimized');
         
-        // Atualizar tooltip com a música atual quando minimizado
         if (player.classList.contains('minimized')) {
-            const currentTrack = this.playlist[this.currentTrackIndex];
+            const currentTrack = this.currentPlaylist[this.currentTrackIndex];
             player.setAttribute('data-tooltip', `${currentTrack.title} - ${currentTrack.artist || 'KINK'}`);
         } else {
             player.removeAttribute('data-tooltip');
@@ -253,7 +326,7 @@ class MusicPlayer {
         const playlistList = document.getElementById('playlistList');
         if (!playlistList) return;
 
-        playlistList.innerHTML = this.playlist.map((track, index) => `
+        playlistList.innerHTML = this.currentPlaylist.map((track, index) => `
             <div class="playlist-item ${index === this.currentTrackIndex ? 'active' : ''}" data-index="${index}">
                 <div class="playlist-item-cover">${track.cover || '🎵'}</div>
                 <div class="playlist-item-info">
@@ -264,20 +337,19 @@ class MusicPlayer {
             </div>
         `).join('');
 
-        // Adicionar event listeners
         document.querySelectorAll('.playlist-item').forEach(item => {
             item.addEventListener('click', () => {
                 const index = parseInt(item.dataset.index);
                 this.playTrack(index);
-                this.togglePlaylist(false); // Fechar playlist após selecionar
+                this.togglePlaylist(false);
             });
         });
     }
 
     loadTrack(index) {
-        if (!this.playlist[index]) return;
+        if (!this.currentPlaylist[index]) return;
         
-        const track = this.playlist[index];
+        const track = this.currentPlaylist[index];
         this.currentTrackIndex = index;
         this.audio.src = track.url;
         this.audio.load();
@@ -294,8 +366,8 @@ class MusicPlayer {
             player.setAttribute('data-tooltip', `${track.title} - ${track.artist || 'KINK'}`);
         }
         
-        // Salvar última música
-        localStorage.setItem('kink_last_track', index);
+        // Salvar última música por tipo de playlist
+        localStorage.setItem(`kink_last_track_${this.playlistType}`, index);
         
         // Atualizar playlist ativa
         this.renderPlaylist();
@@ -339,7 +411,7 @@ class MusicPlayer {
 
     nextTrack() {
         let nextIndex = this.currentTrackIndex + 1;
-        if (nextIndex >= this.playlist.length) {
+        if (nextIndex >= this.currentPlaylist.length) {
             nextIndex = 0;
         }
         this.playTrack(nextIndex);
@@ -348,7 +420,7 @@ class MusicPlayer {
     prevTrack() {
         let prevIndex = this.currentTrackIndex - 1;
         if (prevIndex < 0) {
-            prevIndex = this.playlist.length - 1;
+            prevIndex = this.currentPlaylist.length - 1;
         }
         this.playTrack(prevIndex);
     }
@@ -390,22 +462,17 @@ class MusicPlayer {
     }
 
     updateProgress() {
-        // Você pode adicionar uma barra de progresso se quiser
-        if (this.audio.duration) {
-            const progress = (this.audio.currentTime / this.audio.duration) * 100;
-            // Atualizar barra de progresso se existir
-        }
+        // Opcional: adicionar barra de progresso
     }
 
     updateDuration() {
-        // Atualizar duração na playlist
         if (this.audio.duration) {
             const minutes = Math.floor(this.audio.duration / 60);
             const seconds = Math.floor(this.audio.duration % 60);
             const duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             
-            if (this.playlist[this.currentTrackIndex]) {
-                this.playlist[this.currentTrackIndex].duration = duration;
+            if (this.currentPlaylist[this.currentTrackIndex]) {
+                this.currentPlaylist[this.currentTrackIndex].duration = duration;
                 this.renderPlaylist();
             }
         }
@@ -440,36 +507,25 @@ class MusicPlayer {
         });
     }
 
-    // Método para adicionar música à playlist
-    addTrack(track) {
-        this.playlist.push(track);
-        this.savePlaylist();
+    // Método para recarregar playlist ao mudar de página (se necessário)
+    reloadPlaylist() {
+        this.detectPageType();
+        this.loadPlaylist();
+        this.currentTrackIndex = 0;
+        this.loadTrack(0);
         this.renderPlaylist();
-    }
-
-    // Método para remover música da playlist
-    removeTrack(index) {
-        if (index >= 0 && index < this.playlist.length) {
-            this.playlist.splice(index, 1);
-            this.savePlaylist();
-            
-            if (this.currentTrackIndex >= this.playlist.length) {
-                this.currentTrackIndex = 0;
-            }
-            
-            if (this.currentTrackIndex === index) {
-                this.loadTrack(this.currentTrackIndex);
-            }
-            
-            this.renderPlaylist();
+        
+        // Atualizar título da playlist no painel
+        const playlistHeader = document.querySelector('#playlistPanel h4');
+        if (playlistHeader) {
+            playlistHeader.textContent = this.playlistType === 'game' ? '🎮 Playlist de Jogo (Instrumental)' : '🎵 Playlist KINK';
         }
     }
 }
 
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
-    // Aguardar um pouco para garantir que o body está pronto
     setTimeout(() => {
         window.musicPlayer = new MusicPlayer();
-    }, 100);
+    }, 200);
 });
