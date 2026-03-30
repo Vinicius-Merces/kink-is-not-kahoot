@@ -1,4 +1,4 @@
-// Player - Tela do Aluno (VERSÃO ESTÁVEL - Perguntas aparecendo corretamente)
+// Player - Tela do Aluno (VERSÃO ESTÁVEL - Leitura + Ranking + Pódio corrigidos)
 class PlayerManager {
     constructor() {
         this.roomCode = null;
@@ -61,19 +61,16 @@ class PlayerManager {
 
     async checkRoom() {
         const code = document.getElementById('roomCodeInput').value.toUpperCase().trim();
-        if (code.length !== 6) {
-            Utils.showToast('Código inválido', 'warning');
-            return;
-        }
+        if (code.length !== 6) return Utils.showToast('Código inválido', 'warning');
+
         try {
             const snapshot = await db.collection('rooms')
                 .where('code', '==', code)
                 .where('active', '==', true)
                 .get();
-            if (snapshot.empty) {
-                Utils.showToast('Sala não encontrada ou encerrada', 'error');
-                return;
-            }
+
+            if (snapshot.empty) return Utils.showToast('Sala não encontrada ou encerrada', 'error');
+
             this.room = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
             this.roomCode = code;
             this.showScreen('profileScreen');
@@ -84,26 +81,20 @@ class PlayerManager {
 
     async joinGame() {
         const name = document.getElementById('playerName').value.trim();
-        if (!name || !this.playerAvatar) {
-            Utils.showToast('Nome e avatar são obrigatórios', 'warning');
-            return;
-        }
+        if (!name || !this.playerAvatar) return Utils.showToast('Nome e avatar são obrigatórios', 'warning');
+
         this.playerId = Utils.generateId();
         this.playerName = name;
+
         try {
             await db.collection(`rooms/${this.room.id}/players`).doc(this.playerId).set({
-                id: this.playerId,
-                name: name,
-                avatar: this.playerAvatar,
-                joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'ready'
+                id: this.playerId, name, avatar: this.playerAvatar,
+                joinedAt: firebase.firestore.FieldValue.serverTimestamp(), status: 'ready'
             });
             await db.collection(`rooms/${this.room.id}/scores`).doc(this.playerId).set({
-                playerId: this.playerId,
-                playerName: name,
-                avatar: this.playerAvatar,
-                totalScore: 0
+                playerId: this.playerId, playerName: name, avatar: this.playerAvatar, totalScore: 0
             });
+
             this.showScreen('waitingScreen');
             document.getElementById('waitingRoomCode').textContent = this.roomCode;
             this.setupGameListeners();
@@ -113,13 +104,13 @@ class PlayerManager {
     }
 
     setupGameListeners() {
-        this.roomUnsubscribe = db.collection('rooms').doc(this.room.id).onSnapshot((doc) => {
+        this.roomUnsubscribe = db.collection('rooms').doc(this.room.id).onSnapshot(doc => {
             if (doc.exists) this.handleRoomUpdate(doc.data());
         });
 
         this.scoresUnsubscribe = db.collection(`rooms/${this.room.id}/scores`)
             .orderBy('totalScore', 'desc')
-            .onSnapshot((snapshot) => {
+            .onSnapshot(snapshot => {
                 if (this.currentScreen === 'rankingScreen' || this.currentScreen === 'finalScreen') {
                     this.updateRanking(snapshot);
                 }
@@ -128,18 +119,21 @@ class PlayerManager {
 
     handleRoomUpdate(roomData) {
         this.room = { ...this.room, ...roomData };
-        console.log(`📡 Status recebido: ${roomData.status} | Tela atual: ${this.currentScreen || 'none'}`);
+        console.log(`📡 Status recebido: ${roomData.status} | Tela atual: ${this.currentScreen}`);
 
         switch (roomData.status) {
             case 'loading':
                 this.showScreen('loadingScreen');
                 break;
+
             case 'reading':
                 this.handleReadingPhase(roomData);
                 break;
+
             case 'answering':
                 this.handleAnsweringPhase(roomData);
                 break;
+
             case 'active':
                 if (this.currentScreen === 'questionScreen' || this.currentScreen === 'readingScreen') {
                     this.showRankingAfterQuestion();
@@ -147,6 +141,7 @@ class PlayerManager {
                     this.showScreen('waitingScreen');
                 }
                 break;
+
             case 'finished':
                 this.showFinalScreen();
                 break;
@@ -166,8 +161,19 @@ class PlayerManager {
         };
 
         this.hasAnswered = false;
-        this.showScreen('readingScreen');
+        this.showScreen('readingScreen');                    // ← Garantido
         document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
+
+        let timeLeft = 5;
+        const timerEl = document.getElementById('readingTimer');
+        if (timerEl) timerEl.textContent = timeLeft;
+
+        if (this.readingTimer) clearInterval(this.readingTimer);
+        this.readingTimer = setInterval(() => {
+            timeLeft--;
+            if (timerEl) timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) clearInterval(this.readingTimer);
+        }, 1000);
     }
 
     handleAnsweringPhase(roomData) {
@@ -185,7 +191,9 @@ class PlayerManager {
         this.questionStartTime = new Date();
         this.hasAnswered = false;
 
-        this.showScreen('questionScreen');
+        if (this.readingTimer) clearInterval(this.readingTimer);
+
+        this.showScreen('questionScreen');                   // ← Garantido
         this.displayQuestion();
         this.startQuestionTimer();
     }
@@ -252,12 +260,10 @@ class PlayerManager {
             document.querySelectorAll('.option-btn').forEach(btn => {
                 btn.disabled = true;
                 btn.classList.add('disabled');
-                if (parseInt(btn.dataset.option) === selectedOption) {
-                    btn.style.borderColor = '#ff6b6b';
-                }
+                if (parseInt(btn.dataset.option) === selectedOption) btn.style.borderColor = '#ff6b6b';
             });
-        } catch (error) {
-            console.error('Erro ao enviar resposta:', error);
+        } catch (e) {
+            console.error(e);
         }
     }
 
@@ -308,6 +314,10 @@ class PlayerManager {
         }
     }
 
+    updateRankingModal(snapshot) {
+        this.updateRankingFromFirestore();
+    }
+
     showFinalScreen() {
         this.showScreen('finalScreen');
     }
@@ -317,6 +327,7 @@ class PlayerManager {
         document.querySelectorAll('.player-screen').forEach(s => s.classList.remove('active'));
         const screen = document.getElementById(screenId);
         if (screen) screen.classList.add('active');
+        else console.error(`Tela ${screenId} não encontrada!`);
     }
 
     cleanup() {
