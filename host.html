@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Meta tags para evitar cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 </head>
 <body>
     <nav class="navbar">
@@ -40,7 +45,7 @@
                     <h3>Código da Sala</h3>
                     <div class="room-code-display">
                         <span id="roomCode">XXXXXX</span>
-                        <button id="copyCodeBtn" class="btn-icon">📋</button>
+                        <button id="copyCodeBtn" class="btn-icon" title="Copiar código">📋</button>
                     </div>
                     <button id="shareRoomBtn" class="btn btn-outline btn-small">Compartilhar Link</button>
                 </div>
@@ -114,14 +119,45 @@
     <!-- Socket.IO Client (servido pelo servidor) -->
     <script src="/socket.io/socket.io.js"></script>
     
-    <!-- Scripts do projeto -->
+    <!-- Scripts do projeto (ordem correta) -->
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/socket-client.js"></script>
     <script src="js/host-socket.js"></script>
     <script src="js/version-check.js"></script>
-
-   
+    
+    <!-- Script de verificação de conexão -->
+    <script>
+        (function() {
+            console.log('📄 Página host.html carregada');
+            
+            // Verificar conexão com o servidor
+            const checkServerConnection = setInterval(() => {
+                if (window.socketClient && window.socketClient.connected) {
+                    console.log('✅ Conectado ao servidor Socket.IO');
+                    clearInterval(checkServerConnection);
+                }
+            }, 500);
+            
+            // Timeout de conexão
+            setTimeout(() => {
+                if (!window.socketClient || !window.socketClient.connected) {
+                    console.warn('⚠️ Não foi possível conectar ao servidor');
+                    const connectionMsg = document.createElement('div');
+                    connectionMsg.className = 'connection-warning';
+                    connectionMsg.innerHTML = `
+                        <div class="connection-warning-content">
+                            <span>⚠️</span>
+                            <span>Conectando ao servidor...</span>
+                            <span class="connection-spinner"></span>
+                        </div>
+                    `;
+                    document.body.appendChild(connectionMsg);
+                    setTimeout(() => connectionMsg.remove(), 5000);
+                }
+            }, 3000);
+        })();
+    </script>
 </body>
 </html>

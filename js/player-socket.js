@@ -10,6 +10,9 @@ class PlayerSocketManager {
         this.questionStartTime = null;
         this.hasAnswered = false;
         this.totalScore = 0;
+        this.currentScreen = 'joinScreen';
+        this.readingTimer = null;
+        this.answerTimer = null;
         this.init();
     }
 
@@ -25,9 +28,21 @@ class PlayerSocketManager {
         this.setupEventListeners();
         this.loadAvatars();
         this.setupSocketListeners();
+        this.createAllScreens();
+    }
+
+    createAllScreens() {
+        this.createReadingScreen();
+        this.createRankingScreen();
     }
 
     setupSocketListeners() {
+        // Verificar se socketClient está disponível
+        if (!window.socketClient) {
+            console.error('❌ Socket client não disponível');
+            return;
+        }
+
         // Fase de leitura
         socketClient.on('reading-phase', (data) => {
             console.log('📖 Fase de leitura:', data);
@@ -56,6 +71,18 @@ class PlayerSocketManager {
         socketClient.on('game-finished', (data) => {
             console.log('🏁 Jogo finalizado:', data);
             this.showFinalRanking(data.ranking);
+        });
+
+        // Atualização de pontuação
+        socketClient.on('score-update', (data) => {
+            console.log('💰 Pontuação atualizada:', data);
+            if (data.playerId === this.playerId) {
+                this.totalScore = data.totalScore;
+                const currentScoreElem = document.getElementById('currentScore');
+                if (currentScoreElem) {
+                    currentScoreElem.textContent = this.totalScore;
+                }
+            }
         });
 
         // Erro
@@ -131,10 +158,27 @@ class PlayerSocketManager {
             return;
         }
         
-        // Verificar sala via Socket.IO
-        socketClient.emit('check-room', { roomCode: code }, (response) => {
-            if (response.exists) {
+        // Verificar se socketClient está disponível
+        if (!window.socketClient || !window.socketClient.connected) {
+            Utils.showToast('Aguardando conexão com o servidor...', 'warning');
+            const checkConnection = setInterval(() => {
+                if (window.socketClient && window.socketClient.connected) {
+                    clearInterval(checkConnection);
+                    this.doCheckRoom(code);
+                }
+            }, 100);
+            setTimeout(() => clearInterval(checkConnection), 5000);
+            return;
+        }
+        
+        this.doCheckRoom(code);
+    }
+    
+    doCheckRoom(code) {
+        socketClient.checkRoom(code, (response) => {
+            if (response && response.exists) {
                 this.roomCode = code;
+                this.roomId = response.roomId;
                 this.showScreen('profileScreen');
             } else {
                 Utils.showToast('Sala não encontrada ou já encerrada', 'error');
@@ -159,14 +203,31 @@ class PlayerSocketManager {
         this.playerId = Utils.generateId();
         this.playerName = name;
         
-        // Entrar na sala via Socket.IO
-        socketClient.joinRoom(this.roomCode, this.playerId, name, this.playerAvatar, (response) => {
-            if (response.success) {
+        // Verificar se socketClient está disponível
+        if (!window.socketClient || !window.socketClient.connected) {
+            Utils.showToast('Aguardando conexão com o servidor...', 'warning');
+            const checkConnection = setInterval(() => {
+                if (window.socketClient && window.socketClient.connected) {
+                    clearInterval(checkConnection);
+                    this.doJoinGame();
+                }
+            }, 100);
+            setTimeout(() => clearInterval(checkConnection), 5000);
+            return;
+        }
+        
+        this.doJoinGame();
+    }
+    
+    doJoinGame() {
+        socketClient.joinRoom(this.roomCode, this.playerId, this.playerName, this.playerAvatar, (response) => {
+            if (response && response.success) {
                 this.roomId = response.roomId;
                 this.showScreen('waitingScreen');
                 document.getElementById('waitingRoomCode').textContent = this.roomCode;
+                Utils.showToast('Entrou na sala! Aguardando o início do jogo...', 'success');
             } else {
-                Utils.showToast(response.error, 'error');
+                Utils.showToast(response?.error || 'Erro ao entrar na sala', 'error');
             }
         });
     }
@@ -178,18 +239,20 @@ class PlayerSocketManager {
         this.hasAnswered = false;
         
         this.showScreen('readingScreen');
-        this.createReadingScreen();
         
-        document.getElementById('readingQuestionText').textContent = this.currentQuestion.text;
+        const readingTextElem = document.getElementById('readingQuestionText');
+        if (readingTextElem) {
+            readingTextElem.textContent = this.currentQuestion.text;
+        }
         
         let timeLeft = data.readingTime || 5;
         const timerSpan = document.getElementById('readingTimer');
-        timerSpan.textContent = timeLeft;
+        if (timerSpan) timerSpan.textContent = timeLeft;
         
         if (this.readingTimer) clearInterval(this.readingTimer);
         this.readingTimer = setInterval(() => {
             timeLeft--;
-            if (timerSpan) timerSpan.textContent = timeLeft;
+            if (timerSpan) timerSpan.textContent = Math.max(0, timeLeft);
             if (timeLeft <= 0) {
                 clearInterval(this.readingTimer);
             }
@@ -210,7 +273,7 @@ class PlayerSocketManager {
                         <div class="timer-circle" id="readingTimerCircle">
                             <span id="readingTimer">5</span>
                         </div>
-                        <p>Segundos para responder</p>
+                        <p>Segundos para ler</p>
                     </div>
                 </div>
             </div>
@@ -220,14 +283,35 @@ class PlayerSocketManager {
         container.insertAdjacentHTML('beforeend', readingHTML);
     }
 
+    createRankingScreen() {
+        if (document.getElementById('rankingScreen')) return;
+        
+        const rankingHTML = `
+            <div id="rankingScreen" class="player-screen">
+                <div class="ranking-card">
+                    <h2>🏆 Ranking Parcial 🏆</h2>
+                    <div id="rankingModalList" class="ranking-list-modal"></div>
+                    <div class="next-question-timer">
+                        Aguardando próxima pergunta...
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const container = document.querySelector('.player-container');
+        container.insertAdjacentHTML('beforeend', rankingHTML);
+    }
+
     handleAnsweringPhase(data) {
         if (this.currentScreen === 'questionScreen') return;
         
-        this.currentQuestion = {
-            text: this.currentQuestion.text,
-            options: data.options,
-            timeLimit: data.timeLimit
-        };
+        if (!this.currentQuestion) {
+            console.warn('⚠️ Nenhuma pergunta atual para responder');
+            return;
+        }
+        
+        this.currentQuestion.options = data.options;
+        this.currentQuestion.timeLimit = data.timeLimit;
         
         this.questionStartTime = new Date();
         this.hasAnswered = false;
@@ -241,9 +325,14 @@ class PlayerSocketManager {
     }
 
     displayQuestion() {
-        document.getElementById('questionText').textContent = this.currentQuestion.text;
+        const questionTextElem = document.getElementById('questionText');
+        if (questionTextElem) {
+            questionTextElem.textContent = this.currentQuestion.text;
+        }
         
         const optionsGrid = document.getElementById('optionsGrid');
+        if (!optionsGrid) return;
+        
         const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
         
         optionsGrid.innerHTML = this.currentQuestion.options.map((option, index) => `
@@ -269,7 +358,9 @@ class PlayerSocketManager {
         this.answerTimer = setInterval(() => {
             timeLeft--;
             timerValue.textContent = Math.max(0, timeLeft);
-            if (timeLeft <= 5) timerCircle.style.animation = 'pulse 0.5s infinite';
+            if (timeLeft <= 5 && timerCircle) {
+                timerCircle.style.animation = 'pulse 0.5s infinite';
+            }
             if (timeLeft <= 0) {
                 clearInterval(this.answerTimer);
                 if (!this.hasAnswered) this.submitAnswer(null);
@@ -286,18 +377,22 @@ class PlayerSocketManager {
         const responseTime = (new Date() - this.questionStartTime) / 1000;
         
         // Enviar resposta via Socket.IO
-        socketClient.submitAnswer(selectedOption, responseTime, (result) => {
-            if (result.success) {
-                this.totalScore += result.points;
-                const currentScoreElem = document.getElementById('currentScore');
-                if (currentScoreElem) {
-                    currentScoreElem.textContent = this.totalScore;
+        if (window.socketClient && window.socketClient.connected) {
+            socketClient.submitAnswer(selectedOption, responseTime, (result) => {
+                if (result && result.success) {
+                    this.totalScore += result.points;
+                    const currentScoreElem = document.getElementById('currentScore');
+                    if (currentScoreElem) {
+                        currentScoreElem.textContent = this.totalScore;
+                    }
+                    this.showQuestionFeedback(result.isCorrect, result.points);
+                } else if (result && result.error) {
+                    Utils.showToast(result.error, 'error');
                 }
-                this.showQuestionFeedback(result.isCorrect, result.points);
-            } else {
-                Utils.showToast(result.error, 'error');
-            }
-        });
+            });
+        } else {
+            Utils.showToast('Conexão perdida com o servidor', 'error');
+        }
         
         // Desabilitar opções
         document.querySelectorAll('.option-btn').forEach(btn => {
@@ -313,23 +408,24 @@ class PlayerSocketManager {
             ? `Correto! +${points} pontos!` 
             : `Errou! 0 pontos`;
         
-        feedbackDiv.innerHTML = `
-            <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
-                <span class="feedback-icon">${resultIcon}</span>
-                <span class="feedback-text">${message}</span>
-            </div>
-        `;
-        
-        feedbackDiv.style.display = 'block';
-        
-        setTimeout(() => {
-            feedbackDiv.style.display = 'none';
-        }, 3000);
+        if (feedbackDiv) {
+            feedbackDiv.innerHTML = `
+                <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
+                    <span class="feedback-icon">${resultIcon}</span>
+                    <span class="feedback-text">${message}</span>
+                </div>
+            `;
+            feedbackDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                feedbackDiv.style.display = 'none';
+            }, 3000);
+        }
     }
 
     handleQuestionResult(data) {
         // Atualizar pontuação
-        const myResult = data.results.find(r => r.playerId === this.playerId);
+        const myResult = data.results?.find(r => r.playerId === this.playerId);
         if (myResult) {
             this.totalScore = myResult.totalScore;
             const currentScoreElem = document.getElementById('currentScore');
@@ -341,22 +437,26 @@ class PlayerSocketManager {
         // Mostrar ranking
         this.showRankingModal(data.ranking);
         
-        // Voltar para tela de espera
+        // Voltar para tela de espera após 3 segundos
         setTimeout(() => {
             this.showScreen('waitingScreen');
         }, 3000);
     }
 
     showRankingModal(ranking) {
-        const topRanking = ranking.slice(0, 5);
+        const topRanking = ranking?.slice(0, 5) || [];
+        
+        // Remover modal existente
+        const existingModal = document.querySelector('.ranking-modal');
+        if (existingModal) existingModal.remove();
         
         const modal = document.createElement('div');
-        modal.className = 'modal';
+        modal.className = 'modal ranking-modal';
         modal.style.display = 'block';
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 500px; text-align: center;">
                 <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                <div style="margin: 1rem 0;">
+                <div style="margin: 1rem 0; max-height: 300px; overflow-y: auto;">
                     ${topRanking.map((player, index) => `
                         <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
@@ -372,8 +472,17 @@ class PlayerSocketManager {
         document.body.appendChild(modal);
         
         const closeBtn = modal.querySelector('#closeRankingBtn');
-        closeBtn.addEventListener('click', () => {
-            modal.remove();
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.remove();
+            });
+        }
+        
+        // Fechar ao clicar fora
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
         });
     }
 
@@ -382,6 +491,21 @@ class PlayerSocketManager {
         const rankingList = document.getElementById('finalRankingList');
         if (rankingList && this.currentScreen === 'finalScreen') {
             this.updateFinalRanking(ranking);
+        }
+        
+        // Atualizar modal de ranking se estiver aberto
+        const modalList = document.getElementById('rankingModalList');
+        if (modalList && this.currentScreen === 'rankingScreen') {
+            const topRanking = ranking?.slice(0, 5) || [];
+            modalList.innerHTML = topRanking.map((player, index) => `
+                <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+                    <div class="ranking-position">${index + 1}º</div>
+                    <div class="player-info">
+                        <span>${Utils.escapeHtml(player.playerName)}</span>
+                    </div>
+                    <div class="ranking-score">${player.score || 0} pts</div>
+                </div>
+            `).join('');
         }
     }
 
@@ -394,7 +518,7 @@ class PlayerSocketManager {
         const list = document.getElementById('finalRankingList');
         if (!list) return;
         
-        if (ranking.length === 0) {
+        if (!ranking || ranking.length === 0) {
             list.innerHTML = '<p class="placeholder">Nenhum jogador</p>';
             return;
         }
@@ -412,19 +536,30 @@ class PlayerSocketManager {
 
     showScreen(screenId) {
         this.currentScreen = screenId;
-        document.querySelectorAll('.player-screen').forEach(screen => screen.classList.remove('active'));
-        const screen = document.getElementById(screenId);
-        if (screen) screen.classList.add('active');
+        const screens = document.querySelectorAll('.player-screen');
+        screens.forEach(screen => screen.classList.remove('active'));
+        const targetScreen = document.getElementById(screenId);
+        if (targetScreen) {
+            targetScreen.classList.add('active');
+            console.log(`🖥️ Tela alterada para: ${screenId}`);
+        } else {
+            console.warn(`⚠️ Tela não encontrada: ${screenId}`);
+        }
     }
 
     cleanup() {
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
+        
+        // Remover modal de ranking se existir
+        const modal = document.querySelector('.ranking-modal');
+        if (modal) modal.remove();
     }
 }
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎮 Inicializando PlayerSocketManager...');
     window.playerManager = new PlayerSocketManager();
     window.addEventListener('beforeunload', () => {
         if (window.playerManager) window.playerManager.cleanup();
