@@ -136,11 +136,19 @@ class GameRoom {
             ranking.push({
                 playerId: playerId,
                 playerName: playerName,
-                score: score
+                score: score,
+                avatar: this.players.get(this.getSocketIdByPlayerId(playerId))?.avatar || 'avatar1'
             });
         }
         ranking.sort((a, b) => b.score - a.score);
         return ranking;
+    }
+
+    getSocketIdByPlayerId(playerId) {
+        for (const [socketId, player] of this.players) {
+            if (player.id === playerId) return socketId;
+        }
+        return null;
     }
 
     async startGame() {
@@ -286,7 +294,7 @@ class GameRoom {
 
             results.push({
                 playerId: playerId,
-                answer: answer.answer,
+                answer: answer.answer,           // ← IMPORTANTE: para a distribuição de respostas
                 points: answer.points,
                 isCorrect: answer.isCorrect,
                 totalScore: newScore
@@ -298,6 +306,7 @@ class GameRoom {
             if (!this.answers.has(player.id)) {
                 results.push({
                     playerId: player.id,
+                    answer: null,
                     points: 0,
                     isCorrect: false,
                     totalScore: this.scores.get(player.id) || 0

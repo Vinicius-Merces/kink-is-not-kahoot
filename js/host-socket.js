@@ -260,7 +260,7 @@ class HostSocketManager {
         }
     }
 
-    // ========== RANKING COM DISTRIBUIÇÃO DE RESPOSTAS (CORRIGIDO) ==========
+    // ========== RANKING COM DISTRIBUIÇÃO DE RESPOSTAS ==========
     showRankingModalWithDistribution(data) {
         console.log('🎯 showRankingModalWithDistribution chamado com data:', data);
 
@@ -274,7 +274,7 @@ class HostSocketManager {
         // Contar quantos jogadores escolheram cada opção
         const choiceCount = new Array(options.length).fill(0);
         results.forEach(r => {
-            if (r.answer !== undefined && r.answer >= 0 && r.answer < options.length) {
+            if (r.answer !== undefined && r.answer !== null && r.answer >= 0 && r.answer < options.length) {
                 choiceCount[r.answer]++;
             }
         });
@@ -314,8 +314,7 @@ class HostSocketManager {
                     </div>
                 </div>
             `;
-        } else {
-            // Fallback se não houver dados suficientes
+        } else if (options.length > 0) {
             distributionHTML = `
                 <div style="margin-top: 1.5rem; text-align: left;">
                     <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
@@ -330,7 +329,7 @@ class HostSocketManager {
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal-host';
         modal.style.display = 'block';
-        modal.style.zIndex = '10000'; // Garantir que fique acima de tudo
+        modal.style.zIndex = '10000';
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 580px; text-align: center; max-height: 80vh; overflow-y: auto;">
                 <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
