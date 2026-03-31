@@ -686,7 +686,7 @@ io.on('connection', (socket) => {
 // INICIALIZAÇÃO
 // ============================================
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`
