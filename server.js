@@ -286,6 +286,7 @@ class GameRoom {
 
             results.push({
                 playerId: playerId,
+                answer: answer.answer,
                 points: answer.points,
                 isCorrect: answer.isCorrect,
                 totalScore: newScore

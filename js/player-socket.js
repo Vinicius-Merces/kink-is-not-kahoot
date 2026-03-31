@@ -10,6 +10,7 @@ class PlayerSocketManager {
         this.questionStartTime = null;
         this.hasAnswered = false;
         this.totalScore = 0;
+        this.correctStreak = 0;          // Sequência de acertos consecutivos
         this.currentScreen = 'joinScreen';
         this.readingTimer = null;
         this.answerTimer = null;
@@ -29,6 +30,7 @@ class PlayerSocketManager {
         this.loadAvatars();
         this.setupSocketListeners();
         this.createAllScreens();
+        this.updatePlayerInfoDisplay();   // Atualiza nome/avatar na tela
     }
 
     createAllScreens() {
@@ -36,56 +38,73 @@ class PlayerSocketManager {
         this.createRankingScreen();
     }
 
+    updatePlayerInfoDisplay() {
+        // Atualiza nome e avatar no topo da tela (se os elementos existirem)
+        const playerNameElem = document.getElementById('playerNameDisplay');
+        const playerAvatarElem = document.getElementById('playerAvatarDisplay');
+        if (playerNameElem) playerNameElem.textContent = this.playerName || '---';
+        if (playerAvatarElem) playerAvatarElem.innerHTML = Utils.getAvatarEmoji(this.playerAvatar) || '👤';
+        
+        // Atualiza a pontuação
+        const currentScoreElem = document.getElementById('currentScore');
+        if (currentScoreElem) currentScoreElem.textContent = this.totalScore;
+        
+        // Atualiza sequência de acertos
+        this.updateStreakDisplay();
+    }
+
+    updateStreakDisplay() {
+        const streakElem = document.getElementById('streakDisplay');
+        if (streakElem) {
+            if (this.correctStreak > 0) {
+                streakElem.innerHTML = '🔥'.repeat(Math.min(this.correctStreak, 5));
+                streakElem.style.display = 'inline-block';
+            } else {
+                streakElem.innerHTML = '';
+                streakElem.style.display = 'none';
+            }
+        }
+    }
+
     setupSocketListeners() {
-        // Verificar se socketClient está disponível
         if (!window.socketClient) {
             console.error('❌ Socket client não disponível');
             return;
         }
 
-        // Fase de leitura
         socketClient.on('reading-phase', (data) => {
             console.log('📖 Fase de leitura:', data);
             this.handleReadingPhase(data);
         });
 
-        // Fase de respostas
         socketClient.on('answering-phase', (data) => {
             console.log('⚡ Fase de respostas:', data);
             this.handleAnsweringPhase(data);
         });
 
-        // Resultado da pergunta
         socketClient.on('question-result', (data) => {
             console.log('🏆 Resultado da pergunta:', data);
             this.handleQuestionResult(data);
         });
 
-        // Ranking parcial
         socketClient.on('ranking-update', (data) => {
             console.log('📊 Ranking atualizado:', data);
             this.updateRanking(data.ranking);
         });
 
-        // Jogo finalizado
         socketClient.on('game-finished', (data) => {
             console.log('🏁 Jogo finalizado:', data);
             this.showFinalRanking(data.ranking);
         });
 
-        // Atualização de pontuação
         socketClient.on('score-update', (data) => {
             console.log('💰 Pontuação atualizada:', data);
             if (data.playerId === this.playerId) {
                 this.totalScore = data.totalScore;
-                const currentScoreElem = document.getElementById('currentScore');
-                if (currentScoreElem) {
-                    currentScoreElem.textContent = this.totalScore;
-                }
+                this.updatePlayerInfoDisplay();
             }
         });
 
-        // Erro
         socketClient.on('error', (data) => {
             Utils.showToast(data.message, 'error');
         });
@@ -145,6 +164,7 @@ class PlayerSocketManager {
                 document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
                 option.classList.add('selected');
                 this.playerAvatar = option.dataset.avatar;
+                this.updatePlayerInfoDisplay();
             });
         });
     }
@@ -158,7 +178,6 @@ class PlayerSocketManager {
             return;
         }
         
-        // Verificar se socketClient está disponível
         if (!window.socketClient || !window.socketClient.connected) {
             Utils.showToast('Aguardando conexão com o servidor...', 'warning');
             const checkConnection = setInterval(() => {
@@ -202,8 +221,8 @@ class PlayerSocketManager {
         
         this.playerId = Utils.generateId();
         this.playerName = name;
+        this.updatePlayerInfoDisplay();
         
-        // Verificar se socketClient está disponível
         if (!window.socketClient || !window.socketClient.connected) {
             Utils.showToast('Aguardando conexão com o servidor...', 'warning');
             const checkConnection = setInterval(() => {
@@ -376,15 +395,17 @@ class PlayerSocketManager {
         
         const responseTime = (new Date() - this.questionStartTime) / 1000;
         
-        // Enviar resposta via Socket.IO
         if (window.socketClient && window.socketClient.connected) {
             socketClient.submitAnswer(selectedOption, responseTime, (result) => {
                 if (result && result.success) {
                     this.totalScore += result.points;
-                    const currentScoreElem = document.getElementById('currentScore');
-                    if (currentScoreElem) {
-                        currentScoreElem.textContent = this.totalScore;
+                    // Atualiza sequência de acertos
+                    if (result.isCorrect) {
+                        this.correctStreak++;
+                    } else {
+                        this.correctStreak = 0;
                     }
+                    this.updatePlayerInfoDisplay();
                     this.showQuestionFeedback(result.isCorrect, result.points);
                 } else if (result && result.error) {
                     Utils.showToast(result.error, 'error');
@@ -424,14 +445,13 @@ class PlayerSocketManager {
     }
 
     handleQuestionResult(data) {
-        // Atualizar pontuação
+        // Atualizar pontuação com o valor final (pode ter vindo do servidor)
         const myResult = data.results?.find(r => r.playerId === this.playerId);
         if (myResult) {
             this.totalScore = myResult.totalScore;
-            const currentScoreElem = document.getElementById('currentScore');
-            if (currentScoreElem) {
-                currentScoreElem.textContent = this.totalScore;
-            }
+            // Atualizar sequência de acertos com o resultado final
+            this.correctStreak = myResult.isCorrect ? this.correctStreak : 0;
+            this.updatePlayerInfoDisplay();
         }
         
         // Mostrar ranking
@@ -446,7 +466,6 @@ class PlayerSocketManager {
     showRankingModal(ranking) {
         const topRanking = ranking?.slice(0, 5) || [];
         
-        // Remover modal existente
         const existingModal = document.querySelector('.ranking-modal');
         if (existingModal) existingModal.remove();
         
@@ -478,7 +497,6 @@ class PlayerSocketManager {
             });
         }
         
-        // Fechar ao clicar fora
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
@@ -487,13 +505,11 @@ class PlayerSocketManager {
     }
 
     updateRanking(ranking) {
-        // Atualizar ranking na tela se estiver visível
         const rankingList = document.getElementById('finalRankingList');
         if (rankingList && this.currentScreen === 'finalScreen') {
             this.updateFinalRanking(ranking);
         }
         
-        // Atualizar modal de ranking se estiver aberto
         const modalList = document.getElementById('rankingModalList');
         if (modalList && this.currentScreen === 'rankingScreen') {
             const topRanking = ranking?.slice(0, 5) || [];
@@ -550,8 +566,6 @@ class PlayerSocketManager {
     cleanup() {
         if (this.readingTimer) clearInterval(this.readingTimer);
         if (this.answerTimer) clearInterval(this.answerTimer);
-        
-        // Remover modal de ranking se existir
         const modal = document.querySelector('.ranking-modal');
         if (modal) modal.remove();
     }

@@ -416,38 +416,88 @@ class HostSocketManager {
 
     showRankingModal(data) {
         const ranking = data.ranking?.slice(0, 5) || [];
-        
+        const results = data.results || [];
+        const currentQuestion = this.currentQuestion;
+        const options = currentQuestion?.options || [];
+        const correctAnswerIndex = currentQuestion?.correct;
+
+        // Contar quantos jogadores escolheram cada opção
+        const choiceCount = new Array(options.length).fill(0);
+        results.forEach(r => {
+            if (r.answer !== undefined && r.answer >= 0 && r.answer < options.length) {
+                choiceCount[r.answer]++;
+            }
+        });
+        const totalAnswers = results.length;
+
+        // Gerar HTML da distribuição de respostas
+        let distributionHTML = '';
+        if (options.length > 0 && totalAnswers > 0) {
+            distributionHTML = `
+                <div style="margin-top: 1.5rem; text-align: left;">
+                    <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 1rem;">
+            `;
+            options.forEach((opt, i) => {
+                const count = choiceCount[i];
+                const percentage = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
+                const isCorrect = (i === correctAnswerIndex);
+                const barColor = isCorrect ? '#48bb78' : '#ff6b6b';
+                
+                distributionHTML += `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 20px;">${String.fromCharCode(65 + i)}</span>
+                                <span style="word-break: break-word;">${Utils.escapeHtml(opt)}</span>
+                                ${isCorrect ? '<span style="color: #48bb78; font-size: 0.7rem;">✅ Correta</span>' : ''}
+                            </div>
+                            <span style="font-weight: bold;">${count} (${percentage}%)</span>
+                        </div>
+                        <div style="background: #2d3748; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: ${barColor}; width: ${percentage}%; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            distributionHTML += `
+                    </div>
+                </div>
+            `;
+        }
+
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal-host';
         modal.style.display = 'block';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 580px; text-align: center;">
+            <div class="modal-content" style="max-width: 580px; text-align: center; max-height: 80vh; overflow-y: auto;">
                 <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
                 <div style="margin: 1rem 0;">
                     ${ranking.map((player, index) => `
                         <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                            <span>${Utils.escapeHtml(player.playerName)}</span>
+                            <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
                             <span style="color: #ff6b6b; font-weight: bold;">${player.score || 0} pts</span>
                         </div>
                     `).join('')}
                 </div>
+                ${distributionHTML}
                 <div style="margin: 1rem 0; font-size: 0.9rem; opacity: 0.7;">
                     Resposta correta: ${data.correctAnswer || 'Não disponível'}
                 </div>
                 <button id="closeRankingBtn" class="btn btn-primary" style="margin-top: 1rem;">Continuar</button>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
-        
+
         const closeBtn = modal.querySelector('#closeRankingBtn');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 modal.remove();
             });
         }
-        
+
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
