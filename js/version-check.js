@@ -7,8 +7,9 @@ class VersionManager {
     }
 
     async init() {
-        // Carregar versão do localStorage
+        // Carregar versão do localStorage (corrigido)
         this.currentVersion = localStorage.getItem('kink_version');
+        console.log(`📌 Versão atual armazenada: ${this.currentVersion || 'nenhuma'}`);
         await this.checkVersion();
         
         // Verificar periodicamente (a cada 5 minutos)
@@ -17,7 +18,6 @@ class VersionManager {
 
     async checkVersion() {
         try {
-            // Buscar versão do servidor com cache buster
             const response = await fetch('/version.json?t=' + Date.now());
             if (!response.ok) {
                 console.warn('⚠️ Não foi possível verificar versão');
@@ -27,8 +27,15 @@ class VersionManager {
             const data = await response.json();
             this.latestVersion = data.version;
 
-            if (!this.currentVersion || this.currentVersion !== this.latestVersion) {
-                console.log(`🔄 Nova versão detectada: ${this.latestVersion} (atual: ${this.currentVersion || 'nenhuma'})`);
+            // CORREÇÃO: Comparar com a versão salva no localStorage
+            const storedVersion = localStorage.getItem('kink_version');
+            
+            if (!storedVersion || storedVersion !== this.latestVersion) {
+                console.log(`🔄 Nova versão detectada: ${this.latestVersion} (atual: ${storedVersion || 'nenhuma'})`);
+                
+                // Salvar a nova versão IMEDIATAMENTE para não mostrar novamente
+                localStorage.setItem('kink_version', this.latestVersion);
+                this.currentVersion = this.latestVersion;
                 
                 // Verificar se o usuário já adiou esta versão (por 24h)
                 const deferred = localStorage.getItem('kink_update_deferred');
@@ -74,23 +81,18 @@ class VersionManager {
         
         document.body.appendChild(notification);
         
-        // Animação de entrada
         setTimeout(() => notification.classList.add('show'), 100);
         
-        // Botão "Atualizar agora"
         notification.querySelector('.update-now').addEventListener('click', () => {
             this.forceHardReload();
         });
         
-        // Botão "Agora não"
         notification.querySelector('.update-later').addEventListener('click', () => {
             notification.remove();
-            // Adiar por 24h
             localStorage.setItem('kink_update_deferred', Date.now().toString());
-            localStorage.setItem('kink_update_deferred_version', this.latestVersion);
+            localStorage.setItem('kink_update_deferred_version', versionData.version);
         });
         
-        // Auto-fechar após 15 segundos
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.classList.remove('show');
@@ -102,12 +104,11 @@ class VersionManager {
     forceHardReload() {
         console.log('🔄 Forçando recarga completa...');
         
-        // 1. Limpar localStorage da versão atual
-        localStorage.removeItem('kink_version');
+        // Limpar apenas a deferência, manter a versão
         localStorage.removeItem('kink_update_deferred');
         localStorage.removeItem('kink_update_deferred_version');
         
-        // 2. Forçar recarga ignorando cache (com parâmetro na URL)
+        // Forçar recarga ignorando cache
         const url = new URL(window.location.href);
         url.searchParams.set('v', Date.now());
         window.location.href = url.toString();
