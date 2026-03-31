@@ -1,6 +1,27 @@
 // Service Worker - KINK is not Kahoot
-const CACHE_NAME = 'kink-cache-v2'; // Aumente a versão do cache sempre que mudar
-const urlsToCache = [
+const CACHE_NAME = 'kink-cache-v2';
+
+// ============================================
+// URLs que NUNCA devem ser cacheadas
+// ============================================
+const NEVER_CACHE = [
+    '/socket.io/',
+    '/socket.io/socket.io.js',
+    '/js/host-socket.js',
+    '/js/player-socket.js',
+    '/js/socket-client.js',
+    '/js/version-check.js',
+    '/version.json',
+    'firestore.googleapis.com',
+    'identitytoolkit.googleapis.com',
+    'googleapis.com',
+    'gstatic.com'
+];
+
+// ============================================
+// URLs que podem ser cacheadas (estáticas)
+// ============================================
+const STATIC_CACHE = [
     '/',
     '/index.html',
     '/host.html',
@@ -16,36 +37,33 @@ const urlsToCache = [
     '/js/quiz-manager.js',
     '/js/create-quiz.js',
     '/js/music-player.js',
-    // Novos arquivos Socket.IO (NÃO são cacheados - serão ignorados)
-    // '/js/socket-client.js',
-    // '/js/host-socket.js',
-    // '/js/player-socket.js',
-    // '/socket.io/socket.io.js' (dinâmico, não cachear)
+    '/assets/'
 ];
 
-// Lista de URLs que NÃO devem ser interceptadas pelo SW
-const ignoreUrls = [
-    '/socket.io/',
-    '/js/socket-client.js',
-    '/js/host-socket.js',
-    '/js/player-socket.js',
-    '/version.json',
-    '/socket.io/socket.io.js'
-];
+// ============================================
+// Verificar se URL deve ser ignorada
+// ============================================
+function shouldNeverCache(url) {
+    return NEVER_CACHE.some(pattern => url.includes(pattern));
+}
 
+// ============================================
 // Instalação
+// ============================================
 self.addEventListener('install', event => {
     console.log('Service Worker instalando...');
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Cache aberto, adicionando arquivos estáticos');
-                return cache.addAll(urlsToCache);
-            })
+        caches.open(CACHE_NAME).then(cache => {
+            console.log('Cache aberto, adicionando arquivos estáticos...');
+            return cache.addAll(STATIC_CACHE.filter(url => url !== '/'));
+        }).catch(err => console.log('Erro ao adicionar cache:', err))
     );
+    self.skipWaiting(); // Forçar ativação imediata
 });
 
-// Ativação - limpa caches antigos
+// ============================================
+// Ativação - limpar caches antigos
+// ============================================
 self.addEventListener('activate', event => {
     console.log('Service Worker ativado');
     event.waitUntil(
@@ -60,58 +78,59 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    self.clients.claim(); // Tomar controle imediato
 });
 
+// ============================================
 // Interceptar requisições
+// ============================================
 self.addEventListener('fetch', event => {
     const url = event.request.url;
-
-    // Ignorar URLs que devem ser tratadas diretamente pelo servidor
-    if (ignoreUrls.some(ignore => url.includes(ignore))) {
-        console.log('SW ignorando requisição:', url);
+    
+    // Ignorar completamente requisições que não devem ser cacheadas
+    if (shouldNeverCache(url)) {
+        console.log('🔓 Ignorando cache para:', url.split('?')[0]);
         event.respondWith(fetch(event.request));
         return;
     }
-
-    // Para outras requisições, tenta cache primeiro, depois rede
+    
+    // Para requisições que podem ser cacheadas, tentar cache primeiro
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                if (response) {
-                    // Retorna do cache
-                    return response;
+        caches.match(event.request).then(response => {
+            if (response) {
+                // Cache hit - retorna do cache
+                console.log('📦 Cache hit:', url.split('?')[0]);
+                return response;
+            }
+            
+            // Cache miss - busca da rede
+            console.log('🌐 Fetch:', url.split('?')[0]);
+            return fetch(event.request).then(networkResponse => {
+                // Verificar se é uma resposta válida
+                if (!networkResponse || networkResponse.status !== 200) {
+                    return networkResponse;
                 }
-
-                // Clona a requisição para fazer fetch
-                const fetchRequest = event.request.clone();
-
-                return fetch(fetchRequest).then(response => {
-                    // Verifica se a resposta é válida
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
-                    }
-
-                    // Clona a resposta para cache
-                    const responseToCache = response.clone();
-
-                    caches.open(CACHE_NAME)
-                        .then(cache => {
-                            cache.put(event.request, responseToCache);
-                        });
-
-                    return response;
+                
+                // Clonar para cache
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, responseToCache);
                 });
-            })
+                
+                return networkResponse;
+            });
+        })
     );
 });
 
+// ============================================
 // Mensagens do cliente
+// ============================================
 self.addEventListener('message', event => {
     if (event.data.type === 'NEW_VERSION') {
-        console.log('Nova versão detectada, limpando cache...');
-        // Limpa o cache para forçar atualização
+        console.log('🔄 Nova versão detectada, limpando cache...');
         caches.delete(CACHE_NAME).then(() => {
-            console.log('Cache limpo. Recarregue a página.');
+            console.log('✅ Cache limpo');
         });
     }
 });
