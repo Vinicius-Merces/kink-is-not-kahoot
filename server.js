@@ -2,31 +2,59 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
 const path = require('path');
+const cors = require('cors');
 
 // Inicializar Firebase Admin (apenas para persistência final)
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json'); // Você precisará baixar do Firebase Console
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
-const db = admin.firestore();
+// Verificar se existe service account key (opcional, pode ser removido se não usar)
+let db = null;
+try {
+    const serviceAccount = require('./serviceAccountKey.json');
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    db = admin.firestore();
+    console.log('✅ Firebase Admin inicializado');
+} catch (error) {
+    console.log('⚠️ Firebase Admin não configurado (serviceAccountKey.json não encontrado)');
+    console.log('   O jogo funcionará sem persistência no Firestore');
+}
 
 // Configuração do Express
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname))); // Servir arquivos estáticos
-
-// Servidor HTTP + Socket.IO
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    transports: ['websocket', 'polling']
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname))); // Servir arquivos estáticos (HTML, CSS, JS)
+
+// ============================================
+// ROTAS HTTP
+// ============================================
+
+// Rota principal
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Rota para health check
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'online',
+        timestamp: new Date().toISOString(),
+        rooms: activeRooms.size,
+        players: Array.from(activeRooms.values()).reduce((sum, room) => sum + room.players.size, 0)
+    });
 });
 
 // ============================================
@@ -36,17 +64,19 @@ const io = new Server(server, {
 // Estrutura de dados em memória
 const activeRooms = new Map();      // roomId -> GameRoom
 const roomCodeMap = new Map();      // code -> roomId
+const playerSocketMap = new Map();   // playerId -> socketId
 
 // Classe GameRoom (Container)
 class GameRoom {
-    constructor(roomId, code, quizData, creatorSocketId, creatorName) {
+    constructor(roomId, code, quizData, creatorSocketId, creatorName, creatorId) {
         this.id = roomId;
         this.code = code;
         this.quiz = quizData;
         this.creatorSocketId = creatorSocketId;
+        this.creatorId = creatorId;
         this.creatorName = creatorName;
         this.players = new Map();           // socketId -> { id, name, avatar, score }
-        this.status = 'waiting';             // waiting, reading, answering, finished
+        this.status = 'waiting';             // waiting, active, reading, answering, finished
         this.currentQuestionIndex = 0;
         this.currentQuestion = null;
         this.questionStartTime = null;
@@ -68,13 +98,16 @@ class GameRoom {
             socketId: socketId
         });
         this.scores.set(playerData.id, 0);
+        playerSocketMap.set(playerData.id, socketId);
         console.log(`👤 Jogador ${playerData.name} entrou na sala ${this.code}`);
+        return this.getPlayersList();
     }
 
     removePlayer(socketId) {
         const player = this.players.get(socketId);
         if (player) {
             this.players.delete(socketId);
+            playerSocketMap.delete(player.id);
             console.log(`👋 Jogador ${player.name} saiu da sala ${this.code}`);
             return player;
         }
@@ -90,9 +123,38 @@ class GameRoom {
         }));
     }
 
+    getRanking() {
+        const ranking = [];
+        for (const [playerId, score] of this.scores) {
+            let playerName = playerId;
+            for (const [socketId, player] of this.players) {
+                if (player.id === playerId) {
+                    playerName = player.name;
+                    break;
+                }
+            }
+            ranking.push({
+                playerId: playerId,
+                playerName: playerName,
+                score: score
+            });
+        }
+        ranking.sort((a, b) => b.score - a.score);
+        return ranking;
+    }
+
     async startGame() {
+        if (this.status !== 'waiting') return { success: false, error: 'Jogo já iniciado' };
+        
         this.status = 'active';
         console.log(`🎮 Jogo iniciado na sala ${this.code}`);
+        
+        // Notificar todos os jogadores
+        io.to(this.id).emit('quiz-started', {
+            totalPlayers: this.players.size,
+            totalQuestions: this.quiz.questions.length
+        });
+        
         return { success: true };
     }
 
@@ -107,7 +169,19 @@ class GameRoom {
         this.answers.clear();
         this.status = 'reading';
 
+        const timeLimit = this.currentQuestion.timeLimit || 30;
+
         console.log(`📖 Fase de leitura - Pergunta ${questionIndex + 1}: ${this.currentQuestion.text.substring(0, 50)}...`);
+
+        // Enviar fase de leitura para todos
+        io.to(this.id).emit('reading-phase', {
+            question: {
+                index: questionIndex,
+                text: this.currentQuestion.text,
+                timeLimit: timeLimit
+            },
+            readingTime: 5
+        });
 
         // Timer para leitura (5s)
         this.timers.reading = setTimeout(() => {
@@ -119,7 +193,7 @@ class GameRoom {
             question: {
                 index: questionIndex,
                 text: this.currentQuestion.text,
-                timeLimit: this.currentQuestion.timeLimit || 30
+                timeLimit: timeLimit
             },
             readingTime: 5
         };
@@ -134,16 +208,16 @@ class GameRoom {
 
         console.log(`⚡ Fase de respostas - ${timeLimit}s para responder`);
 
-        // Timer para finalizar pergunta
-        this.timers.answering = setTimeout(() => {
-            this.finishQuestion();
-        }, timeLimit * 1000);
-
-        // Emitir evento para todos da sala
+        // Enviar fase de respostas para todos
         io.to(this.id).emit('answering-phase', {
             timeLimit: timeLimit,
             options: this.currentQuestion.options
         });
+
+        // Timer para finalizar pergunta
+        this.timers.answering = setTimeout(() => {
+            this.finishQuestion();
+        }, timeLimit * 1000);
     }
 
     submitAnswer(playerId, answer, responseTime) {
@@ -174,6 +248,15 @@ class GameRoom {
 
         console.log(`📝 ${playerId} respondeu: ${isCorrect ? '✅ Acertou' : '❌ Errou'} (${responseTime.toFixed(1)}s) - ${points}pts`);
 
+        // Verificar se todos já responderam
+        if (this.answers.size === this.players.size && this.players.size > 0) {
+            console.log(`🎉 Todos os ${this.players.size} jogadores responderam!`);
+            if (this.timers.answering) {
+                clearTimeout(this.timers.answering);
+                this.finishQuestion();
+            }
+        }
+
         return { success: true, points: points, isCorrect: isCorrect };
     }
 
@@ -181,6 +264,10 @@ class GameRoom {
         if (this.status !== 'answering') return;
 
         console.log(`🏁 Finalizando pergunta ${this.currentQuestionIndex + 1}`);
+
+        // Limpar timers
+        if (this.timers.reading) clearTimeout(this.timers.reading);
+        if (this.timers.answering) clearTimeout(this.timers.answering);
 
         // Calcular pontuações
         const results = [];
@@ -205,10 +292,22 @@ class GameRoom {
             });
         }
 
+        // Para jogadores que não responderam
+        for (const [socketId, player] of this.players) {
+            if (!this.answers.has(player.id)) {
+                results.push({
+                    playerId: player.id,
+                    points: 0,
+                    isCorrect: false,
+                    totalScore: this.scores.get(player.id) || 0
+                });
+            }
+        }
+
         // Gerar ranking
         const ranking = this.getRanking();
 
-        // Emitir resultado para todos
+        // Enviar resultado para todos
         io.to(this.id).emit('question-result', {
             questionIndex: this.currentQuestionIndex,
             results: results,
@@ -216,30 +315,12 @@ class GameRoom {
             correctAnswer: this.currentQuestion.options[this.currentQuestion.correct]
         });
 
+        // Enviar atualização do ranking
+        io.to(this.id).emit('ranking-update', { ranking: ranking });
+
         this.status = 'active';
 
         return { ranking: ranking };
-    }
-
-    getRanking() {
-        const ranking = [];
-        for (const [playerId, score] of this.scores) {
-            // Buscar nome do jogador
-            let playerName = playerId;
-            for (const [socketId, player] of this.players) {
-                if (player.id === playerId) {
-                    playerName = player.name;
-                    break;
-                }
-            }
-            ranking.push({
-                playerId: playerId,
-                playerName: playerName,
-                score: score
-            });
-        }
-        ranking.sort((a, b) => b.score - a.score);
-        return ranking;
     }
 
     async nextQuestion() {
@@ -264,37 +345,72 @@ class GameRoom {
         const ranking = this.getRanking();
 
         console.log(`🏆 Jogo finalizado na sala ${this.code}`);
-        console.log('Ranking final:', ranking);
+        console.log('Ranking final:', ranking.slice(0, 5));
 
-        // Persistir resultados no Firestore
-        try {
-            const roomRef = db.collection('rooms').doc(this.id);
-            await roomRef.set({
-                code: this.code,
-                quizId: this.quiz.id,
-                quizTitle: this.quiz.title,
-                creatorName: this.creatorName,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                finishedAt: admin.firestore.FieldValue.serverTimestamp(),
-                players: Array.from(this.players.values()).map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    avatar: p.avatar,
-                    score: p.score
-                })),
-                ranking: ranking,
-                totalPlayers: this.players.size
-            });
-
-            console.log(`✅ Resultados salvos no Firestore para sala ${this.id}`);
-        } catch (error) {
-            console.error('❌ Erro ao salvar resultados:', error);
+        // Persistir resultados no Firestore (se disponível)
+        if (db) {
+            try {
+                const roomRef = db.collection('rooms').doc(this.id);
+                await roomRef.set({
+                    code: this.code,
+                    quizId: this.quiz.id,
+                    quizTitle: this.quiz.title,
+                    creatorId: this.creatorId,
+                    creatorName: this.creatorName,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    finishedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    players: Array.from(this.players.values()).map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        avatar: p.avatar,
+                        score: p.score
+                    })),
+                    ranking: ranking,
+                    totalPlayers: this.players.size
+                }, { merge: true });
+                console.log(`✅ Resultados salvos no Firestore para sala ${this.id}`);
+            } catch (error) {
+                console.error('❌ Erro ao salvar resultados:', error);
+            }
         }
 
         io.to(this.id).emit('game-finished', { ranking: ranking });
 
         return { ranking: ranking };
     }
+
+    getState() {
+        return {
+            id: this.id,
+            code: this.code,
+            quiz: {
+                id: this.quiz.id,
+                title: this.quiz.title,
+                questions: this.quiz.questions
+            },
+            players: this.getPlayersList(),
+            ranking: this.getRanking(),
+            status: this.status,
+            currentQuestionIndex: this.currentQuestionIndex
+        };
+    }
+}
+
+// ============================================
+// UTILITÁRIOS
+// ============================================
+
+function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+function generateRoomId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
 }
 
 // ============================================
@@ -304,23 +420,46 @@ class GameRoom {
 io.on('connection', (socket) => {
     console.log(`🔌 Cliente conectado: ${socket.id}`);
 
-    // Criar nova sala
+    // Criar nova sala (professor)
     socket.on('create-room', async (data, callback) => {
         try {
-            const { quizId, creatorName } = data;
+            const { quizId, creatorName, creatorId } = data;
             
-            // Buscar quiz no Firestore
-            const quizDoc = await db.collection('quizzes').doc(quizId).get();
-            if (!quizDoc.exists) {
-                callback({ success: false, error: 'Quiz não encontrado' });
+            if (!quizId) {
+                callback({ success: false, error: 'Quiz ID não fornecido' });
                 return;
             }
 
-            const quiz = { id: quizDoc.id, ...quizDoc.data() };
+            // Buscar quiz no Firestore (se disponível)
+            let quiz = null;
+            if (db) {
+                const quizDoc = await db.collection('quizzes').doc(quizId).get();
+                if (quizDoc.exists) {
+                    quiz = { id: quizDoc.id, ...quizDoc.data() };
+                }
+            }
+
+            // Se não tiver Firestore ou quiz não encontrado, usar dados mock
+            if (!quiz) {
+                console.log('⚠️ Usando quiz mock para teste');
+                quiz = {
+                    id: quizId,
+                    title: 'Quiz de Teste',
+                    questions: [
+                        {
+                            text: 'Qual é o modelo de precificação da AWS que permite pagar pelos recursos conforme o uso?',
+                            options: ['Pay-as-you-go', 'Reserved', 'Spot', 'Dedicated'],
+                            correct: 0,
+                            timeLimit: 30
+                        }
+                    ]
+                };
+            }
+
             const roomCode = generateRoomCode();
             const roomId = generateRoomId();
 
-            const room = new GameRoom(roomId, roomCode, quiz, socket.id, creatorName);
+            const room = new GameRoom(roomId, roomCode, quiz, socket.id, creatorName, creatorId);
             activeRooms.set(roomId, room);
             roomCodeMap.set(roomCode, roomId);
 
@@ -346,6 +485,25 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Verificar se sala existe (aluno)
+    socket.on('check-room', (data, callback) => {
+        const { roomCode } = data;
+        const roomId = roomCodeMap.get(roomCode);
+        
+        if (!roomId || !activeRooms.has(roomId)) {
+            callback({ exists: false });
+            return;
+        }
+        
+        const room = activeRooms.get(roomId);
+        callback({
+            exists: true,
+            roomId: roomId,
+            quizTitle: room.quiz.title,
+            totalQuestions: room.quiz.questions.length
+        });
+    });
+
     // Entrar em sala (aluno)
     socket.on('join-room', (data, callback) => {
         try {
@@ -369,7 +527,7 @@ io.on('connection', (socket) => {
             socket.playerId = playerId;
             socket.role = 'player';
 
-            room.addPlayer(socket.id, {
+            const players = room.addPlayer(socket.id, {
                 id: playerId,
                 name: playerName,
                 avatar: playerAvatar
@@ -377,8 +535,9 @@ io.on('connection', (socket) => {
 
             // Notificar o host sobre novo jogador
             io.to(roomId).emit('player-joined', {
-                players: room.getPlayersList(),
-                totalPlayers: room.players.size
+                players: players,
+                totalPlayers: room.players.size,
+                playerName: playerName
             });
 
             console.log(`👤 ${playerName} entrou na sala ${roomCode}`);
@@ -395,6 +554,16 @@ io.on('connection', (socket) => {
             console.error('Erro ao entrar na sala:', error);
             callback({ success: false, error: error.message });
         }
+    });
+
+    // Obter estado da sala
+    socket.on('get-room-state', (data, callback) => {
+        const room = activeRooms.get(data.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        callback({ success: true, ...room.getState() });
     });
 
     // Iniciar quiz (host)
@@ -415,13 +584,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        await room.startGame();
-        io.to(room.id).emit('quiz-started', {
-            totalPlayers: room.players.size,
-            totalQuestions: room.quiz.questions.length
-        });
-
-        callback({ success: true });
+        const result = await room.startGame();
+        callback(result);
     });
 
     // Iniciar pergunta (host)
@@ -480,6 +644,14 @@ io.on('connection', (socket) => {
         }
 
         const result = await room.endGame();
+        
+        // Limpar sala após encerrar
+        setTimeout(() => {
+            activeRooms.delete(room.id);
+            roomCodeMap.delete(room.code);
+            console.log(`🗑️ Sala ${room.code} removida da memória`);
+        }, 60000); // Remove após 1 minuto
+        
         callback(result);
     });
 
@@ -511,36 +683,28 @@ io.on('connection', (socket) => {
 });
 
 // ============================================
-// UTILITÁRIOS
-// ============================================
-
-function generateRoomCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
-
-function generateRoomId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
-}
-
-// ============================================
 // INICIALIZAÇÃO
 // ============================================
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-});
 
 server.listen(PORT, () => {
     console.log(`
     🔥 KINK is not Kahoot Server 🔥
+    =================================
     🚀 Servidor rodando na porta ${PORT}
     📡 WebSocket: ws://localhost:${PORT}
     🌐 Frontend: http://localhost:${PORT}
+    📁 Diretório: ${__dirname}
+    =================================
     `);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 Recebido SIGTERM, encerrando servidor...');
+    server.close(() => {
+        console.log('✅ Servidor encerrado');
+        process.exit(0);
+    });
 });
