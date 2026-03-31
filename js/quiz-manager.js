@@ -128,7 +128,9 @@ class QuizManager {
         document.querySelectorAll('.play-quiz').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.startQuizSession(btn.dataset.id);
+                // Redireciona para host.html com o quizId na URL, sem criar a sala ainda
+                const quizId = btn.dataset.id;
+                window.location.href = `host.html?quizId=${quizId}`;
             });
         });
         
@@ -195,105 +197,6 @@ class QuizManager {
         } catch (error) {
             console.error('Erro ao deletar quiz:', error);
             Utils.showToast('Erro ao deletar quiz: ' + error.message, 'error');
-        }
-    }
-
-    async startQuizSession(quizId) {
-        console.log('🎮 Iniciando sessão para quiz:', quizId);
-        try {
-            const quizDoc = await db.collection('quizzes').doc(quizId).get();
-            if (!quizDoc.exists) {
-                Utils.showToast('Quiz não encontrado', 'error');
-                return;
-            }
-            const quiz = { id: quizDoc.id, ...quizDoc.data() };
-            
-            // Aguardar socket client estar disponível
-            if (!window.socketClient) {
-                console.warn('⚠️ Socket client não encontrado');
-                Utils.showToast('Conexão não disponível. Tentando modo offline...', 'warning');
-                this.createRoomLegacy(quiz);
-                return;
-            }
-            
-            // Aguardar conexão
-            if (!window.socketClient.connected) {
-                console.log('⏳ Aguardando conexão Socket.IO...');
-                Utils.showToast('Conectando ao servidor...', 'info');
-                const checkConnection = setInterval(() => {
-                    if (window.socketClient.connected) {
-                        clearInterval(checkConnection);
-                        this.createRoomViaSocket(quiz);
-                    }
-                }, 200);
-                setTimeout(() => {
-                    clearInterval(checkConnection);
-                    if (!window.socketClient.connected) {
-                        console.error('❌ Socket.IO não conectou');
-                        Utils.showToast('Servidor indisponível. Usando modo offline.', 'warning');
-                        this.createRoomLegacy(quiz);
-                    }
-                }, 5000);
-                return;
-            }
-            
-            this.createRoomViaSocket(quiz);
-        } catch (error) {
-            console.error('Erro ao iniciar sessão:', error);
-            Utils.showToast('Erro ao iniciar sessão: ' + error.message, 'error');
-        }
-    }
-
-    createRoomViaSocket(quiz) {
-        const creatorName = this.currentUser.displayName || this.currentUser.email;
-        const creatorId = this.currentUser.uid;
-        
-        console.log('🎮 Criando sala via Socket.IO para quiz:', quiz.title);
-        
-        window.socketClient.createRoom(quiz.id, creatorName, creatorId, (response) => {
-            if (response && response.success) {
-                console.log('✅ Sala criada com sucesso! RoomId:', response.roomId);
-                window.location.href = `host.html?room=${response.roomId}`;
-            } else {
-                console.error('❌ Erro ao criar sala via Socket:', response?.error);
-                Utils.showToast(response?.error || 'Erro ao criar sala. Tentando modo offline...', 'warning');
-                this.createRoomLegacy(quiz);
-            }
-        });
-    }
-
-    // Método legado para criar sala no Firestore (fallback)
-    async createRoomLegacy(quiz) {
-        try {
-            const roomCode = generateRoomCode();
-            const roomId = Utils.generateId();
-            
-            const room = {
-                id: roomId,
-                quizId: quiz.id,
-                code: roomCode,
-                creatorId: this.currentUser.uid,
-                creatorName: this.currentUser.displayName || this.currentUser.email,
-                status: 'waiting',
-                currentQuestionIndex: 0,
-                currentQuestionStartTime: null,
-                players: {},
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                active: true,
-                quizTitle: quiz.title,
-                questions: quiz.questions
-            };
-            
-            await db.collection('rooms').doc(roomId).set(room);
-            await db.collection('quizzes').doc(quiz.id).update({
-                timesPlayed: firebase.firestore.FieldValue.increment(1)
-            });
-            
-            console.log('✅ Sala criada via Firestore (legado):', roomCode);
-            window.location.href = `host.html?room=${roomId}`;
-        } catch (error) {
-            console.error('❌ Erro ao criar sala via Firestore:', error);
-            Utils.showToast('Erro ao criar sala: ' + error.message, 'error');
         }
     }
 }

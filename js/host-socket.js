@@ -1,9 +1,10 @@
-// Painel do Professor - Versão Socket.IO
+// Painel do Professor - Versão Socket.IO (com criação manual de sala)
 class HostSocketManager {
     constructor() {
         this.roomId = null;
         this.roomCode = null;
         this.quiz = null;
+        this.quizId = null;
         this.players = [];
         this.ranking = [];
         this.currentQuestionIndex = 0;
@@ -15,15 +16,9 @@ class HostSocketManager {
     }
 
     async init() {
-        // Pegar roomId da URL
+        // Pegar quizId da URL (se houver)
         const urlParams = new URLSearchParams(window.location.search);
-        this.roomId = urlParams.get('room');
-        
-        if (!this.roomId) {
-            Utils.showToast('Sala não encontrada', 'error');
-            setTimeout(() => window.location.href = 'my-quizzes.html', 2000);
-            return;
-        }
+        this.quizId = urlParams.get('quizId');
 
         // Aguardar autenticação
         auth.onAuthStateChanged(async (user) => {
@@ -40,17 +35,16 @@ class HostSocketManager {
     waitForSocketConnection() {
         if (window.socketClient && window.socketClient.connected) {
             this.setupSocketListeners();
-            this.requestRoomState();
+            this.updateUI();
         } else {
             const checkConnection = setInterval(() => {
                 if (window.socketClient && window.socketClient.connected) {
                     clearInterval(checkConnection);
                     this.setupSocketListeners();
-                    this.requestRoomState();
+                    this.updateUI();
                 }
             }, 100);
             
-            // Timeout após 5 segundos
             setTimeout(() => {
                 clearInterval(checkConnection);
                 if (!window.socketClient || !window.socketClient.connected) {
@@ -61,50 +55,20 @@ class HostSocketManager {
         }
     }
 
-    requestRoomState() {
-        if (!window.socketClient) {
-            Utils.showToast('Cliente Socket não disponível', 'error');
-            return;
-        }
-    
-        
-        window.socketClient.getRoomState(this.roomId, (response) => {
-            if (response && response.success) {
-                this.roomCode = response.roomCode;
-                this.quiz = response.quiz;
-                this.players = response.players || [];
-                this.ranking = response.ranking || [];
-                this.currentQuestionIndex = response.currentQuestionIndex || 0;
-                this.status = response.status || 'waiting';
-                this.updateUI();
-                this.updatePlayersList();
-                this.updateRanking();
-                this.updateCurrentQuestionDisplay();
-                
-                // Se o jogo já estiver ativo, mostrar controles
-                if (this.status !== 'waiting') {
-                    document.getElementById('startGameBtn').style.display = 'none';
-                    document.getElementById('questionControls').style.display = 'block';
-                }
-            } else {
-                console.log('⚠️ Sala não encontrada:', response?.error);
-                Utils.showToast('Sala não encontrada. Redirecionando...', 'warning');
-                setTimeout(() => {
-                    window.location.href = 'my-quizzes.html';
-                }, 2000);
-            }
-        });
-    }
-
     setupSocketListeners() {
-        // Confirmar que entrou na sala
-        window.socketClient.on('room-joined', (data) => {
-            console.log('🏠 Conectado à sala:', data);
-            this.roomCode = data.roomCode;
-            this.quiz = data.quiz;
-            this.players = data.players || [];
-            this.updateUI();
-            this.updatePlayersList();
+        // Quando a sala for criada (resposta do create-room via callback)
+        window.socketClient.on('room-created', (data) => {
+            if (data && data.success) {
+                console.log('🏠 Sala criada com sucesso!');
+                this.roomId = data.roomId;
+                this.roomCode = data.roomCode;
+                // Carregar dados do quiz
+                this.loadQuizData();
+                this.updateUIAfterCreation();
+                Utils.showToast(`Sala criada! Código: ${data.roomCode}`, 'success');
+            } else {
+                Utils.showToast(data?.error || 'Erro ao criar sala', 'error');
+            }
         });
 
         // Jogador entrou
@@ -125,7 +89,6 @@ class HostSocketManager {
             this.status = 'active';
             this.isGameActive = true;
             Utils.showToast(`Quiz iniciado! ${data.totalPlayers} jogadores participando.`, 'success');
-            
             const startGameBtn = document.getElementById('startGameBtn');
             const questionControls = document.getElementById('questionControls');
             if (startGameBtn) startGameBtn.style.display = 'none';
@@ -152,11 +115,9 @@ class HostSocketManager {
             this.updateRanking();
             this.showRankingModal(data);
             
-            // Atualizar estatísticas
             const totalAnswers = data.results?.length || 0;
             const correctAnswers = data.results?.filter(r => r.isCorrect).length || 0;
             const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers * 100).toFixed(1) : 0;
-            
             const answersCountElem = document.getElementById('answersCount');
             const accuracyRateElem = document.getElementById('accuracyRate');
             if (answersCountElem) answersCountElem.textContent = totalAnswers;
@@ -181,13 +142,69 @@ class HostSocketManager {
         });
     }
 
+    loadQuizData() {
+        // Buscar dados do quiz via getRoomState
+        if (!this.roomId) return;
+        window.socketClient.getRoomState(this.roomId, (response) => {
+            if (response && response.success) {
+                this.quiz = response.quiz;
+                this.updateUIAfterCreation();
+            } else {
+                console.warn('Erro ao carregar dados do quiz:', response?.error);
+            }
+        });
+    }
+
     updateUI() {
+        // Mostra a interface inicial com o botão "Criar Sala"
+        const createRoomSection = document.getElementById('createRoomSection');
+        const gameControlsSection = document.getElementById('gameControlsSection');
+        if (createRoomSection) createRoomSection.style.display = 'block';
+        if (gameControlsSection) gameControlsSection.style.display = 'none';
+        
+        // Configurar botão Criar Sala
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        if (createRoomBtn && !createRoomBtn.hasListener) {
+            createRoomBtn.addEventListener('click', () => {
+                if (!this.quizId) {
+                    Utils.showToast('Quiz não identificado', 'error');
+                    return;
+                }
+                const creatorName = auth.currentUser?.displayName || auth.currentUser?.email;
+                const creatorId = auth.currentUser?.uid;
+                
+                console.log('🎮 Criando sala para quiz:', this.quizId);
+                Utils.showToast('Criando sala...', 'info');
+                
+                window.socketClient.createRoom(this.quizId, creatorName, creatorId, (response) => {
+                    if (response && response.success) {
+                        console.log('✅ Sala criada com sucesso!');
+                        this.roomId = response.roomId;
+                        this.roomCode = response.roomCode;
+                        this.loadQuizData();
+                        this.updateUIAfterCreation();
+                        Utils.showToast(`Sala criada! Código: ${response.roomCode}`, 'success');
+                    } else {
+                        console.error('❌ Erro ao criar sala:', response?.error);
+                        Utils.showToast(response?.error || 'Erro ao criar sala', 'error');
+                    }
+                });
+            });
+            createRoomBtn.hasListener = true;
+        }
+    }
+
+    updateUIAfterCreation() {
+        // Esconde a seção de criar sala e mostra os controles do jogo
+        const createRoomSection = document.getElementById('createRoomSection');
+        const gameControlsSection = document.getElementById('gameControlsSection');
+        if (createRoomSection) createRoomSection.style.display = 'none';
+        if (gameControlsSection) gameControlsSection.style.display = 'block';
+        
         // Exibir código da sala
         const roomCodeElem = document.getElementById('roomCode');
-        if (roomCodeElem) {
-            roomCodeElem.textContent = this.roomCode || this.roomId?.substring(0, 6).toUpperCase() || 'XXXXXX';
-        }
-
+        if (roomCodeElem) roomCodeElem.textContent = this.roomCode || 'XXXXXX';
+        
         // Exibir informações do quiz
         const quizInfoElem = document.getElementById('quizInfo');
         if (quizInfoElem && this.quiz) {
@@ -203,8 +220,7 @@ class HostSocketManager {
         const copyBtn = document.getElementById('copyCodeBtn');
         if (copyBtn && !copyBtn.hasListener) {
             copyBtn.addEventListener('click', () => {
-                const code = this.roomCode || this.roomId?.substring(0, 6).toUpperCase() || '';
-                Utils.copyToClipboard(code);
+                Utils.copyToClipboard(this.roomCode || '');
             });
             copyBtn.hasListener = true;
         }
@@ -213,8 +229,7 @@ class HostSocketManager {
         const shareBtn = document.getElementById('shareRoomBtn');
         if (shareBtn && !shareBtn.hasListener) {
             shareBtn.addEventListener('click', () => {
-                const code = this.roomCode || this.roomId?.substring(0, 6).toUpperCase() || '';
-                const url = `${window.location.origin}/player.html?code=${code}`;
+                const url = `${window.location.origin}/player.html?code=${this.roomCode}`;
                 Utils.copyToClipboard(url);
                 Utils.showToast('Link copiado! Compartilhe com seus alunos', 'success');
             });
@@ -335,23 +350,6 @@ class HostSocketManager {
         `).join('');
     }
 
-    updateCurrentQuestionDisplay() {
-        const display = document.getElementById('currentQuestionDisplay');
-        if (!display) return;
-        
-        const questions = this.quiz?.questions || [];
-        if (this.currentQuestionIndex < questions.length && this.status === 'active') {
-            const question = questions[this.currentQuestionIndex];
-            display.innerHTML = `
-                <div class="current-question">
-                    <strong>Pergunta ${this.currentQuestionIndex + 1}/${questions.length}</strong>
-                    <p>${Utils.escapeHtml(question.text)}</p>
-                    <small>Tempo limite: ${question.timeLimit || 30}s</small>
-                </div>
-            `;
-        }
-    }
-
     updateReadingPhase() {
         const display = document.getElementById('currentQuestionDisplay');
         if (!display) return;
@@ -419,15 +417,11 @@ class HostSocketManager {
     showRankingModal(data) {
         const ranking = data.ranking?.slice(0, 5) || [];
         
-        // Remover modal existente
-        const existingModal = document.querySelector('.ranking-modal-host');
-        if (existingModal) existingModal.remove();
-        
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal-host';
         modal.style.display = 'block';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px; text-align: center;">
+            <div class="modal-content" style="max-width: 580px; text-align: center;">
                 <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
                 <div style="margin: 1rem 0;">
                     ${ranking.map((player, index) => `
