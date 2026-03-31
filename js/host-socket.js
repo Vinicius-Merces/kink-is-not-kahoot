@@ -16,18 +16,14 @@ class HostSocketManager {
     }
 
     async init() {
-        // Pegar quizId da URL (se houver)
         const urlParams = new URLSearchParams(window.location.search);
         this.quizId = urlParams.get('quizId');
 
-        // Aguardar autenticação
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 window.location.href = 'index.html';
                 return;
             }
-
-            // Aguardar socket client estar pronto
             this.waitForSocketConnection();
         });
     }
@@ -56,13 +52,11 @@ class HostSocketManager {
     }
 
     setupSocketListeners() {
-        // Quando a sala for criada (resposta do create-room via callback)
         window.socketClient.on('room-created', (data) => {
             if (data && data.success) {
                 console.log('🏠 Sala criada com sucesso!');
                 this.roomId = data.roomId;
                 this.roomCode = data.roomCode;
-                // Carregar dados do quiz
                 this.loadQuizData();
                 this.updateUIAfterCreation();
                 Utils.showToast(`Sala criada! Código: ${data.roomCode}`, 'success');
@@ -71,20 +65,17 @@ class HostSocketManager {
             }
         });
 
-        // Jogador entrou
         window.socketClient.on('player-joined', (data) => {
             this.players = data.players;
             this.updatePlayersList();
             Utils.showToast(`${data.playerName || 'Um jogador'} entrou na sala!`, 'info');
         });
 
-        // Jogador saiu
         window.socketClient.on('player-left', (data) => {
             this.players = data.players;
             this.updatePlayersList();
         });
 
-        // Quiz iniciado
         window.socketClient.on('quiz-started', (data) => {
             this.status = 'active';
             this.isGameActive = true;
@@ -95,7 +86,6 @@ class HostSocketManager {
             if (questionControls) questionControls.style.display = 'block';
         });
 
-        // Fase de leitura
         window.socketClient.on('reading-phase', (data) => {
             this.status = 'reading';
             this.currentQuestion = data.question;
@@ -103,17 +93,15 @@ class HostSocketManager {
             this.updateReadingPhase();
         });
 
-        // Fase de respostas
         window.socketClient.on('answering-phase', (data) => {
             this.status = 'answering';
             this.updateAnsweringPhase(data);
         });
 
-        // Resultado da pergunta
         window.socketClient.on('question-result', (data) => {
             this.ranking = data.ranking;
             this.updateRanking();
-            this.showRankingModal(data);
+            this.showRankingModalWithDistribution(data);
             
             const totalAnswers = data.results?.length || 0;
             const correctAnswers = data.results?.filter(r => r.isCorrect).length || 0;
@@ -124,45 +112,37 @@ class HostSocketManager {
             if (accuracyRateElem) accuracyRateElem.textContent = `${accuracy}%`;
         });
 
-        // Jogo finalizado
         window.socketClient.on('game-finished', (data) => {
             this.isGameActive = false;
             this.showFinalRanking(data.ranking);
         });
 
-        // Atualização de ranking (tempo real)
         window.socketClient.on('ranking-update', (data) => {
             this.ranking = data.ranking;
             this.updateRanking();
         });
 
-        // Erro
         window.socketClient.on('error', (data) => {
             Utils.showToast(data.message, 'error');
         });
     }
 
     loadQuizData() {
-        // Buscar dados do quiz via getRoomState
         if (!this.roomId) return;
         window.socketClient.getRoomState(this.roomId, (response) => {
             if (response && response.success) {
                 this.quiz = response.quiz;
                 this.updateUIAfterCreation();
-            } else {
-                console.warn('Erro ao carregar dados do quiz:', response?.error);
             }
         });
     }
 
     updateUI() {
-        // Mostra a interface inicial com o botão "Criar Sala"
         const createRoomSection = document.getElementById('createRoomSection');
         const gameControlsSection = document.getElementById('gameControlsSection');
         if (createRoomSection) createRoomSection.style.display = 'block';
         if (gameControlsSection) gameControlsSection.style.display = 'none';
         
-        // Configurar botão Criar Sala
         const createRoomBtn = document.getElementById('createRoomBtn');
         if (createRoomBtn && !createRoomBtn.hasListener) {
             createRoomBtn.addEventListener('click', () => {
@@ -178,14 +158,12 @@ class HostSocketManager {
                 
                 window.socketClient.createRoom(this.quizId, creatorName, creatorId, (response) => {
                     if (response && response.success) {
-                        console.log('✅ Sala criada com sucesso!');
                         this.roomId = response.roomId;
                         this.roomCode = response.roomCode;
                         this.loadQuizData();
                         this.updateUIAfterCreation();
                         Utils.showToast(`Sala criada! Código: ${response.roomCode}`, 'success');
                     } else {
-                        console.error('❌ Erro ao criar sala:', response?.error);
                         Utils.showToast(response?.error || 'Erro ao criar sala', 'error');
                     }
                 });
@@ -195,28 +173,23 @@ class HostSocketManager {
     }
 
     updateUIAfterCreation() {
-        // Esconde a seção de criar sala e mostra os controles do jogo
         const createRoomSection = document.getElementById('createRoomSection');
         const gameControlsSection = document.getElementById('gameControlsSection');
         if (createRoomSection) createRoomSection.style.display = 'none';
         if (gameControlsSection) gameControlsSection.style.display = 'block';
         
-        // Exibir código da sala
         const roomCodeElem = document.getElementById('roomCode');
         if (roomCodeElem) roomCodeElem.textContent = this.roomCode || 'XXXXXX';
         
-        // Exibir informações do quiz
         const quizInfoElem = document.getElementById('quizInfo');
         if (quizInfoElem && this.quiz) {
             quizInfoElem.innerHTML = `<strong>Quiz:</strong> ${this.quiz.title || 'Carregando...'} | <strong>Perguntas:</strong> ${this.quiz.questions?.length || 0}`;
         }
         
-        // Configurar botões
         this.setupButtons();
     }
 
     setupButtons() {
-        // Botão copiar código
         const copyBtn = document.getElementById('copyCodeBtn');
         if (copyBtn && !copyBtn.hasListener) {
             copyBtn.addEventListener('click', () => {
@@ -225,7 +198,6 @@ class HostSocketManager {
             copyBtn.hasListener = true;
         }
         
-        // Botão compartilhar link
         const shareBtn = document.getElementById('shareRoomBtn');
         if (shareBtn && !shareBtn.hasListener) {
             shareBtn.addEventListener('click', () => {
@@ -236,14 +208,9 @@ class HostSocketManager {
             shareBtn.hasListener = true;
         }
         
-        // Botão iniciar quiz
         const startGameBtn = document.getElementById('startGameBtn');
         if (startGameBtn && !startGameBtn.hasListener) {
             startGameBtn.addEventListener('click', () => {
-                if (!window.socketClient) {
-                    Utils.showToast('Conexão não disponível', 'error');
-                    return;
-                }
                 window.socketClient.startQuiz((response) => {
                     if (!response || !response.success) {
                         Utils.showToast(response?.error || 'Erro ao iniciar quiz', 'error');
@@ -253,14 +220,9 @@ class HostSocketManager {
             startGameBtn.hasListener = true;
         }
         
-        // Botão iniciar pergunta
         const startQuestionBtn = document.getElementById('startQuestionBtn');
         if (startQuestionBtn && !startQuestionBtn.hasListener) {
             startQuestionBtn.addEventListener('click', () => {
-                if (!window.socketClient) {
-                    Utils.showToast('Conexão não disponível', 'error');
-                    return;
-                }
                 window.socketClient.startQuestion((response) => {
                     if (!response || !response.success) {
                         if (response?.finished) {
@@ -274,14 +236,9 @@ class HostSocketManager {
             startQuestionBtn.hasListener = true;
         }
         
-        // Botão próxima pergunta
         const nextQuestionBtn = document.getElementById('nextQuestionBtn');
         if (nextQuestionBtn && !nextQuestionBtn.hasListener) {
             nextQuestionBtn.addEventListener('click', () => {
-                if (!window.socketClient) {
-                    Utils.showToast('Conexão não disponível', 'error');
-                    return;
-                }
                 window.socketClient.nextQuestion((response) => {
                     if (response && response.finished) {
                         this.endGame();
@@ -291,20 +248,110 @@ class HostSocketManager {
             nextQuestionBtn.hasListener = true;
         }
         
-        // Botão encerrar quiz
         const endGameBtn = document.getElementById('endGameBtn');
         if (endGameBtn && !endGameBtn.hasListener) {
             endGameBtn.addEventListener('click', () => {
                 if (confirm('Tem certeza que deseja encerrar o quiz?')) {
-                    if (window.socketClient) {
-                        window.socketClient.endGame();
-                    }
+                    window.socketClient.endGame();
                 }
             });
             endGameBtn.hasListener = true;
         }
     }
 
+    // ========== RANKING COM DISTRIBUIÇÃO DE RESPOSTAS ==========
+    showRankingModalWithDistribution(data) {
+        const ranking = data.ranking?.slice(0, 5) || [];
+        const results = data.results || [];
+        const currentQuestion = this.currentQuestion;
+        const options = currentQuestion?.options || [];
+        const correctAnswerIndex = currentQuestion?.correct;
+
+        // Contar quantos jogadores escolheram cada opção
+        const choiceCount = new Array(options.length).fill(0);
+        results.forEach(r => {
+            if (r.answer !== undefined && r.answer >= 0 && r.answer < options.length) {
+                choiceCount[r.answer]++;
+            }
+        });
+        const totalAnswers = results.length;
+
+        // Gerar HTML da distribuição de respostas
+        let distributionHTML = '';
+        if (options.length > 0 && totalAnswers > 0) {
+            distributionHTML = `
+                <div style="margin-top: 1.5rem; text-align: left;">
+                    <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 1rem;">
+            `;
+            options.forEach((opt, i) => {
+                const count = choiceCount[i];
+                const percentage = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
+                const isCorrect = (i === correctAnswerIndex);
+                const barColor = isCorrect ? '#48bb78' : '#ff6b6b';
+                
+                distributionHTML += `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 20px;">${String.fromCharCode(65 + i)}</span>
+                                <span style="word-break: break-word;">${Utils.escapeHtml(opt)}</span>
+                                ${isCorrect ? '<span style="color: #48bb78; font-size: 0.7rem;">✅ Correta</span>' : ''}
+                            </div>
+                            <span style="font-weight: bold;">${count} (${percentage}%)</span>
+                        </div>
+                        <div style="background: #2d3748; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="background: ${barColor}; width: ${percentage}%; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            distributionHTML += `
+                    </div>
+                </div>
+            `;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal ranking-modal-host';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 580px; text-align: center; max-height: 80vh; overflow-y: auto;">
+                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
+                <div style="margin: 1rem 0;">
+                    ${ranking.map((player, index) => `
+                        <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
+                            <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
+                            <span style="color: #ff6b6b; font-weight: bold;">${player.score || 0} pts</span>
+                        </div>
+                    `).join('')}
+                </div>
+                ${distributionHTML}
+                <div style="margin: 1rem 0; font-size: 0.9rem; opacity: 0.7;">
+                    Resposta correta: ${data.correctAnswer || 'Não disponível'}
+                </div>
+                <button id="closeRankingBtn" class="btn btn-primary" style="margin-top: 1rem;">Continuar</button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const closeBtn = modal.querySelector('#closeRankingBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.remove();
+            });
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    // ========== MÉTODOS AUXILIARES ==========
     updatePlayersList() {
         const list = document.getElementById('playersList');
         const count = document.getElementById('playersCount');
@@ -414,97 +461,6 @@ class HostSocketManager {
         }, 1000);
     }
 
-    showRankingModal(data) {
-        const ranking = data.ranking?.slice(0, 5) || [];
-        const results = data.results || [];
-        const currentQuestion = this.currentQuestion;
-        const options = currentQuestion?.options || [];
-        const correctAnswerIndex = currentQuestion?.correct;
-
-        // Contar quantos jogadores escolheram cada opção
-        const choiceCount = new Array(options.length).fill(0);
-        results.forEach(r => {
-            if (r.answer !== undefined && r.answer >= 0 && r.answer < options.length) {
-                choiceCount[r.answer]++;
-            }
-        });
-        const totalAnswers = results.length;
-
-        // Gerar HTML da distribuição de respostas
-        let distributionHTML = '';
-        if (options.length > 0 && totalAnswers > 0) {
-            distributionHTML = `
-                <div style="margin-top: 1.5rem; text-align: left;">
-                    <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 1rem;">
-            `;
-            options.forEach((opt, i) => {
-                const count = choiceCount[i];
-                const percentage = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
-                const isCorrect = (i === correctAnswerIndex);
-                const barColor = isCorrect ? '#48bb78' : '#ff6b6b';
-                
-                distributionHTML += `
-                    <div style="margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 20px;">${String.fromCharCode(65 + i)}</span>
-                                <span style="word-break: break-word;">${Utils.escapeHtml(opt)}</span>
-                                ${isCorrect ? '<span style="color: #48bb78; font-size: 0.7rem;">✅ Correta</span>' : ''}
-                            </div>
-                            <span style="font-weight: bold;">${count} (${percentage}%)</span>
-                        </div>
-                        <div style="background: #2d3748; height: 8px; border-radius: 4px; overflow: hidden;">
-                            <div style="background: ${barColor}; width: ${percentage}%; height: 100%; border-radius: 4px;"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            distributionHTML += `
-                    </div>
-                </div>
-            `;
-        }
-
-        const modal = document.createElement('div');
-        modal.className = 'modal ranking-modal-host';
-        modal.style.display = 'block';
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 580px; text-align: center; max-height: 80vh; overflow-y: auto;">
-                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                <div style="margin: 1rem 0;">
-                    ${ranking.map((player, index) => `
-                        <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                            <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
-                            <span style="color: #ff6b6b; font-weight: bold;">${player.score || 0} pts</span>
-                        </div>
-                    `).join('')}
-                </div>
-                ${distributionHTML}
-                <div style="margin: 1rem 0; font-size: 0.9rem; opacity: 0.7;">
-                    Resposta correta: ${data.correctAnswer || 'Não disponível'}
-                </div>
-                <button id="closeRankingBtn" class="btn btn-primary" style="margin-top: 1rem;">Continuar</button>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        const closeBtn = modal.querySelector('#closeRankingBtn');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                modal.remove();
-            });
-        }
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    }
-
     showFinalRanking(ranking) {
         const modal = document.createElement('div');
         modal.className = 'modal';
@@ -577,7 +533,6 @@ class HostSocketManager {
     }
 }
 
-// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 Inicializando HostSocketManager...');
     window.hostManager = new HostSocketManager();

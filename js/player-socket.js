@@ -10,10 +10,11 @@ class PlayerSocketManager {
         this.questionStartTime = null;
         this.hasAnswered = false;
         this.totalScore = 0;
-        this.correctStreak = 0;          // Sequência de acertos consecutivos
+        this.correctStreak = 0;
         this.currentScreen = 'joinScreen';
         this.readingTimer = null;
         this.answerTimer = null;
+        this.lastAnswerWasCorrect = false;
         this.init();
     }
 
@@ -30,40 +31,50 @@ class PlayerSocketManager {
         this.loadAvatars();
         this.setupSocketListeners();
         this.createAllScreens();
-        this.updatePlayerInfoDisplay();   // Atualiza nome/avatar na tela
+        this.createPlayerHeader();
+        this.updatePlayerInfoDisplay();
+    }
+
+    createPlayerHeader() {
+        if (document.getElementById('playerHeader')) return;
+
+        const headerHTML = `
+            <div id="playerHeader" style="position:fixed;top:0;left:0;right:0;background:rgba(15,15,15,0.95);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;z-index:9999;border-bottom:2px solid #ff6b6b;box-shadow:0 2px 10px rgba(0,0,0,0.5);">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span id="playerHeaderAvatar" style="font-size:2rem;"></span>
+                    <div>
+                        <div id="playerHeaderName" style="font-weight:700;font-size:1.1rem;"></div>
+                        <div id="playerHeaderScore" style="color:#ff6b6b;font-size:1.25rem;font-weight:bold;">0 pts</div>
+                    </div>
+                </div>
+                <div id="playerStreak" style="font-size:2rem;display:flex;align-items:center;gap:4px;"></div>
+            </div>`;
+
+        document.body.insertAdjacentHTML('afterbegin', headerHTML);
+    }
+
+    updatePlayerInfoDisplay() {
+        const avatarElem = document.getElementById('playerHeaderAvatar');
+        const nameElem = document.getElementById('playerHeaderName');
+        const scoreElem = document.getElementById('playerHeaderScore');
+        const streakElem = document.getElementById('playerStreak');
+        
+        if (avatarElem) avatarElem.textContent = Utils.getAvatarEmoji(this.playerAvatar) || '👤';
+        if (nameElem) nameElem.textContent = this.playerName || '---';
+        if (scoreElem) scoreElem.textContent = `${this.totalScore} pts`;
+        
+        if (streakElem) {
+            if (this.correctStreak >= 2) {
+                streakElem.innerHTML = '🔥'.repeat(Math.min(this.correctStreak, 6)) + ` <span style="font-size:1.1rem;">${this.correctStreak}x</span>`;
+            } else {
+                streakElem.textContent = '';
+            }
+        }
     }
 
     createAllScreens() {
         this.createReadingScreen();
         this.createRankingScreen();
-    }
-
-    updatePlayerInfoDisplay() {
-        // Atualiza nome e avatar no topo da tela (se os elementos existirem)
-        const playerNameElem = document.getElementById('playerNameDisplay');
-        const playerAvatarElem = document.getElementById('playerAvatarDisplay');
-        if (playerNameElem) playerNameElem.textContent = this.playerName || '---';
-        if (playerAvatarElem) playerAvatarElem.innerHTML = Utils.getAvatarEmoji(this.playerAvatar) || '👤';
-        
-        // Atualiza a pontuação
-        const currentScoreElem = document.getElementById('currentScore');
-        if (currentScoreElem) currentScoreElem.textContent = this.totalScore;
-        
-        // Atualiza sequência de acertos
-        this.updateStreakDisplay();
-    }
-
-    updateStreakDisplay() {
-        const streakElem = document.getElementById('streakDisplay');
-        if (streakElem) {
-            if (this.correctStreak > 0) {
-                streakElem.innerHTML = '🔥'.repeat(Math.min(this.correctStreak, 5));
-                streakElem.style.display = 'inline-block';
-            } else {
-                streakElem.innerHTML = '';
-                streakElem.style.display = 'none';
-            }
-        }
     }
 
     setupSocketListeners() {
@@ -98,7 +109,6 @@ class PlayerSocketManager {
         });
 
         socketClient.on('score-update', (data) => {
-            console.log('💰 Pontuação atualizada:', data);
             if (data.playerId === this.playerId) {
                 this.totalScore = data.totalScore;
                 this.updatePlayerInfoDisplay();
@@ -309,7 +319,8 @@ class PlayerSocketManager {
             <div id="rankingScreen" class="player-screen">
                 <div class="ranking-card">
                     <h2>🏆 Ranking Parcial 🏆</h2>
-                    <div id="rankingModalList" class="ranking-list-modal"></div>
+                    <div id="rankingListModal" class="ranking-list-modal"></div>
+                    <div id="answerFeedback" style="margin: 1rem 0; display: none;"></div>
                     <div class="next-question-timer">
                         Aguardando próxima pergunta...
                     </div>
@@ -394,65 +405,55 @@ class PlayerSocketManager {
         if (this.answerTimer) clearInterval(this.answerTimer);
         
         const responseTime = (new Date() - this.questionStartTime) / 1000;
+        const isCorrect = (selectedOption === this.currentQuestion.correct);
+        
+        // Guardar se acertou para mostrar no feedback final
+        this.lastAnswerWasCorrect = isCorrect;
         
         if (window.socketClient && window.socketClient.connected) {
             socketClient.submitAnswer(selectedOption, responseTime, (result) => {
                 if (result && result.success) {
+                    // Atualiza pontuação local (será atualizada novamente no question-result)
                     this.totalScore += result.points;
-                    // Atualiza sequência de acertos
-                    if (result.isCorrect) {
+                    this.updatePlayerInfoDisplay();
+                    
+                    // Atualiza streak (será confirmado no question-result)
+                    if (isCorrect) {
                         this.correctStreak++;
                     } else {
                         this.correctStreak = 0;
                     }
                     this.updatePlayerInfoDisplay();
-                    this.showQuestionFeedback(result.isCorrect, result.points);
-                } else if (result && result.error) {
-                    Utils.showToast(result.error, 'error');
                 }
             });
         } else {
             Utils.showToast('Conexão perdida com o servidor', 'error');
         }
         
-        // Desabilitar opções
+        // Desabilitar opções imediatamente
         document.querySelectorAll('.option-btn').forEach(btn => {
             btn.disabled = true;
             btn.classList.add('disabled');
         });
     }
 
-    showQuestionFeedback(isCorrect, points) {
-        const feedbackDiv = document.getElementById('feedbackMessage');
-        const resultIcon = isCorrect ? '✅' : '❌';
-        const message = isCorrect 
-            ? `Correto! +${points} pontos!` 
-            : `Errou! 0 pontos`;
-        
-        if (feedbackDiv) {
-            feedbackDiv.innerHTML = `
-                <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
-                    <span class="feedback-icon">${resultIcon}</span>
-                    <span class="feedback-text">${message}</span>
-                </div>
-            `;
-            feedbackDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                feedbackDiv.style.display = 'none';
-            }, 3000);
-        }
-    }
-
     handleQuestionResult(data) {
-        // Atualizar pontuação com o valor final (pode ter vindo do servidor)
+        // Atualizar pontuação com o valor final do servidor
         const myResult = data.results?.find(r => r.playerId === this.playerId);
         if (myResult) {
             this.totalScore = myResult.totalScore;
-            // Atualizar sequência de acertos com o resultado final
-            this.correctStreak = myResult.isCorrect ? this.correctStreak : 0;
+            // Confirmar streak com o resultado do servidor
+            this.lastAnswerWasCorrect = myResult.isCorrect;
+            if (myResult.isCorrect) {
+                this.correctStreak++;
+            } else {
+                this.correctStreak = 0;
+            }
             this.updatePlayerInfoDisplay();
         }
+        
+        // Mostrar feedback de acerto/erro na tela de ranking
+        this.showAnswerFeedback();
         
         // Mostrar ranking
         this.showRankingModal(data.ranking);
@@ -460,6 +461,27 @@ class PlayerSocketManager {
         // Voltar para tela de espera após 3 segundos
         setTimeout(() => {
             this.showScreen('waitingScreen');
+        }, 3000);
+    }
+
+    showAnswerFeedback() {
+        const feedbackDiv = document.getElementById('answerFeedback');
+        if (!feedbackDiv || !this.currentQuestion) return;
+        
+        const isCorrect = this.lastAnswerWasCorrect;
+        
+        if (isCorrect) {
+            feedbackDiv.innerHTML = `<div class="feedback correct">✅ Parabéns! Você acertou!</div>`;
+        } else {
+            const correctAnswerText = this.currentQuestion.options[this.currentQuestion.correct];
+            feedbackDiv.innerHTML = `<div class="feedback incorrect">❌ Você errou! A resposta correta era: "${correctAnswerText}"</div>`;
+        }
+        
+        feedbackDiv.style.display = 'block';
+        
+        // Esconder após 3 segundos
+        setTimeout(() => {
+            feedbackDiv.style.display = 'none';
         }, 3000);
     }
 
@@ -510,7 +532,7 @@ class PlayerSocketManager {
             this.updateFinalRanking(ranking);
         }
         
-        const modalList = document.getElementById('rankingModalList');
+        const modalList = document.getElementById('rankingListModal');
         if (modalList && this.currentScreen === 'rankingScreen') {
             const topRanking = ranking?.slice(0, 5) || [];
             modalList.innerHTML = topRanking.map((player, index) => `
@@ -571,7 +593,6 @@ class PlayerSocketManager {
     }
 }
 
-// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 Inicializando PlayerSocketManager...');
     window.playerManager = new PlayerSocketManager();
