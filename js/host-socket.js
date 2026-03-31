@@ -66,6 +66,7 @@ class HostSocketManager {
             Utils.showToast('Cliente Socket não disponível', 'error');
             return;
         }
+    
         
         window.socketClient.getRoomState(this.roomId, (response) => {
             if (response && response.success) {
