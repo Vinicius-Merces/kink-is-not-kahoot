@@ -1,42 +1,50 @@
-// Version Control - KINK is not Kahoot
+// Version Control - KINK is not Kahoot (Sem Service Worker)
 class VersionManager {
     constructor() {
         this.currentVersion = null;
+        this.latestVersion = null;
         this.init();
     }
 
     async init() {
+        // Carregar versão do localStorage
         this.currentVersion = localStorage.getItem('kink_version');
         await this.checkVersion();
         
-        // Registrar Service Worker APÓS a página carregar
-        if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('✅ Service Worker registrado'))
-                    .catch(err => console.log('❌ Service Worker falhou:', err));
-            });
-        }
+        // Verificar periodicamente (a cada 5 minutos)
+        setInterval(() => this.checkVersion(), 5 * 60 * 1000);
     }
 
     async checkVersion() {
         try {
+            // Buscar versão do servidor com cache buster
             const response = await fetch('/version.json?t=' + Date.now());
+            if (!response.ok) {
+                console.warn('⚠️ Não foi possível verificar versão');
+                return;
+            }
+            
             const data = await response.json();
+            this.latestVersion = data.version;
 
-            if (!this.currentVersion || this.currentVersion !== data.version) {
-                console.log(`🔄 Nova versão: ${data.version}`);
-                localStorage.setItem('kink_version', data.version);
+            if (!this.currentVersion || this.currentVersion !== this.latestVersion) {
+                console.log(`🔄 Nova versão detectada: ${this.latestVersion} (atual: ${this.currentVersion || 'nenhuma'})`);
                 
-                // Notificar Service Worker
-                if (navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({
-                        type: 'NEW_VERSION',
-                        version: data.version
-                    });
+                // Verificar se o usuário já adiou esta versão (por 24h)
+                const deferred = localStorage.getItem('kink_update_deferred');
+                const deferredVersion = localStorage.getItem('kink_update_deferred_version');
+                
+                if (deferred && deferredVersion === this.latestVersion) {
+                    const deferTime = parseInt(deferred);
+                    if (Date.now() - deferTime < 24 * 60 * 60 * 1000) {
+                        console.log('⏰ Atualização adiada por 24h');
+                        return;
+                    }
                 }
                 
                 this.showUpdateNotification(data);
+            } else {
+                console.log(`✅ Versão atual: ${this.currentVersion}`);
             }
         } catch (error) {
             console.error('❌ Erro ao verificar versão:', error);
@@ -44,6 +52,10 @@ class VersionManager {
     }
 
     showUpdateNotification(versionData) {
+        // Remover notificação existente se houver
+        const existing = document.querySelector('.update-notification');
+        if (existing) existing.remove();
+
         const notification = document.createElement('div');
         notification.className = 'update-notification';
         notification.innerHTML = `
@@ -54,30 +66,51 @@ class VersionManager {
                     <small>Versão ${versionData.version}</small>
                 </div>
                 <div class="update-actions">
-                    <button class="update-now">Atualizar</button>
+                    <button class="update-now">Atualizar agora</button>
                     <button class="update-later">Agora não</button>
                 </div>
             </div>
         `;
+        
         document.body.appendChild(notification);
         
+        // Animação de entrada
         setTimeout(() => notification.classList.add('show'), 100);
         
+        // Botão "Atualizar agora"
         notification.querySelector('.update-now').addEventListener('click', () => {
-            localStorage.removeItem('kink_version');
-            window.location.reload(true);
+            this.forceHardReload();
         });
         
+        // Botão "Agora não"
         notification.querySelector('.update-later').addEventListener('click', () => {
             notification.remove();
+            // Adiar por 24h
+            localStorage.setItem('kink_update_deferred', Date.now().toString());
+            localStorage.setItem('kink_update_deferred_version', this.latestVersion);
         });
         
+        // Auto-fechar após 15 segundos
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
             }
-        }, 10000);
+        }, 15000);
+    }
+
+    forceHardReload() {
+        console.log('🔄 Forçando recarga completa...');
+        
+        // 1. Limpar localStorage da versão atual
+        localStorage.removeItem('kink_version');
+        localStorage.removeItem('kink_update_deferred');
+        localStorage.removeItem('kink_update_deferred_version');
+        
+        // 2. Forçar recarga ignorando cache (com parâmetro na URL)
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', Date.now());
+        window.location.href = url.toString();
     }
 }
 
