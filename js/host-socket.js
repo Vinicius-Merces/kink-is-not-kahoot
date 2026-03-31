@@ -99,6 +99,7 @@ class HostSocketManager {
         });
 
         window.socketClient.on('question-result', (data) => {
+            console.log('📊 Evento question-result recebido:', data);
             this.ranking = data.ranking;
             this.updateRanking();
             this.showRankingModalWithDistribution(data);
@@ -259,8 +260,11 @@ class HostSocketManager {
         }
     }
 
-    // ========== RANKING COM DISTRIBUIÇÃO DE RESPOSTAS ==========
+    // ========== RANKING COM DISTRIBUIÇÃO DE RESPOSTAS (CORRIGIDO) ==========
     showRankingModalWithDistribution(data) {
+        console.log('🎯 showRankingModalWithDistribution chamado com data:', data);
+
+        // Extrair dados
         const ranking = data.ranking?.slice(0, 5) || [];
         const results = data.results || [];
         const currentQuestion = this.currentQuestion;
@@ -310,11 +314,23 @@ class HostSocketManager {
                     </div>
                 </div>
             `;
+        } else {
+            // Fallback se não houver dados suficientes
+            distributionHTML = `
+                <div style="margin-top: 1.5rem; text-align: left;">
+                    <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 1rem;">
+                        <p style="text-align: center; opacity: 0.7;">Aguardando respostas...</p>
+                    </div>
+                </div>
+            `;
         }
 
+        // Criar modal
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal-host';
         modal.style.display = 'block';
+        modal.style.zIndex = '10000'; // Garantir que fique acima de tudo
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 580px; text-align: center; max-height: 80vh; overflow-y: auto;">
                 <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
@@ -335,18 +351,24 @@ class HostSocketManager {
             </div>
         `;
 
+        // Adicionar ao DOM
         document.body.appendChild(modal);
+        console.log('✅ Modal adicionado ao DOM');
 
+        // Fechar ao clicar no botão
         const closeBtn = modal.querySelector('#closeRankingBtn');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 modal.remove();
+                console.log('Modal removido');
             });
         }
 
+        // Fechar ao clicar fora
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
+                console.log('Modal removido (clique fora)');
             }
         });
     }
