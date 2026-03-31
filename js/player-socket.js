@@ -108,13 +108,6 @@ class PlayerSocketManager {
             this.showFinalRanking(data.ranking);
         });
 
-        socketClient.on('score-update', (data) => {
-            if (data.playerId === this.playerId) {
-                this.totalScore = data.totalScore;
-                this.updatePlayerInfoDisplay();
-            }
-        });
-
         socketClient.on('error', (data) => {
             Utils.showToast(data.message, 'error');
         });
@@ -412,19 +405,7 @@ class PlayerSocketManager {
         
         if (window.socketClient && window.socketClient.connected) {
             socketClient.submitAnswer(selectedOption, responseTime, (result) => {
-                if (result && result.success) {
-                    // Atualiza pontuação local (será atualizada novamente no question-result)
-                    this.totalScore += result.points;
-                    this.updatePlayerInfoDisplay();
-                    
-                    // Atualiza streak (será confirmado no question-result)
-                    if (isCorrect) {
-                        this.correctStreak++;
-                    } else {
-                        this.correctStreak = 0;
-                    }
-                    this.updatePlayerInfoDisplay();
-                }
+                // Não atualiza UI aqui, aguarda question-result
             });
         } else {
             Utils.showToast('Conexão perdida com o servidor', 'error');
@@ -442,8 +423,7 @@ class PlayerSocketManager {
         const myResult = data.results?.find(r => r.playerId === this.playerId);
         if (myResult) {
             this.totalScore = myResult.totalScore;
-            // Confirmar streak com o resultado do servidor
-            this.lastAnswerWasCorrect = myResult.isCorrect;
+            // Atualizar streak com base no resultado
             if (myResult.isCorrect) {
                 this.correctStreak++;
             } else {
