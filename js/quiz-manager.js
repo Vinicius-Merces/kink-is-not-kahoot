@@ -199,6 +199,7 @@ class QuizManager {
     }
 
     async startQuizSession(quizId) {
+        console.log('🎮 Iniciando sessão para quiz:', quizId);
         try {
             const quizDoc = await db.collection('quizzes').doc(quizId).get();
             if (!quizDoc.exists) {
@@ -207,27 +208,29 @@ class QuizManager {
             }
             const quiz = { id: quizDoc.id, ...quizDoc.data() };
             
-            // Verificar se o servidor Node.js está disponível (Socket.IO)
-            // Se não houver socket client, usar método antigo (Firestore)
+            // Aguardar socket client estar disponível
             if (!window.socketClient) {
-                console.warn('⚠️ Socket.IO não disponível, usando método antigo');
-                await this.createRoomLegacy(quiz);
+                console.warn('⚠️ Socket client não encontrado');
+                Utils.showToast('Conexão não disponível. Tentando modo offline...', 'warning');
+                this.createRoomLegacy(quiz);
                 return;
             }
             
-            // Aguardar conexão do socket
+            // Aguardar conexão
             if (!window.socketClient.connected) {
-                Utils.showToast('Aguardando conexão com o servidor...', 'warning');
+                console.log('⏳ Aguardando conexão Socket.IO...');
+                Utils.showToast('Conectando ao servidor...', 'info');
                 const checkConnection = setInterval(() => {
                     if (window.socketClient.connected) {
                         clearInterval(checkConnection);
                         this.createRoomViaSocket(quiz);
                     }
-                }, 100);
+                }, 200);
                 setTimeout(() => {
                     clearInterval(checkConnection);
                     if (!window.socketClient.connected) {
-                        Utils.showToast('Servidor não disponível. Usando modo offline.', 'warning');
+                        console.error('❌ Socket.IO não conectou');
+                        Utils.showToast('Servidor indisponível. Usando modo offline.', 'warning');
                         this.createRoomLegacy(quiz);
                     }
                 }, 5000);
