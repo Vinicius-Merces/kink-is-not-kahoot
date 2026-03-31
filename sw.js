@@ -1,5 +1,5 @@
 // Service Worker - KINK is not Kahoot
-const CACHE_NAME = 'kink-cache-v2';
+const CACHE_NAME = 'kink-cache-v2.0.1';
 
 // ============================================
 // URLs que NUNCA devem ser cacheadas
