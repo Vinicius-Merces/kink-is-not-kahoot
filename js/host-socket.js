@@ -574,47 +574,50 @@ class HostSocketManager {
         container.innerHTML = '';
         
         if (!stats || Object.keys(stats).length === 0) {
-            container.innerHTML = '<p style="color: var(--color-text-secondary); text-align: center;">Sem dados de respostas</p>';
+            container.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">Sem dados de respostas</p>';
             return;
         }
 
-        let html = '<div class="stats-container">';
+        let html = '<div style="display: flex; flex-direction: column; gap: 16px;">';
         
-        // Encontrar maior valor para escala
-        const maxCount = Math.max(
-            ...Object.values(stats).map(s => s.count || 1),
-            1
-        );
+        const maxCount = Math.max(...Object.values(stats).map(s => s.count || 0), 1);
         
-        // Desenhar barra para cada opção
         Object.entries(stats).forEach(([option, data]) => {
-            const barWidth = (data.count / maxCount) * 100;
+            const barWidth = (data.count / maxCount) * 100 || 0;
             const isCorrect = data.isCorrect;
-            const correctClass = isCorrect ? 'correct-answer' : '';
-            const correctBadge = isCorrect ? '✅' : '';
+            const bgColor = isCorrect ? 'rgba(78, 205, 196, 0.15)' : 'rgba(100, 100, 100, 0.1)';
+            const borderColor = isCorrect ? 'rgba(78, 205, 196, 0.4)' : 'rgba(100, 100, 100, 0.2)';
+            const barColor = isCorrect ? 'linear-gradient(90deg, #4ecdc4, #45b3aa)' : 'linear-gradient(90deg, #ff6b6b, #ff5252)';
+            const badge = isCorrect ? '✅' : '';
             
             html += `
-                <div class="stat-row ${correctClass}">
-                    <div class="stat-label">
-                        <span class="option-letter">${option}</span>
-                        <span class="option-text">${data.label ? data.label.substring(0, 30) : 'N/A'}</span>
+                <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 12px; ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+                            <span style="font-size: 18px; background: linear-gradient(135deg, #ff6b6b, #ff5252); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; flex-shrink: 0;">${option}</span>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="color: #fff; font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${data.label || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right; margin-left: 10px;">
+                            <div style="color: #fff; font-weight: bold; font-size: 16px;">${data.count}</div>
+                            <div style="color: #aaa; font-size: 11px;">${data.percentage}%</div>
+                        </div>
+                        <span style="margin-left: 8px; font-size: 16px;">${badge}</span>
                     </div>
-                    <div class="stat-bar-wrapper">
-                        <div class="stat-bar" style="width: ${barWidth}%"></div>
+                    <div style="background: rgba(0,0,0,0.3); height: 24px; border-radius: 4px; overflow: hidden; position: relative;">
+                        <div style="background: ${barColor}; height: 100%; width: ${barWidth}%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px;">
+                            ${barWidth > 20 ? `<span style="color: #fff; font-weight: bold; font-size: 12px;">${data.percentage}%</span>` : ''}
+                        </div>
+                        ${barWidth <= 20 && data.percentage > 0 ? `<span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: #fff; font-weight: bold; font-size: 12px;">${data.percentage}%</span>` : ''}
                     </div>
-                    <div class="stat-count">
-                        <span class="count-number">${data.count}</span>
-                        <span class="count-percent">${data.percentage}%</span>
-                    </div>
-                    <div class="stat-correct">${correctBadge}</div>
                 </div>
             `;
         });
         
         html += '</div>';
         container.innerHTML = html;
-        
-        console.log('📊 Gráfico de estatísticas exibido');
+        console.log('📊 Gráfico atualizado com sucesso', stats);
     }
 
     // ✅ NOVO: Mostrar resposta correta e explicação

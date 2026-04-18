@@ -257,6 +257,12 @@ class PlayerSocketManager {
     handleReadingPhase(data) {
         if (this.currentScreen === 'questionScreen') return;
         
+        // ✅ NOVO: Fechar ranking automaticamente
+        const rankingModal = document.querySelector('.ranking-modal');
+        if (rankingModal) {
+            rankingModal.remove();
+        }
+        
         this.currentQuestion = data.question;
         this.hasAnswered = false;
         
