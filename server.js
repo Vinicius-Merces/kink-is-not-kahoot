@@ -437,13 +437,11 @@ class GameRoom {
         const ranking = this.getRanking();
 
         console.log(`🏆 Jogo finalizado na sala ${this.code}`);
-        console.log('Ranking final:', ranking.slice(0, 5));
 
-        // Persistir resultados no Firestore (se disponível)
         if (db) {
             try {
-                const roomRef = db.collection('rooms').doc(this.id);
-                await roomRef.set({
+                // Salvar sessão do jogo
+                await db.collection('rooms').doc(this.id).set({
                     code: this.code,
                     quizId: this.quiz.id,
                     quizTitle: this.quiz.title,
@@ -452,15 +450,19 @@ class GameRoom {
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     finishedAt: admin.firestore.FieldValue.serverTimestamp(),
                     players: Array.from(this.players.values()).map(p => ({
-                        id: p.id,
-                        name: p.name,
-                        avatar: p.avatar,
-                        score: p.score
+                        id: p.id, name: p.name, avatar: p.avatar, score: p.score
                     })),
                     ranking: ranking,
                     totalPlayers: this.players.size
                 }, { merge: true });
-                console.log(`✅ Resultados salvos no Firestore para sala ${this.id}`);
+
+                // ✅ CORRIGIDO: Incrementar timesPlayed individualmente por quiz
+                await db.collection('quizzes').doc(this.quiz.id).update({
+                    timesPlayed: admin.firestore.FieldValue.increment(1),
+                    lastPlayedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                console.log(`✅ timesPlayed incrementado para quiz ${this.quiz.id}`);
             } catch (error) {
                 console.error('❌ Erro ao salvar resultados:', error);
             }
@@ -749,20 +751,22 @@ io.on('connection', (socket) => {
 
     // Desconexão
     socket.on('disconnect', () => {
-        console.log(`🔌 Cliente desconectado: ${socket.id}`);
-
         const room = activeRooms.get(socket.roomId);
         if (room) {
             if (socket.role === 'host') {
-                // Host desconectou, encerrar sala
                 console.log(`🏠 Host desconectou, encerrando sala ${room.code}`);
                 room.endGame();
                 activeRooms.delete(room.id);
                 roomCodeMap.delete(room.code);
+                // ✅ CORRIGIDO: Limpar playerSocketMap dos jogadores da sala
+                for (const [, player] of room.players) {
+                    playerSocketMap.delete(player.id);
+                }
             } else {
-                // Jogador desconectou
                 const player = room.removePlayer(socket.id);
                 if (player) {
+                    // ✅ CORRIGIDO: Limpar entrada do playerSocketMap
+                    playerSocketMap.delete(player.id);
                     io.to(room.id).emit('player-left', {
                         playerId: player.id,
                         players: room.getPlayersList(),
