@@ -1,13 +1,21 @@
-// Music Player - KINK Style (Playlists Separadas por Página)
+// Music Player KINK - VERSÃO MELHORADA 2.1
+// Visual intuitivo + Funcionalidades expandidas
+// Mantém separação de playlists (Menu vs Game)
+
 class MusicPlayer {
     constructor() {
         this.audio = new Audio();
         this.currentTrackIndex = 0;
         this.isPlaying = false;
+        this.isMuted = false;
         this.volume = 0.6;
+        this.lastVolume = 0.6;
+        this.currentTime = 0;
+        this.duration = 0;
         this.playlist = [];
         this.currentPlaylist = [];
         this.playlistType = 'menu';
+        this.isMinimized = false;
         this.init();
     }
 
@@ -59,12 +67,16 @@ class MusicPlayer {
     setupAudioEvents() {
         this.audio.addEventListener('ended', () => this.nextTrack());
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
-        this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
+        this.audio.addEventListener('loadedmetadata', () => {
+            this.duration = this.audio.duration;
+            this.updateDuration();
+        });
         this.audio.addEventListener('play', () => localStorage.setItem('kink_was_playing', 'true'));
         this.audio.addEventListener('pause', () => localStorage.setItem('kink_was_playing', 'false'));
     }
 
     setupAutoPlay() {
+        this.loadTrack(this.currentTrackIndex);
         this.audio.play().then(() => {
             this.isPlaying = true;
             this.updatePlayButton();
@@ -99,28 +111,70 @@ class MusicPlayer {
         if (document.getElementById('kinkMusicPlayer')) return;
 
         const playerHTML = `
-            <div id="kinkMusicPlayer" class="music-player ${this.isPlaying ? 'playing' : 'paused'}">
-                <div class="player-toggle" id="playerToggle">
-                    <div class="player-icon" id="playPauseBtn"><span>${this.isPlaying ? '⏸️' : '▶️'}</span></div>
-                    <div class="player-info">
-                        <div class="player-title" id="currentTitle">Carregando...</div>
-                        <div class="player-artist" id="currentArtist">KINK Music</div>
+            <div id="kinkMusicPlayer" class="music-player-v2 ${this.isPlaying ? 'playing' : 'paused'}">
+                <!-- PLAYER EXPANDIDO -->
+                <div class="player-expanded" id="playerExpanded">
+                    <!-- Cabeçalho -->
+                    <div class="player-header">
+                        <div class="player-mode-badge">${this.playlistType === 'game' ? '🎮 Jogo' : '🎵 Menu'}</div>
+                        <button id="minimizeBtn" class="minimize-btn" title="Minimizar (M)">−</button>
                     </div>
-                    <div class="player-controls">
-                        <button id="prevBtn" title="Anterior (←)">⏮️</button>
-                        <button id="nextBtn" title="Próxima (→)">⏭️</button>
-                        <button id="playlistBtn" title="Playlist">📋</button>
-                        <button id="minimizeBtn" class="minimize-btn" title="Minimizar">🗕</button>
+
+                    <!-- Capa da música -->
+                    <div class="player-artwork">
+                        <div class="artwork-emoji" id="artworkEmoji">🎵</div>
+                        <div class="artwork-animation"></div>
                     </div>
-                    <div class="player-volume">
-                        <span class="player-volume-icon" id="volumeIcon">🔊</span>
-                        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${this.volume}">
+
+                    <!-- Informações da track -->
+                    <div class="player-track-info">
+                        <h3 class="track-title" id="currentTitle">Carregando...</h3>
+                        <p class="track-artist" id="currentArtist">KINK Music</p>
+                    </div>
+
+                    <!-- Barra de progresso -->
+                    <div class="player-progress-section">
+                        <div class="progress-time" id="currentTime">0:00</div>
+                        <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
+                        <div class="progress-time" id="totalDuration">0:00</div>
+                    </div>
+
+                    <!-- Controles principais -->
+                    <div class="player-controls-main">
+                        <button id="prevBtn" class="control-btn" title="Anterior (←)">⏮️</button>
+                        <button id="playPauseBtn" class="control-btn play-pause" title="Play/Pause (Espaço)">▶️</button>
+                        <button id="nextBtn" class="control-btn" title="Próxima (→)">⏭️</button>
+                    </div>
+
+                    <!-- Volume e outras funções -->
+                    <div class="player-controls-secondary">
+                        <div class="volume-control">
+                            <span class="volume-icon" id="volumeIcon">🔊</span>
+                            <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.01" value="${this.volume}">
+                        </div>
+                        <div class="secondary-buttons">
+                            <button id="repeatBtn" class="secondary-btn" title="Repetição">🔁</button>
+                            <button id="playlistBtn" class="secondary-btn" title="Playlist">📋</button>
+                        </div>
                     </div>
                 </div>
-                <div id="playlistPanel" class="playlist-panel">
+
+                <!-- PLAYER MINIMIZADO -->
+                <div class="player-minimized" id="playerMinimized" style="display: none;">
+                    <div class="minimized-icon" id="minimizedIcon">🎵</div>
+                    <div class="minimized-info">
+                        <div class="minimized-title" id="minimizedTitle">Carregando...</div>
+                        <div class="minimized-time" id="minimizedTime">0:00 / 0:00</div>
+                    </div>
+                    <button id="minimizedPlayPause" class="minimized-play">▶️</button>
+                    <button id="expandBtn" class="expand-btn" title="Expandir">+</button>
+                </div>
+
+                <!-- PAINEL DE PLAYLIST -->
+                <div id="playlistPanel" class="playlist-panel" style="display: none;">
                     <div class="playlist-header">
-                        <h4>${this.playlistType === 'game' ? '🎮 Playlist de Jogo (Instrumental)' : '🎵 Playlist KINK'}</h4>
-                        <span class="playlist-close" id="closePlaylist">✕</span>
+                        <h4>${this.playlistType === 'game' ? '🎮 Playlist de Jogo' : '🎵 Playlist KINK'}</h4>
+                        <button class="playlist-close" id="closePlaylist">✕</button>
                     </div>
                     <div class="playlist-list" id="playlistList"></div>
                 </div>
@@ -133,6 +187,7 @@ class MusicPlayer {
     }
 
     bindEvents() {
+        // Controles principais
         const playPauseBtn = document.getElementById('playPauseBtn');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
@@ -141,8 +196,14 @@ class MusicPlayer {
         const volumeSlider = document.getElementById('volumeSlider');
         const volumeIcon = document.getElementById('volumeIcon');
         const minimizeBtn = document.getElementById('minimizeBtn');
-        const player = document.getElementById('kinkMusicPlayer');
+        const expandBtn = document.getElementById('expandBtn');
+        const progressBar = document.getElementById('progressBar');
+        const repeatBtn = document.getElementById('repeatBtn');
 
+        // Minimizado
+        const minimizedPlayPause = document.getElementById('minimizedPlayPause');
+
+        // Evento cliques
         if (playPauseBtn) playPauseBtn.addEventListener('click', () => this.togglePlay());
         if (prevBtn) prevBtn.addEventListener('click', () => this.prevTrack());
         if (nextBtn) nextBtn.addEventListener('click', () => this.nextTrack());
@@ -150,63 +211,29 @@ class MusicPlayer {
         if (closePlaylist) closePlaylist.addEventListener('click', () => this.togglePlaylist(false));
         if (volumeSlider) volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
         if (volumeIcon) volumeIcon.addEventListener('click', () => this.toggleMute());
-        if (minimizeBtn) minimizeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleMinimize();
-        });
-        if (player) player.addEventListener('click', (e) => {
-            if (player.classList.contains('minimized') && e.target === player) {
-                this.toggleMinimize();
-            }
-        });
+        if (minimizeBtn) minimizeBtn.addEventListener('click', () => this.toggleMinimize());
+        if (expandBtn) expandBtn.addEventListener('click', () => this.toggleMinimize());
+        if (progressBar) progressBar.addEventListener('input', (e) => this.seek(e.target.value));
+        if (repeatBtn) repeatBtn.addEventListener('click', () => this.toggleRepeat());
+        if (minimizedPlayPause) minimizedPlayPause.addEventListener('click', () => this.togglePlay());
+
+        // Fechar playlist ao clicar fora
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('playlistPanel');
             const btn = document.getElementById('playlistBtn');
             if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-                panel.classList.remove('show');
+                this.togglePlaylist(false);
             }
         });
-    }
-
-    // ========== MINIMIZAR / EXPANDIR (CORRIGIDO) ==========
-    toggleMinimize() {
-        const player = document.getElementById('kinkMusicPlayer');
-        if (!player) return;
-
-        const isMinimized = player.classList.contains('minimized');
-        
-        if (!isMinimized) {
-            // ---- MINIMIZAR ----
-            player.classList.add('minimized');
-            // Criar botão expandir
-            const expandBtn = document.createElement('button');
-            expandBtn.id = 'expandBtn';
-            expandBtn.className = 'expand-btn';
-            expandBtn.innerHTML = '◀';  // seta para a esquerda indicando expandir
-            expandBtn.title = 'Expandir';
-            expandBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleMinimize();
-            });
-            player.appendChild(expandBtn);
-            // Atualizar tooltip
-            const currentTrack = this.currentPlaylist[this.currentTrackIndex];
-            player.setAttribute('data-tooltip', `${currentTrack.title} - ${currentTrack.artist || 'KINK'}`);
-        } else {
-            // ---- EXPANDIR ----
-            player.classList.remove('minimized');
-            // Remover botão expandir
-            const expandBtn = document.getElementById('expandBtn');
-            if (expandBtn) expandBtn.remove();
-            player.removeAttribute('data-tooltip');
-        }
     }
 
     renderPlaylist() {
         const playlistList = document.getElementById('playlistList');
         if (!playlistList) return;
+        
         playlistList.innerHTML = this.currentPlaylist.map((track, index) => `
             <div class="playlist-item ${index === this.currentTrackIndex ? 'active' : ''}" data-index="${index}">
+                <div class="playlist-index">${String(index + 1).padStart(2, '0')}</div>
                 <div class="playlist-item-cover">${track.cover || '🎵'}</div>
                 <div class="playlist-item-info">
                     <div class="playlist-item-title">${track.title}</div>
@@ -215,6 +242,7 @@ class MusicPlayer {
                 <div class="playlist-item-duration">${track.duration || '--:--'}</div>
             </div>
         `).join('');
+
         document.querySelectorAll('.playlist-item').forEach(item => {
             item.addEventListener('click', () => {
                 const index = parseInt(item.dataset.index);
@@ -230,16 +258,22 @@ class MusicPlayer {
         this.currentTrackIndex = index;
         this.audio.src = track.url;
         this.audio.load();
+
+        // Atualizar UI expandida
         document.getElementById('currentTitle').textContent = track.title;
         document.getElementById('currentArtist').textContent = track.artist || 'KINK';
-        
-        const player = document.getElementById('kinkMusicPlayer');
-        if (player && player.classList.contains('minimized')) {
-            player.setAttribute('data-tooltip', `${track.title} - ${track.artist || 'KINK'}`);
-        }
+        document.getElementById('artworkEmoji').textContent = track.cover || '🎵';
+
+        // Atualizar UI minimizada
+        document.getElementById('minimizedTitle').textContent = track.title;
+        document.getElementById('minimizedIcon').textContent = track.cover || '🎵';
+
         localStorage.setItem(`kink_last_track_${this.playlistType}`, index);
         this.renderPlaylist();
-        if (this.isPlaying) this.audio.play().catch(() => {});
+        
+        if (this.isPlaying) {
+            this.audio.play().catch(() => {});
+        }
     }
 
     playTrack(index) {
@@ -281,7 +315,12 @@ class MusicPlayer {
     setVolume(value) {
         this.volume = parseFloat(value);
         this.audio.volume = this.volume;
+        this.isMuted = this.volume === 0;
         localStorage.setItem('kink_volume', this.volume);
+        this.updateVolumeIcon();
+    }
+
+    updateVolumeIcon() {
         const volumeIcon = document.getElementById('volumeIcon');
         if (volumeIcon) {
             if (this.volume === 0) volumeIcon.textContent = '🔇';
@@ -297,29 +336,97 @@ class MusicPlayer {
             this.setVolume(0);
         } else {
             this.setVolume(this.lastVolume || 0.5);
+            document.getElementById('volumeSlider').value = this.lastVolume || 0.5;
         }
+    }
+
+    seek(percent) {
+        const duration = this.audio.duration;
+        if (duration) {
+            this.audio.currentTime = (percent / 100) * duration;
+        }
+    }
+
+    updateProgress() {
+        this.currentTime = this.audio.currentTime;
+        const duration = this.audio.duration || 0;
+        const progressPercent = duration ? (this.currentTime / duration) * 100 : 0;
+
+        document.getElementById('progressBar').value = progressPercent;
+        document.getElementById('currentTime').textContent = this.formatTime(this.currentTime);
+        document.getElementById('minimizedTime').textContent = `${this.formatTime(this.currentTime)} / ${this.formatTime(duration)}`;
+    }
+
+    updateDuration() {
+        const duration = this.audio.duration || 0;
+        document.getElementById('totalDuration').textContent = this.formatTime(duration);
+    }
+
+    formatTime(seconds) {
+        if (!seconds || isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${String(secs).padStart(2, '0')}`;
     }
 
     togglePlaylist(show) {
         const panel = document.getElementById('playlistPanel');
         if (panel) {
-            if (show === undefined) panel.classList.toggle('show');
-            else show ? panel.classList.add('show') : panel.classList.remove('show');
+            if (show === undefined) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            else panel.style.display = show ? 'block' : 'none';
         }
     }
 
-    updateProgress() {}
-    updateDuration() {}
+    toggleMinimize() {
+        this.isMinimized = !this.isMinimized;
+        const expanded = document.getElementById('playerExpanded');
+        const minimized = document.getElementById('playerMinimized');
+
+        if (expanded && minimized) {
+            expanded.style.display = this.isMinimized ? 'none' : 'flex';
+            minimized.style.display = this.isMinimized ? 'flex' : 'none';
+        }
+    }
+
+    toggleRepeat() {
+        // Placeholder para adicionar funcionalidade de repetição
+        const repeatBtn = document.getElementById('repeatBtn');
+        if (repeatBtn) {
+            repeatBtn.classList.toggle('active');
+            console.log('🔁 Repetição alternada');
+        }
+    }
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             switch(e.key) {
-                case ' ': e.preventDefault(); this.togglePlay(); break;
-                case 'ArrowRight': e.preventDefault(); this.nextTrack(); break;
-                case 'ArrowLeft': e.preventDefault(); this.prevTrack(); break;
-                case 'ArrowUp': e.preventDefault(); this.setVolume(Math.min(1, this.volume + 0.1)); break;
-                case 'ArrowDown': e.preventDefault(); this.setVolume(Math.max(0, this.volume - 0.1)); break;
+                case ' ': 
+                    e.preventDefault(); 
+                    this.togglePlay(); 
+                    break;
+                case 'ArrowRight': 
+                    e.preventDefault(); 
+                    this.nextTrack(); 
+                    break;
+                case 'ArrowLeft': 
+                    e.preventDefault(); 
+                    this.prevTrack(); 
+                    break;
+                case 'ArrowUp': 
+                    e.preventDefault(); 
+                    this.setVolume(Math.min(1, this.volume + 0.1));
+                    document.getElementById('volumeSlider').value = Math.min(1, this.volume + 0.1);
+                    break;
+                case 'ArrowDown': 
+                    e.preventDefault(); 
+                    this.setVolume(Math.max(0, this.volume - 0.1));
+                    document.getElementById('volumeSlider').value = Math.max(0, this.volume - 0.1);
+                    break;
+                case 'm':
+                case 'M':
+                    this.toggleMinimize();
+                    break;
             }
         });
     }
@@ -332,11 +439,16 @@ class MusicPlayer {
         this.renderPlaylist();
         const playlistHeader = document.querySelector('#playlistPanel h4');
         if (playlistHeader) {
-            playlistHeader.textContent = this.playlistType === 'game' ? '🎮 Playlist de Jogo (Instrumental)' : '🎵 Playlist KINK';
+            playlistHeader.textContent = this.playlistType === 'game' ? '🎮 Playlist de Jogo' : '🎵 Playlist KINK';
+        }
+        const modeBadge = document.querySelector('.player-mode-badge');
+        if (modeBadge) {
+            modeBadge.textContent = this.playlistType === 'game' ? '🎮 Jogo' : '🎵 Menu';
         }
     }
 }
 
+// Inicializar quando DOM carregar
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.musicPlayer = new MusicPlayer();
