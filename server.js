@@ -159,7 +159,7 @@ class GameRoom {
                 label: option,
                 count: 0,
                 percentage: 0,
-                isCorrect: this.currentQuestion.correct === optionLabel
+                isCorrect: this.currentQuestion.correct === optionLabel || this.currentQuestion.correct === index
             };
         });
         
@@ -173,13 +173,13 @@ class GameRoom {
         
         // Calcular percentual
         const totalAnswers = this.answers.size;
-        Object.keys(stats).forEach(option => {
-            if (totalAnswers > 0) {
+        if (totalAnswers > 0) {
+            Object.keys(stats).forEach(option => {
                 stats[option].percentage = Math.round(
                     (stats[option].count / totalAnswers) * 100
                 );
-            }
-        });
+            });
+        }
         
         return stats;
     }

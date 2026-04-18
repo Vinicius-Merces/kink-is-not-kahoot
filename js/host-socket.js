@@ -251,6 +251,12 @@ class HostSocketManager {
         const nextQuestionBtn = document.getElementById('nextQuestionBtn');
         if (nextQuestionBtn && !nextQuestionBtn.hasListener) {
             nextQuestionBtn.addEventListener('click', () => {
+                // Fechar modal de ranking antes de ir para próxima
+                const modal = document.getElementById('rankingModal');
+                if (modal) modal.style.display = 'none';
+                const overlay = document.getElementById('rankingOverlay');
+                if (overlay) overlay.style.display = 'none';
+                
                 window.socketClient.nextQuestion((response) => {
                     if (response && response.finished) {
                         this.endGame();
