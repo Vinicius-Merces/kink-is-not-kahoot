@@ -102,6 +102,17 @@ class HostSocketManager {
             console.log('📊 Evento question-result recebido:', data);
             this.ranking = data.ranking;
             this.updateRanking();
+            
+            // ✅ NOVO: Exibir gráfico de estatísticas
+            if (data.stats) {
+                this.displayAnswerStatistics(data.stats, data.correctAnswer);
+            }
+            
+            // ✅ NOVO: Mostrar resposta correta e explicação
+            if (data.correctAnswerText || data.explanation) {
+                this.showCorrectAnswerFeedback(data.correctAnswer, data.correctAnswerText, data.explanation);
+            }
+            
             this.showRankingModalWithDistribution(data);
             
             const totalAnswers = data.results?.length || 0;
@@ -547,6 +558,82 @@ class HostSocketManager {
         if (endBtn) endBtn.style.display = 'none';
         
         Utils.showToast('Quiz finalizado!', 'success');
+    }
+
+    // ✅ NOVO: Exibir gráfico de estatísticas de respostas
+    displayAnswerStatistics(stats, correctAnswer) {
+        const container = document.getElementById('answerStatsChart');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        if (!stats || Object.keys(stats).length === 0) {
+            container.innerHTML = '<p style="color: var(--color-text-secondary); text-align: center;">Sem dados de respostas</p>';
+            return;
+        }
+
+        let html = '<div class="stats-container">';
+        
+        // Encontrar maior valor para escala
+        const maxCount = Math.max(
+            ...Object.values(stats).map(s => s.count || 1),
+            1
+        );
+        
+        // Desenhar barra para cada opção
+        Object.entries(stats).forEach(([option, data]) => {
+            const barWidth = (data.count / maxCount) * 100;
+            const isCorrect = data.isCorrect;
+            const correctClass = isCorrect ? 'correct-answer' : '';
+            const correctBadge = isCorrect ? '✅' : '';
+            
+            html += `
+                <div class="stat-row ${correctClass}">
+                    <div class="stat-label">
+                        <span class="option-letter">${option}</span>
+                        <span class="option-text">${data.label ? data.label.substring(0, 30) : 'N/A'}</span>
+                    </div>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar" style="width: ${barWidth}%"></div>
+                    </div>
+                    <div class="stat-count">
+                        <span class="count-number">${data.count}</span>
+                        <span class="count-percent">${data.percentage}%</span>
+                    </div>
+                    <div class="stat-correct">${correctBadge}</div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        console.log('📊 Gráfico de estatísticas exibido');
+    }
+
+    // ✅ NOVO: Mostrar resposta correta e explicação
+    showCorrectAnswerFeedback(correctOption, correctAnswerText, explanation) {
+        const feedbackElement = document.getElementById('correctAnswerFeedback');
+        if (!feedbackElement) return;
+        
+        let html = `
+            <div class="correct-answer-display">
+                <div class="check-icon">✅</div>
+                <div class="correct-text">Resposta Correta: <strong>${correctOption}</strong></div>
+        `;
+        
+        if (correctAnswerText) {
+            html += `<div class="correct-answer-detail">${correctAnswerText}</div>`;
+        }
+        
+        if (explanation) {
+            html += `<div class="explanation"><strong>Explicação:</strong><br>${explanation}</div>`;
+        }
+        
+        html += '</div>';
+        feedbackElement.innerHTML = html;
+        
+        console.log('💡 Feedback da resposta correta exibido');
     }
 
     cleanup() {

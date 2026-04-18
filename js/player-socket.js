@@ -427,23 +427,73 @@ class PlayerSocketManager {
             if (myResult.isCorrect) {
                 this.correctStreak++;
             } else {
-                this.correctStreak = 0;
+                this.correctStreak = 0;  // ✅ CORREÇÃO: Resetar streak ao errar
             }
             this.updatePlayerInfoDisplay();
         }
         
-        // Mostrar feedback de acerto/erro na tela de ranking
-        this.showAnswerFeedback();
+        // ✅ NOVO: Mostrar feedback visual melhorado
+        this.showAnswerFeedbackImproved(data);
         
         // Mostrar ranking
         this.showRankingModal(data.ranking);
         
-        // Voltar para tela de espera após 3 segundos
+        // Voltar para tela de espera após 4 segundos
         setTimeout(() => {
             this.showScreen('waitingScreen');
-        }, 3000);
+        }, 4000);
     }
 
+    // ✅ NOVO: Feedback visual melhorado com animação
+    showAnswerFeedbackImproved(data) {
+        const feedbackDiv = document.getElementById('answerFeedback');
+        if (!feedbackDiv || !this.currentQuestion) return;
+        
+        const myResult = data.results?.find(r => r.playerId === this.playerId);
+        if (!myResult) return;
+        
+        const isCorrect = myResult.isCorrect;
+        const points = myResult.points || 0;
+        
+        let html = `
+            <div class="answer-feedback ${isCorrect ? 'correct' : 'incorrect'}">
+                <div class="feedback-icon">${isCorrect ? '✅' : '❌'}</div>
+                <div class="feedback-title">
+                    ${isCorrect ? 'Resposta Correta!' : 'Resposta Incorreta'}
+                </div>
+                <div class="feedback-points">
+                    ${isCorrect ? `+${points} pontos` : '0 pontos'}
+                </div>
+        `;
+        
+        // ✅ NOVO: Mostrar explicação se existir
+        if (data.explanation) {
+            html += `
+                <div class="feedback-explanation">
+                    <strong>Explicação:</strong><br>
+                    ${data.explanation}
+                </div>
+            `;
+        }
+        
+        // ✅ NOVO: Mostrar resposta correta
+        html += `
+                <div class="feedback-hint">
+                    Resposta correta: <strong>${data.correctAnswer}</strong>
+                </div>
+            </div>
+        `;
+        
+        feedbackDiv.innerHTML = html;
+        feedbackDiv.style.display = 'block';
+        
+        // Esconder após 4 segundos
+        setTimeout(() => {
+            feedbackDiv.style.display = 'none';
+        }, 4000);
+    }
+
+    // ✅ MANTÉM compatibilidade - função antiga
     showAnswerFeedback() {
         const feedbackDiv = document.getElementById('answerFeedback');
         if (!feedbackDiv || !this.currentQuestion) return;

@@ -144,6 +144,61 @@ class GameRoom {
         return ranking;
     }
 
+    // ✅ NOVO: Calcular estatísticas de respostas por opção
+    getQuestionStatistics() {
+        const stats = {};
+        
+        if (!this.currentQuestion || !this.currentQuestion.options) {
+            return stats;
+        }
+        
+        // Criar entrada para cada opção
+        this.currentQuestion.options.forEach((option, index) => {
+            const optionLabel = String.fromCharCode(65 + index); // A, B, C, D...
+            stats[optionLabel] = {
+                label: option,
+                count: 0,
+                percentage: 0,
+                isCorrect: this.currentQuestion.correct === optionLabel
+            };
+        });
+        
+        // Contar quantos escolheram cada opção
+        for (const [playerId, answerData] of this.answers) {
+            const answer = answerData.answer;
+            if (stats[answer]) {
+                stats[answer].count++;
+            }
+        }
+        
+        // Calcular percentual
+        const totalAnswers = this.answers.size;
+        Object.keys(stats).forEach(option => {
+            if (totalAnswers > 0) {
+                stats[option].percentage = Math.round(
+                    (stats[option].count / totalAnswers) * 100
+                );
+            }
+        });
+        
+        return stats;
+    }
+
+    // ✅ NOVO: Obter feedback para um aluno específico
+    getAnswerFeedback(playerId) {
+        const answer = this.answers.get(playerId);
+        if (!answer) return null;
+        
+        return {
+            isCorrect: answer.isCorrect,
+            points: answer.points,
+            yourAnswer: answer.answer,
+            correctAnswer: this.currentQuestion.correct,
+            explanation: this.currentQuestion.explanation || '',
+            responseTime: answer.responseTime
+        };
+    }
+
     getSocketIdByPlayerId(playerId) {
         for (const [socketId, player] of this.players) {
             if (player.id === playerId) return socketId;
@@ -265,7 +320,15 @@ class GameRoom {
             }
         }
 
-        return { success: true, points: points, isCorrect: isCorrect };
+        // ✅ NOVO: Retornar feedback completo
+        return { 
+            success: true, 
+            points: points, 
+            isCorrect: isCorrect,
+            yourAnswer: answer,
+            correctAnswer: this.currentQuestion.correct,
+            explanation: this.currentQuestion.explanation || ''
+        };
     }
 
     finishQuestion() {
@@ -316,13 +379,19 @@ class GameRoom {
 
         // Gerar ranking
         const ranking = this.getRanking();
+        
+        // ✅ NOVO: Obter estatísticas de resposta
+        const questionStats = this.getQuestionStatistics();
 
         // Enviar resultado para todos
         io.to(this.id).emit('question-result', {
             questionIndex: this.currentQuestionIndex,
             results: results,
             ranking: ranking,
-            correctAnswer: this.currentQuestion.options[this.currentQuestion.correct]
+            correctAnswer: this.currentQuestion.correct,
+            correctAnswerText: this.currentQuestion.options[this.currentQuestion.correct] || this.currentQuestion.correct,
+            explanation: this.currentQuestion.explanation || '',
+            stats: questionStats  // ✅ NOVO: Gráfico de respostas
         });
 
         // Enviar atualização do ranking
