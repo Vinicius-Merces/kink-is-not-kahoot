@@ -279,113 +279,90 @@ class HostSocketManager {
 
     // ========== RANKING COM DISTRIBUIÇÃO DE RESPOSTAS ==========
     showRankingModalWithDistribution(data) {
-        console.log('🎯 showRankingModalWithDistribution chamado com data:', data);
+        const ranking = data.ranking?.slice(0, 10) || [];
+        const medals = ['🥇', '🥈', '🥉'];
+        const posColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
-        // Extrair dados
-        const ranking = data.ranking?.slice(0, 5) || [];
-        const results = data.results || [];
-        const currentQuestion = this.currentQuestion;
-        const options = currentQuestion?.options || [];
-        const correctAnswerIndex = currentQuestion?.correct;
+        const rankingHTML = ranking.map((player, index) => {
+            const avatar = Utils.getAvatarEmoji(player.avatar);
+            const medal = medals[index] || null;
+            const posColor = posColors[index] || 'rgba(78,205,196,0.7)';
+            const isTop3 = index < 3;
+            const bgGradient = index === 0
+                ? 'rgba(255,215,0,0.15), rgba(15,52,96,0.6)'
+                : index === 1
+                ? 'rgba(192,192,192,0.15), rgba(15,52,96,0.6)'
+                : index === 2
+                ? 'rgba(205,127,50,0.15), rgba(15,52,96,0.6)'
+                : 'rgba(15,52,96,0.3), rgba(15,52,96,0.3)';
 
-        // Contar quantos jogadores escolheram cada opção
-        const choiceCount = new Array(options.length).fill(0);
-        results.forEach(r => {
-            if (r.answer !== undefined && r.answer !== null && r.answer >= 0 && r.answer < options.length) {
-                choiceCount[r.answer]++;
-            }
-        });
-        const totalAnswers = results.length;
-
-        // Gerar HTML da distribuição de respostas
-        let distributionHTML = '';
-        if (options.length > 0 && totalAnswers > 0) {
-            distributionHTML = `
-                <div style="margin-top: 1.5rem; text-align: left;">
-                    <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 1rem;">
-            `;
-            options.forEach((opt, i) => {
-                const count = choiceCount[i];
-                const percentage = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
-                const isCorrect = (i === correctAnswerIndex);
-                const barColor = isCorrect ? '#48bb78' : '#ff6b6b';
-                
-                distributionHTML += `
-                    <div style="margin-bottom: 12px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem;">
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span style="font-weight: bold; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 20px;">${String.fromCharCode(65 + i)}</span>
-                                <span style="word-break: break-word;">${Utils.escapeHtml(opt)}</span>
-                                ${isCorrect ? '<span style="color: #48bb78; font-size: 0.7rem;">✅ Correta</span>' : ''}
-                            </div>
-                            <span style="font-weight: bold;">${count} (${percentage}%)</span>
-                        </div>
-                        <div style="background: #2d3748; height: 8px; border-radius: 4px; overflow: hidden;">
-                            <div style="background: ${barColor}; width: ${percentage}%; height: 100%; border-radius: 4px;"></div>
+            return `
+                <div style="
+                    display: flex; align-items: center; gap: 12px;
+                    padding: ${isTop3 ? '14px 16px' : '10px 16px'};
+                    margin-bottom: 8px;
+                    background: linear-gradient(135deg, ${bgGradient});
+                    border: 1px solid ${isTop3 ? posColor + '55' : 'rgba(78,205,196,0.1)'};
+                    border-radius: 12px;
+                ">
+                    <div style="min-width: 36px; text-align: center;">
+                        ${medal
+                            ? `<span style="font-size:${isTop3 ? '1.6rem' : '1.2rem'};">${medal}</span>`
+                            : `<span style="font-size:0.85rem; font-weight:700; color:rgba(255,255,255,0.4);">${index + 1}º</span>`}
+                    </div>
+                    <div style="font-size:${isTop3 ? '2rem' : '1.5rem'}; flex-shrink:0;">${avatar}</div>
+                    <div style="flex:1; text-align:left; min-width:0;">
+                        <div style="font-weight:700; font-size:${isTop3 ? '1rem' : '0.88rem'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${Utils.escapeHtml(player.playerName)}
                         </div>
                     </div>
-                `;
-            });
-            distributionHTML += `
+                    <div style="text-align:right; flex-shrink:0;">
+                        <div style="font-weight:900; font-size:${isTop3 ? '1.1rem' : '0.95rem'}; color:${posColor};">
+                            ${(player.score || 0).toLocaleString()}
+                        </div>
+                        <div style="font-size:0.62rem; color:rgba(255,255,255,0.35);">pontos</div>
                     </div>
                 </div>
             `;
-        } else if (options.length > 0) {
-            distributionHTML = `
-                <div style="margin-top: 1.5rem; text-align: left;">
-                    <h3 style="color: #4ecdc4; margin-bottom: 1rem; font-size: 1rem;">📊 Distribuição de Respostas</h3>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 1rem;">
-                        <p style="text-align: center; opacity: 0.7;">Aguardando respostas...</p>
-                    </div>
-                </div>
-            `;
-        }
+        }).join('');
 
-        // Criar modal
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal-host';
-        modal.style.display = 'block';
-        modal.style.zIndex = '10000';
+        modal.style.cssText = 'display:block; z-index:10000;';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 580px; text-align: center; max-height: 80vh; overflow-y: auto;">
-                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                <div style="margin: 1rem 0;">
-                    ${ranking.map((player, index) => `
-                        <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                            <span>${Utils.getAvatarEmoji(player.avatar)} ${Utils.escapeHtml(player.playerName)}</span>
-                            <span style="color: #ff6b6b; font-weight: bold;">${player.score || 0} pts</span>
-                        </div>
-                    `).join('')}
+            <div class="modal-content" style="
+                max-width: 520px; text-align: center;
+                max-height: 88vh; overflow-y: auto;
+                background: linear-gradient(135deg, rgba(10,30,60,0.98), rgba(15,25,50,0.98));
+                border: 1px solid rgba(78,205,196,0.25);
+                border-radius: 20px; padding: 2rem;
+            ">
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.3rem;">🏆</div>
+                    <h2 style="
+                        background: linear-gradient(135deg, #FFD700, #ff6b6b);
+                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                        font-size: 1.4rem; font-weight: 900; margin: 0;
+                    ">Ranking da Rodada</h2>
+                    <p style="color:rgba(255,255,255,0.4); font-size:0.8rem; margin-top:4px;">
+                        Pergunta ${(data.questionIndex || 0) + 1}
+                    </p>
                 </div>
-                ${distributionHTML}
-                <div style="margin: 1rem 0; font-size: 0.9rem; opacity: 0.7;">
-                    Resposta correta: ${data.correctAnswer || 'Não disponível'}
-                </div>
-                <button id="closeRankingBtn" class="btn btn-primary" style="margin-top: 1rem;">Continuar</button>
+                <div>${rankingHTML}</div>
+                <button id="closeRankingBtn" class="btn btn-success" style="margin-top:1.5rem; padding:0.7rem 2rem;">
+                    Próxima Pergunta ▶
+                </button>
             </div>
         `;
 
-        // Adicionar ao DOM
         document.body.appendChild(modal);
-        console.log('✅ Modal adicionado ao DOM');
 
-        // Fechar ao clicar no botão
         const closeBtn = modal.querySelector('#closeRankingBtn');
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                modal.remove();
-                console.log('Modal removido');
-            });
+            closeBtn.addEventListener('click', () => modal.remove());
         }
-
-        // Fechar ao clicar fora
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-                console.log('Modal removido (clique fora)');
-            }
+            if (e.target === modal) modal.remove();
         });
     }
 

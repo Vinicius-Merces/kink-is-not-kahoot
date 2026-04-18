@@ -522,44 +522,89 @@ class PlayerSocketManager {
     }
 
     showRankingModal(ranking) {
-        const topRanking = ranking?.slice(0, 5) || [];
-        
+        const topRanking = ranking?.slice(0, 10) || [];
         const existingModal = document.querySelector('.ranking-modal');
         if (existingModal) existingModal.remove();
-        
+
+        const medals = ['🥇', '🥈', '🥉'];
+        const posColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+
+        const rankingHTML = topRanking.map((player, index) => {
+            const avatar = Utils.getAvatarEmoji(player.avatar);
+            const medal = medals[index] || null;
+            const posColor = posColors[index] || 'rgba(78,205,196,0.7)';
+            const isTop3 = index < 3;
+            const isMine = player.playerId === this.playerId;
+            const bgGradient = isMine
+                ? 'rgba(78,205,196,0.2), rgba(78,205,196,0.1)'
+                : index === 0
+                ? 'rgba(255,215,0,0.15), rgba(15,52,96,0.5)'
+                : index === 1
+                ? 'rgba(192,192,192,0.12), rgba(15,52,96,0.5)'
+                : index === 2
+                ? 'rgba(205,127,50,0.12), rgba(15,52,96,0.5)'
+                : 'rgba(15,52,96,0.3), rgba(15,52,96,0.3)';
+
+            return `
+                <div style="
+                    display: flex; align-items: center; gap: 10px;
+                    padding: ${isTop3 ? '12px 14px' : '9px 14px'};
+                    margin-bottom: 7px;
+                    background: linear-gradient(135deg, ${bgGradient});
+                    border: 1px solid ${isMine ? 'rgba(78,205,196,0.5)' : isTop3 ? posColor + '44' : 'rgba(78,205,196,0.08)'};
+                    border-radius: 10px;
+                ">
+                    <div style="min-width:30px; text-align:center;">
+                        ${medal
+                            ? `<span style="font-size:${isTop3 ? '1.4rem' : '1.1rem'};">${medal}</span>`
+                            : `<span style="font-size:0.8rem; font-weight:700; color:rgba(255,255,255,0.4);">${index + 1}º</span>`}
+                    </div>
+                    <div style="font-size:${isTop3 ? '1.8rem' : '1.4rem'}; flex-shrink:0;">${avatar}</div>
+                    <div style="flex:1; text-align:left; min-width:0;">
+                        <div style="font-weight:${isMine ? '900' : '600'}; font-size:${isTop3 ? '0.95rem' : '0.83rem'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:${isMine ? '#4ecdc4' : '#fff'};">
+                            ${Utils.escapeHtml(player.playerName)}${isMine ? ' 👈' : ''}
+                        </div>
+                    </div>
+                    <div style="text-align:right; flex-shrink:0;">
+                        <div style="font-weight:900; font-size:${isTop3 ? '1rem' : '0.88rem'}; color:${isMine ? '#4ecdc4' : posColor};">
+                            ${(player.score || 0).toLocaleString()}
+                        </div>
+                        <div style="font-size:0.6rem; color:rgba(255,255,255,0.3);">pts</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal';
-        modal.style.display = 'block';
+        modal.style.cssText = 'display:block; z-index:10000;';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px; text-align: center;">
-                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Parcial 🏆</h2>
-                <div style="margin: 1rem 0; max-height: 300px; overflow-y: auto;">
-                    ${topRanking.map((player, index) => `
-                        <div style="display: flex; justify-content: space-between; padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <span style="font-weight: bold; font-size: 1.2rem;">${index + 1}º</span>
-                            <span>${Utils.escapeHtml(player.playerName)}</span>
-                            <span style="color: #ff6b6b; font-weight: bold;">${player.score || 0} pts</span>
-                        </div>
-                    `).join('')}
+            <div class="modal-content" style="
+                max-width: 460px; text-align: center;
+                max-height: 88vh; overflow-y: auto;
+                background: linear-gradient(135deg, rgba(10,30,60,0.98), rgba(15,25,50,0.98));
+                border: 1px solid rgba(78,205,196,0.25);
+                border-radius: 20px; padding: 1.5rem;
+            ">
+                <div style="margin-bottom: 1.2rem;">
+                    <div style="font-size:2rem; margin-bottom:0.2rem;">🏆</div>
+                    <h2 style="
+                        background: linear-gradient(135deg, #FFD700, #ff6b6b);
+                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                        font-size: 1.2rem; font-weight: 900; margin: 0;
+                    ">Ranking Parcial</h2>
                 </div>
-                <button id="closeRankingBtn" class="btn btn-primary" style="margin-top: 1rem;">Continuar</button>
+                <div>${rankingHTML}</div>
+                <button id="closeRankingBtn" class="btn btn-success" style="margin-top:1.2rem; padding:0.6rem 1.8rem;">
+                    Continuar
+                </button>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
-        
-        const closeBtn = modal.querySelector('#closeRankingBtn');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                modal.remove();
-            });
-        }
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
+
+        modal.querySelector('#closeRankingBtn').addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     }
 
     updateRanking(ranking) {
