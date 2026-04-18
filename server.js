@@ -164,10 +164,22 @@ class GameRoom {
         });
         
         // Contar quantos escolheram cada opção
+        console.log(`📊 Contando respostas. Total de respostas: ${this.answers.size}`);
         for (const [playerId, answerData] of this.answers) {
             const answer = answerData.answer;
-            if (stats[answer]) {
-                stats[answer].count++;
+            console.log(`  - Jogador ${playerId} respondeu: ${answer} (tipo: ${typeof answer})`);
+            
+            // Converter número para letra se necessário
+            let answerKey = answer;
+            if (typeof answer === 'number') {
+                answerKey = String.fromCharCode(65 + answer); // 0 -> A, 1 -> B, etc
+            }
+            
+            if (stats[answerKey]) {
+                stats[answerKey].count++;
+                console.log(`    ✅ Contabilizado: ${answerKey} agora tem ${stats[answerKey].count}`);
+            } else {
+                console.log(`    ❌ Chave inválida: ${answerKey}`);
             }
         }
         
@@ -181,6 +193,7 @@ class GameRoom {
             });
         }
         
+        console.log(`📊 Stats finais:`, stats);
         return stats;
     }
 
