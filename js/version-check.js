@@ -1,65 +1,53 @@
-// Version Control - KINK is not Kahoot (Sem Service Worker)
+// Version Control - KINK is not Kahoot
 class VersionManager {
     constructor() {
-        this.currentVersion = null;
-        this.latestVersion = null;
+        this.currentVersion = localStorage.getItem('kink_version');
+        this.checkInterval = null;
         this.init();
     }
 
     async init() {
-        // Carregar versão do localStorage (corrigido)
-        this.currentVersion = localStorage.getItem('kink_version');
-        console.log(`📌 Versão atual armazenada: ${this.currentVersion || 'nenhuma'}`);
         await this.checkVersion();
-        
-        // Verificar periodicamente (a cada 5 minutos)
-        setInterval(() => this.checkVersion(), 5 * 60 * 1000);
+        // Verificar a cada 3 minutos
+        this.checkInterval = setInterval(() => this.checkVersion(), 3 * 60 * 1000);
     }
 
     async checkVersion() {
         try {
-            const response = await fetch('/version.json?t=' + Date.now());
-            if (!response.ok) {
-                console.warn('⚠️ Não foi possível verificar versão');
+            const response = await fetch('/version.json?t=' + Date.now(), {
+                cache: 'no-store'
+            });
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const latest = data.version;
+            const stored = localStorage.getItem('kink_version');
+
+            if (!stored) {
+                localStorage.setItem('kink_version', latest);
                 return;
             }
-            
-            const data = await response.json();
-            this.latestVersion = data.version;
 
-            // CORREÇÃO: Comparar com a versão salva no localStorage
-            const storedVersion = localStorage.getItem('kink_version');
-            
-            if (!storedVersion || storedVersion !== this.latestVersion) {
-                console.log(`🔄 Nova versão detectada: ${this.latestVersion} (atual: ${storedVersion || 'nenhuma'})`);
-                
-                // Salvar a nova versão IMEDIATAMENTE para não mostrar novamente
-                localStorage.setItem('kink_version', this.latestVersion);
-                this.currentVersion = this.latestVersion;
-                
-                // Verificar se o usuário já adiou esta versão (por 24h)
-                const deferred = localStorage.getItem('kink_update_deferred');
-                const deferredVersion = localStorage.getItem('kink_update_deferred_version');
-                
-                if (deferred && deferredVersion === this.latestVersion) {
-                    const deferTime = parseInt(deferred);
-                    if (Date.now() - deferTime < 24 * 60 * 60 * 1000) {
-                        console.log('⏰ Atualização adiada por 24h');
-                        return;
-                    }
+            if (stored !== latest) {
+                console.log(`🔄 Nova versão: ${latest} (atual: ${stored})`);
+
+                const deferred = localStorage.getItem('kink_update_deferred_version');
+                const deferredAt = parseInt(localStorage.getItem('kink_update_deferred_at') || '0');
+                const within24h = Date.now() - deferredAt < 24 * 60 * 60 * 1000;
+
+                if (deferred === latest && within24h) {
+                    console.log('⏰ Atualização adiada');
+                    return;
                 }
-                
+
                 this.showUpdateNotification(data);
-            } else {
-                console.log(`✅ Versão atual: ${this.currentVersion}`);
             }
-        } catch (error) {
-            console.error('❌ Erro ao verificar versão:', error);
+        } catch (e) {
+            // Silencioso
         }
     }
 
     showUpdateNotification(versionData) {
-        // Remover notificação existente se houver
         const existing = document.querySelector('.update-notification');
         if (existing) existing.remove();
 
@@ -69,53 +57,54 @@ class VersionManager {
             <div class="update-content">
                 <span class="update-icon">🚀</span>
                 <div class="update-text">
-                    <strong>Nova versão disponível!</strong>
-                    <small>Versão ${versionData.version}</small>
+                    <strong>Atualização disponível</strong>
+                    <small>v${versionData.version} — clique para aplicar</small>
                 </div>
                 <div class="update-actions">
-                    <button class="update-now">Atualizar agora</button>
-                    <button class="update-later">Agora não</button>
+                    <button class="update-now">Atualizar</button>
+                    <button class="update-later">Depois</button>
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(notification);
-        
         setTimeout(() => notification.classList.add('show'), 100);
-        
+
         notification.querySelector('.update-now').addEventListener('click', () => {
+            localStorage.setItem('kink_version', versionData.version);
+            localStorage.removeItem('kink_update_deferred_version');
+            localStorage.removeItem('kink_update_deferred_at');
             this.forceHardReload();
         });
-        
+
         notification.querySelector('.update-later').addEventListener('click', () => {
-            notification.remove();
-            localStorage.setItem('kink_update_deferred', Date.now().toString());
             localStorage.setItem('kink_update_deferred_version', versionData.version);
+            localStorage.setItem('kink_update_deferred_at', Date.now().toString());
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 400);
         });
-        
+
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 300);
+                setTimeout(() => notification.remove(), 400);
             }
-        }, 15000);
+        }, 20000);
     }
 
     forceHardReload() {
-        console.log('🔄 Forçando recarga completa...');
-        
-        // Limpar apenas a deferência, manter a versão
-        localStorage.removeItem('kink_update_deferred');
-        localStorage.removeItem('kink_update_deferred_version');
-        
-        // Forçar recarga ignorando cache
+        if ('caches' in window) {
+            caches.keys().then(keys => {
+                keys.forEach(key => caches.delete(key));
+            });
+        }
         const url = new URL(window.location.href);
-        url.searchParams.set('v', Date.now());
-        window.location.href = url.toString();
+        url.searchParams.delete('v');
+        url.searchParams.set('_bust', Date.now());
+        window.location.replace(url.toString());
     }
 }
 
-// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
     window.versionManager = new VersionManager();
 });

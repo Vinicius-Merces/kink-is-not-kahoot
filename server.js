@@ -36,7 +36,22 @@ const io = new Server(server, {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname))); // Servir arquivos estáticos (HTML, CSS, JS)
+
+// ✅ Cache busting: arquivos estáticos com cache controlado
+// CSS e JS ficam sem cache, assets (imagens, sons) ficam em cache longo
+app.use((req, res, next) => {
+    const url = req.url;
+    if (url.match(/\.(css|js)$/)) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    } else if (url.match(/\.(mp3|ogg|wav|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 dias para assets
+    }
+    next();
+});
+
+app.use(express.static(path.join(__dirname)));
 
 // ============================================
 // ROTAS HTTP
