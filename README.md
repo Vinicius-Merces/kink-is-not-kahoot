@@ -114,7 +114,15 @@ Ative Firestore Database
 
 Copie as credenciais para js/firebase-config.js
 
-(Opcional) Baixe serviceAccountKey.json para persistência dos resultados
+(Opcional) Configure as credenciais do Firebase Admin para persistência dos resultados:
+
+Gere uma nova chave em Configurações do Projeto → Contas de Serviço → Gerar nova chave privada
+
+⚠️ NUNCA versione esse arquivo. Use uma das opções abaixo:
+
+Local: salve como serviceAccountKey.json na raiz do projeto (já está no .gitignore)
+
+Produção (recomendado): defina a variável de ambiente FIREBASE_SERVICE_ACCOUNT com o conteúdo do JSON em uma única linha (veja .env.example)
 
 Execute localmente
 
@@ -130,6 +138,8 @@ name = kink-is-not-kahoot
 node = 20
 main = server.js
 memory = 512
+No painel do SquareCloud, defina a variável de ambiente FIREBASE_SERVICE_ACCOUNT com o JSON da service account (não envie serviceAccountKey.json no .zip)
+
 Crie um .zip do projeto (excluindo node_modules)
 
 Faça o upload no painel do SquareCloud:

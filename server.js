@@ -1,4 +1,6 @@
 // KINK is not Kahoot - Servidor Node.js com Socket.IO
+require('dotenv').config();
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -8,17 +10,22 @@ const cors = require('cors');
 // Inicializar Firebase Admin (apenas para persistência final)
 const admin = require('firebase-admin');
 
-// Verificar se existe service account key (opcional, pode ser removido se não usar)
+// Credenciais via variável de ambiente (produção) ou arquivo local (dev)
 let db = null;
 try {
-    const serviceAccount = require('./serviceAccountKey.json');
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else {
+        serviceAccount = require('./serviceAccountKey.json');
+    }
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
     db = admin.firestore();
     console.log('✅ Firebase Admin inicializado');
 } catch (error) {
-    console.log('⚠️ Firebase Admin não configurado (serviceAccountKey.json não encontrado)');
+    console.log('⚠️ Firebase Admin não configurado (defina FIREBASE_SERVICE_ACCOUNT ou crie serviceAccountKey.json)');
     console.log('   O jogo funcionará sem persistência no Firestore');
 }
 
@@ -320,24 +327,35 @@ class GameRoom {
             return { success: false, error: 'Você já respondeu' };
         }
 
+        // ✅ Validar formato da resposta e do tempo de resposta vindos do cliente
+        const optionsCount = this.currentQuestion.options?.length || 0;
+        const isValidAnswer = answer === null ||
+            (Number.isInteger(answer) && answer >= 0 && answer < optionsCount);
+        if (!isValidAnswer) {
+            return { success: false, error: 'Resposta inválida' };
+        }
+
+        const timeLimit = this.currentQuestion.timeLimit || 30;
+        const isValidResponseTime = typeof responseTime === 'number' && Number.isFinite(responseTime);
+        const safeResponseTime = isValidResponseTime ? Math.max(0, responseTime) : timeLimit;
+
         const isCorrect = (answer === this.currentQuestion.correct);
         let points = 0;
 
         if (isCorrect) {
-            const timeLimit = this.currentQuestion.timeLimit || 30;
-            const timeRemaining = Math.max(0, timeLimit - responseTime);
+            const timeRemaining = Math.max(0, timeLimit - safeResponseTime);
             points = Math.floor(1000 * (timeRemaining / timeLimit));
             points = Math.min(1000, Math.max(0, points));
         }
 
         this.answers.set(playerId, {
             answer: answer,
-            responseTime: responseTime,
+            responseTime: safeResponseTime,
             isCorrect: isCorrect,
             points: points
         });
 
-        console.log(`📝 ${playerId} respondeu: ${isCorrect ? '✅ Acertou' : '❌ Errou'} (${responseTime.toFixed(1)}s) - ${points}pts`);
+        console.log(`📝 ${playerId} respondeu: ${isCorrect ? '✅ Acertou' : '❌ Errou'} (${safeResponseTime.toFixed(1)}s) - ${points}pts`);
 
         // Verificar se todos já responderam
         if (this.answers.size === this.players.size && this.players.size > 0) {
@@ -710,6 +728,12 @@ io.on('connection', (socket) => {
             return;
         }
 
+        // ✅ Evitar reiniciar a pergunta enquanto leitura/resposta já está em andamento
+        if (room.status !== 'active') {
+            callback({ success: false, error: 'Pergunta já em andamento' });
+            return;
+        }
+
         const result = await room.startQuestion(room.currentQuestionIndex);
         callback(result);
     });
@@ -737,6 +761,12 @@ io.on('connection', (socket) => {
 
         if (socket.role !== 'host') {
             callback({ success: false, error: 'Apenas o host pode avançar' });
+            return;
+        }
+
+        // ✅ Evitar avançar enquanto a pergunta atual ainda está em andamento
+        if (room.status !== 'active') {
+            callback({ success: false, error: 'Pergunta já em andamento' });
             return;
         }
 
