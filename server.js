@@ -209,6 +209,9 @@ function sanitizeQuestion(question) {
 // Sessões de simulado em andamento (em memória)
 const activeSimulados = new Map(); // simuladoId -> { userId, certId, level, certName, domains, questions, startedAt }
 
+// Histórico de tentativas (apenas quando Firebase Admin não está configurado)
+const devSimuladoHistory = new Map(); // uid -> [{ id, certId, certCode, certName, level, totalQuestions, correctCount, score, domainBreakdown, review, createdAt }]
+
 const SIMULADO_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
 
 function cleanupExpiredSimulados() {
@@ -383,10 +386,42 @@ app.post('/api/simulado/:id/submit', async (req, res) => {
 
     activeSimulados.delete(req.params.id);
 
+    // Persiste a tentativa no histórico do usuário
+    const attemptData = {
+        certId: simulado.certId,
+        certCode: simulado.certCode,
+        certName: simulado.certName,
+        level: simulado.level,
+        totalQuestions,
+        correctCount,
+        score,
+        domainBreakdown,
+        review
+    };
+
+    let attemptId = null;
+    try {
+        if (db) {
+            const docRef = await db.collection('users').doc(user.uid).collection('simuladoAttempts').add({
+                ...attemptData,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            attemptId = docRef.id;
+        } else {
+            attemptId = generateSimuladoId();
+            const userHistory = devSimuladoHistory.get(user.uid) || [];
+            userHistory.unshift({ id: attemptId, ...attemptData, createdAt: new Date().toISOString() });
+            devSimuladoHistory.set(user.uid, userHistory);
+        }
+    } catch (error) {
+        console.error('⚠️ Erro ao salvar histórico do simulado:', error);
+    }
+
     console.log(`✅ Simulado finalizado: ${req.params.id} - ${correctCount}/${totalQuestions} (${score}%) por ${user.uid}`);
 
     res.json({
         success: true,
+        attemptId,
         certCode: simulado.certCode,
         certName: simulado.certName,
         level: simulado.level,
@@ -396,6 +431,90 @@ app.post('/api/simulado/:id/submit', async (req, res) => {
         domainBreakdown,
         review
     });
+});
+
+// Lista o histórico de simulados do usuário autenticado (resumo, mais recente primeiro)
+app.get('/api/simulado/history', async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para ver seu histórico' });
+    }
+
+    try {
+        let attempts;
+        if (db) {
+            const snapshot = await db.collection('users').doc(user.uid).collection('simuladoAttempts')
+                .orderBy('createdAt', 'desc')
+                .get();
+            attempts = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    certId: data.certId,
+                    certCode: data.certCode,
+                    certName: data.certName,
+                    level: data.level,
+                    totalQuestions: data.totalQuestions,
+                    correctCount: data.correctCount,
+                    score: data.score,
+                    createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+                };
+            });
+        } else {
+            const userHistory = devSimuladoHistory.get(user.uid) || [];
+            attempts = userHistory.map(({ domainBreakdown, review, ...summary }) => summary);
+        }
+
+        res.json({ success: true, attempts });
+    } catch (error) {
+        console.error('⚠️ Erro ao buscar histórico de simulados:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar histórico' });
+    }
+});
+
+// Retorna o detalhe completo (breakdown + revisão) de uma tentativa específica
+app.get('/api/simulado/history/:attemptId', async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para ver seu histórico' });
+    }
+
+    try {
+        if (db) {
+            const docRef = db.collection('users').doc(user.uid).collection('simuladoAttempts').doc(req.params.attemptId);
+            const doc = await docRef.get();
+            if (!doc.exists) {
+                return res.status(404).json({ success: false, error: 'Tentativa não encontrada' });
+            }
+            const data = doc.data();
+            return res.json({
+                success: true,
+                attempt: {
+                    id: doc.id,
+                    certId: data.certId,
+                    certCode: data.certCode,
+                    certName: data.certName,
+                    level: data.level,
+                    totalQuestions: data.totalQuestions,
+                    correctCount: data.correctCount,
+                    score: data.score,
+                    domainBreakdown: data.domainBreakdown,
+                    review: data.review,
+                    createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+                }
+            });
+        }
+
+        const userHistory = devSimuladoHistory.get(user.uid) || [];
+        const attempt = userHistory.find(a => a.id === req.params.attemptId);
+        if (!attempt) {
+            return res.status(404).json({ success: false, error: 'Tentativa não encontrada' });
+        }
+        res.json({ success: true, attempt });
+    } catch (error) {
+        console.error('⚠️ Erro ao buscar detalhe do simulado:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar detalhe da tentativa' });
+    }
 });
 
 // ============================================

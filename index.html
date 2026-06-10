@@ -89,7 +89,7 @@
                     <p>Pratique para as certificações Cloud Practitioner, Solutions Architect Associate e Developer Associate com simulados que seguem a proporção oficial de domínios de cada exame.</p>
                 </div>
             </div>
-            <a href="simulados.html" class="btn btn-primary btn-large">🚀 Praticar agora</a>
+            <a href="simulados.html" id="simuladosBtn" class="btn btn-primary btn-large">🚀 Praticar agora</a>
         </div>
 
         <div class="features">
@@ -189,7 +189,11 @@
             const loginBtn = document.getElementById('loginBtn');
             const joinBtn = document.getElementById('joinBtn');
             const googleLoginBtn = document.getElementById('googleLoginBtn');
+            const simuladosBtn = document.getElementById('simuladosBtn');
             const debugDiv = document.getElementById('loginDebug');
+
+            // Para onde ir após o login (depende de qual botão abriu o modal)
+            let loginRedirectTarget = 'my-quizzes.html';
             
             function showDebug(message) {
                 console.log('[DEBUG]', message);
@@ -224,9 +228,9 @@
                     }
                     
                     loginModal.style.display = 'none';
-                    
+
                     setTimeout(() => {
-                        window.location.href = 'my-quizzes.html';
+                        window.location.href = loginRedirectTarget;
                     }, 1000);
                     
                 } catch (error) {
@@ -259,18 +263,34 @@
                         window.location.href = 'my-quizzes.html';
                     } else {
                         showDebug('Usuário não logado, abrindo modal');
+                        loginRedirectTarget = 'my-quizzes.html';
                         openLoginModal();
                     }
                 });
             }
-            
+
             if (loginBtn) {
                 loginBtn.addEventListener('click', () => {
                     showDebug('Botão "Entrar com Google" (card) clicado');
+                    loginRedirectTarget = 'my-quizzes.html';
                     openLoginModal();
                 });
             }
-            
+
+            if (simuladosBtn) {
+                simuladosBtn.addEventListener('click', (e) => {
+                    const user = auth.currentUser;
+                    if (user) {
+                        showDebug('Usuário já logado, indo para Simulados AWS');
+                        return;
+                    }
+                    e.preventDefault();
+                    showDebug('Usuário não logado, abrindo modal (Simulados AWS)');
+                    loginRedirectTarget = 'simulados.html';
+                    openLoginModal();
+                });
+            }
+
             if (googleLoginBtn) {
                 googleLoginBtn.addEventListener('click', () => {
                     showDebug('Botão "Entrar com Google" (modal) clicado');

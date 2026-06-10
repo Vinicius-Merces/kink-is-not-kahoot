@@ -15,7 +15,7 @@ class MusicPlayer {
         this.playlist = [];
         this.currentPlaylist = [];
         this.playlistType = 'menu';
-        this.isMinimized = false;
+        this.isMinimized = true;
         this.init();
     }
 
@@ -30,7 +30,13 @@ class MusicPlayer {
 
     detectPageType() {
         const path = window.location.pathname.toLowerCase();
-        this.playlistType = (path.includes('host.html') || path.includes('player.html')) ? 'game' : 'menu';
+        if (path.includes('host.html') || path.includes('player.html')) {
+            this.playlistType = 'game';
+        } else if (path.includes('simulados.html') || path.includes('historico.html')) {
+            this.playlistType = 'simulado';
+        } else {
+            this.playlistType = 'menu';
+        }
         console.log(`🎵 MusicPlayer: Modo ${this.playlistType} detectado`);
     }
 
@@ -51,7 +57,8 @@ class MusicPlayer {
             { id: 'game7', title: 'KINK Drama', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Dark drama 2.mp3', cover: '⚛️', duration: '2:14' },
             { id: 'game8', title: 'Be KINK', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher.mp3', cover: '🪯', duration: '1:36' }
         ];
-        this.currentPlaylist = (this.playlistType === 'game') ? gamePlaylist : menuPlaylist;
+        // Simulados usam a mesma trilha instrumental/calma do modo jogo
+        this.currentPlaylist = (this.playlistType === 'game' || this.playlistType === 'simulado') ? gamePlaylist : menuPlaylist;
 
         const savedVolume = localStorage.getItem('kink_volume');
         if (savedVolume !== null) {
@@ -62,6 +69,18 @@ class MusicPlayer {
         const lastTrackKey = `kink_last_track_${this.playlistType}`;
         const lastTrack = localStorage.getItem(lastTrackKey);
         this.currentTrackIndex = (lastTrack !== null && lastTrack < this.currentPlaylist.length) ? parseInt(lastTrack) : 0;
+    }
+
+    getModeBadgeText() {
+        if (this.playlistType === 'game') return '🎮 Jogo';
+        if (this.playlistType === 'simulado') return '🎓 Simulado';
+        return '🎵 Menu';
+    }
+
+    getPlaylistTitleText() {
+        if (this.playlistType === 'game') return '🎮 Playlist de Jogo';
+        if (this.playlistType === 'simulado') return '🎓 Playlist de Estudo';
+        return '🎵 Playlist KINK';
     }
 
     setupAudioEvents() {
@@ -113,10 +132,10 @@ class MusicPlayer {
         const playerHTML = `
             <div id="kinkMusicPlayer" class="music-player-v2 ${this.isPlaying ? 'playing' : 'paused'}">
                 <!-- PLAYER EXPANDIDO -->
-                <div class="player-expanded" id="playerExpanded">
+                <div class="player-expanded" id="playerExpanded" style="display: ${this.isMinimized ? 'none' : 'flex'};">
                     <!-- Cabeçalho -->
                     <div class="player-header">
-                        <div class="player-mode-badge">${this.playlistType === 'game' ? '🎮 Jogo' : '🎵 Menu'}</div>
+                        <div class="player-mode-badge">${this.getModeBadgeText()}</div>
                         <button id="minimizeBtn" class="minimize-btn" title="Minimizar (M)">−</button>
                     </div>
 
@@ -160,7 +179,7 @@ class MusicPlayer {
                 </div>
 
                 <!-- PLAYER MINIMIZADO -->
-                <div class="player-minimized" id="playerMinimized" style="display: none;">
+                <div class="player-minimized" id="playerMinimized" style="display: ${this.isMinimized ? 'flex' : 'none'};">
                     <div class="minimized-icon" id="minimizedIcon">🎵</div>
                     <div class="minimized-info">
                         <div class="minimized-title" id="minimizedTitle">Carregando...</div>
@@ -173,7 +192,7 @@ class MusicPlayer {
                 <!-- PAINEL DE PLAYLIST -->
                 <div id="playlistPanel" class="playlist-panel" style="display: none;">
                     <div class="playlist-header">
-                        <h4>${this.playlistType === 'game' ? '🎮 Playlist de Jogo' : '🎵 Playlist KINK'}</h4>
+                        <h4>${this.getPlaylistTitleText()}</h4>
                         <button class="playlist-close" id="closePlaylist">✕</button>
                     </div>
                     <div class="playlist-list" id="playlistList"></div>
@@ -439,11 +458,11 @@ class MusicPlayer {
         this.renderPlaylist();
         const playlistHeader = document.querySelector('#playlistPanel h4');
         if (playlistHeader) {
-            playlistHeader.textContent = this.playlistType === 'game' ? '🎮 Playlist de Jogo' : '🎵 Playlist KINK';
+            playlistHeader.textContent = this.getPlaylistTitleText();
         }
         const modeBadge = document.querySelector('.player-mode-badge');
         if (modeBadge) {
-            modeBadge.textContent = this.playlistType === 'game' ? '🎮 Jogo' : '🎵 Menu';
+            modeBadge.textContent = this.getModeBadgeText();
         }
     }
 }
