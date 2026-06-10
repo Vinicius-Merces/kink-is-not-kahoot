@@ -230,6 +230,89 @@ class SocketClient {
         });
     }
 
+    // ============================================
+    // MÉTODOS DO SIMULADO AO VIVO (Modo Professor)
+    // ============================================
+
+    // Criar sala de simulado ao vivo (professor)
+    createLiveSimuladoRoom(certId, level, numQuestions, creatorName, creatorId, callback) {
+        console.log(`📝 Criando simulado ao vivo: ${certId}/${level} (${numQuestions} perguntas)`);
+        this.emit('simulado:create-room', { certId, level, numQuestions, creatorName, creatorId }, (response) => {
+            if (response && response.success) {
+                this.roomId = response.roomId;
+                this.role = 'host';
+                console.log('✅ Sala de simulado criada!');
+                console.log(`   Código: ${response.roomCode}`);
+            } else {
+                console.error('❌ Erro ao criar sala de simulado:', response?.error);
+            }
+            if (callback) callback(response);
+        });
+    }
+
+    // Entrar em sala de simulado ao vivo (aluno)
+    joinLiveSimuladoRoom(roomCode, playerId, playerName, playerAvatar, callback) {
+        console.log(`👤 Entrando no simulado ao vivo: ${roomCode} como ${playerName}`);
+        this.emit('simulado:join-room', { roomCode, playerId, playerName, playerAvatar }, (response) => {
+            if (response && response.success) {
+                this.roomId = response.roomId;
+                this.role = 'player';
+                this.playerId = playerId;
+                console.log('✅ Entrou no simulado ao vivo com sucesso!');
+            } else {
+                console.error('❌ Erro ao entrar no simulado ao vivo:', response?.error);
+            }
+            if (callback) callback(response);
+        });
+    }
+
+    // Iniciar sessão de votação (professor)
+    startLiveSimuladoSession(callback) {
+        console.log('🎮 Iniciando sessão de simulado ao vivo...');
+        this.emit('simulado:start-session', {}, (response) => {
+            if (callback) callback(response);
+        });
+    }
+
+    // Avançar para a próxima pergunta (professor)
+    advanceLiveSimulado(callback) {
+        console.log('⏩ Avançando pergunta do simulado ao vivo...');
+        this.emit('simulado:advance', {}, (response) => {
+            if (callback) callback(response);
+        });
+    }
+
+    // Repetir votação de uma pergunta já apresentada (professor)
+    revoteLiveSimulado(index, callback) {
+        console.log(`🔁 Repetindo votação da pergunta ${index + 1}...`);
+        this.emit('simulado:revote', { index }, (response) => {
+            if (callback) callback(response);
+        });
+    }
+
+    // Revisar uma pergunta já apresentada, sem afetar os alunos (professor)
+    gotoLiveSimuladoQuestion(index, callback) {
+        this.emit('simulado:goto-question', { index }, (response) => {
+            if (callback) callback(response);
+        });
+    }
+
+    // Votar na pergunta atual (aluno)
+    voteLiveSimulado(optionIndex, callback) {
+        console.log(`🗳️ Votando na opção ${optionIndex}`);
+        this.emit('simulado:vote', { optionIndex }, (response) => {
+            if (callback) callback(response);
+        });
+    }
+
+    // Encerrar sessão de simulado ao vivo (professor)
+    endLiveSimuladoSession(callback) {
+        console.log('🏁 Encerrando simulado ao vivo...');
+        this.emit('simulado:end-session', {}, (response) => {
+            if (callback) callback(response);
+        });
+    }
+
     // Desconectar
     disconnect() {
         if (this.socket) {

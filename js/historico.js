@@ -81,6 +81,7 @@
                     <h3>${Utils.escapeHtml(attempt.certCode)} <small>(${LEVEL_LABELS[attempt.level] || attempt.level})</small></h3>
                     <p>${Utils.escapeHtml(attempt.certName)}</p>
                     <p class="history-card-meta">${attempt.correctCount}/${attempt.totalQuestions} corretas • ${formatDate(attempt.createdAt)}</p>
+                    ${attempt.mode === 'live' ? `<span class="history-live-badge">🎓 Modo Professor • Sala ${Utils.escapeHtml(attempt.roomCode || '')} • ${attempt.participantsCount || 0} aluno(s)</span>` : ''}
                 </div>
                 <button type="button" class="btn btn-outline">Ver detalhes</button>
             </div>
@@ -114,6 +115,7 @@
     }
 
     function renderDetail(attempt) {
+        const isLive = attempt.mode === 'live';
         const percent = attempt.score;
         document.getElementById('detailScorePercent').textContent = `${percent}%`;
 
@@ -123,10 +125,14 @@
 
         const title = document.getElementById('detailTitle');
         const subtitle = document.getElementById('detailSubtitle');
-        title.textContent = percent >= PASS_SCORE ? '🎉 Aprovado!' : '📚 Continue estudando!';
-        subtitle.textContent =
-            `${attempt.correctCount} de ${attempt.totalQuestions} corretas — ${attempt.certCode} ` +
-            `(${LEVEL_LABELS[attempt.level] || attempt.level}) • ${formatDate(attempt.createdAt)}. Pontuação mínima de referência: ${PASS_SCORE}%.`;
+        title.textContent = percent >= PASS_SCORE
+            ? (isLive ? '🎉 Turma Aprovada!' : '🎉 Aprovado!')
+            : (isLive ? '📚 A turma precisa estudar mais!' : '📚 Continue estudando!');
+        subtitle.textContent = isLive
+            ? `${attempt.correctCount} de ${attempt.totalQuestions} corretas — ${attempt.certCode} ` +
+              `(${LEVEL_LABELS[attempt.level] || attempt.level}) • Sala ${attempt.roomCode || ''} • ${attempt.participantsCount || 0} aluno(s) • ${formatDate(attempt.createdAt)}. Pontuação mínima de referência: ${PASS_SCORE}%.`
+            : `${attempt.correctCount} de ${attempt.totalQuestions} corretas — ${attempt.certCode} ` +
+              `(${LEVEL_LABELS[attempt.level] || attempt.level}) • ${formatDate(attempt.createdAt)}. Pontuação mínima de referência: ${PASS_SCORE}%.`;
 
         const breakdown = document.getElementById('detailDomainBreakdown');
         breakdown.innerHTML = attempt.domainBreakdown.map(domain => `
@@ -148,24 +154,38 @@
                 if (optIndex === item.correct) cls += ' correct-answer';
                 if (optIndex === item.yourAnswer && optIndex !== item.correct) cls += ' your-wrong-answer';
                 if (optIndex === item.yourAnswer && optIndex === item.correct) cls += ' your-correct-answer';
+
+                const percentBadge = (isLive && item.totalVotes > 0)
+                    ? `<span class="live-option-percent">${item.percentages[optIndex]}%</span>`
+                    : '';
+
                 return `
                     <div class="${cls}">
                         <span class="exam-option-letter">${String.fromCharCode(65 + optIndex)}</span>
                         <span class="exam-option-text">${Utils.escapeHtml(opt)}</span>
+                        ${percentBadge}
                     </div>
                 `;
             }).join('');
+
+            const noAnswerHtml = isLive
+                ? (item.totalVotes === 0 ? '<p class="review-no-answer">Nenhum aluno votou nesta pergunta.</p>' : '')
+                : (item.yourAnswer === null ? '<p class="review-no-answer">Você não respondeu esta pergunta.</p>' : '');
+
+            const statusLabel = isLive
+                ? (item.isCorrect ? '✅ Turma acertou' : '❌ Turma errou')
+                : (item.isCorrect ? '✅ Correta' : '❌ Incorreta');
 
             return `
                 <div class="review-item ${item.isCorrect ? 'correct' : 'incorrect'}">
                     <div class="review-question-header">
                         <span class="review-index">Pergunta ${i + 1}</span>
-                        <span class="review-status">${item.isCorrect ? '✅ Correta' : '❌ Incorreta'}</span>
+                        <span class="review-status">${statusLabel}</span>
                     </div>
                     <p class="review-question-text">${Utils.escapeHtml(item.text)}</p>
                     <div class="review-options">
                         ${optionsHtml}
-                        ${item.yourAnswer === null ? '<p class="review-no-answer">Você não respondeu esta pergunta.</p>' : ''}
+                        ${noAnswerHtml}
                     </div>
                     ${item.explanation ? `<div class="review-explanation"><strong>Explicação:</strong> ${Utils.escapeHtml(item.explanation)}</div>` : ''}
                 </div>

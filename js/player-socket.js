@@ -15,6 +15,10 @@ class PlayerSocketManager {
         this.readingTimer = null;
         this.answerTimer = null;
         this.lastAnswerWasCorrect = false;
+        this.roomType = 'quiz'; // 'quiz' ou 'simulado' (modo professor ao vivo)
+        this.simuladoVoted = false;
+        this.simuladoCurrentIndex = null;
+        this.simuladoTotalQuestions = null;
         this.init();
     }
 
@@ -111,6 +115,37 @@ class PlayerSocketManager {
         socketClient.on('error', (data) => {
             Utils.showToast(data.message, 'error');
         });
+
+        // ============================================
+        // Simulado Modo Professor (votação ao vivo)
+        // ============================================
+
+        socketClient.on('simulado:question', (data) => {
+            console.log('📝 Pergunta do simulado ao vivo:', data);
+            this.handleSimuladoQuestion(data);
+        });
+
+        socketClient.on('simulado:vote-progress', (data) => {
+            this.updateSimuladoVoteProgress(data);
+        });
+
+        socketClient.on('simulado:vote-closed', (data) => {
+            console.log('📊 Votação encerrada:', data);
+            this.handleSimuladoVoteClosed(data);
+        });
+
+        socketClient.on('simulado:player-joined', (data) => {
+            this.updateWaitingPlayersList(data.players);
+        });
+
+        socketClient.on('simulado:player-left', (data) => {
+            this.updateWaitingPlayersList(data.players);
+        });
+
+        socketClient.on('simulado:session-finished', () => {
+            console.log('🏁 Simulado ao vivo encerrado');
+            this.showScreen('simuladoFinalScreen');
+        });
     }
 
     setupEventListeners() {
@@ -122,6 +157,9 @@ class PlayerSocketManager {
         
         const exitGameBtn = document.getElementById('exitGameBtn');
         if (exitGameBtn) exitGameBtn.addEventListener('click', () => window.location.href = 'index.html');
+
+        const exitSimuladoBtn = document.getElementById('exitSimuladoBtn');
+        if (exitSimuladoBtn) exitSimuladoBtn.addEventListener('click', () => window.location.href = 'index.html');
         
         const roomCodeInput = document.getElementById('roomCodeInput');
         if (roomCodeInput) roomCodeInput.addEventListener('keypress', (e) => {
@@ -201,6 +239,19 @@ class PlayerSocketManager {
             if (response && response.exists) {
                 this.roomCode = code;
                 this.roomId = response.roomId;
+                this.roomType = response.type || 'quiz';
+                this.simuladoTotalQuestions = response.totalQuestions || null;
+
+                const infoElem = document.getElementById('profileRoomInfo');
+                if (infoElem) {
+                    if (this.roomType === 'simulado') {
+                        infoElem.textContent = `📝 Simulado ao vivo: ${response.certName || response.certCode} • ${response.totalQuestions} perguntas`;
+                        infoElem.style.display = 'block';
+                    } else {
+                        infoElem.style.display = 'none';
+                    }
+                }
+
                 this.showScreen('profileScreen');
             } else {
                 Utils.showToast('Sala não encontrada ou já encerrada', 'error');
@@ -242,6 +293,20 @@ class PlayerSocketManager {
     }
     
     doJoinGame() {
+        if (this.roomType === 'simulado') {
+            socketClient.joinLiveSimuladoRoom(this.roomCode, this.playerId, this.playerName, this.playerAvatar, (response) => {
+                if (response && response.success) {
+                    this.roomId = response.roomId;
+                    this.simuladoTotalQuestions = response.totalQuestions;
+                    this.showSimuladoWaitingScreen();
+                    Utils.showToast('Entrou no simulado! Aguardando o professor...', 'success');
+                } else {
+                    Utils.showToast(response?.error || 'Erro ao entrar no simulado', 'error');
+                }
+            });
+            return;
+        }
+
         socketClient.joinRoom(this.roomCode, this.playerId, this.playerName, this.playerAvatar, (response) => {
             if (response && response.success) {
                 this.roomId = response.roomId;
@@ -252,6 +317,141 @@ class PlayerSocketManager {
                 Utils.showToast(response?.error || 'Erro ao entrar na sala', 'error');
             }
         });
+    }
+
+    // ============================================
+    // Simulado Modo Professor (votação ao vivo)
+    // ============================================
+
+    showSimuladoWaitingScreen() {
+        const title = document.getElementById('waitingTitle');
+        const subtitle = document.getElementById('waitingSubtitle');
+        if (title) title.textContent = 'Aguardando o Professor';
+        if (subtitle) subtitle.textContent = 'O simulado vai começar em breve...';
+        document.getElementById('waitingRoomCode').textContent = this.roomCode;
+        this.showScreen('waitingScreen');
+    }
+
+    updateWaitingPlayersList(players) {
+        const list = document.getElementById('waitingPlayersList');
+        if (!list) return;
+
+        if (!players || players.length === 0) {
+            list.innerHTML = '<p class="placeholder">Aguardando alunos...</p>';
+            return;
+        }
+
+        list.innerHTML = players.map(p => `
+            <div class="player-item-mini">
+                <span class="player-avatar-mini">${Utils.getAvatarEmoji(p.avatar)}</span>
+                <span>${Utils.escapeHtml(p.name)}</span>
+            </div>
+        `).join('');
+    }
+
+    handleSimuladoQuestion(data) {
+        this.simuladoCurrentIndex = data.index;
+        this.simuladoTotalQuestions = data.total;
+        this.simuladoVoted = false;
+
+        const progressBadge = document.getElementById('simuladoProgressBadge');
+        if (progressBadge) progressBadge.textContent = `Pergunta ${data.index + 1} de ${data.total}`;
+
+        const questionTextElem = document.getElementById('simuladoQuestionText');
+        if (questionTextElem) questionTextElem.textContent = data.text;
+
+        const optionsGrid = document.getElementById('simuladoOptionsGrid');
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+        optionsGrid.innerHTML = data.options.map((option, index) => `
+            <button class="option-btn" data-option="${index}">
+                <div class="option-letter">${letters[index]}</div>
+                <div class="option-text">${Utils.escapeHtml(option)}</div>
+            </button>
+        `).join('');
+        optionsGrid.style.display = 'grid';
+
+        optionsGrid.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!this.simuladoVoted) this.submitSimuladoVote(parseInt(btn.dataset.option, 10));
+            });
+        });
+
+        const statusElem = document.getElementById('simuladoVoteStatus');
+        if (statusElem) statusElem.style.display = 'none';
+
+        const resultsElem = document.getElementById('simuladoResultsContainer');
+        if (resultsElem) resultsElem.style.display = 'none';
+
+        this.updateSimuladoVoteProgress({ voted: 0, total: 0 });
+
+        this.showScreen('simuladoVoteScreen');
+    }
+
+    submitSimuladoVote(optionIndex) {
+        if (this.simuladoVoted) return;
+        this.simuladoVoted = true;
+
+        document.querySelectorAll('#simuladoOptionsGrid .option-btn').forEach((btn, index) => {
+            btn.disabled = true;
+            btn.classList.add('disabled');
+            if (index === optionIndex) btn.classList.add('selected');
+        });
+
+        const statusElem = document.getElementById('simuladoVoteStatus');
+        if (statusElem) {
+            statusElem.textContent = '✅ Voto registrado! Aguardando os colegas...';
+            statusElem.style.display = 'block';
+        }
+
+        socketClient.voteLiveSimulado(optionIndex, (result) => {
+            if (!result || !result.success) {
+                Utils.showToast(result?.error || 'Erro ao registrar voto', 'error');
+                this.simuladoVoted = false;
+                document.querySelectorAll('#simuladoOptionsGrid .option-btn').forEach((btn, index) => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                    if (index === optionIndex) btn.classList.remove('selected');
+                });
+                if (statusElem) statusElem.style.display = 'none';
+            }
+        });
+    }
+
+    updateSimuladoVoteProgress(data) {
+        if (this.currentScreen !== 'simuladoVoteScreen') return;
+        const elem = document.getElementById('simuladoVoteProgress');
+        if (elem) elem.textContent = `${data.voted} de ${data.total} votaram`;
+    }
+
+    handleSimuladoVoteClosed(data) {
+        if (this.currentScreen !== 'simuladoVoteScreen' || data.index !== this.simuladoCurrentIndex) return;
+
+        const optionsGrid = document.getElementById('simuladoOptionsGrid');
+        if (optionsGrid) optionsGrid.style.display = 'none';
+
+        const statusElem = document.getElementById('simuladoVoteStatus');
+        if (statusElem) statusElem.style.display = 'none';
+
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+        const barsContainer = document.getElementById('simuladoResultsBars');
+        if (barsContainer) {
+            barsContainer.innerHTML = data.percentages.map((percent, index) => `
+                <div class="stat-row">
+                    <div class="stat-label">
+                        <div class="option-letter">${letters[index]}</div>
+                    </div>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar" style="width: ${percent}%"></div>
+                    </div>
+                    <div class="stat-count">
+                        <span class="count-percent">${percent}%</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        const resultsElem = document.getElementById('simuladoResultsContainer');
+        if (resultsElem) resultsElem.style.display = 'block';
     }
 
     handleReadingPhase(data) {

@@ -17,23 +17,27 @@
     let certifications = [];
     let selectedCertId = null;
     let selectedLevel = null;
+    let selectedMode = 'solo'; // 'solo' ou 'live' (Modo Professor)
 
     // Estado do simulado em andamento
     let currentSimulado = null; // { simuladoId, certCode, certName, level, domains, questions, totalQuestions }
     let userAnswers = {};
     let currentQuestionIndex = 0;
 
-    const screens = {
-        selection: document.getElementById('selectionScreen'),
-        exam: document.getElementById('examScreen'),
-        result: document.getElementById('resultScreen')
+    const SCREEN_IDS = {
+        selection: 'selectionScreen',
+        exam: 'examScreen',
+        result: 'resultScreen'
     };
 
-    function showScreen(name) {
-        Object.values(screens).forEach(el => el.classList.remove('active'));
-        screens[name].classList.add('active');
+    function showScreen(nameOrId) {
+        const targetId = SCREEN_IDS[nameOrId] || nameOrId;
+        document.querySelectorAll('.simulado-screen').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById(targetId);
+        if (target) target.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    window.showSimuladoScreen = showScreen;
 
     // ============================================
     // Carregamento de certificações
@@ -145,6 +149,18 @@
     });
 
     // ============================================
+    // Alternância de modo (Solo / Professor ao vivo)
+    // ============================================
+    document.querySelectorAll('.mode-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedMode = btn.dataset.mode;
+            document.querySelectorAll('.mode-toggle-btn').forEach(b => b.classList.toggle('selected', b === btn));
+            document.getElementById('startSimuladoBtn').style.display = selectedMode === 'solo' ? '' : 'none';
+            document.getElementById('createLiveRoomBtn').style.display = selectedMode === 'live' ? '' : 'none';
+        });
+    });
+
+    // ============================================
     // Iniciar Simulado
     // ============================================
     document.getElementById('startSimuladoBtn').addEventListener('click', async () => {
@@ -187,6 +203,15 @@
             btn.disabled = false;
             btn.textContent = '🚀 Iniciar Simulado';
         }
+    });
+
+    // ============================================
+    // Criar Sala de Simulado ao Vivo (Modo Professor)
+    // ============================================
+    document.getElementById('createLiveRoomBtn').addEventListener('click', () => {
+        if (!selectedCertId || !selectedLevel) return;
+        const numQuestions = parseInt(document.getElementById('numQuestionsRange').value, 10);
+        window.SimuladoLiveHost.createRoom(selectedCertId, selectedLevel, numQuestions);
     });
 
     // ============================================

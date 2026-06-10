@@ -43,6 +43,11 @@
 
         <!-- Tela de Seleção -->
         <div id="selectionScreen" class="simulado-screen active">
+            <div class="simulado-mode-toggle" id="simuladoModeToggle">
+                <button type="button" class="mode-toggle-btn selected" data-mode="solo">📝 Treinar Sozinho</button>
+                <button type="button" class="mode-toggle-btn" data-mode="live">🎓 Modo Professor (ao vivo)</button>
+            </div>
+
             <div class="cert-grid" id="certGrid">
                 <div class="loading-spinner">
                     <div class="spinner"></div>
@@ -64,6 +69,7 @@
                 </div>
 
                 <button id="startSimuladoBtn" class="btn btn-primary btn-large">🚀 Iniciar Simulado</button>
+                <button id="createLiveRoomBtn" class="btn btn-primary btn-large" style="display:none;">🎓 Criar Sala ao Vivo</button>
             </div>
         </div>
 
@@ -118,6 +124,105 @@
                 <button id="restartSimuladoBtn" class="btn btn-primary btn-large">🔄 Fazer outro Simulado</button>
             </div>
         </div>
+
+        <!-- Tela de Sala - Simulado ao Vivo (Professor) -->
+        <div id="liveHostScreen" class="simulado-screen">
+            <div class="form-card live-room-card">
+                <h2>🎓 Sala de Simulado ao Vivo</h2>
+                <p id="liveCertInfo" class="live-cert-info"></p>
+
+                <div class="room-code-display">
+                    <span id="liveRoomCode">------</span>
+                    <button id="copyLiveLinkBtn" class="btn btn-outline btn-small">🔗 Copiar Link de Acesso</button>
+                </div>
+                <p class="live-room-hint">Compartilhe o código ou o link com a turma para entrarem pelo player.</p>
+
+                <div class="players-waiting">
+                    <h3>Alunos na sala (<span id="liveHostPlayerCount">0</span>)</h3>
+                    <div id="livePlayersList" class="players-list-mini"></div>
+                </div>
+
+                <div class="quiz-form-actions">
+                    <button id="startLiveSessionBtn" class="btn btn-primary btn-large">🚀 Iniciar Votação</button>
+                    <button id="cancelLiveRoomBtn" class="btn btn-outline">Cancelar Sala</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Controle - Simulado ao Vivo (Professor) -->
+        <div id="liveControlScreen" class="simulado-screen">
+            <div class="exam-header">
+                <div class="exam-cert-badge" id="liveControlCertBadge"></div>
+                <div class="exam-progress">
+                    <div class="exam-progress-bar"><div class="exam-progress-fill" id="liveControlProgressFill"></div></div>
+                    <span id="liveControlProgress">Pergunta 1 de 20</span>
+                </div>
+            </div>
+
+            <div class="live-control-layout">
+                <div class="live-control-main">
+                    <div class="question-card exam-question-card">
+                        <span class="exam-domain-tag" id="liveControlDomainTag"></span>
+                        <h2 id="liveControlQuestionText">Carregando pergunta...</h2>
+                    </div>
+
+                    <div class="live-options" id="liveControlOptions"></div>
+
+                    <div class="live-vote-progress" id="liveControlVoteProgress" style="display:none;"></div>
+
+                    <div class="live-control-results" id="liveControlResults" style="display:none;">
+                        <h3>📊 Resultado da Turma</h3>
+                        <div class="stats-container" id="liveControlResultBars"></div>
+                        <p id="liveControlResultFeedback" class="live-result-feedback"></p>
+                        <div id="liveControlExplanation" class="review-explanation" style="display:none;"></div>
+                    </div>
+
+                    <div class="live-control-actions">
+                        <button id="liveBackToCurrentBtn" class="btn btn-outline" style="display:none;">↩ Voltar para a pergunta atual</button>
+                        <button id="liveRevoteBtn" class="btn btn-outline" style="display:none;">🔁 Repetir Votação</button>
+                        <button id="liveAdvanceBtn" class="btn btn-primary btn-large">Avançar ➡</button>
+                    </div>
+                    <button id="liveEndSessionBtn" class="btn btn-danger btn-large live-end-btn">🏁 Encerrar Simulado</button>
+                </div>
+
+                <div class="live-control-sidebar">
+                    <div class="control-card">
+                        <h3>👥 Alunos (<span id="liveControlPlayerCount">0</span>)</h3>
+                        <div id="liveControlPlayersList" class="players-list-mini"></div>
+                    </div>
+
+                    <div class="control-card">
+                        <h3>📍 Perguntas</h3>
+                        <div class="exam-question-dots" id="liveControlQuestionDots"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Resultado - Simulado ao Vivo (Professor) -->
+        <div id="liveResultScreen" class="simulado-screen">
+            <div class="result-summary form-card">
+                <div class="result-score-circle" id="liveResultScoreCircle">
+                    <span id="liveResultScorePercent">0%</span>
+                </div>
+                <h2 id="liveResultTitle"></h2>
+                <p id="liveResultSubtitle"></p>
+            </div>
+
+            <div class="form-card">
+                <h3>📊 Desempenho da Turma por Domínio</h3>
+                <div class="domain-breakdown" id="liveResultDomainBreakdown"></div>
+            </div>
+
+            <div class="form-card">
+                <h3>📋 Revisão das Perguntas</h3>
+                <div class="review-list" id="liveResultReviewList"></div>
+            </div>
+
+            <div class="quiz-form-actions">
+                <button id="restartLiveSimuladoBtn" class="btn btn-primary btn-large">🔄 Novo Simulado ao Vivo</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modal de Confirmação para finalizar -->
@@ -138,11 +243,16 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
+    <!-- Socket.IO Client (servido pelo servidor) -->
+    <script src="/socket.io/socket.io.js"></script>
+
     <!-- Scripts do projeto -->
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/socket-client.js"></script>
     <script src="js/simulados.js"></script>
+    <script src="js/simulado-live-host.js"></script>
 
     <!-- Music Player -->
     <script src="js/music-player.js"></script>

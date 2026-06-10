@@ -229,6 +229,28 @@ function generateSimuladoId() {
     return 'sim_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
 }
 
+// Persiste uma tentativa de simulado (solo ou ao vivo) no histórico do usuário
+async function persistSimuladoAttempt(uid, attemptData) {
+    let attemptId = null;
+    try {
+        if (db) {
+            const docRef = await db.collection('users').doc(uid).collection('simuladoAttempts').add({
+                ...attemptData,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            attemptId = docRef.id;
+        } else {
+            attemptId = generateSimuladoId();
+            const userHistory = devSimuladoHistory.get(uid) || [];
+            userHistory.unshift({ id: attemptId, ...attemptData, createdAt: new Date().toISOString() });
+            devSimuladoHistory.set(uid, userHistory);
+        }
+    } catch (error) {
+        console.error('⚠️ Erro ao salvar histórico do simulado:', error);
+    }
+    return attemptId;
+}
+
 // Verifica o token de autenticação Firebase enviado no header Authorization: Bearer <token>
 async function getAuthenticatedUser(req) {
     const authHeader = req.headers.authorization || '';
@@ -399,23 +421,7 @@ app.post('/api/simulado/:id/submit', async (req, res) => {
         review
     };
 
-    let attemptId = null;
-    try {
-        if (db) {
-            const docRef = await db.collection('users').doc(user.uid).collection('simuladoAttempts').add({
-                ...attemptData,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-            attemptId = docRef.id;
-        } else {
-            attemptId = generateSimuladoId();
-            const userHistory = devSimuladoHistory.get(user.uid) || [];
-            userHistory.unshift({ id: attemptId, ...attemptData, createdAt: new Date().toISOString() });
-            devSimuladoHistory.set(user.uid, userHistory);
-        }
-    } catch (error) {
-        console.error('⚠️ Erro ao salvar histórico do simulado:', error);
-    }
+    const attemptId = await persistSimuladoAttempt(user.uid, attemptData);
 
     console.log(`✅ Simulado finalizado: ${req.params.id} - ${correctCount}/${totalQuestions} (${score}%) por ${user.uid}`);
 
@@ -457,6 +463,9 @@ app.get('/api/simulado/history', async (req, res) => {
                     totalQuestions: data.totalQuestions,
                     correctCount: data.correctCount,
                     score: data.score,
+                    mode: data.mode || 'solo',
+                    roomCode: data.roomCode || null,
+                    participantsCount: data.participantsCount || null,
                     createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
                 };
             });
@@ -498,6 +507,9 @@ app.get('/api/simulado/history/:attemptId', async (req, res) => {
                     totalQuestions: data.totalQuestions,
                     correctCount: data.correctCount,
                     score: data.score,
+                    mode: data.mode || 'solo',
+                    roomCode: data.roomCode || null,
+                    participantsCount: data.participantsCount || null,
                     domainBreakdown: data.domainBreakdown,
                     review: data.review,
                     createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
@@ -525,6 +537,10 @@ app.get('/api/simulado/history/:attemptId', async (req, res) => {
 const activeRooms = new Map();      // roomId -> GameRoom
 const roomCodeMap = new Map();      // code -> roomId
 const playerSocketMap = new Map();   // playerId -> socketId
+
+// Salas de Simulado Modo Professor (votação ao vivo)
+const activeLiveSimulados = new Map(); // roomId -> LiveSimuladoRoom
+const liveSimuladoCodeMap = new Map(); // code -> roomId
 
 // Classe GameRoom (Container)
 class GameRoom {
@@ -961,6 +977,298 @@ class GameRoom {
     }
 }
 
+// Classe LiveSimuladoRoom (Simulado Modo Professor - votação ao vivo)
+class LiveSimuladoRoom {
+    constructor(roomId, code, simuladoData, creatorSocketId, creatorName, creatorId) {
+        this.id = roomId;
+        this.code = code;
+        this.certId = simuladoData.certId;
+        this.certCode = simuladoData.certCode;
+        this.certName = simuladoData.certName;
+        this.level = simuladoData.level;
+        this.domains = simuladoData.domains;
+        this.questions = simuladoData.questions; // perguntas completas (com gabarito) - nunca enviadas aos alunos
+        this.creatorSocketId = creatorSocketId;
+        this.creatorId = creatorId;
+        this.creatorName = creatorName;
+        this.players = new Map();              // socketId -> { id, name, avatar, socketId }
+        this.status = 'waiting';                 // waiting | voting | closed | finished
+        this.currentQuestionIndex = -1;
+        this.votes = new Map();                  // playerId -> optionIndex (pergunta atual)
+        this.questionResults = new Map();        // questionIndex -> { voteCounts, percentages, totalVotes, winningOption, isCorrect }
+        this.createdAt = Date.now();
+    }
+
+    addPlayer(socketId, playerData) {
+        this.players.set(socketId, {
+            id: playerData.id,
+            name: playerData.name,
+            avatar: playerData.avatar,
+            socketId: socketId
+        });
+        playerSocketMap.set(playerData.id, socketId);
+        return this.getPlayersList();
+    }
+
+    removePlayer(socketId) {
+        const player = this.players.get(socketId);
+        if (player) {
+            this.players.delete(socketId);
+            playerSocketMap.delete(player.id);
+            this.votes.delete(player.id);
+            return player;
+        }
+        return null;
+    }
+
+    getPlayersList() {
+        return Array.from(this.players.values()).map(p => ({ id: p.id, name: p.name, avatar: p.avatar }));
+    }
+
+    getCurrentQuestion() {
+        return this.questions[this.currentQuestionIndex] || null;
+    }
+
+    getSanitizedQuestion(index) {
+        const question = this.questions[index];
+        if (!question) return null;
+        return {
+            index,
+            total: this.questions.length,
+            domain: question.domain,
+            text: question.text,
+            options: question.options
+        };
+    }
+
+    // Abre uma pergunta para votação (zera os votos e o resultado anterior dela)
+    openQuestion(index) {
+        if (index < 0 || index >= this.questions.length) return null;
+
+        this.currentQuestionIndex = index;
+        this.votes.clear();
+        this.questionResults.delete(index); // uma nova votação substitui o resultado anterior
+        this.status = 'voting';
+
+        const question = this.getSanitizedQuestion(index);
+        io.to(this.id).emit('simulado:question', question);
+        this.emitVoteProgress();
+        this.emitTeacherUpdate();
+
+        return question;
+    }
+
+    emitVoteProgress() {
+        io.to(this.id).emit('simulado:vote-progress', {
+            voted: this.votes.size,
+            total: this.players.size
+        });
+    }
+
+    // Registra o voto de um aluno; encerra a votação automaticamente quando todos já votaram
+    castVote(playerId, optionIndex) {
+        if (this.status !== 'voting') {
+            return { success: false, error: 'A votação desta pergunta já foi encerrada' };
+        }
+
+        const question = this.getCurrentQuestion();
+        const optionsCount = question?.options?.length || 0;
+        if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= optionsCount) {
+            return { success: false, error: 'Resposta inválida' };
+        }
+
+        this.votes.set(playerId, optionIndex);
+        this.emitVoteProgress();
+
+        if (this.players.size > 0 && this.votes.size >= this.players.size) {
+            this.closeVoting();
+        }
+
+        return { success: true };
+    }
+
+    // Apura os votos da pergunta atual e define a resposta da turma
+    closeVoting() {
+        if (this.status !== 'voting') return this.questionResults.get(this.currentQuestionIndex) || null;
+
+        const question = this.getCurrentQuestion();
+        const voteCounts = new Array(question.options.length).fill(0);
+        for (const optionIndex of this.votes.values()) {
+            if (voteCounts[optionIndex] !== undefined) voteCounts[optionIndex]++;
+        }
+
+        const totalVotes = this.votes.size;
+        let winningOption = 0;
+        let maxVotes = -1;
+        voteCounts.forEach((count, idx) => {
+            if (count > maxVotes) {
+                maxVotes = count;
+                winningOption = idx;
+            }
+        });
+
+        const percentages = voteCounts.map(count => totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0);
+
+        const result = {
+            voteCounts,
+            percentages,
+            totalVotes,
+            winningOption: totalVotes > 0 ? winningOption : null,
+            isCorrect: totalVotes > 0 && winningOption === question.correct
+        };
+
+        this.questionResults.set(this.currentQuestionIndex, result);
+        this.status = 'closed';
+
+        // Alunos veem apenas a distribuição de votos, sem indicar qual opção está correta
+        io.to(this.id).emit('simulado:vote-closed', {
+            index: this.currentQuestionIndex,
+            percentages,
+            totalVotes
+        });
+
+        this.emitTeacherUpdate();
+
+        return result;
+    }
+
+    // Avança para a próxima pergunta (encerrando a votação atual se necessário)
+    advance() {
+        if (this.status === 'voting') this.closeVoting();
+
+        const nextIndex = this.currentQuestionIndex + 1;
+        if (nextIndex >= this.questions.length) {
+            return { finished: true };
+        }
+
+        this.openQuestion(nextIndex);
+        return { finished: false, index: nextIndex };
+    }
+
+    // Reabre uma pergunta já apresentada para uma nova votação (substitui o resultado anterior)
+    revote(index) {
+        if (index < 0 || index > this.currentQuestionIndex) {
+            return { success: false, error: 'Pergunta inválida para repetir votação' };
+        }
+        this.openQuestion(index);
+        return { success: true };
+    }
+
+    // Estado de uma pergunta para a tela do professor (revisão, sem afetar os alunos)
+    getTeacherQuestionState(index) {
+        const question = this.questions[index];
+        if (!question) return null;
+
+        const isCurrent = index === this.currentQuestionIndex;
+        const result = this.questionResults.get(index) || null;
+
+        return {
+            index,
+            total: this.questions.length,
+            domain: question.domain,
+            text: question.text,
+            options: question.options,
+            correct: question.correct,
+            explanation: question.explanation || '',
+            status: isCurrent ? this.status : (result ? 'closed' : 'pending'),
+            votedCount: isCurrent ? this.votes.size : (result ? result.totalVotes : 0),
+            totalPlayers: this.players.size,
+            result
+        };
+    }
+
+    emitTeacherUpdate() {
+        io.to(this.creatorSocketId).emit('simulado:teacher-update', {
+            ...this.getTeacherQuestionState(this.currentQuestionIndex),
+            players: this.getPlayersList()
+        });
+    }
+
+    // Encerra a sessão: calcula o desempenho da turma e registra no histórico do professor
+    async endSession() {
+        if (this.currentQuestionIndex === -1) {
+            this.status = 'finished';
+            io.to(this.id).emit('simulado:session-finished', {});
+            return null;
+        }
+
+        if (this.status === 'voting') this.closeVoting();
+        this.status = 'finished';
+
+        const domainStats = new Map();
+        for (const domain of this.domains) {
+            domainStats.set(domain.id, { id: domain.id, name: domain.name, total: 0, correct: 0 });
+        }
+
+        let correctCount = 0;
+        const review = this.questions.map((question, index) => {
+            const result = this.questionResults.get(index) || null;
+            const classAnswer = result ? result.winningOption : null;
+            const isCorrect = result ? result.isCorrect : false;
+            if (isCorrect) correctCount++;
+
+            const stats = domainStats.get(question.domain);
+            if (stats) {
+                stats.total++;
+                if (isCorrect) stats.correct++;
+            }
+
+            return {
+                id: question.id,
+                domain: question.domain,
+                text: question.text,
+                options: question.options,
+                correct: question.correct,
+                yourAnswer: classAnswer,
+                isCorrect,
+                explanation: question.explanation || '',
+                voteCounts: result ? result.voteCounts : [],
+                percentages: result ? result.percentages : [],
+                totalVotes: result ? result.totalVotes : 0
+            };
+        });
+
+        const totalQuestions = this.questions.length;
+        const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+
+        const domainBreakdown = this.domains.map(domain => {
+            const stats = domainStats.get(domain.id) || { total: 0, correct: 0 };
+            return {
+                id: domain.id,
+                name: domain.name,
+                weight: domain.weight,
+                total: stats.total,
+                correct: stats.correct,
+                score: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0
+            };
+        });
+
+        const attemptData = {
+            certId: this.certId,
+            certCode: this.certCode,
+            certName: this.certName,
+            level: this.level,
+            mode: 'live',
+            roomCode: this.code,
+            participantsCount: this.players.size,
+            totalQuestions,
+            correctCount,
+            score,
+            domainBreakdown,
+            review
+        };
+
+        const attemptId = await persistSimuladoAttempt(this.creatorId, attemptData);
+
+        const resultPayload = { attemptId, ...attemptData };
+
+        io.to(this.id).emit('simulado:session-finished', {});
+        io.to(this.creatorSocketId).emit('simulado:session-result', resultPayload);
+
+        return resultPayload;
+    }
+}
+
 // ============================================
 // UTILITÁRIOS
 // ============================================
@@ -1053,20 +1361,36 @@ io.on('connection', (socket) => {
     // Verificar se sala existe (aluno)
     socket.on('check-room', (data, callback) => {
         const { roomCode } = data;
+
         const roomId = roomCodeMap.get(roomCode);
-        
-        if (!roomId || !activeRooms.has(roomId)) {
-            callback({ exists: false });
+        if (roomId && activeRooms.has(roomId)) {
+            const room = activeRooms.get(roomId);
+            callback({
+                exists: true,
+                type: 'quiz',
+                roomId: roomId,
+                quizTitle: room.quiz.title,
+                totalQuestions: room.quiz.questions.length
+            });
             return;
         }
-        
-        const room = activeRooms.get(roomId);
-        callback({
-            exists: true,
-            roomId: roomId,
-            quizTitle: room.quiz.title,
-            totalQuestions: room.quiz.questions.length
-        });
+
+        const liveRoomId = liveSimuladoCodeMap.get(roomCode);
+        if (liveRoomId && activeLiveSimulados.has(liveRoomId)) {
+            const liveRoom = activeLiveSimulados.get(liveRoomId);
+            callback({
+                exists: true,
+                type: 'simulado',
+                roomId: liveRoomId,
+                certCode: liveRoom.certCode,
+                certName: liveRoom.certName,
+                level: liveRoom.level,
+                totalQuestions: liveRoom.questions.length
+            });
+            return;
+        }
+
+        callback({ exists: false });
     });
 
     // Entrar em sala (aluno)
@@ -1232,8 +1556,294 @@ io.on('connection', (socket) => {
         callback(result);
     });
 
+    // ============================================
+    // SIMULADO MODO PROFESSOR (votação ao vivo)
+    // ============================================
+
+    // Criar sala de simulado ao vivo (professor)
+    socket.on('simulado:create-room', (data, callback) => {
+        try {
+            const { certId, level, numQuestions, creatorName, creatorId } = data || {};
+
+            const cert = CERTIFICATIONS[certId];
+            if (!cert || !cert.levels.includes(level)) {
+                callback({ success: false, error: 'Certificação ou nível inválido' });
+                return;
+            }
+
+            const pool = examPools.get(`${certId}:${level}`);
+            if (!pool || pool.questions.length === 0) {
+                callback({ success: false, error: 'Pool de perguntas não disponível para essa combinação' });
+                return;
+            }
+
+            const requested = parseInt(numQuestions, 10);
+            if (!Number.isInteger(requested) || requested < 1) {
+                callback({ success: false, error: 'Número de perguntas inválido' });
+                return;
+            }
+
+            const total = Math.min(requested, MAX_SIMULADO_QUESTIONS, pool.questions.length);
+            const questions = sampleQuestionsByDomain(pool, total);
+
+            const roomCode = generateRoomCode();
+            const roomId = generateRoomId();
+
+            const room = new LiveSimuladoRoom(roomId, roomCode, {
+                certId,
+                certCode: pool.certCode,
+                certName: pool.certName,
+                level,
+                domains: pool.domains,
+                questions
+            }, socket.id, creatorName, creatorId);
+
+            activeLiveSimulados.set(roomId, room);
+            liveSimuladoCodeMap.set(roomCode, roomId);
+
+            socket.join(roomId);
+            socket.roomId = roomId;
+            socket.role = 'host';
+            socket.simuladoMode = true;
+
+            console.log(`📝 Sala de simulado ao vivo criada: ${roomCode} (${roomId}) por ${creatorName}`);
+
+            callback({
+                success: true,
+                roomId,
+                roomCode,
+                certCode: pool.certCode,
+                certName: pool.certName,
+                level,
+                domains: pool.domains,
+                totalQuestions: questions.length
+            });
+        } catch (error) {
+            console.error('Erro ao criar sala de simulado:', error);
+            callback({ success: false, error: error.message });
+        }
+    });
+
+    // Entrar em sala de simulado ao vivo (aluno)
+    socket.on('simulado:join-room', (data, callback) => {
+        try {
+            const { roomCode, playerId, playerName, playerAvatar } = data || {};
+            const roomId = liveSimuladoCodeMap.get(roomCode);
+
+            if (!roomId || !activeLiveSimulados.has(roomId)) {
+                callback({ success: false, error: 'Sala não encontrada' });
+                return;
+            }
+
+            const room = activeLiveSimulados.get(roomId);
+
+            if (room.status === 'finished') {
+                callback({ success: false, error: 'Simulado já encerrado' });
+                return;
+            }
+
+            socket.join(roomId);
+            socket.roomId = roomId;
+            socket.playerId = playerId;
+            socket.role = 'player';
+            socket.simuladoMode = true;
+
+            room.addPlayer(socket.id, {
+                id: playerId,
+                name: playerName,
+                avatar: playerAvatar
+            });
+
+            io.to(roomId).emit('simulado:player-joined', {
+                players: room.getPlayersList(),
+                totalPlayers: room.players.size,
+                playerName
+            });
+            room.emitVoteProgress();
+            room.emitTeacherUpdate();
+
+            console.log(`👤 ${playerName} entrou na sala de simulado ${roomCode}`);
+
+            callback({
+                success: true,
+                roomId,
+                certCode: room.certCode,
+                certName: room.certName,
+                level: room.level,
+                totalQuestions: room.questions.length
+            });
+
+            // Se a votação da pergunta atual já está aberta, envia direto para quem entrou agora
+            if (room.status === 'voting') {
+                socket.emit('simulado:question', room.getSanitizedQuestion(room.currentQuestionIndex));
+            }
+        } catch (error) {
+            console.error('Erro ao entrar na sala de simulado:', error);
+            callback({ success: false, error: error.message });
+        }
+    });
+
+    // Iniciar sessão de simulado ao vivo (professor)
+    socket.on('simulado:start-session', (data, callback) => {
+        const room = activeLiveSimulados.get(socket.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        if (socket.role !== 'host') {
+            callback({ success: false, error: 'Apenas o professor pode iniciar a sessão' });
+            return;
+        }
+        if (room.status !== 'waiting') {
+            callback({ success: false, error: 'Sessão já iniciada' });
+            return;
+        }
+        if (room.players.size === 0) {
+            callback({ success: false, error: 'Não há alunos na sala' });
+            return;
+        }
+
+        room.openQuestion(0);
+        callback({ success: true });
+    });
+
+    // Avançar para a próxima pergunta (professor)
+    socket.on('simulado:advance', (data, callback) => {
+        const room = activeLiveSimulados.get(socket.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        if (socket.role !== 'host') {
+            callback({ success: false, error: 'Apenas o professor pode avançar' });
+            return;
+        }
+        if (room.status === 'waiting' || room.status === 'finished') {
+            callback({ success: false, error: 'Sessão não está em andamento' });
+            return;
+        }
+
+        const result = room.advance();
+        callback({ success: true, ...result });
+    });
+
+    // Repetir votação de uma pergunta já apresentada (professor)
+    socket.on('simulado:revote', (data, callback) => {
+        const room = activeLiveSimulados.get(socket.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        if (socket.role !== 'host') {
+            callback({ success: false, error: 'Apenas o professor pode repetir a votação' });
+            return;
+        }
+
+        const { index } = data || {};
+        const result = room.revote(index);
+        callback(result);
+    });
+
+    // Revisar uma pergunta já apresentada, sem alterar o que os alunos veem (professor)
+    socket.on('simulado:goto-question', (data, callback) => {
+        const room = activeLiveSimulados.get(socket.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        if (socket.role !== 'host') {
+            callback({ success: false, error: 'Apenas o professor pode revisar perguntas' });
+            return;
+        }
+
+        const { index } = data || {};
+        const state = room.getTeacherQuestionState(index);
+        if (!state) {
+            callback({ success: false, error: 'Pergunta inválida' });
+            return;
+        }
+
+        callback({ success: true, ...state, players: room.getPlayersList() });
+    });
+
+    // Registrar voto (aluno)
+    socket.on('simulado:vote', (data, callback) => {
+        const room = activeLiveSimulados.get(socket.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        if (socket.role !== 'player') {
+            callback({ success: false, error: 'Apenas alunos podem votar' });
+            return;
+        }
+
+        const { optionIndex } = data || {};
+        const result = room.castVote(socket.playerId, optionIndex);
+        callback(result);
+    });
+
+    // Encerrar sessão de simulado ao vivo (professor)
+    socket.on('simulado:end-session', async (data, callback) => {
+        const room = activeLiveSimulados.get(socket.roomId);
+        if (!room) {
+            callback({ success: false, error: 'Sala não encontrada' });
+            return;
+        }
+        if (socket.role !== 'host') {
+            callback({ success: false, error: 'Apenas o professor pode encerrar a sessão' });
+            return;
+        }
+
+        const result = await room.endSession();
+
+        // Limpar sala após encerrar
+        setTimeout(() => {
+            for (const [, player] of room.players) {
+                playerSocketMap.delete(player.id);
+            }
+            activeLiveSimulados.delete(room.id);
+            liveSimuladoCodeMap.delete(room.code);
+            console.log(`🗑️ Sala de simulado ${room.code} removida da memória`);
+        }, 60000);
+
+        callback({ success: true, result });
+    });
+
     // Desconexão
     socket.on('disconnect', () => {
+        if (socket.simuladoMode) {
+            const liveRoom = activeLiveSimulados.get(socket.roomId);
+            if (liveRoom) {
+                if (socket.role === 'host') {
+                    console.log(`📝 Professor desconectou, encerrando simulado ao vivo ${liveRoom.code}`);
+                    liveRoom.endSession();
+                    for (const [, player] of liveRoom.players) {
+                        playerSocketMap.delete(player.id);
+                    }
+                    activeLiveSimulados.delete(liveRoom.id);
+                    liveSimuladoCodeMap.delete(liveRoom.code);
+                } else {
+                    const player = liveRoom.removePlayer(socket.id);
+                    if (player) {
+                        io.to(liveRoom.id).emit('simulado:player-left', {
+                            playerId: player.id,
+                            players: liveRoom.getPlayersList(),
+                            totalPlayers: liveRoom.players.size
+                        });
+                        liveRoom.emitVoteProgress();
+                        liveRoom.emitTeacherUpdate();
+
+                        // Evita que a pergunta fique travada esperando o voto de quem saiu
+                        if (liveRoom.status === 'voting' && liveRoom.players.size > 0 && liveRoom.votes.size >= liveRoom.players.size) {
+                            liveRoom.closeVoting();
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
         const room = activeRooms.get(socket.roomId);
         if (room) {
             if (socket.role === 'host') {
