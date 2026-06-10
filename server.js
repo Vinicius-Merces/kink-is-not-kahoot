@@ -5,6 +5,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 
 // Inicializar Firebase Admin (apenas para persistência final)
@@ -81,6 +82,319 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         rooms: activeRooms.size,
         players: Array.from(activeRooms.values()).reduce((sum, room) => sum + room.players.size, 0)
+    });
+});
+
+// ============================================
+// SIMULADOS AWS (módulo de provas práticas)
+// ============================================
+
+const CERTIFICATIONS = {
+    'clf-c02': {
+        code: 'CLF-C02',
+        name: 'AWS Certified Cloud Practitioner',
+        shortName: 'Cloud Practitioner',
+        levels: ['iniciante', 'medio', 'avancado']
+    },
+    'saa-c03': {
+        code: 'SAA-C03',
+        name: 'AWS Certified Solutions Architect - Associate',
+        shortName: 'Solutions Architect Associate',
+        levels: ['iniciante', 'medio', 'avancado']
+    },
+    'dva-c02': {
+        code: 'DVA-C02',
+        name: 'AWS Certified Developer - Associate',
+        shortName: 'Developer Associate',
+        levels: ['iniciante', 'medio', 'avancado']
+    }
+};
+
+const MAX_SIMULADO_QUESTIONS = 80;
+
+// Carrega as pools de perguntas (cert x nível) em memória
+const examPools = new Map(); // chave: "certId:level" -> { certCode, certName, level, domains, questions }
+
+function loadExamPools() {
+    for (const [certId, cert] of Object.entries(CERTIFICATIONS)) {
+        for (const level of cert.levels) {
+            const filePath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
+            try {
+                const raw = fs.readFileSync(filePath, 'utf-8');
+                const pool = JSON.parse(raw);
+                examPools.set(`${certId}:${level}`, pool);
+            } catch (error) {
+                console.log(`⚠️ Pool de simulado não encontrada: ${certId}/${level} (${error.message})`);
+            }
+        }
+    }
+    console.log(`📚 ${examPools.size} pools de simulado carregadas`);
+}
+
+loadExamPools();
+
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Seleciona `numQuestions` perguntas da pool respeitando a proporção de pesos dos domínios
+function sampleQuestionsByDomain(pool, numQuestions) {
+    const totalAvailable = pool.questions.length;
+    const n = Math.min(numQuestions, totalAvailable);
+
+    const byDomain = new Map();
+    for (const domain of pool.domains) {
+        byDomain.set(domain.id, shuffleArray(pool.questions.filter(q => q.domain === domain.id)));
+    }
+
+    // Alocação proporcional pelo método dos maiores restos
+    const allocations = pool.domains.map(domain => {
+        const raw = domain.weight * n;
+        return { id: domain.id, weight: domain.weight, count: Math.floor(raw), remainder: raw - Math.floor(raw) };
+    });
+
+    let allocated = allocations.reduce((sum, a) => sum + a.count, 0);
+    let remaining = n - allocated;
+
+    const byRemainder = [...allocations].sort((a, b) => b.remainder - a.remainder);
+    for (let i = 0; i < remaining; i++) {
+        byRemainder[i % byRemainder.length].count++;
+    }
+
+    // Limita pela disponibilidade real de cada domínio e redistribui o excedente
+    let leftover = 0;
+    for (const alloc of allocations) {
+        const available = byDomain.get(alloc.id).length;
+        if (alloc.count > available) {
+            leftover += alloc.count - available;
+            alloc.count = available;
+        }
+    }
+
+    while (leftover > 0) {
+        const candidates = allocations
+            .filter(a => byDomain.get(a.id).length > a.count)
+            .sort((a, b) => b.weight - a.weight);
+        if (candidates.length === 0) break;
+        for (const candidate of candidates) {
+            if (leftover === 0) break;
+            candidate.count++;
+            leftover--;
+        }
+    }
+
+    const selected = [];
+    for (const alloc of allocations) {
+        selected.push(...byDomain.get(alloc.id).slice(0, alloc.count));
+    }
+
+    return shuffleArray(selected);
+}
+
+// Remove resposta correta e explicação antes de enviar ao cliente
+function sanitizeQuestion(question) {
+    return {
+        id: question.id,
+        domain: question.domain,
+        text: question.text,
+        options: question.options
+    };
+}
+
+// Sessões de simulado em andamento (em memória)
+const activeSimulados = new Map(); // simuladoId -> { userId, certId, level, certName, domains, questions, startedAt }
+
+const SIMULADO_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
+
+function cleanupExpiredSimulados() {
+    const now = Date.now();
+    for (const [id, simulado] of activeSimulados) {
+        if (now - simulado.startedAt > SIMULADO_TTL_MS) {
+            activeSimulados.delete(id);
+        }
+    }
+}
+
+setInterval(cleanupExpiredSimulados, 30 * 60 * 1000);
+
+function generateSimuladoId() {
+    return 'sim_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
+}
+
+// Verifica o token de autenticação Firebase enviado no header Authorization: Bearer <token>
+async function getAuthenticatedUser(req) {
+    const authHeader = req.headers.authorization || '';
+    const match = authHeader.match(/^Bearer (.+)$/);
+    if (!match) return null;
+
+    const token = match[1];
+
+    // Sem Firebase Admin configurado (ambiente de desenvolvimento): aceita qualquer token presente
+    if (!db) {
+        return { uid: 'dev-user', email: 'dev@local', name: 'Usuário (dev)' };
+    }
+
+    try {
+        return await admin.auth().verifyIdToken(token);
+    } catch (error) {
+        return null;
+    }
+}
+
+// Lista certificações, níveis disponíveis, domínios e tamanho das pools
+app.get('/api/simulado/certifications', (req, res) => {
+    const certifications = Object.entries(CERTIFICATIONS).map(([id, cert]) => ({
+        id,
+        code: cert.code,
+        name: cert.name,
+        shortName: cert.shortName,
+        levels: cert.levels.map(level => {
+            const pool = examPools.get(`${id}:${level}`);
+            return {
+                id: level,
+                totalQuestions: pool ? pool.questions.length : 0,
+                domains: pool ? pool.domains : []
+            };
+        })
+    }));
+
+    res.json({ success: true, maxQuestions: MAX_SIMULADO_QUESTIONS, certifications });
+});
+
+// Inicia um simulado: seleciona perguntas respeitando a proporção de domínios e oculta gabaritos
+app.post('/api/simulado/start', async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para iniciar um simulado' });
+    }
+
+    const { certId, level, numQuestions } = req.body || {};
+
+    const cert = CERTIFICATIONS[certId];
+    if (!cert || !cert.levels.includes(level)) {
+        return res.status(400).json({ success: false, error: 'Certificação ou nível inválido' });
+    }
+
+    const pool = examPools.get(`${certId}:${level}`);
+    if (!pool || pool.questions.length === 0) {
+        return res.status(404).json({ success: false, error: 'Pool de perguntas não disponível para essa combinação' });
+    }
+
+    const requested = parseInt(numQuestions, 10);
+    if (!Number.isInteger(requested) || requested < 1) {
+        return res.status(400).json({ success: false, error: 'Número de perguntas inválido' });
+    }
+
+    const total = Math.min(requested, MAX_SIMULADO_QUESTIONS, pool.questions.length);
+    const questions = sampleQuestionsByDomain(pool, total);
+
+    const simuladoId = generateSimuladoId();
+    activeSimulados.set(simuladoId, {
+        userId: user.uid,
+        certId,
+        level,
+        certCode: pool.certCode,
+        certName: pool.certName,
+        domains: pool.domains,
+        questions,
+        startedAt: Date.now()
+    });
+
+    console.log(`📝 Simulado iniciado: ${simuladoId} (${pool.certCode} / ${level} / ${questions.length} perguntas) por ${user.uid}`);
+
+    res.json({
+        success: true,
+        simuladoId,
+        certCode: pool.certCode,
+        certName: pool.certName,
+        level,
+        domains: pool.domains,
+        totalQuestions: questions.length,
+        questions: questions.map(sanitizeQuestion)
+    });
+});
+
+// Corrige um simulado e devolve pontuação geral, por domínio e revisão completa
+app.post('/api/simulado/:id/submit', async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para enviar o simulado' });
+    }
+
+    const simulado = activeSimulados.get(req.params.id);
+    if (!simulado) {
+        return res.status(404).json({ success: false, error: 'Simulado não encontrado ou expirado' });
+    }
+
+    if (simulado.userId !== user.uid) {
+        return res.status(403).json({ success: false, error: 'Esse simulado não pertence a este usuário' });
+    }
+
+    const answers = (req.body && req.body.answers) || {};
+
+    let correctCount = 0;
+    const domainStats = new Map();
+    for (const domain of simulado.domains) {
+        domainStats.set(domain.id, { id: domain.id, name: domain.name, total: 0, correct: 0 });
+    }
+
+    const review = simulado.questions.map(question => {
+        const userAnswer = Object.prototype.hasOwnProperty.call(answers, question.id) ? answers[question.id] : null;
+        const isCorrect = userAnswer === question.correct;
+        if (isCorrect) correctCount++;
+
+        const stats = domainStats.get(question.domain);
+        if (stats) {
+            stats.total++;
+            if (isCorrect) stats.correct++;
+        }
+
+        return {
+            id: question.id,
+            domain: question.domain,
+            text: question.text,
+            options: question.options,
+            correct: question.correct,
+            yourAnswer: userAnswer,
+            isCorrect,
+            explanation: question.explanation || ''
+        };
+    });
+
+    const totalQuestions = simulado.questions.length;
+    const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+
+    const domainBreakdown = simulado.domains.map(domain => {
+        const stats = domainStats.get(domain.id) || { total: 0, correct: 0 };
+        return {
+            id: domain.id,
+            name: domain.name,
+            weight: domain.weight,
+            total: stats.total,
+            correct: stats.correct,
+            score: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0
+        };
+    });
+
+    activeSimulados.delete(req.params.id);
+
+    console.log(`✅ Simulado finalizado: ${req.params.id} - ${correctCount}/${totalQuestions} (${score}%) por ${user.uid}`);
+
+    res.json({
+        success: true,
+        certCode: simulado.certCode,
+        certName: simulado.certName,
+        level: simulado.level,
+        totalQuestions,
+        correctCount,
+        score,
+        domainBreakdown,
+        review
     });
 });
 

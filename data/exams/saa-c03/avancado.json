@@ -1,0 +1,169 @@
+{
+  "certCode": "SAA-C03",
+  "certName": "AWS Certified Solutions Architect - Associate",
+  "level": "avancado",
+  "domains": [
+    { "id": "secure-architectures", "name": "Projetar Arquiteturas Seguras", "weight": 0.30 },
+    { "id": "resilient-architectures", "name": "Projetar Arquiteturas Resilientes", "weight": 0.26 },
+    { "id": "high-performing-architectures", "name": "Projetar Arquiteturas de Alto Desempenho", "weight": 0.24 },
+    { "id": "cost-optimized-architectures", "name": "Projetar Arquiteturas Otimizadas em Custo", "weight": 0.20 }
+  ],
+  "questions": [
+    {
+      "id": "saa-avc-001",
+      "domain": "secure-architectures",
+      "text": "Uma empresa com várias contas AWS organizadas em uma OU no AWS Organizations precisa garantir que nenhuma conta-membro consiga criar recursos fora da Região 'sa-east-1', independentemente das permissões do IAM concedidas localmente. Qual é a abordagem correta?",
+      "options": [
+        "Criar uma IAM Policy em cada conta restringindo a Região",
+        "Aplicar uma Service Control Policy (SCP) na OU que negue ações fora da Região permitida usando a chave de condição aws:RequestedRegion",
+        "Solicitar que cada equipe configure manualmente o console para a Região correta",
+        "Usar apenas tags de recursos para identificar a Região"
+      ],
+      "correct": 1,
+      "explanation": "SCPs aplicadas a uma OU representam um limite de permissões que nenhuma política do IAM dentro das contas-membro pode ultrapassar; usar a condição aws:RequestedRegion permite negar ações fora da Região desejada em todas as contas da OU."
+    },
+    {
+      "id": "saa-avc-002",
+      "domain": "secure-architectures",
+      "text": "Uma aplicação multi-tenant no DynamoDB precisa garantir que cada usuário final só possa acessar os itens da tabela que pertencem a ele, identificados por uma partition key igual ao seu ID de usuário. Qual recurso permite aplicar essa restrição diretamente nas credenciais temporárias do usuário?",
+      "options": [
+        "IAM Policy com condições baseadas em variáveis de política (LeadingKeys) combinada com Web Identity Federation",
+        "Criar uma tabela DynamoDB separada para cada usuário",
+        "Conceder acesso total ao DynamoDB para todos os usuários autenticados",
+        "Usar apenas Security Groups para restringir o acesso"
+      ],
+      "correct": 0,
+      "explanation": "Políticas do IAM com condições como dynamodb:LeadingKeys permitem restringir o acesso de um usuário federado apenas aos itens cuja partition key corresponda ao seu próprio identificador, um padrão comum em aplicações multi-tenant."
+    },
+    {
+      "id": "saa-avc-003",
+      "domain": "secure-architectures",
+      "text": "Uma empresa precisa expor uma API privada que deve ser acessível apenas de dentro de sua VPC, sem passar pela internet pública. Qual configuração do Amazon API Gateway atende a esse requisito?",
+      "options": [
+        "API Gateway do tipo Edge-Optimized",
+        "API Gateway do tipo Regional, exposto publicamente",
+        "API Gateway do tipo Privado, acessado via VPC Endpoint de Interface (PrivateLink)",
+        "Expor a API diretamente via Elastic IP em uma instância EC2"
+      ],
+      "correct": 2,
+      "explanation": "APIs privadas do API Gateway só podem ser acessadas a partir de uma VPC por meio de um VPC Endpoint de interface (AWS PrivateLink), mantendo o tráfego fora da internet pública."
+    },
+    {
+      "id": "saa-avc-004",
+      "domain": "secure-architectures",
+      "text": "Uma equipe de segurança precisa identificar automaticamente buckets S3 que contenham dados sensíveis, como números de cartão de crédito ou CPF, armazenados de forma não intencional. Qual serviço utiliza machine learning para essa finalidade?",
+      "options": [
+        "Amazon Macie",
+        "AWS Shield Advanced",
+        "AWS Firewall Manager",
+        "Amazon Cognito"
+      ],
+      "correct": 0,
+      "explanation": "O Amazon Macie usa machine learning para descobrir, classificar e proteger dados sensíveis armazenados no Amazon S3, como informações de identificação pessoal (PII)."
+    },
+    {
+      "id": "saa-avc-005",
+      "domain": "resilient-architectures",
+      "text": "Uma aplicação crítica usa o Amazon Aurora e precisa de um RPO (Recovery Point Objective) próximo de zero e RTO (Recovery Time Objective) baixo em caso de falha de uma Região inteira. Qual configuração é mais adequada?",
+      "options": [
+        "Aurora com uma única instância em uma AZ e snapshots diários",
+        "Aurora Global Database, com réplicas secundárias em outra Região com replicação com baixa latência",
+        "Backup manual mensal exportado para o S3",
+        "Migrar para o Amazon DynamoDB sem alterar o restante da arquitetura"
+      ],
+      "correct": 1,
+      "explanation": "O Aurora Global Database replica dados entre Regiões com latência tipicamente abaixo de 1 segundo, permitindo RPO próximo de zero e recuperação rápida (RTO baixo) em caso de falha regional."
+    },
+    {
+      "id": "saa-avc-006",
+      "domain": "resilient-architectures",
+      "text": "Uma arquitetura serverless usa AWS Lambda integrado a um Amazon SQS Standard Queue. Os consumidores ocasionalmente processam a mesma mensagem mais de uma vez, causando efeitos colaterais duplicados. Qual é a explicação E a melhor mitigação?",
+      "options": [
+        "SQS Standard garante exactly-once delivery; o problema está no código do consumidor, que deve ser corrigido sem alterações na fila",
+        "SQS Standard oferece entrega 'pelo menos uma vez' (at-least-once); a aplicação deve ser projetada para ser idempotente, ou usar uma fila FIFO com deduplicação se a ordem e unicidade forem críticas",
+        "O problema é causado pelo Lambda, que sempre processa cada mensagem exatamente 3 vezes",
+        "Não é possível resolver esse problema com SQS; é necessário migrar para o Kinesis"
+      ],
+      "correct": 1,
+      "explanation": "Filas SQS Standard oferecem entrega 'at-least-once', podendo gerar mensagens duplicadas. A solução recomendada é tornar o processamento idempotente ou usar uma fila FIFO com deduplicação de conteúdo quando a unicidade for essencial."
+    },
+    {
+      "id": "saa-avc-007",
+      "domain": "resilient-architectures",
+      "text": "Uma empresa usa o Amazon S3 como origem do CloudFront e precisa garantir que, mesmo durante uma manutenção planejada na origem primária, as requisições sejam atendidas por uma origem secundária em outra Região. Qual recurso do CloudFront viabiliza isso?",
+      "options": [
+        "Origin Failover com Origin Groups",
+        "Field-Level Encryption",
+        "Lambda@Edge apenas para cache",
+        "Signed URLs"
+      ],
+      "correct": 0,
+      "explanation": "Origin Groups no CloudFront permitem configurar uma origem primária e uma secundária; em caso de falhas (códigos de erro configuráveis), o CloudFront automaticamente faz failover para a origem secundária."
+    },
+    {
+      "id": "saa-avc-008",
+      "domain": "high-performing-architectures",
+      "text": "Uma aplicação de processamento de vídeo precisa de armazenamento de altíssimo throughput e baixa latência compartilhado entre centenas de instâncias EC2 para cargas de trabalho de HPC. Qual serviço é mais adequado?",
+      "options": [
+        "Amazon FSx for Lustre",
+        "Amazon S3 Glacier Deep Archive",
+        "Amazon EBS gp2 com uma única instância",
+        "AWS Storage Gateway no modo Tape"
+      ],
+      "correct": 0,
+      "explanation": "O Amazon FSx for Lustre é otimizado para cargas de trabalho de computação de alto desempenho (HPC) que exigem throughput muito alto e baixa latência, podendo ser integrado ao S3 como camada de dados."
+    },
+    {
+      "id": "saa-avc-009",
+      "domain": "high-performing-architectures",
+      "text": "Uma aplicação global precisa rotear usuários para o endpoint de menor latência entre múltiplas Regiões, com failover automático caso uma Região fique indisponível. Qual política de roteamento do Route 53 é mais adequada?",
+      "options": [
+        "Roteamento Simples (Simple Routing)",
+        "Roteamento por Latência (Latency-based Routing) combinado com health checks",
+        "Roteamento Geográfico fixo, sem health checks",
+        "Roteamento Ponderado (Weighted) com peso fixo de 100% para uma única Região"
+      ],
+      "correct": 1,
+      "explanation": "O roteamento por latência direciona o usuário para a Região com menor latência; combinado com health checks, permite failover automático para outra Região saudável."
+    },
+    {
+      "id": "saa-avc-010",
+      "domain": "high-performing-architectures",
+      "text": "Uma tabela do DynamoDB enfrenta 'hot partitions' porque muitos itens compartilham a mesma partition key, causando throttling mesmo com capacidade provisionada suficiente. Qual estratégia de design resolve melhor esse problema?",
+      "options": [
+        "Aumentar indefinidamente a capacidade provisionada (RCU/WCU)",
+        "Redesenhar a partition key para distribuir melhor os itens (write sharding), por exemplo adicionando um sufixo aleatório ou calculado",
+        "Migrar a tabela inteira para o Amazon S3",
+        "Desativar o DynamoDB Streams"
+      ],
+      "correct": 1,
+      "explanation": "Hot partitions ocorrem quando a distribuição de chaves é desigual. A solução de design é distribuir a carga adicionando um sufixo (sharding) à partition key, espalhando os itens por mais partições físicas."
+    },
+    {
+      "id": "saa-avc-011",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma empresa executa cargas de trabalho de processamento em lote (batch) que podem ser pausadas e retomadas, distribuídas em milhares de instâncias EC2 de diversos tipos, com o objetivo de minimizar custo. Qual abordagem combina economia e resiliência a interrupções?",
+      "options": [
+        "Usar exclusivamente instâncias On-Demand de um único tipo",
+        "Usar o EC2 Auto Scaling com uma combinação de Spot Instances de múltiplos tipos e Instâncias On-Demand como fallback (estratégia de alocação 'capacity-optimized')",
+        "Usar apenas Reserved Instances de 3 anos",
+        "Migrar a carga de trabalho para AWS Lambda sem ajustes"
+      ],
+      "correct": 1,
+      "explanation": "Combinar Spot Instances de múltiplos tipos/AZs com a estratégia 'capacity-optimized' e um fallback On-Demand reduz custos significativamente para cargas tolerantes a interrupções, mantendo resiliência."
+    },
+    {
+      "id": "saa-avc-012",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma empresa com múltiplas contas AWS quer otimizar custos aproveitando descontos por volume agregado de Savings Plans entre todas as contas. Qual recurso do AWS Organizations possibilita o compartilhamento de descontos entre contas-membro?",
+      "options": [
+        "Consolidated Billing (faturamento consolidado)",
+        "AWS Config Aggregator",
+        "Cross-account IAM Roles apenas",
+        "AWS Resource Access Manager apenas"
+      ],
+      "correct": 0,
+      "explanation": "O Consolidated Billing do AWS Organizations permite que descontos por volume e benefícios de Savings Plans/Reserved Instances sejam compartilhados entre as contas-membro, otimizando custos agregados."
+    }
+  ]
+}

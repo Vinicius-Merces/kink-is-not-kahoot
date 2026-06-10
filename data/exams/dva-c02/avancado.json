@@ -1,0 +1,169 @@
+{
+  "certCode": "DVA-C02",
+  "certName": "AWS Certified Developer - Associate",
+  "level": "avancado",
+  "domains": [
+    { "id": "development-aws-services", "name": "Desenvolvimento com Serviços AWS", "weight": 0.32 },
+    { "id": "security", "name": "Segurança", "weight": 0.26 },
+    { "id": "deployment", "name": "Implantação (Deployment)", "weight": 0.24 },
+    { "id": "troubleshooting-optimization", "name": "Solução de Problemas e Otimização", "weight": 0.18 }
+  ],
+  "questions": [
+    {
+      "id": "dva-avc-001",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda escrita em modo assíncrono está sendo invocada pelo Amazon S3 a cada upload de arquivo. Em picos de tráfego, algumas invocações falham com erro de throttling, mas o reprocessamento automático não está acontecendo como esperado. Qual configuração deve ser revisada primeiro?",
+      "options": [
+        "O 'Reserved Concurrency' da função, que pode estar limitando o número de execuções simultâneas e causando throttling",
+        "O tamanho do bucket S3, que precisa ser aumentado",
+        "A região do bucket S3, que deve ser sempre us-east-1",
+        "O nome da função Lambda, que deve conter apenas letras minúsculas"
+      ],
+      "correct": 0,
+      "explanation": "Um limite de 'Reserved Concurrency' muito baixo pode causar throttling em invocações assíncronas durante picos. Invocações assíncronas com throttling são automaticamente reenfileiradas e tentadas novamente, mas um limite muito restritivo pode esgotar as tentativas configuradas."
+    },
+    {
+      "id": "dva-avc-002",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação usa o DynamoDB com Global Secondary Indexes (GSI) para suportar diferentes padrões de consulta. Durante picos de escrita, o GSI apresenta throttling mesmo com a tabela base operando normalmente em modo on-demand. Qual é a causa mais provável?",
+      "options": [
+        "GSIs em modo on-demand possuem sua própria capacidade de throughput, que pode ser excedida independentemente da tabela base, especialmente se a chave do GSI causar distribuição desigual (hot keys)",
+        "GSIs sempre herdam exatamente a mesma capacidade da tabela base e nunca podem sofrer throttling separadamente",
+        "O throttling no GSI é causado exclusivamente por permissões do IAM insuficientes",
+        "GSIs não suportam o modo on-demand"
+      ],
+      "correct": 0,
+      "explanation": "Cada GSI tem sua própria capacidade de leitura/escrita. Mesmo em modo on-demand, uma distribuição desigual de valores na chave do GSI pode causar 'hot partitions' e throttling no índice, independentemente da tabela base."
+    },
+    {
+      "id": "dva-avc-003",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação utiliza o AWS Step Functions para orquestrar um fluxo de trabalho que invoca várias funções Lambda. Em caso de falha transitória em uma das tarefas, qual mecanismo nativo da Amazon States Language (ASL) permite repetir automaticamente a tarefa antes de acionar um tratamento de erro?",
+      "options": [
+        "O campo 'Retry' no estado da tarefa, com configuração de IntervalSeconds, MaxAttempts e BackoffRate",
+        "Reiniciar manualmente toda a execução da máquina de estados",
+        "Configurar um Dead-Letter Queue no SQS associado à máquina de estados",
+        "Usar apenas o campo 'Catch' sem 'Retry'"
+      ],
+      "correct": 0,
+      "explanation": "O campo 'Retry' em um estado Task da Amazon States Language permite definir tentativas automáticas com backoff exponencial (IntervalSeconds, MaxAttempts, BackoffRate) antes de propagar o erro para um 'Catch'."
+    },
+    {
+      "id": "dva-avc-004",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação publica eventos no Amazon EventBridge e precisa que diferentes consumidores reajam apenas a subconjuntos específicos de eventos, com base no conteúdo do payload (por exemplo, apenas eventos onde 'status' = 'FAILED'). Qual recurso do EventBridge permite esse filtro?",
+      "options": [
+        "Event Pattern (padrão de evento) na regra do EventBridge, que filtra com base na estrutura e nos valores do evento",
+        "Configurar múltiplos barramentos de eventos idênticos",
+        "Usar apenas o nome do barramento de eventos para filtrar",
+        "EventBridge não suporta filtragem por conteúdo, apenas por origem"
+      ],
+      "correct": 0,
+      "explanation": "Regras do EventBridge usam 'Event Patterns' que podem filtrar eventos com base em campos específicos do payload JSON, incluindo valores aninhados, permitindo roteamento granular para diferentes alvos."
+    },
+    {
+      "id": "dva-avc-005",
+      "domain": "security",
+      "text": "Uma aplicação Lambda assume uma IAM Role com uma política que concede 'dynamodb:GetItem' em uma tabela específica, mas as chamadas continuam falhando com 'AccessDenied'. A tabela está em outra conta AWS. O que adicionalmente é necessário?",
+      "options": [
+        "Nada mais; a política na Role da Lambda já é suficiente para acesso entre contas",
+        "Uma política baseada em recurso (resource-based policy) na tabela DynamoDB da conta de destino, permitindo o acesso da Role da conta de origem (ou um papel de acesso entre contas assumido via STS)",
+        "Apenas aumentar a capacidade de leitura da tabela",
+        "Migrar a tabela para a mesma conta da Lambda é a única solução possível"
+      ],
+      "correct": 1,
+      "explanation": "Para acesso entre contas a recursos como tabelas DynamoDB, é necessária uma política baseada em recurso na conta de destino (ou assumir uma role na conta de destino via STS) além da permissão na política da role de origem — ambos os lados da 'confiança' precisam permitir o acesso."
+    },
+    {
+      "id": "dva-avc-006",
+      "domain": "security",
+      "text": "Uma aplicação web SPA (Single Page Application) hospedada no S3/CloudFront precisa fazer chamadas autenticadas a uma API no API Gateway a partir do domínio do CloudFront, mas o navegador bloqueia as requisições com erro de CORS. Qual configuração resolve isso corretamente?",
+      "options": [
+        "Desabilitar completamente a segurança do navegador do usuário",
+        "Configurar o API Gateway para retornar os cabeçalhos CORS apropriados (Access-Control-Allow-Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers) para o domínio do CloudFront, incluindo respostas a requisições OPTIONS (preflight)",
+        "Mover a API para dentro do mesmo bucket S3 do frontend",
+        "Usar apenas HTTPS, o que resolve automaticamente problemas de CORS"
+      ],
+      "correct": 1,
+      "explanation": "CORS é uma política aplicada pelo navegador; o backend (API Gateway) precisa responder com os cabeçalhos CORS corretos, incluindo o tratamento de requisições preflight (OPTIONS), para permitir chamadas de um domínio diferente (CloudFront)."
+    },
+    {
+      "id": "dva-avc-007",
+      "domain": "security",
+      "text": "Uma empresa precisa que diferentes microsserviços, rodando em contas AWS separadas, assumam temporariamente uma IAM Role em uma conta central para acessar um bucket S3 compartilhado, sem compartilhar credenciais de longo prazo. Qual mecanismo da AWS viabiliza essa 'cross-account access'?",
+      "options": [
+        "AWS STS AssumeRole, com uma trust policy na Role da conta central que confia nas contas de origem",
+        "Compartilhar a Access Key e Secret Key do usuário root da conta central",
+        "Tornar o bucket S3 totalmente público",
+        "Criar um usuário IAM idêntico em cada conta com a mesma senha"
+      ],
+      "correct": 0,
+      "explanation": "O AWS STS (Security Token Service), por meio da operação AssumeRole, permite que entidades de uma conta assumam temporariamente uma Role em outra conta, desde que a trust policy da Role permita essa relação — sem compartilhar credenciais de longo prazo."
+    },
+    {
+      "id": "dva-avc-008",
+      "domain": "deployment",
+      "text": "Uma aplicação usa o AWS CodeDeploy para implantar em um Auto Scaling Group, e a equipe quer que o deployment direcione uma pequena porcentagem do tráfego para a nova versão antes de liberar para todos, com rollback automático em caso de alarmes do CloudWatch. Qual configuração do CodeDeploy atende a esse requisito?",
+      "options": [
+        "Deployment in-place do tipo 'AllAtOnce'",
+        "Deployment Blue/Green com uma configuração de deployment 'Canary' ou 'Linear', associada a alarmes do CloudWatch para rollback automático",
+        "Deployment manual via SSH em cada instância",
+        "Desativar o Auto Scaling durante o deploy"
+      ],
+      "correct": 1,
+      "explanation": "Configurações de deployment Canary ou Linear no CodeDeploy (tipicamente em conjunto com Blue/Green) direcionam gradualmente o tráfego para a nova versão, e podem ser associadas a alarmes do CloudWatch para acionar rollback automático em caso de erro."
+    },
+    {
+      "id": "dva-avc-009",
+      "domain": "deployment",
+      "text": "Uma aplicação serverless definida em um template do AWS SAM precisa de diferentes configurações (variáveis de ambiente, tamanho de memória) para os ambientes de desenvolvimento, homologação e produção, mantendo um único template-base. Qual abordagem é mais recomendada?",
+      "options": [
+        "Criar um template SAM completamente separado e duplicado para cada ambiente, sem reutilização",
+        "Usar Parâmetros do CloudFormation/SAM e arquivos de configuração de ambiente (samconfig.toml) com diferentes 'profiles' para cada estágio de deploy",
+        "Hardcode os valores de produção diretamente no template e alterá-los manualmente antes de cada deploy",
+        "Não é possível ter múltiplos ambientes com SAM"
+      ],
+      "correct": 1,
+      "explanation": "O SAM/CloudFormation suporta Parâmetros para tornar templates reutilizáveis entre ambientes, e o arquivo samconfig.toml pode definir múltiplos 'profiles' (ambientes), cada um com seus próprios valores de parâmetros, evitando duplicação de templates."
+    },
+    {
+      "id": "dva-avc-010",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma função Lambda que processa imagens grandes está atingindo o tempo limite (timeout) configurado de 15 minutos e ocasionalmente falha por falta de espaço em '/tmp'. Considerando os limites do Lambda, qual é a abordagem mais adequada?",
+      "options": [
+        "Aumentar o timeout para mais de 15 minutos, pois não há limite máximo",
+        "Redesenhar o processo para usar um serviço mais adequado a tarefas longas/pesadas (como AWS Batch, ECS Fargate ou Step Functions com processamento distribuído), já que o Lambda tem limite máximo de 15 minutos de execução e armazenamento efêmero limitado em '/tmp'",
+        "Reduzir a memória alocada da função para liberar espaço em /tmp",
+        "Ignorar o erro, pois o Lambda reinicia automaticamente sem perda de dados"
+      ],
+      "correct": 1,
+      "explanation": "O AWS Lambda tem um limite máximo de execução de 15 minutos e armazenamento efêmero (/tmp) configurável até um limite máximo. Para processamento pesado e prolongado, serviços como AWS Batch, ECS/Fargate ou Step Functions com processamento distribuído são mais adequados."
+    },
+    {
+      "id": "dva-avc-011",
+      "domain": "troubleshooting-optimization",
+      "text": "Em um ambiente com múltiplos microsserviços instrumentados com AWS X-Ray, os traces mostram alta latência em chamadas para um serviço downstream, mas as métricas de CPU e memória desse serviço parecem normais. Qual é a próxima etapa mais eficaz de investigação usando X-Ray?",
+      "options": [
+        "Analisar os 'subsegments' do trace para identificar se a latência está em chamadas de rede externas (ex.: chamadas a outro serviço, banco de dados ou API externa) versus processamento interno",
+        "Aumentar imediatamente o tamanho da instância sem mais análise",
+        "Desativar o X-Ray, pois ele não pode ajudar nesse cenário",
+        "Verificar apenas os logs do CloudTrail"
+      ],
+      "correct": 0,
+      "explanation": "O X-Ray decompõe um trace em segmentos e subsegmentos, permitindo identificar exatamente onde o tempo é gasto — por exemplo, em uma chamada de rede para uma dependência externa — mesmo quando métricas de CPU/memória do serviço parecem normais."
+    },
+    {
+      "id": "dva-avc-012",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma aplicação que usa o Amazon SQS Standard está processando mensagens, mas o tempo de processamento de cada mensagem às vezes excede o 'Visibility Timeout' configurado, fazendo com que a mensagem reapareça na fila e seja processada por outro worker simultaneamente. Qual é a solução recomendada?",
+      "options": [
+        "Reduzir ainda mais o Visibility Timeout para que as mensagens reapareçam mais rápido",
+        "Usar a API ChangeMessageVisibility para estender dinamicamente o timeout durante o processamento de mensagens longas, ou aumentar o Visibility Timeout padrão para um valor maior que o tempo máximo esperado de processamento",
+        "Excluir a mensagem da fila antes de processá-la",
+        "Migrar imediatamente para o Amazon SNS, que não possui esse problema"
+      ],
+      "correct": 1,
+      "explanation": "Quando o processamento pode exceder o Visibility Timeout, a aplicação deve estendê-lo dinamicamente via ChangeMessageVisibility ou configurar um valor inicial maior que o tempo máximo de processamento esperado, evitando processamento duplicado."
+    }
+  ]
+}

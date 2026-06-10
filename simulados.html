@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulados AWS - KINK is not Kahoot</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/simulados.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/music-player.css">
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2 class="glitch-mini">KINK</h2>
+                <span>is not Kahoot</span>
+            </div>
+            <div class="nav-menu">
+                <a href="my-quizzes.html" class="nav-link">Meus Quizzes</a>
+                <a href="create-quiz.html" class="nav-link">Criar Quiz</a>
+                <a href="simulados.html" class="nav-link active">Simulados AWS</a>
+                <button id="logoutBtn" class="btn-logout">Sair</button>
+            </div>
+            <div class="user-info">
+                <span id="userName" style="display: none;"></span>
+                <div class="user-avatar" style="display: none;"></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>🎓 Simulados AWS</h1>
+            <p>Pratique para suas certificações com simulados que seguem a proporção oficial de domínios de cada exame</p>
+        </div>
+
+        <!-- Tela de Seleção -->
+        <div id="selectionScreen" class="simulado-screen active">
+            <div class="cert-grid" id="certGrid">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Carregando certificações...</p>
+                </div>
+            </div>
+
+            <div class="form-card simulado-config" id="simuladoConfig" style="display: none;">
+                <h3 id="configCertName">Configurar Simulado</h3>
+
+                <div class="level-selector" id="levelSelector"></div>
+
+                <div class="domain-preview" id="domainPreview"></div>
+
+                <div class="question-count-control">
+                    <label for="numQuestionsRange">Quantidade de perguntas (máx. <span id="maxQuestionsLabel">80</span>)</label>
+                    <input type="range" id="numQuestionsRange" min="5" max="80" value="20" step="1">
+                    <div class="question-count-value"><span id="numQuestionsValue">20</span> perguntas</div>
+                </div>
+
+                <button id="startSimuladoBtn" class="btn btn-primary btn-large">🚀 Iniciar Simulado</button>
+            </div>
+        </div>
+
+        <!-- Tela do Simulado -->
+        <div id="examScreen" class="simulado-screen">
+            <div class="exam-header">
+                <div class="exam-cert-badge" id="examCertBadge"></div>
+                <div class="exam-progress">
+                    <div class="exam-progress-bar"><div class="exam-progress-fill" id="examProgressFill"></div></div>
+                    <span id="examProgressLabel">Pergunta 1 de 20</span>
+                </div>
+            </div>
+
+            <div class="question-card exam-question-card">
+                <span class="exam-domain-tag" id="examDomainTag"></span>
+                <h2 id="examQuestionText">Carregando pergunta...</h2>
+            </div>
+
+            <div class="exam-options" id="examOptions"></div>
+
+            <div class="exam-question-dots" id="examQuestionDots"></div>
+
+            <div class="exam-nav">
+                <button id="prevQuestionBtn" class="btn btn-outline">⬅ Anterior</button>
+                <button id="nextQuestionBtn" class="btn btn-primary">Próxima ➡</button>
+            </div>
+
+            <button id="finishExamBtn" class="btn btn-success btn-large exam-finish-btn">🏁 Finalizar Simulado</button>
+        </div>
+
+        <!-- Tela de Resultado -->
+        <div id="resultScreen" class="simulado-screen">
+            <div class="result-summary form-card">
+                <div class="result-score-circle" id="resultScoreCircle">
+                    <span id="resultScorePercent">0%</span>
+                </div>
+                <h2 id="resultTitle"></h2>
+                <p id="resultSubtitle"></p>
+            </div>
+
+            <div class="form-card">
+                <h3>📊 Desempenho por Domínio</h3>
+                <div class="domain-breakdown" id="domainBreakdown"></div>
+            </div>
+
+            <div class="form-card">
+                <h3>📋 Revisão das Perguntas</h3>
+                <div class="review-list" id="reviewList"></div>
+            </div>
+
+            <div class="quiz-form-actions">
+                <button id="restartSimuladoBtn" class="btn btn-primary btn-large">🔄 Fazer outro Simulado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação para finalizar -->
+    <div id="confirmFinishModal" class="modal">
+        <div class="modal-content">
+            <h2>Finalizar Simulado?</h2>
+            <p id="confirmFinishMessage"></p>
+            <div class="modal-buttons">
+                <button id="confirmFinishYes" class="btn btn-success">Sim, finalizar</button>
+                <button id="confirmFinishNo" class="btn btn-outline">Continuar respondendo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+    <!-- Scripts do projeto -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/simulados.js"></script>
+
+    <!-- Music Player -->
+    <script src="js/music-player.js"></script>
+
+    <!-- Version Control -->
+    <script src="js/version-check.js"></script>
+</body>
+</html>

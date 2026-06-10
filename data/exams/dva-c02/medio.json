@@ -1,0 +1,169 @@
+{
+  "certCode": "DVA-C02",
+  "certName": "AWS Certified Developer - Associate",
+  "level": "medio",
+  "domains": [
+    { "id": "development-aws-services", "name": "Desenvolvimento com Serviços AWS", "weight": 0.32 },
+    { "id": "security", "name": "Segurança", "weight": 0.26 },
+    { "id": "deployment", "name": "Implantação (Deployment)", "weight": 0.24 },
+    { "id": "troubleshooting-optimization", "name": "Solução de Problemas e Otimização", "weight": 0.18 }
+  ],
+  "questions": [
+    {
+      "id": "dva-med-001",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda precisa processar registros de um stream do Amazon Kinesis em lotes, mantendo a ordem dentro de cada shard. Qual modelo de invocação o Lambda utiliza nesse caso?",
+      "options": [
+        "Invocação assíncrona com DLQ obrigatória",
+        "Invocação por polling (event source mapping), processando registros em lote por shard, na ordem em que chegam",
+        "Invocação síncrona via API Gateway apenas",
+        "Invocação manual via console a cada novo registro"
+      ],
+      "correct": 1,
+      "explanation": "Para fontes como Kinesis e DynamoDB Streams, o Lambda usa um event source mapping que faz polling dos registros e os processa em lotes, mantendo a ordem dentro de cada shard."
+    },
+    {
+      "id": "dva-med-002",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação usa o DynamoDB e precisa executar uma operação que leia o valor atual de um item e o atualize apenas se ele não tiver sido alterado por outro processo, evitando condições de corrida. Qual recurso deve ser usado?",
+      "options": [
+        "Scan completo da tabela antes de cada escrita",
+        "Operações condicionais de escrita (Conditional Writes / ConditionExpression)",
+        "Aumentar a capacidade provisionada da tabela",
+        "Usar apenas o DynamoDB Streams"
+      ],
+      "correct": 1,
+      "explanation": "As operações condicionais (ConditionExpression) do DynamoDB permitem que uma escrita só ocorra se uma condição sobre o estado atual do item for satisfeita, evitando condições de corrida (optimistic locking)."
+    },
+    {
+      "id": "dva-med-003",
+      "domain": "development-aws-services",
+      "text": "Uma API criada com o Amazon API Gateway precisa armazenar em cache as respostas de determinados endpoints para reduzir a carga no backend e a latência. Qual recurso nativo do API Gateway permite isso?",
+      "options": [
+        "API Gateway Caching, configurável por estágio (stage)",
+        "Amazon ElastiCache obrigatoriamente integrado manualmente",
+        "AWS X-Ray",
+        "Amazon CloudFront apenas, sem suporte nativo do API Gateway"
+      ],
+      "correct": 0,
+      "explanation": "O API Gateway possui um recurso nativo de cache por estágio, que armazena respostas de endpoints por um TTL configurável, reduzindo chamadas ao backend."
+    },
+    {
+      "id": "dva-med-004",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação precisa processar mensagens do SQS em paralelo, mas garantir que mensagens com o mesmo 'MessageGroupId' sejam processadas em ordem e sem duplicação. Qual tipo de fila deve ser usado?",
+      "options": [
+        "Fila SQS Standard",
+        "Fila SQS FIFO (First-In-First-Out)",
+        "Amazon SNS Topic",
+        "Amazon Kinesis Data Firehose"
+      ],
+      "correct": 1,
+      "explanation": "Filas SQS FIFO garantem ordenação estrita dentro de cada MessageGroupId e oferecem deduplicação de mensagens, ao contrário das filas Standard."
+    },
+    {
+      "id": "dva-med-005",
+      "domain": "security",
+      "text": "Uma aplicação web usa o Amazon Cognito User Pools para autenticação. Após o login, como a aplicação deve validar que um token JWT recebido do cliente é autêntico e não expirou?",
+      "options": [
+        "Confiar no token sem validação, pois o Cognito já validou no login",
+        "Verificar a assinatura do token usando as chaves públicas (JWKS) do User Pool e validar os claims (exp, iss, aud)",
+        "Armazenar o token em um cookie sem atributo HttpOnly",
+        "Decodificar o token em Base64 e considerar válido se o JSON estiver bem formado"
+      ],
+      "correct": 1,
+      "explanation": "Tokens JWT do Cognito devem ser validados verificando a assinatura com as chaves públicas (JWKS) do User Pool e checando claims como expiração (exp), emissor (iss) e audiência (aud)."
+    },
+    {
+      "id": "dva-med-006",
+      "domain": "security",
+      "text": "Uma função Lambda precisa acessar um banco de dados RDS dentro de uma VPC privada, e também precisa chamar a API pública do DynamoDB. Qual configuração permite ambos os acessos?",
+      "options": [
+        "Configurar a Lambda em sub-redes privadas da VPC com um NAT Gateway, ou usar um VPC Endpoint para o DynamoDB",
+        "Configurar a Lambda fora da VPC apenas",
+        "Não é possível uma Lambda em VPC acessar serviços AWS fora da VPC",
+        "Usar apenas Security Groups, sem rotas de saída"
+      ],
+      "correct": 0,
+      "explanation": "Uma Lambda associada a uma VPC pode acessar recursos privados (como RDS); para acessar serviços AWS públicos como o DynamoDB, é necessário um NAT Gateway nas sub-redes privadas ou, preferencialmente, um VPC Endpoint (Gateway Endpoint) para o DynamoDB."
+    },
+    {
+      "id": "dva-med-007",
+      "domain": "security",
+      "text": "Uma aplicação precisa armazenar a string de conexão de um banco de dados, incluindo usuário e senha, e essa senha deve poder ser rotacionada automaticamente sem alterar o código da aplicação. Qual serviço é mais adequado?",
+      "options": [
+        "AWS Systems Manager Parameter Store (Standard, sem rotação automática nativa)",
+        "AWS Secrets Manager, com rotação automática configurada via Lambda",
+        "Variáveis de ambiente fixas no código-fonte",
+        "Arquivo de configuração versionado no repositório Git"
+      ],
+      "correct": 1,
+      "explanation": "O AWS Secrets Manager suporta rotação automática de credenciais (incluindo bancos de dados RDS) por meio de funções Lambda integradas, sem exigir alterações no código da aplicação."
+    },
+    {
+      "id": "dva-med-008",
+      "domain": "deployment",
+      "text": "Uma equipe usa o AWS Elastic Beanstalk e quer atualizar a aplicação para uma nova versão minimizando o tempo de inatividade, mantendo a versão antiga disponível para rollback rápido. Qual política de deployment é mais adequada?",
+      "options": [
+        "All at once",
+        "Blue/Green (ambiente separado com troca de URL/CNAME)",
+        "Rolling com 100% do batch size de uma vez",
+        "Recriar (Recreate) o ambiente do zero a cada deploy"
+      ],
+      "correct": 1,
+      "explanation": "A estratégia Blue/Green cria um novo ambiente (verde) com a nova versão, testa-o, e então troca o CNAME para apontar para ele, permitindo rollback rápido revertendo o CNAME se necessário."
+    },
+    {
+      "id": "dva-med-009",
+      "domain": "deployment",
+      "text": "Em um pipeline de CI/CD com AWS CodePipeline, qual serviço é tipicamente usado para compilar o código-fonte, executar testes e gerar artefatos (como pacotes ou imagens de contêiner)?",
+      "options": [
+        "AWS CodeBuild",
+        "AWS CodeCommit",
+        "Amazon CloudFront",
+        "AWS Direct Connect"
+      ],
+      "correct": 0,
+      "explanation": "O AWS CodeBuild é o serviço de build gerenciado que compila código-fonte, executa testes e produz artefatos prontos para deploy, geralmente como uma etapa do CodePipeline."
+    },
+    {
+      "id": "dva-med-010",
+      "domain": "deployment",
+      "text": "Uma aplicação serverless é definida usando o AWS SAM (Serverless Application Model). O que o comando 'sam deploy' faz, em termos gerais?",
+      "options": [
+        "Executa testes unitários localmente apenas",
+        "Empacota o template SAM, faz upload dos artefatos e cria/atualiza uma stack do CloudFormation com os recursos definidos",
+        "Apenas compila o código sem criar recursos",
+        "Remove todos os recursos da aplicação"
+      ],
+      "correct": 1,
+      "explanation": "O AWS SAM é uma extensão do CloudFormation; 'sam deploy' empacota o código, faz upload para o S3 e cria/atualiza uma stack do CloudFormation com os recursos (Lambdas, APIs, tabelas) definidos no template."
+    },
+    {
+      "id": "dva-med-011",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma função Lambda está apresentando 'cold starts' frequentes que impactam a latência percebida pelos usuários em uma API crítica. Qual recurso ajuda a mitigar esse problema mantendo instâncias 'aquecidas'?",
+      "options": [
+        "Provisioned Concurrency",
+        "Aumentar o tempo de timeout da função para 15 minutos",
+        "Reduzir a memória alocada da função ao mínimo",
+        "Desativar o versionamento da função"
+      ],
+      "correct": 0,
+      "explanation": "O Provisioned Concurrency mantém um número definido de ambientes de execução do Lambda inicializados e prontos para responder imediatamente, reduzindo o impacto dos cold starts."
+    },
+    {
+      "id": "dva-med-012",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma aplicação registra logs no Amazon CloudWatch Logs, mas o volume de logs está gerando custos elevados de armazenamento. Qual configuração ajuda a controlar esse custo sem perder logs recentes importantes?",
+      "options": [
+        "Definir uma política de retenção (retention policy) no log group para expirar logs antigos automaticamente",
+        "Desativar completamente o CloudWatch Logs",
+        "Aumentar a memória da função Lambda",
+        "Usar apenas o AWS X-Ray em vez de logs"
+      ],
+      "correct": 0,
+      "explanation": "Definir uma política de retenção no log group do CloudWatch (por exemplo, 30 ou 90 dias) faz com que logs mais antigos sejam excluídos automaticamente, controlando custos de armazenamento."
+    }
+  ]
+}
