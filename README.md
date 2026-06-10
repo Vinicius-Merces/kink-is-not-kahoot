@@ -122,7 +122,7 @@ Gere uma nova chave em Configurações do Projeto → Contas de Serviço → Ger
 
 Local: salve como serviceAccountKey.json na raiz do projeto (já está no .gitignore)
 
-Produção (recomendado): defina a variável de ambiente FIREBASE_SERVICE_ACCOUNT com o conteúdo do JSON em uma única linha (veja .env.example)
+Produção (recomendado): defina a variável de ambiente FIREBASE_SERVICE_ACCOUNT_BASE64 com o JSON da service account codificado em Base64 (gere com node scripts/print-firebase-env.js, veja .env.example)
 
 Execute localmente
 
@@ -138,7 +138,7 @@ name = kink-is-not-kahoot
 node = 20
 main = server.js
 memory = 512
-No painel do SquareCloud, defina a variável de ambiente FIREBASE_SERVICE_ACCOUNT com o JSON da service account (não envie serviceAccountKey.json no .zip)
+No painel do SquareCloud, defina a variável de ambiente FIREBASE_SERVICE_ACCOUNT_BASE64 com o valor gerado por node scripts/print-firebase-env.js (não envie serviceAccountKey.json no .zip)
 
 Crie um .zip do projeto (excluindo node_modules)
 

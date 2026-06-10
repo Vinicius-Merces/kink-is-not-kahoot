@@ -11,10 +11,15 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 
 // Credenciais via variável de ambiente (produção) ou arquivo local (dev)
+// FIREBASE_SERVICE_ACCOUNT_BASE64 é o formato recomendado: evita problemas
+// de parsing em paineis que nao aceitam espacos/aspas em variaveis de ambiente.
 let db = null;
 try {
     let serviceAccount;
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+        const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf-8');
+        serviceAccount = JSON.parse(json);
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } else {
         serviceAccount = require('./serviceAccountKey.json');
@@ -25,7 +30,7 @@ try {
     db = admin.firestore();
     console.log('✅ Firebase Admin inicializado');
 } catch (error) {
-    console.log('⚠️ Firebase Admin não configurado (defina FIREBASE_SERVICE_ACCOUNT ou crie serviceAccountKey.json)');
+    console.log('⚠️ Firebase Admin não configurado (defina FIREBASE_SERVICE_ACCOUNT_BASE64 ou crie serviceAccountKey.json)');
     console.log('   O jogo funcionará sem persistência no Firestore');
 }
 
