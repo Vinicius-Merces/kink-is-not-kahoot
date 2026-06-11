@@ -8,7 +8,12 @@
 // Uso:
 //   node generate.js --dry-run                                  (mostra o plano, sem chamar a API)
 //   node generate.js --certs=clf-c02 --levels=iniciante         (gera só essa pool)
-//   node generate.js --target=240 --batch=10 --delay=15000      (parâmetros completos)
+//   node generate.js --target=240 --batch=15 --delay=15000      (parâmetros completos)
+//
+// O plano Free do Gemini tem dois limites: por minuto (RPM) e por dia (RPD).
+// O delay entre chamadas cuida do RPM. Se a API retornar "quota exceeded"
+// do tipo "PerDay", o script PARA imediatamente (não adianta tentar de novo
+// no mesmo dia) e pode ser retomado no dia seguinte de onde parou.
 //
 // Variáveis de ambiente (definir em .env na raiz do projeto):
 //   GEMINI_API_KEY  - obrigatória (exceto em --dry-run)
@@ -20,8 +25,9 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 const { GoogleGenAI } = require('@google/genai');
 
 const { listPools, loadPool, getNextSeqNumber, computePlan } = require('./lib/pools');
-const { LEVEL_LABELS, ID_PREFIXES, FOCUS_TOPICS } = require('./lib/topics');
+const { LEVEL_LABELS, ID_PREFIXES, pickFocusTopics } = require('./lib/topics');
 const { QUESTION_BATCH_SCHEMA, buildSystemInstruction, buildPrompt } = require('./lib/prompt');
+const { validateQuestions, convertQuestion } = require('./lib/convert');
 
 const OUTPUT_DIR = path.join(__dirname, 'output');
 
@@ -38,7 +44,7 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 
 const TARGET_TOTAL = parseInt(args.target, 10) || 240;
-const BATCH_SIZE = Math.max(1, parseInt(args.batch, 10) || 10);
+const BATCH_SIZE = Math.max(1, parseInt(args.batch, 10) || 15);
 const DELAY_MS = Math.max(0, parseInt(args.delay, 10) || 15000);
 const MAX_RETRIES = Math.max(1, parseInt(args.retries, 10) || 3);
 const MODEL = args.model || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -62,47 +68,39 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Mantém apenas questões com exatamente 4 alternativas e 1 correta
-function validateQuestions(list) {
-    if (!Array.isArray(list)) return [];
-    return list.filter(q => {
-        if (!q || typeof q.question !== 'string' || !q.question.trim()) return false;
-        if (!Array.isArray(q.answerOptions) || q.answerOptions.length !== 4) return false;
-        const correctCount = q.answerOptions.filter(o => o && o.isCorrect === true).length;
-        if (correctCount !== 1) return false;
-        if (q.answerOptions.some(o => !o.text || !o.rationale)) return false;
-        return true;
-    });
-}
+// Lançado quando a cota DIÁRIA do modelo se esgota (não adianta tentar de
+// novo no mesmo dia - precisa parar e retomar depois que a cota resetar).
+class DailyQuotaExceededError extends Error {}
 
-// Converte o formato retornado pelo Gemini para o formato usado em data/exams/*.json
-function convertQuestion(raw, domainId, idPrefix, seqNumber) {
-    const correctIndex = raw.answerOptions.findIndex(o => o.isCorrect === true);
-    if (correctIndex === -1) return null;
-
-    return {
-        id: `${idPrefix}-${String(seqNumber).padStart(3, '0')}`,
-        domain: domainId,
-        text: raw.question.trim(),
-        options: raw.answerOptions.map(o => o.text.trim()),
-        correct: correctIndex,
-        explanation: raw.answerOptions[correctIndex].rationale.trim(),
-        hint: (raw.hint || '').trim(),
-        optionRationales: raw.answerOptions.map(o => (o.rationale || '').trim())
-    };
-}
-
-// Seleciona um subconjunto rotativo de tópicos de foco para variar os lotes
-function pickFocusTopics(domainId, batchIndex, count) {
-    const topics = FOCUS_TOPICS[domainId];
-    if (!topics || topics.length === 0) return [];
-    const size = Math.min(count, topics.length, 6);
-    const start = (batchIndex * size) % topics.length;
-    const picked = [];
-    for (let i = 0; i < size; i++) {
-        picked.push(topics[(start + i) % topics.length]);
+// Extrai informações úteis do erro retornado pelo SDK do Gemini:
+// - retryDelaySeconds: tempo sugerido pela própria API antes de tentar de novo
+// - isDailyQuota: true se o erro for de cota por DIA (RPD), não por minuto (RPM)
+function parseApiError(error) {
+    let parsed;
+    try {
+        parsed = JSON.parse(error.message);
+    } catch (_) {
+        return { message: error.message, retryDelaySeconds: null, isDailyQuota: false };
     }
-    return picked;
+
+    const err = parsed && parsed.error;
+    if (!err) return { message: error.message, retryDelaySeconds: null, isDailyQuota: false };
+
+    let retryDelaySeconds = null;
+    let isDailyQuota = false;
+    for (const detail of err.details || []) {
+        if (detail['@type'] === 'type.googleapis.com/google.rpc.RetryInfo' && detail.retryDelay) {
+            const m = /^([\d.]+)s$/.exec(detail.retryDelay);
+            if (m) retryDelaySeconds = parseFloat(m[1]);
+        }
+        if (detail['@type'] === 'type.googleapis.com/google.rpc.QuotaFailure') {
+            for (const v of detail.violations || []) {
+                if (v.quotaId && /PerDay/i.test(v.quotaId)) isDailyQuota = true;
+            }
+        }
+    }
+
+    return { message: err.message || error.message, retryDelaySeconds, isDailyQuota };
 }
 
 async function generateBatch(opts) {
@@ -116,7 +114,7 @@ async function generateBatch(opts) {
                 contents: prompt,
                 config: {
                     systemInstruction,
-                    temperature: 0.4,
+                    temperature: 0.3,
                     responseMimeType: 'application/json',
                     responseSchema: QUESTION_BATCH_SCHEMA
                 }
@@ -127,8 +125,19 @@ async function generateBatch(opts) {
             if (valid.length === 0) throw new Error('Nenhuma questão válida retornada pelo modelo');
             return valid;
         } catch (error) {
-            console.error(`     ⚠️ tentativa ${attempt}/${MAX_RETRIES} falhou: ${error.message}`);
-            if (attempt < MAX_RETRIES) await sleep(DELAY_MS);
+            const info = parseApiError(error);
+
+            if (info.isDailyQuota) {
+                throw new DailyQuotaExceededError(info.message);
+            }
+
+            console.error(`     ⚠️ tentativa ${attempt}/${MAX_RETRIES} falhou: ${info.message}`);
+            if (attempt < MAX_RETRIES) {
+                const wait = info.retryDelaySeconds != null
+                    ? Math.ceil(info.retryDelaySeconds * 1000) + 1000
+                    : DELAY_MS;
+                await sleep(wait);
+            }
         }
     }
 
@@ -223,7 +232,17 @@ async function main() {
     }
 
     for (const { certId, level, filePath } of pools) {
-        await processPool(certId, level, filePath);
+        try {
+            await processPool(certId, level, filePath);
+        } catch (error) {
+            if (error instanceof DailyQuotaExceededError) {
+                console.log(`\n⏸️  Cota DIÁRIA do modelo "${MODEL}" esgotada: ${error.message}`);
+                console.log('   O progresso já foi salvo em output/. A cota da Google reseta a cada 24h.');
+                console.log('   Rode "node generate.js" novamente amanhã para continuar de onde parou.');
+                return;
+            }
+            throw error;
+        }
     }
 
     console.log(DRY_RUN ? '\n✅ Plano exibido (dry-run, nada foi gerado).' : '\n✅ Concluído. Revise output/ e rode merge.js para incorporar às pools.');

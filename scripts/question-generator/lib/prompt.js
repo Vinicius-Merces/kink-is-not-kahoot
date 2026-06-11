@@ -72,4 +72,35 @@ function buildPrompt({ certName, certCode, levelLabel, domainName, count, existi
     return lines.join('\n');
 }
 
-module.exports = { QUESTION_BATCH_SCHEMA, buildSystemInstruction, buildPrompt };
+// Versão "tudo em um" para colar direto no chat web do Gemini (AI Studio /
+// gemini.google.com), onde não há responseSchema configurável: o formato
+// exigido precisa ser descrito explicitamente no texto do prompt.
+function buildManualPrompt(opts) {
+    const systemInstruction = buildSystemInstruction(opts.certCode, opts.certName);
+    const prompt = buildPrompt(opts);
+
+    const formatSpec = [
+        'Responda SOMENTE com um JSON válido (sem texto antes/depois, sem ```), seguindo EXATAMENTE este formato:',
+        '',
+        '{',
+        '  "questions": [',
+        '    {',
+        '      "question": "texto da pergunta",',
+        '      "answerOptions": [',
+        '        { "text": "alternativa 1", "rationale": "explicação desta alternativa", "isCorrect": true },',
+        '        { "text": "alternativa 2", "rationale": "explicação desta alternativa", "isCorrect": false },',
+        '        { "text": "alternativa 3", "rationale": "explicação desta alternativa", "isCorrect": false },',
+        '        { "text": "alternativa 4", "rationale": "explicação desta alternativa", "isCorrect": false }',
+        '      ],',
+        '      "hint": "dica curta, sem entregar a resposta"',
+        '    }',
+        '  ]',
+        '}',
+        '',
+        'Regras do JSON: exatamente 4 itens em "answerOptions", exatamente 1 com "isCorrect": true, e o array "questions" deve ter o número de itens pedido acima.'
+    ].join('\n');
+
+    return [systemInstruction, '', '---', '', prompt, '', '---', '', formatSpec].join('\n');
+}
+
+module.exports = { QUESTION_BATCH_SCHEMA, buildSystemInstruction, buildPrompt, buildManualPrompt };

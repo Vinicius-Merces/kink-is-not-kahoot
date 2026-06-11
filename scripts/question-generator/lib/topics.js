@@ -187,4 +187,17 @@ const FOCUS_TOPICS = {
     ]
 };
 
-module.exports = { LEVEL_LABELS, ID_PREFIXES, FOCUS_TOPICS };
+// Seleciona um subconjunto rotativo de tópicos de foco para variar os lotes
+function pickFocusTopics(domainId, batchIndex, count) {
+    const topics = FOCUS_TOPICS[domainId];
+    if (!topics || topics.length === 0) return [];
+    const size = Math.min(count, topics.length, 6);
+    const start = (batchIndex * size) % topics.length;
+    const picked = [];
+    for (let i = 0; i < size; i++) {
+        picked.push(topics[(start + i) % topics.length]);
+    }
+    return picked;
+}
+
+module.exports = { LEVEL_LABELS, ID_PREFIXES, FOCUS_TOPICS, pickFocusTopics };

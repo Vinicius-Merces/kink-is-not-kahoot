@@ -49,7 +49,7 @@ node generate.js
 node generate.js --certs=clf-c02 --levels=iniciante
 
 # parâmetros customizados
-node generate.js --certs=saa-c03 --levels=avancado --target=240 --batch=10 --delay=15000
+node generate.js --certs=saa-c03 --levels=avancado --target=240 --batch=15 --delay=15000
 ```
 
 Parâmetros aceitos (todos opcionais):
@@ -57,8 +57,8 @@ Parâmetros aceitos (todos opcionais):
 | Flag           | Padrão            | Descrição                                                       |
 | -------------- | ----------------- | ---------------------------------------------------------------- |
 | `--target`     | `240`              | Total de questões desejado por pool (cert + nível)                |
-| `--batch`      | `10`               | Quantas questões pedir por chamada à API                          |
-| `--delay`      | `15000` (15s)      | Pausa entre chamadas, para respeitar o limite do plano Free       |
+| `--batch`      | `15`               | Quantas questões pedir por chamada à API                          |
+| `--delay`      | `15000` (15s)      | Pausa entre chamadas, para respeitar o limite por minuto (RPM)    |
 | `--retries`    | `3`                | Tentativas por lote em caso de erro/JSON inválido                 |
 | `--model`      | `gemini-2.5-flash` | Modelo do Gemini a usar                                           |
 | `--certs`      | (todos)            | Filtra por cert(s), separados por vírgula (ex: `clf-c02,saa-c03`) |
@@ -69,6 +69,22 @@ Parâmetros aceitos (todos opcionais):
 O progresso é salvo a cada lote em
 `output/{certId}-{level}.generated.json`, então o processo pode ser
 interrompido (Ctrl+C) e retomado depois — ele continua de onde parou.
+
+### Limites do plano Free (RPM x RPD)
+
+O plano Free do Gemini tem dois limites independentes:
+
+- **RPM** (requisições por minuto): controlado pelo `--delay` (15s entre
+  chamadas é suficiente).
+- **RPD** (requisições por dia): um limite fixo que **reseta a cada ~24h** e
+  não tem como ser "esperado" dentro da mesma execução.
+
+Se a API responder com erro de cota do tipo `...PerDay...`, o script **para
+imediatamente** (todo o progresso já está salvo em `output/`) e imprime uma
+mensagem avisando para rodar `node generate.js` novamente no dia seguinte —
+ele continua exatamente de onde parou. Erros de cota por minuto ou de
+sobrecarga do modelo (`UNAVAILABLE`/503) são tratados normalmente com
+retentativas.
 
 ## 5. Revisar e mergear na base oficial
 
