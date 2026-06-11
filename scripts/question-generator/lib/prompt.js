@@ -80,7 +80,7 @@ function buildManualPrompt(opts) {
     const prompt = buildPrompt(opts);
 
     const formatSpec = [
-        'Responda SOMENTE com um JSON válido (sem texto antes/depois, sem ```), seguindo EXATAMENTE este formato:',
+        'Responda SOMENTE com um bloco de código JSON válido, delimitado por ```json no início e ``` no final (sem nenhum texto antes ou depois do bloco), seguindo EXATAMENTE este formato:',
         '',
         '{',
         '  "questions": [',
