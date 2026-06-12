@@ -3,10 +3,26 @@
   "certName": "AWS Certified Solutions Architect - Associate",
   "level": "medio",
   "domains": [
-    { "id": "secure-architectures", "name": "Projetar Arquiteturas Seguras", "weight": 0.30 },
-    { "id": "resilient-architectures", "name": "Projetar Arquiteturas Resilientes", "weight": 0.26 },
-    { "id": "high-performing-architectures", "name": "Projetar Arquiteturas de Alto Desempenho", "weight": 0.24 },
-    { "id": "cost-optimized-architectures", "name": "Projetar Arquiteturas Otimizadas em Custo", "weight": 0.20 }
+    {
+      "id": "secure-architectures",
+      "name": "Projetar Arquiteturas Seguras",
+      "weight": 0.3
+    },
+    {
+      "id": "resilient-architectures",
+      "name": "Projetar Arquiteturas Resilientes",
+      "weight": 0.26
+    },
+    {
+      "id": "high-performing-architectures",
+      "name": "Projetar Arquiteturas de Alto Desempenho",
+      "weight": 0.24
+    },
+    {
+      "id": "cost-optimized-architectures",
+      "name": "Projetar Arquiteturas Otimizadas em Custo",
+      "weight": 0.2
+    }
   ],
   "questions": [
     {
@@ -164,6 +180,1766 @@
       ],
       "correct": 0,
       "explanation": "O Fargate Spot oferece tarefas do ECS com desconto significativo em relação ao Fargate padrão, sendo adequado para cargas de trabalho tolerantes a interrupções."
+    },
+    {
+      "id": "saa-med-013",
+      "domain": "secure-architectures",
+      "text": "Uma plataforma permite que clientes baixem relatórios privados armazenados em um bucket S3 que bloqueia todo acesso público. A aplicação precisa fornecer a cada cliente um link temporário, válido por 15 minutos, para baixar apenas o seu relatório, sem alterar as permissões do bucket. Qual mecanismo do S3 atende a esse requisito?",
+      "options": [
+        "URLs pré-assinadas (presigned URLs) geradas pela aplicação com validade definida",
+        "Tornar o bucket público durante a janela de download",
+        "Criar um usuário IAM para cada cliente com acesso ao bucket",
+        "Habilitar versionamento no bucket"
+      ],
+      "correct": 0,
+      "explanation": "Presigned URLs carregam uma assinatura temporária baseada nas credenciais de quem as gera, concedendo acesso pontual a um objeto específico por tempo limitado, sem tocar nas políticas do bucket.",
+      "hint": "Pense no link que carrega uma 'autorização com prazo de validade' embutida na própria URL.",
+      "optionRationales": [
+        "Presigned URLs carregam uma assinatura temporária baseada nas credenciais de quem as gera, concedendo acesso pontual a um objeto específico por tempo limitado, sem tocar nas políticas do bucket.",
+        "Expor o bucket inteiro publicamente, ainda que por minutos, entregaria todos os relatórios de todos os clientes a qualquer pessoa na internet.",
+        "Criar identidades IAM para clientes externos é inviável em escala e contraria o propósito do IAM, voltado a identidades internas e cargas de trabalho.",
+        "O versionamento preserva versões de objetos contra alterações acidentais — não concede acesso temporário a objetos privados."
+      ]
+    },
+    {
+      "id": "saa-med-014",
+      "domain": "secure-architectures",
+      "text": "Um site estático hospedado no S3 é distribuído via CloudFront. O time de segurança descobriu que usuários conseguem contornar o CloudFront acessando os objetos diretamente pela URL do bucket. Qual é a forma recomendada de garantir que o conteúdo só seja servido através da distribuição do CloudFront?",
+      "options": [
+        "Configurar Origin Access Control (OAC) na distribuição e restringir a bucket policy para aceitar somente requisições do CloudFront",
+        "Habilitar o versionamento do bucket para ocultar as URLs",
+        "Mover os objetos para a classe S3 Glacier",
+        "Usar nomes de objetos longos e aleatórios como proteção"
+      ],
+      "correct": 0,
+      "explanation": "O OAC faz o CloudFront assinar as requisições à origem; combinado com uma bucket policy que só autoriza esse principal, o acesso direto ao bucket é bloqueado e todo o tráfego passa pela distribuição.",
+      "hint": "A origem deve confiar apenas em um 'carimbo' que só a distribuição possui — qual recurso moderno faz essa assinatura?",
+      "optionRationales": [
+        "O OAC faz o CloudFront assinar as requisições à origem; combinado com uma bucket policy que só autoriza esse principal, o acesso direto ao bucket é bloqueado e todo o tráfego passa pela distribuição.",
+        "Versionamento não esconde nem restringe URLs — objetos continuariam acessíveis diretamente.",
+        "Mudar a classe de armazenamento afetaria a disponibilidade do site, sem qualquer relação com restringir o caminho de acesso.",
+        "Segurança por obscuridade não é controle de acesso: URLs vazam em logs e históricos, e o acesso direto continuaria tecnicamente permitido."
+      ]
+    },
+    {
+      "id": "saa-med-015",
+      "domain": "secure-architectures",
+      "text": "Uma equipe de plataforma permite que desenvolvedores criem suas próprias IAM Roles para aplicações, mas quer garantir que nenhuma role criada por eles ultrapasse um teto de permissões definido (por exemplo, jamais acessar o serviço de faturamento), mesmo que a política anexada seja ampla. Qual recurso do IAM impõe esse teto?",
+      "options": [
+        "Permissions boundary (limite de permissões) anexado às roles criadas pelos desenvolvedores",
+        "Política inline com Allow amplo em cada role",
+        "Grupos IAM contendo todas as roles",
+        "Tags de custo nas roles criadas"
+      ],
+      "correct": 0,
+      "explanation": "O permissions boundary define o máximo de permissões efetivas de uma identidade: a permissão final é a interseção entre a política anexada e o boundary, impedindo escalada além do teto estabelecido.",
+      "hint": "Pense na 'moldura' que delimita até onde as permissões de uma identidade podem chegar, independentemente das políticas anexadas.",
+      "optionRationales": [
+        "O permissions boundary define o máximo de permissões efetivas de uma identidade: a permissão final é a interseção entre a política anexada e o boundary, impedindo escalada além do teto estabelecido.",
+        "Uma política de Allow amplo faz o oposto: aumenta permissões em vez de limitá-las a um teto.",
+        "Grupos IAM agrupam apenas usuários (roles não entram em grupos) e servem para conceder permissões em lote, não para impor limites.",
+        "Tags categorizam recursos para organização e custos — não influenciam a avaliação de permissões."
+      ]
+    },
+    {
+      "id": "saa-med-016",
+      "domain": "secure-architectures",
+      "text": "Uma arquitetura de três camadas tem instâncias web públicas e instâncias de aplicação privadas. O requisito é que a camada de aplicação aceite tráfego na porta 8080 vindo exclusivamente das instâncias web — mesmo que novas instâncias web sejam criadas ou substituídas pelo Auto Scaling com IPs diferentes. Qual configuração de Security Group atende a isso de forma dinâmica?",
+      "options": [
+        "No Security Group da camada de aplicação, criar uma regra de entrada na porta 8080 tendo como origem o ID do Security Group da camada web",
+        "Listar os IPs privados atuais das instâncias web na regra de entrada",
+        "Liberar a porta 8080 para 0.0.0.0/0 e confiar na sub-rede privada",
+        "Usar uma Network ACL permitindo a porta 8080 de toda a VPC"
+      ],
+      "correct": 0,
+      "explanation": "Security Groups podem referenciar outros Security Groups como origem: qualquer instância associada ao SG web é automaticamente autorizada, sem depender de IPs fixos — o padrão para camadas dinâmicas.",
+      "hint": "Em vez de confiar em endereços que mudam, a regra pode confiar no 'crachá de grupo' das instâncias de origem.",
+      "optionRationales": [
+        "Security Groups podem referenciar outros Security Groups como origem: qualquer instância associada ao SG web é automaticamente autorizada, sem depender de IPs fixos — o padrão para camadas dinâmicas.",
+        "IPs fixos quebram quando o Auto Scaling substitui instâncias — a regra ficaria desatualizada constantemente.",
+        "Abrir para qualquer origem viola o menor privilégio: qualquer recurso que alcance a rede poderia acessar a camada de aplicação.",
+        "NACLs operam por faixas de IP na sub-rede e não conseguem restringir a origem a um grupo dinâmico de instâncias específicas."
+      ]
+    },
+    {
+      "id": "saa-med-017",
+      "domain": "secure-architectures",
+      "text": "Após adicionar regras de entrada em uma Network ACL para permitir tráfego HTTPS (porta 443) a uma sub-rede, as respostas das instâncias para os clientes pararam de sair. O Security Group está correto. Qual característica das NACLs explica o problema e qual é a correção?",
+      "options": [
+        "NACLs são stateless: é preciso criar também regras de SAÍDA permitindo as portas efêmeras (1024-65535) usadas nas respostas",
+        "NACLs são stateful e a regra de entrada já deveria liberar a resposta; o problema é do Security Group",
+        "NACLs bloqueiam HTTPS por padrão e isso não pode ser alterado",
+        "A porta 443 só pode ser liberada em Security Groups, nunca em NACLs"
+      ],
+      "correct": 0,
+      "explanation": "Por serem stateless, NACLs avaliam cada direção independentemente: o tráfego de resposta sai por portas efêmeras do cliente e precisa de regra de saída explícita — diferentemente dos Security Groups, que são stateful.",
+      "hint": "Quem não guarda memória da conexão precisa de autorização para a ida E para a volta — e a volta usa portas altas.",
+      "optionRationales": [
+        "Por serem stateless, NACLs avaliam cada direção independentemente: o tráfego de resposta sai por portas efêmeras do cliente e precisa de regra de saída explícita — diferentemente dos Security Groups, que são stateful.",
+        "É o inverso: stateful é o Security Group; a NACL não 'lembra' conexões e exige regras explícitas nas duas direções.",
+        "NACLs são totalmente configuráveis — não existe bloqueio imutável de HTTPS.",
+        "Qualquer porta pode ser liberada em NACLs; a questão é cobrir as duas direções do fluxo."
+      ]
+    },
+    {
+      "id": "saa-med-018",
+      "domain": "secure-architectures",
+      "text": "O time de rede precisa investigar por que conexões entre duas sub-redes estão sendo rejeitadas, identificando origem, destino, porta e a ação (ACCEPT/REJECT) de cada fluxo de tráfego na VPC. Qual recurso fornece esses registros?",
+      "options": [
+        "VPC Flow Logs",
+        "AWS CloudTrail",
+        "Amazon Macie",
+        "AWS X-Ray"
+      ],
+      "correct": 0,
+      "explanation": "Os Flow Logs capturam metadados dos fluxos de rede (IPs, portas, protocolo, bytes e ação de aceite/rejeição) em nível de VPC, sub-rede ou ENI — a ferramenta padrão para diagnóstico de conectividade e auditoria de tráfego.",
+      "hint": "Para ver o 'extrato' dos fluxos de rede da VPC, com veredicto de aceito ou rejeitado, qual log você habilita?",
+      "optionRationales": [
+        "Os Flow Logs capturam metadados dos fluxos de rede (IPs, portas, protocolo, bytes e ação de aceite/rejeição) em nível de VPC, sub-rede ou ENI — a ferramenta padrão para diagnóstico de conectividade e auditoria de tráfego.",
+        "O CloudTrail registra chamadas de API (ações administrativas), não os fluxos de pacotes de rede entre recursos.",
+        "O Macie descobre dados sensíveis em buckets S3 — não monitora tráfego de rede.",
+        "O X-Ray rastreia requisições dentro de aplicações distribuídas para análise de desempenho, não fluxos de rede aceitos/rejeitados na VPC."
+      ]
+    },
+    {
+      "id": "saa-med-019",
+      "domain": "secure-architectures",
+      "text": "O time de segurança quer eliminar o bastion host e o uso de chaves SSH: o objetivo é obter shell nas instâncias EC2 privadas sem abrir a porta 22, com sessões registradas e acesso controlado por permissões IAM. Qual serviço atende a esses requisitos?",
+      "options": [
+        "AWS Systems Manager Session Manager",
+        "Aumentar a segurança do bastion com MFA no sistema operacional",
+        "Habilitar acesso via RDP em vez de SSH",
+        "Distribuir a mesma chave SSH para toda a equipe por um cofre"
+      ],
+      "correct": 0,
+      "explanation": "O Session Manager fornece shell via console ou CLI usando o agente SSM, sem portas de entrada abertas, sem chaves SSH e sem bastion, com controle por IAM e registro das sessões no CloudWatch/S3.",
+      "hint": "O 'gerente de sessões' do Systems Manager dispensa porta 22, chaves e servidores intermediários.",
+      "optionRationales": [
+        "O Session Manager fornece shell via console ou CLI usando o agente SSM, sem portas de entrada abertas, sem chaves SSH e sem bastion, com controle por IAM e registro das sessões no CloudWatch/S3.",
+        "Endurecer o bastion mantém a porta SSH exposta e a gestão de chaves — o requisito é eliminar esse modelo.",
+        "Trocar o protocolo apenas muda a porta exposta — não elimina a superfície de ataque nem adiciona controle por IAM.",
+        "Chave compartilhada elimina a rastreabilidade individual e mantém o modelo de portas abertas que se deseja abolir."
+      ]
+    },
+    {
+      "id": "saa-med-020",
+      "domain": "secure-architectures",
+      "text": "Uma empresa precisa escolher o serviço certo para cada necessidade de segurança: (1) detectar atividades maliciosas e credenciais comprometidas analisando logs da conta; (2) encontrar vulnerabilidades de software (CVEs) em instâncias e imagens de contêiner; (3) descobrir dados pessoais sensíveis armazenados em buckets S3. Qual trio corresponde, na ordem, a essas necessidades?",
+      "options": [
+        "Amazon GuardDuty, Amazon Inspector e Amazon Macie",
+        "Amazon Macie, Amazon GuardDuty e Amazon Inspector",
+        "AWS WAF, AWS Shield e AWS Firewall Manager",
+        "AWS Config, AWS CloudTrail e Amazon CloudWatch"
+      ],
+      "correct": 0,
+      "explanation": "GuardDuty é detecção de ameaças com base em logs e inteligência; Inspector é varredura de vulnerabilidades em workloads (EC2, ECR, Lambda); Macie é descoberta e classificação de dados sensíveis no S3 — cada um cobre uma camada distinta.",
+      "hint": "Memorize a divisão: comportamento malicioso → guarda; vulnerabilidade de software → inspetor; dado pessoal → detetive de PII.",
+      "optionRationales": [
+        "GuardDuty é detecção de ameaças com base em logs e inteligência; Inspector é varredura de vulnerabilidades em workloads (EC2, ECR, Lambda); Macie é descoberta e classificação de dados sensíveis no S3 — cada um cobre uma camada distinta.",
+        "A ordem está trocada: Macie não detecta ameaças em logs, GuardDuty não varre CVEs e Inspector não classifica dados pessoais.",
+        "Esse trio protege aplicações web contra ataques e centraliza regras de firewall — nenhum deles cobre detecção em logs, CVEs ou PII no S3.",
+        "Esses serviços tratam de conformidade de configurações, auditoria de APIs e observabilidade — não são as ferramentas especializadas de detecção citadas."
+      ]
+    },
+    {
+      "id": "saa-med-021",
+      "domain": "secure-architectures",
+      "text": "Uma aplicação web e mobile precisa de dois recursos distintos do Amazon Cognito: (1) cadastrar e autenticar os usuários finais, emitindo tokens após o login; e (2) trocar esses tokens por credenciais AWS temporárias para que o app envie fotos diretamente a um bucket S3. Quais componentes do Cognito cumprem, respectivamente, cada papel?",
+      "options": [
+        "User Pools para autenticação dos usuários e Identity Pools para emitir credenciais AWS temporárias",
+        "Identity Pools para o login e User Pools para as credenciais AWS",
+        "IAM Identity Center para ambos os papéis",
+        "AWS STS diretamente no aplicativo com chaves embutidas"
+      ],
+      "correct": 0,
+      "explanation": "O User Pool é o diretório de usuários que gerencia cadastro e login (emitindo tokens); o Identity Pool federa essas identidades e troca os tokens por credenciais AWS temporárias para acessar serviços como o S3.",
+      "hint": "Um pool cuida de 'quem é você' (login); o outro cuida de 'o que você pode tocar na AWS' (credenciais temporárias).",
+      "optionRationales": [
+        "O User Pool é o diretório de usuários que gerencia cadastro e login (emitindo tokens); o Identity Pool federa essas identidades e troca os tokens por credenciais AWS temporárias para acessar serviços como o S3.",
+        "Os papéis estão invertidos: o diretório de login é o User Pool; quem entrega credenciais AWS é o Identity Pool.",
+        "O Identity Center atende a força de trabalho (funcionários acessando contas AWS), não usuários finais de aplicativos.",
+        "Embutir chaves de acesso no aplicativo é uma falha grave: o fluxo correto usa Cognito para autenticar e só então obter credenciais temporárias."
+      ]
+    },
+    {
+      "id": "saa-med-022",
+      "domain": "secure-architectures",
+      "text": "Uma chave KMS gerenciada pelo cliente na conta A precisa ser usada pela conta B para decifrar dados compartilhados. Qual combinação de configurações viabiliza esse uso entre contas?",
+      "options": [
+        "Autorizar a conta B na política da chave (key policy) na conta A e conceder permissões KMS correspondentes às identidades da conta B via IAM",
+        "Exportar a chave privada da KMS e enviá-la à conta B",
+        "Tornar a chave pública para toda a organização",
+        "Apenas criar uma role na conta B com permissões KMS, sem alterar a key policy"
+      ],
+      "correct": 0,
+      "explanation": "O uso cross-account de chaves KMS exige as duas pontas: a key policy da chave deve permitir o principal externo, e a identidade na outra conta precisa de permissões IAM para as operações criptográficas.",
+      "hint": "O acesso entre contas no KMS é um aperto de mãos: a política DA CHAVE autoriza de um lado, o IAM autoriza do outro.",
+      "optionRationales": [
+        "O uso cross-account de chaves KMS exige as duas pontas: a key policy da chave deve permitir o principal externo, e a identidade na outra conta precisa de permissões IAM para as operações criptográficas.",
+        "Chaves KMS não podem ser exportadas — o material criptográfico permanece protegido dentro do serviço, e o compartilhamento é feito por permissões.",
+        "Não existe 'tornar pública' uma chave KMS; a autorização é granular por principal nas políticas, e abrir demais violaria o menor privilégio.",
+        "Permissões IAM na conta B sozinhas não bastam: a key policy da chave na conta A também precisa autorizar o acesso externo."
+      ]
+    },
+    {
+      "id": "saa-med-023",
+      "domain": "secure-architectures",
+      "text": "Após um incidente com um volume criado sem criptografia, a empresa quer garantir que TODO novo volume EBS criado em uma Região seja automaticamente criptografado, sem depender de cada desenvolvedor lembrar de marcar a opção. Qual medida implementa isso?",
+      "options": [
+        "Habilitar a criptografia por padrão do EBS (EBS encryption by default) na configuração da conta para aquela Região",
+        "Enviar um comunicado pedindo que todos criptografem manualmente",
+        "Criptografar os dados apenas na camada de aplicação",
+        "Converter os volumes para Instance Store, que é criptografado por padrão"
+      ],
+      "correct": 0,
+      "explanation": "A configuração de criptografia por padrão força que todos os novos volumes e cópias de snapshots na Região sejam criptografados automaticamente, eliminando o fator esquecimento humano.",
+      "hint": "Existe um 'interruptor regional' que torna a criptografia do EBS obrigatória para tudo que for criado dali em diante.",
+      "optionRationales": [
+        "A configuração de criptografia por padrão força que todos os novos volumes e cópias de snapshots na Região sejam criptografados automaticamente, eliminando o fator esquecimento humano.",
+        "Controles baseados apenas em disciplina humana falham — o requisito pede garantia automática da plataforma.",
+        "Criptografia de aplicação é complementar, mas não impede a criação de volumes EBS sem criptografia de armazenamento.",
+        "Instance Store é armazenamento efêmero com características próprias — não é substituto de EBS nem resolve a exigência de criptografia padrão dos volumes persistentes."
+      ]
+    },
+    {
+      "id": "saa-med-024",
+      "domain": "secure-architectures",
+      "text": "O time de conformidade quer que, sempre que o AWS Config detectar um Security Group fora do padrão (ex: porta 22 aberta para 0.0.0.0/0), uma correção automática seja aplicada sem intervenção humana. Como o AWS Config suporta esse fluxo?",
+      "options": [
+        "Associando à regra do Config uma ação de remediação automática que executa um documento de automação do Systems Manager",
+        "O Config corrige qualquer recurso sozinho, sem configuração adicional",
+        "Gerando um relatório mensal em PDF para o administrador agir",
+        "Bloqueando a conta inteira até a correção manual"
+      ],
+      "correct": 0,
+      "explanation": "O Config permite vincular remediações automáticas às regras: ao detectar o recurso não conforme, ele dispara um runbook do Systems Manager Automation que corrige a configuração — fechando o ciclo detectar-corrigir.",
+      "hint": "Detecção (Config) + runbook de correção (Systems Manager Automation) = conformidade que se conserta sozinha.",
+      "optionRationales": [
+        "O Config permite vincular remediações automáticas às regras: ao detectar o recurso não conforme, ele dispara um runbook do Systems Manager Automation que corrige a configuração — fechando o ciclo detectar-corrigir.",
+        "Por padrão o Config apenas avalia e reporta conformidade; a correção automática precisa ser explicitamente configurada com ações de remediação.",
+        "Relatórios periódicos deixariam o recurso vulnerável até a leitura — o requisito é correção imediata e automática.",
+        "O Config não suspende contas; além de desproporcional, isso interromperia todos os workloads por uma regra de SG."
+      ]
+    },
+    {
+      "id": "saa-med-025",
+      "domain": "secure-architectures",
+      "text": "Uma organização precisa garantir que os registros de auditoria do CloudTrail de todas as contas sejam coletados centralmente e que qualquer adulteração nos arquivos de log entregues possa ser detectada. Quais duas configurações atendem a esses requisitos?",
+      "options": [
+        "Criar uma trilha da organização (organization trail) entregando em um bucket central e habilitar a validação de integridade dos arquivos de log",
+        "Configurar CloudTrail manualmente em cada conta e enviar os logs por e-mail semanal",
+        "Substituir o CloudTrail por VPC Flow Logs centralizados",
+        "Armazenar os logs no Instance Store das instâncias de auditoria"
+      ],
+      "correct": 0,
+      "explanation": "A organization trail aplica o CloudTrail automaticamente a todas as contas-membro com entrega centralizada, e a validação de integridade gera arquivos de digest assinados que permitem comprovar se os logs foram alterados.",
+      "hint": "Uma trilha 'da organização' resolve a coleta; os arquivos de 'digest' assinados resolvem a prova de adulteração.",
+      "optionRationales": [
+        "A organization trail aplica o CloudTrail automaticamente a todas as contas-membro com entrega centralizada, e a validação de integridade gera arquivos de digest assinados que permitem comprovar se os logs foram alterados.",
+        "Configuração manual por conta é frágil e divergente, e e-mail não é mecanismo de coleta centralizada nem de prova de integridade.",
+        "Flow Logs registram tráfego de rede, não as chamadas de API administrativas exigidas em auditorias.",
+        "O Instance Store é efêmero — logs de auditoria desapareceriam com as instâncias, violando os requisitos de retenção e integridade."
+      ]
+    },
+    {
+      "id": "saa-med-026",
+      "domain": "secure-architectures",
+      "text": "Um site de ingressos sofre com bots que fazem milhares de requisições por minuto de poucos endereços IP, esgotando o estoque virtual. O time quer limitar automaticamente clientes que excedam um volume de requisições em 5 minutos, bloqueando-os temporariamente. Qual recurso do AWS WAF implementa esse controle?",
+      "options": [
+        "Regras rate-based (baseadas em taxa), que bloqueiam IPs que ultrapassem o limite de requisições na janela de tempo",
+        "Regras gerenciadas de SQL injection",
+        "AWS Shield Standard",
+        "Security Groups com limite de conexões"
+      ],
+      "correct": 0,
+      "explanation": "Regras rate-based contam as requisições por IP em janelas deslizantes e aplicam bloqueio automático aos que excedem o limiar, mitigando bots e abusos volumétricos na camada 7.",
+      "hint": "O critério do bloqueio é a VELOCIDADE de requisições por cliente — procure a regra 'baseada em taxa'.",
+      "optionRationales": [
+        "Regras rate-based contam as requisições por IP em janelas deslizantes e aplicam bloqueio automático aos que excedem o limiar, mitigando bots e abusos volumétricos na camada 7.",
+        "Regras de SQLi inspecionam padrões de injeção no conteúdo — não limitam volume de requisições por cliente.",
+        "O Shield Standard mitiga ataques volumétricos de camadas 3/4 automaticamente, mas não aplica limites de taxa por IP em requisições HTTP legítimas na camada 7.",
+        "Security Groups permitem ou negam por porta/origem — não contam nem limitam taxa de requisições HTTP."
+      ]
+    },
+    {
+      "id": "saa-med-027",
+      "domain": "secure-architectures",
+      "text": "Um arquiteto vai associar um certificado TLS do AWS Certificate Manager a uma distribuição do Amazon CloudFront. Qual requisito de Região se aplica a esse certificado?",
+      "options": [
+        "O certificado deve ser emitido ou importado no ACM da Região us-east-1 (Norte da Virgínia)",
+        "O certificado deve estar na mesma Região do bucket de origem",
+        "O certificado pode estar em qualquer Região, pois o ACM é global",
+        "O CloudFront não aceita certificados do ACM, apenas certificados importados manualmente"
+      ],
+      "correct": 0,
+      "explanation": "O CloudFront é um serviço global que busca certificados exclusivamente no ACM de us-east-1 — certificados em outras Regiões não aparecem para associação à distribuição.",
+      "hint": "Serviço global, cofre de certificados em uma Região específica: a 'capital' histórica da AWS.",
+      "optionRationales": [
+        "O CloudFront é um serviço global que busca certificados exclusivamente no ACM de us-east-1 — certificados em outras Regiões não aparecem para associação à distribuição.",
+        "A Região da origem é irrelevante para o certificado da distribuição — o requisito é fixo em us-east-1.",
+        "O ACM é regional; para serviços regionais (como ALB) usa-se a Região local, mas o CloudFront exige us-east-1.",
+        "O CloudFront aceita certificados do ACM normalmente (gratuitos e com renovação automática) — desde que em us-east-1."
+      ]
+    },
+    {
+      "id": "saa-med-028",
+      "domain": "secure-architectures",
+      "text": "Por exigência regulatória, registros financeiros gravados no S3 não podem ser alterados nem excluídos por ninguém — nem mesmo administradores — durante o período de retenção de 7 anos (modelo WORM: write once, read many). Qual recurso do S3 impõe essa imutabilidade?",
+      "options": [
+        "S3 Object Lock em modo Compliance com período de retenção definido",
+        "Versionamento simples do bucket",
+        "Bucket policy negando exclusões",
+        "Mover os objetos para S3 Glacier Deep Archive"
+      ],
+      "correct": 0,
+      "explanation": "O Object Lock em modo Compliance impede alteração e exclusão das versões protegidas por qualquer usuário, incluindo o root, até o fim da retenção — o mecanismo WORM nativo do S3 para exigências regulatórias.",
+      "hint": "WORM regulatório de verdade exige a 'trava de objeto' no modo que nem o root consegue destravar.",
+      "optionRationales": [
+        "O Object Lock em modo Compliance impede alteração e exclusão das versões protegidas por qualquer usuário, incluindo o root, até o fim da retenção — o mecanismo WORM nativo do S3 para exigências regulatórias.",
+        "O versionamento preserva versões, mas usuários com permissão ainda podem excluí-las definitivamente — não há imutabilidade garantida.",
+        "Políticas podem ser alteradas por administradores a qualquer momento — não garantem a imutabilidade exigida contra os próprios administradores.",
+        "Classes de arquivamento reduzem custo, mas objetos continuam podendo ser excluídos por quem tem permissão."
+      ]
+    },
+    {
+      "id": "saa-med-029",
+      "domain": "secure-architectures",
+      "text": "Instâncias EC2 em sub-redes privadas sem nenhuma rota para a internet precisam ser gerenciadas pelo Systems Manager (patches e comandos). A política de segurança proíbe NAT Gateway e qualquer saída para a internet. Como viabilizar a comunicação das instâncias com o Systems Manager?",
+      "options": [
+        "Criar interface VPC endpoints (PrivateLink) para os serviços do Systems Manager na VPC",
+        "Adicionar um Internet Gateway apenas para o tráfego do SSM",
+        "Instalar o agente SSM com modo offline permanente",
+        "Usar Gateway VPC Endpoint para o Systems Manager"
+      ],
+      "correct": 0,
+      "explanation": "Interface endpoints expõem as APIs do SSM dentro da VPC com IPs privados: o agente das instâncias se comunica com o serviço inteiramente pela rede da AWS, sem internet nem NAT.",
+      "hint": "Sem internet, as APIs precisam 'entrar' na VPC — qual tipo de endpoint cria interfaces privadas para serviços como o SSM?",
+      "optionRationales": [
+        "Interface endpoints expõem as APIs do SSM dentro da VPC com IPs privados: o agente das instâncias se comunica com o serviço inteiramente pela rede da AWS, sem internet nem NAT.",
+        "Internet Gateway é justamente a rota para a internet pública que a política proíbe.",
+        "Não existe gestão por agente 'offline' — o SSM requer comunicação com seus endpoints para receber comandos e reportar estado.",
+        "Gateway endpoints existem apenas para S3 e DynamoDB; para o SSM, os endpoints são do tipo interface (PrivateLink)."
+      ]
+    },
+    {
+      "id": "saa-med-030",
+      "domain": "secure-architectures",
+      "text": "Uma aplicação conecta-se ao Amazon RDS for MySQL usando senha fixa gravada em arquivo de configuração. O time de segurança quer eliminar senhas estáticas, permitindo que a aplicação se autentique no banco usando tokens temporários emitidos com base na role IAM da instância. Qual recurso do RDS suporta esse modelo?",
+      "options": [
+        "Autenticação de banco de dados via IAM (IAM database authentication)",
+        "Gravar a senha em uma AMI personalizada",
+        "Desabilitar a autenticação do banco para conexões internas",
+        "Usar o usuário master do RDS em todas as aplicações"
+      ],
+      "correct": 0,
+      "explanation": "Com a autenticação IAM habilitada, a aplicação gera tokens efêmeros (15 minutos) assinados a partir de suas credenciais IAM e os usa no lugar da senha — eliminando segredos estáticos no código e na configuração.",
+      "hint": "Em vez de senha guardada, um 'bilhete de 15 minutos' assinado pela identidade IAM da aplicação.",
+      "optionRationales": [
+        "Com a autenticação IAM habilitada, a aplicação gera tokens efêmeros (15 minutos) assinados a partir de suas credenciais IAM e os usa no lugar da senha — eliminando segredos estáticos no código e na configuração.",
+        "Embutir a senha na imagem apenas muda o lugar do segredo estático — qualquer pessoa com acesso à AMI o obtém.",
+        "Banco sem autenticação é uma vulnerabilidade crítica, não uma solução de segurança.",
+        "Compartilhar o usuário master concentra privilégios máximos em todos os componentes — o oposto do menor privilégio, e ainda com senha estática."
+      ]
+    },
+    {
+      "id": "saa-med-031",
+      "domain": "secure-architectures",
+      "text": "O time de segurança quer ser alertado em minutos caso alguém faça login com o usuário root de qualquer conta da organização. Qual combinação de serviços implementa esse alerta de forma automática?",
+      "options": [
+        "CloudTrail registrando os eventos de login e uma regra do Amazon EventBridge filtrando o evento de root login para notificar via SNS",
+        "Revisar manualmente o relatório de credenciais IAM toda semana",
+        "Configurar o AWS WAF para bloquear logins do root",
+        "Ativar o S3 Block Public Access na conta de gerenciamento"
+      ],
+      "correct": 0,
+      "explanation": "O evento de console login do root chega via CloudTrail/EventBridge; uma regra com padrão para userIdentity root publica em um tópico SNS, alertando a equipe em tempo quase real.",
+      "hint": "O login vira um EVENTO registrado — qual dupla captura o evento e dispara a notificação?",
+      "optionRationales": [
+        "O evento de console login do root chega via CloudTrail/EventBridge; uma regra com padrão para userIdentity root publica em um tópico SNS, alertando a equipe em tempo quase real.",
+        "O credential report mostra o estado das credenciais, e a revisão semanal não atende ao requisito de alerta em minutos.",
+        "O WAF filtra tráfego de aplicações web do cliente — não intercepta nem monitora logins no console da AWS.",
+        "Block Public Access protege buckets contra exposição pública — nenhuma relação com monitoramento de login do root."
+      ]
+    },
+    {
+      "id": "saa-med-032",
+      "domain": "secure-architectures",
+      "text": "Uma organização quer estruturar suas contas em unidades organizacionais separando produção, desenvolvimento e segurança, com a justificativa de reduzir o 'raio de explosão' (blast radius) de incidentes. Qual benefício de segurança essa separação em múltiplas contas oferece?",
+      "options": [
+        "Cada conta é uma fronteira rígida de isolamento: um comprometimento ou erro em uma conta não afeta diretamente os recursos das demais",
+        "Múltiplas contas eliminam a necessidade de IAM dentro de cada uma",
+        "Contas separadas dobram automaticamente os limites de serviço sem custo",
+        "A AWS oferece desconto de faturamento para organizações com mais contas"
+      ],
+      "correct": 0,
+      "explanation": "A conta é o limite de isolamento mais forte da AWS — separar ambientes e funções em contas distintas contém incidentes, simplifica o menor privilégio e permite guardrails (SCPs) específicos por grupo.",
+      "hint": "Pense em compartimentos estanques de um navio: furo em um não inunda os outros.",
+      "optionRationales": [
+        "A conta é o limite de isolamento mais forte da AWS — separar ambientes e funções em contas distintas contém incidentes, simplifica o menor privilégio e permite guardrails (SCPs) específicos por grupo.",
+        "O IAM continua essencial em cada conta — a separação adiciona uma camada de isolamento, não substitui o controle de acesso interno.",
+        "Embora cada conta tenha suas próprias cotas, esse é um efeito operacional — não o benefício de segurança que motiva a separação.",
+        "Não há desconto por quantidade de contas; o faturamento consolidado agrega uso, mas o argumento aqui é isolamento de segurança."
+      ]
+    },
+    {
+      "id": "saa-med-033",
+      "domain": "secure-architectures",
+      "text": "Uma aplicação serverless usa funções Lambda que precisam ler uma credencial de API de terceiros. Hoje a credencial está em variável de ambiente em texto claro, visível para qualquer pessoa com acesso de leitura à configuração da função. Qual abordagem mais segura é recomendada?",
+      "options": [
+        "Armazenar a credencial no AWS Secrets Manager e fazer a função buscá-la em tempo de execução via permissões IAM da execution role",
+        "Ofuscar a credencial com Base64 na variável de ambiente",
+        "Gravar a credencial no código-fonte para tirá-la da configuração",
+        "Compartilhar a credencial em um canal privado da equipe"
+      ],
+      "correct": 0,
+      "explanation": "Com o segredo no Secrets Manager, a função o recupera dinamicamente com permissões mínimas, o valor sai da configuração visível, passa a ser criptografado, auditável e rotacionável centralmente.",
+      "hint": "O segredo deve morar em um cofre auditável e ser buscado só na hora de usar — não viajar em texto claro na configuração.",
+      "optionRationales": [
+        "Com o segredo no Secrets Manager, a função o recupera dinamicamente com permissões mínimas, o valor sai da configuração visível, passa a ser criptografado, auditável e rotacionável centralmente.",
+        "Base64 é codificação reversível, não criptografia — qualquer um decodifica em segundos.",
+        "Segredos no código vazam em repositórios e ficam visíveis a todos com acesso ao fonte — um dos erros mais clássicos de segurança.",
+        "Distribuir segredos por canais de comunicação multiplica cópias incontroláveis e não resolve o armazenamento seguro na execução."
+      ]
+    },
+    {
+      "id": "saa-med-034",
+      "domain": "secure-architectures",
+      "text": "Durante uma auditoria, descobriu-se que o usuário root de uma conta possui access keys ativas criadas anos atrás. Conforme as boas práticas de segurança da AWS, o que deve ser feito com essas chaves?",
+      "options": [
+        "Excluí-las imediatamente: o root não deve ter chaves de acesso programáticas, e tarefas administrativas devem usar identidades IAM com menor privilégio",
+        "Mantê-las como backup para emergências",
+        "Rotacioná-las mensalmente e mantê-las em uso",
+        "Compartilhá-las apenas com a equipe de infraestrutura sênior"
+      ],
+      "correct": 0,
+      "explanation": "Access keys do root são credenciais de poder ilimitado, impossíveis de restringir por políticas; a recomendação é eliminá-las e realizar o trabalho via roles e usuários IAM adequados.",
+      "hint": "Para a identidade que não pode ser limitada, a única chave programática segura é a que não existe.",
+      "optionRationales": [
+        "Access keys do root são credenciais de poder ilimitado, impossíveis de restringir por políticas; a recomendação é eliminá-las e realizar o trabalho via roles e usuários IAM adequados.",
+        "Chaves do root 'de reserva' são um passivo permanente: se vazarem, entregam a conta inteira — o acesso de emergência do root é pela senha com MFA.",
+        "Rotação reduz a janela de exposição, mas não muda o problema central: nenhuma automação deve operar com poder ilimitado do root.",
+        "Restringir o público não corrige o uso indevido de credenciais root programáticas — elas simplesmente não devem existir."
+      ]
+    },
+    {
+      "id": "saa-med-035",
+      "domain": "secure-architectures",
+      "text": "Uma fintech precisa restringir o acesso ao console AWS de seus administradores para que funcione apenas a partir dos IPs do escritório e exigir MFA em qualquer ação sensível. Qual recurso de política IAM permite impor essas exigências contextuais?",
+      "options": [
+        "O elemento Condition das políticas, usando chaves como aws:SourceIp e aws:MultiFactorAuthPresent",
+        "O elemento Resource com a lista de IPs do escritório",
+        "Tags de localização nos usuários IAM",
+        "Um Security Group anexado aos usuários do console"
+      ],
+      "correct": 0,
+      "explanation": "O bloco Condition avalia o contexto da requisição: condições com aws:SourceIp restringem por faixa de IP e aws:MultiFactorAuthPresent exige sessão autenticada com MFA — permissões que dependem das circunstâncias.",
+      "hint": "Permissões 'com SE' (se vier do IP X, se tiver MFA) moram no bloco de condições da política.",
+      "optionRationales": [
+        "O bloco Condition avalia o contexto da requisição: condições com aws:SourceIp restringem por faixa de IP e aws:MultiFactorAuthPresent exige sessão autenticada com MFA — permissões que dependem das circunstâncias.",
+        "Resource identifica os ARNs dos recursos-alvo da política — não aceita endereços IP nem contexto de autenticação.",
+        "Tags em identidades servem a organização e a controles ABAC baseados em atributos próprios — não verificam o IP de origem nem o uso de MFA na sessão.",
+        "Security Groups protegem recursos de rede (instâncias, ENIs) — não se aplicam a logins de usuários no console."
+      ]
+    },
+    {
+      "id": "saa-med-036",
+      "domain": "secure-architectures",
+      "text": "Uma empresa publicou uma API REST no Amazon API Gateway e quer impedir que ela seja chamada por sistemas não autorizados, validando em cada requisição um token JWT emitido no login dos usuários pelo Amazon Cognito. Qual recurso do API Gateway implementa essa validação de forma gerenciada?",
+      "options": [
+        "Um authorizer do Cognito (Cognito User Pool authorizer) configurado nos métodos da API",
+        "Aumentar o throttling da API para dificultar chamadas externas",
+        "Esconder a URL da API e não documentá-la",
+        "Colocar a API atrás do Route 53 com roteamento ponderado"
+      ],
+      "correct": 0,
+      "explanation": "O authorizer de User Pool valida automaticamente o JWT enviado no cabeçalho contra o pool configurado, rejeitando requisições sem token válido antes de chegarem ao backend — sem código de validação próprio.",
+      "hint": "O 'porteiro' nativo do API Gateway sabe conferir crachás JWT emitidos pelo pool de usuários.",
+      "optionRationales": [
+        "O authorizer de User Pool valida automaticamente o JWT enviado no cabeçalho contra o pool configurado, rejeitando requisições sem token válido antes de chegarem ao backend — sem código de validação próprio.",
+        "Limites de taxa controlam volume, não identidade — chamadas não autorizadas continuariam passando, apenas mais devagar.",
+        "URLs vazam em tráfego e ferramentas — obscuridade não substitui autenticação.",
+        "Política de DNS distribui tráfego entre endpoints — não valida tokens nem autentica chamadas."
+      ]
+    },
+    {
+      "id": "saa-med-037",
+      "domain": "secure-architectures",
+      "text": "Uma empresa de saúde precisa comprovar em auditorias quem acessou objetos específicos de um bucket S3 com prontuários — incluindo operações de leitura de objetos (GetObject), que não aparecem na trilha padrão do CloudTrail. Qual configuração captura esses acessos?",
+      "options": [
+        "Habilitar eventos de dados (data events) do S3 no CloudTrail para o bucket de prontuários",
+        "A trilha padrão do CloudTrail já registra todas as leituras de objetos",
+        "Habilitar o versionamento do bucket para registrar leitores",
+        "Usar o Amazon Macie para registrar cada leitura"
+      ],
+      "correct": 0,
+      "explanation": "A trilha padrão registra eventos de gerenciamento; operações em nível de objeto (GetObject, PutObject) são data events e precisam ser habilitadas explicitamente — gerando a trilha de acesso a dados exigida em auditorias.",
+      "hint": "Ações administrativas e toques nos DADOS são categorias diferentes no CloudTrail — a segunda precisa ser ligada à parte.",
+      "optionRationales": [
+        "A trilha padrão registra eventos de gerenciamento; operações em nível de objeto (GetObject, PutObject) são data events e precisam ser habilitadas explicitamente — gerando a trilha de acesso a dados exigida em auditorias.",
+        "Justamente não: eventos em nível de objeto são categoria separada (data events), desabilitada por padrão pelo volume e custo.",
+        "O versionamento rastreia versões de conteúdo, não quem leu os objetos.",
+        "O Macie classifica dados sensíveis armazenados — não funciona como trilha de auditoria de acessos por requisição."
+      ]
+    },
+    {
+      "id": "saa-med-038",
+      "domain": "secure-architectures",
+      "text": "Uma equipe identificou que precisa criptografar dados de cartão antes mesmo de enviá-los à AWS, mantendo as chaves sob seu controle no cliente, de modo que o provedor nunca veja o conteúdo em claro. Como esse modelo de criptografia é chamado, em contraste com a criptografia do lado do servidor?",
+      "options": [
+        "Criptografia do lado do cliente (client-side encryption): os dados são cifrados na aplicação antes do envio e decifrados apenas por ela",
+        "Criptografia em trânsito com TLS, que mantém os dados cifrados também no armazenamento",
+        "SSE-S3, pois as chaves ficam com o cliente",
+        "Hashing dos dados com SHA-256 antes do envio"
+      ],
+      "correct": 0,
+      "explanation": "Na criptografia client-side, a aplicação cifra os dados com chaves que controla (próprias ou via KMS) antes da transmissão — o serviço armazena apenas o material cifrado, sem jamais acessar o conteúdo em claro.",
+      "hint": "Se o provedor nunca pode ver o conteúdo, a cifragem precisa acontecer ANTES de sair de casa.",
+      "optionRationales": [
+        "Na criptografia client-side, a aplicação cifra os dados com chaves que controla (próprias ou via KMS) antes da transmissão — o serviço armazena apenas o material cifrado, sem jamais acessar o conteúdo em claro.",
+        "TLS protege apenas o canal de transmissão — os dados chegam em claro ao serviço, que então aplica (ou não) cifragem própria.",
+        "No SSE-S3 a cifragem ocorre no servidor com chaves gerenciadas pelo próprio S3 — o oposto do controle total no cliente.",
+        "Hash é irreversível e serve à verificação de integridade — dados de cartão precisam ser recuperáveis, o que exige criptografia, não hashing."
+      ]
+    },
+    {
+      "id": "saa-med-039",
+      "domain": "resilient-architectures",
+      "text": "Um banco de dados RDS de produção precisa continuar respondendo mesmo se a Zona de Disponibilidade onde roda ficar indisponível, com failover automático e sem alterações na string de conexão da aplicação. Entre Multi-AZ e Read Replicas, qual recurso atende a esse requisito e por quê?",
+      "options": [
+        "Multi-AZ, porque mantém uma réplica síncrona em standby em outra AZ e realiza failover automático preservando o mesmo endpoint",
+        "Read Replicas, porque assumem o lugar da principal automaticamente em segundos",
+        "Snapshots automáticos, porque restauram o banco instantaneamente na mesma AZ",
+        "ElastiCache na frente do banco, que assume as escritas se o RDS cair"
+      ],
+      "correct": 0,
+      "explanation": "O Multi-AZ é o recurso de alta disponibilidade do RDS: replicação síncrona para a instância em espera e failover automático com o mesmo endpoint DNS — a aplicação reconecta sem mudanças.",
+      "hint": "Para ALTA DISPONIBILIDADE com endpoint estável, qual recurso do RDS foi feito? (O outro serve para escalar leituras.)",
+      "optionRationales": [
+        "O Multi-AZ é o recurso de alta disponibilidade do RDS: replicação síncrona para a instância em espera e failover automático com o mesmo endpoint DNS — a aplicação reconecta sem mudanças.",
+        "Réplicas de leitura usam replicação assíncrona e NÃO promovem a si mesmas automaticamente — a promoção é manual e gera um novo endpoint; o propósito delas é escalar leituras.",
+        "Restaurar de snapshot cria uma nova instância em processo demorado — não é failover automático nem mantém o endpoint.",
+        "Cache não substitui o banco em escritas — sem o RDS, as transações simplesmente falhariam."
+      ]
+    },
+    {
+      "id": "saa-med-040",
+      "domain": "resilient-architectures",
+      "text": "Um cluster Amazon Aurora possui uma instância gravadora e duas réplicas Aurora em AZs diferentes. Se a instância gravadora falhar, o que acontece e qual endpoint a aplicação deve usar para se beneficiar disso?",
+      "options": [
+        "O Aurora promove automaticamente uma das réplicas a gravadora em segundos, e a aplicação deve usar o cluster endpoint (writer), que passa a apontar para a nova gravadora",
+        "O cluster fica indisponível até a restauração manual de um snapshot",
+        "As réplicas continuam servindo apenas leituras e as escritas ficam suspensas para sempre",
+        "A aplicação precisa trocar manualmente o endereço IP do banco no código"
+      ],
+      "correct": 0,
+      "explanation": "O failover do Aurora promove uma réplica (tipicamente em menos de 30 segundos, pois o armazenamento é compartilhado) e atualiza o cluster endpoint automaticamente — aplicações que usam esse endpoint se recuperam sem reconfiguração.",
+      "hint": "No Aurora, o armazenamento é compartilhado entre as instâncias — a promoção é rápida e o endpoint 'de escrita' acompanha quem virou titular.",
+      "optionRationales": [
+        "O failover do Aurora promove uma réplica (tipicamente em menos de 30 segundos, pois o armazenamento é compartilhado) e atualiza o cluster endpoint automaticamente — aplicações que usam esse endpoint se recuperam sem reconfiguração.",
+        "Com réplicas disponíveis, o failover é automático — restauração manual só seria necessária sem nenhuma réplica e sem backtrack.",
+        "A promoção automática converte uma réplica em gravadora — as escritas retornam após o failover.",
+        "O uso do cluster endpoint elimina essa manutenção: o DNS do endpoint segue a gravadora atual automaticamente."
+      ]
+    },
+    {
+      "id": "saa-med-041",
+      "domain": "resilient-architectures",
+      "text": "Uma aplicação roda em um Auto Scaling Group atrás de um ALB. As instâncias passam no status check do EC2, mas às vezes o processo da aplicação trava e para de responder HTTP, sem que o Auto Scaling as substitua. Qual ajuste faz o grupo substituir instâncias cuja APLICAÇÃO falhou?",
+      "options": [
+        "Configurar o Auto Scaling Group para usar o health check do tipo ELB, considerando não saudável a instância reprovada no health check do balanceador",
+        "Aumentar o tempo do health check grace period",
+        "Trocar o ALB por um NLB",
+        "Reiniciar manualmente as instâncias travadas todos os dias"
+      ],
+      "correct": 0,
+      "explanation": "Com health check type ELB, o ASG passa a considerar a visão do balanceador (que testa a resposta HTTP da aplicação) e substitui instâncias cujo processo travou — algo que o status check do EC2 (infraestrutura) não detecta.",
+      "hint": "O EC2 enxerga o hardware; o balanceador enxerga o HTTP — qual visão o grupo deve adotar para substituir aplicações travadas?",
+      "optionRationales": [
+        "Com health check type ELB, o ASG passa a considerar a visão do balanceador (que testa a resposta HTTP da aplicação) e substitui instâncias cujo processo travou — algo que o status check do EC2 (infraestrutura) não detecta.",
+        "O grace period apenas dá mais tempo de carência na inicialização — não muda a fonte da verificação de integridade.",
+        "Trocar o tipo de balanceador não altera o critério usado pelo ASG para decidir substituições.",
+        "Intervenção manual recorrente é justamente o que a automação de health checks elimina."
+      ]
+    },
+    {
+      "id": "saa-med-042",
+      "domain": "resilient-architectures",
+      "text": "Uma aplicação crítica roda em um Auto Scaling Group distribuído em 3 Zonas de Disponibilidade com 6 instâncias no total. O arquiteto quer garantir que, se uma AZ inteira falhar, a capacidade restante ainda atenda 100% da carga de pico. Qual prática de dimensionamento atende a esse requisito?",
+      "options": [
+        "Provisionar capacidade extra (N+1 por AZ), de modo que as AZs remanescentes somem a capacidade necessária para o pico mesmo perdendo uma zona",
+        "Concentrar todas as instâncias na AZ mais confiável",
+        "Reduzir a capacidade mínima para economizar e escalar somente após a falha",
+        "Usar apenas instâncias Spot para a capacidade de contingência"
+      ],
+      "correct": 0,
+      "explanation": "Resiliência estática: dimensionar para que a perda de uma AZ ainda deixe capacidade suficiente (ex: cada par de AZs atende o pico) evita depender de lançamentos de emergência durante a falha — quando a capacidade na Região pode estar disputada.",
+      "hint": "Planeje para 'um a menos': a frota deve aguentar o pico mesmo com uma zona fora do jogo.",
+      "optionRationales": [
+        "Resiliência estática: dimensionar para que a perda de uma AZ ainda deixe capacidade suficiente (ex: cada par de AZs atende o pico) evita depender de lançamentos de emergência durante a falha — quando a capacidade na Região pode estar disputada.",
+        "Concentrar em uma única zona cria exatamente o ponto único de falha que a distribuição multi-AZ elimina.",
+        "Confiar em escalar DURANTE o desastre é arriscado: a recuperação fica dependente de provisionamento sob estresse, com possível indisponibilidade de capacidade.",
+        "Spot pode ser recuperado pela AWS a qualquer momento — inadequado como única garantia de capacidade num cenário de falha de AZ."
+      ]
+    },
+    {
+      "id": "saa-med-043",
+      "domain": "resilient-architectures",
+      "text": "Um serviço HTTP interno é servido por 8 instâncias, e o time quer que o DNS responda com até 8 endereços IP saudáveis, removendo automaticamente os que falharem no health check, distribuindo os clientes entre os demais. Qual política de roteamento do Route 53 oferece esse comportamento?",
+      "options": [
+        "Roteamento multivalue answer com health checks associados a cada registro",
+        "Roteamento simples com vários IPs no mesmo registro",
+        "Roteamento de geolocalização",
+        "CNAME apontando para cada instância sequencialmente"
+      ],
+      "correct": 0,
+      "explanation": "O multivalue answer retorna múltiplos registros saudáveis (até 8) por consulta, excluindo os reprovados nos health checks — uma forma simples de distribuição com verificação de integridade via DNS.",
+      "hint": "É a política que devolve 'várias respostas' por consulta — só as que passaram no exame de saúde.",
+      "optionRationales": [
+        "O multivalue answer retorna múltiplos registros saudáveis (até 8) por consulta, excluindo os reprovados nos health checks — uma forma simples de distribuição com verificação de integridade via DNS.",
+        "O roteamento simples não suporta health checks — IPs de servidores mortos continuariam sendo entregues aos clientes.",
+        "Geolocalização escolhe respostas pela origem geográfica do cliente — não remove endpoints insalubres de um pool de servidores.",
+        "Um CNAME aponta para um único nome por registro — não distribui entre múltiplos alvos com verificação de integridade."
+      ]
+    },
+    {
+      "id": "saa-med-044",
+      "domain": "resilient-architectures",
+      "text": "Consumidores de uma fila SQS processam vídeos que levam até 10 minutos. Com o visibility timeout padrão de 30 segundos, as mensagens reaparecem na fila antes do processamento terminar e acabam processadas em duplicidade por outros consumidores. Qual é a correção adequada?",
+      "options": [
+        "Aumentar o visibility timeout da fila para um valor maior que o tempo máximo de processamento (ex: 12 minutos)",
+        "Diminuir o visibility timeout para liberar as mensagens mais rápido",
+        "Trocar a fila Standard por um tópico SNS",
+        "Apagar as mensagens imediatamente ao recebê-las, antes de processar"
+      ],
+      "correct": 0,
+      "explanation": "O visibility timeout deve cobrir o tempo de processamento: enquanto vigente, a mensagem fica invisível para os demais consumidores, evitando a duplicação; o consumidor a exclui ao concluir.",
+      "hint": "A 'invisibilidade' da mensagem precisa durar pelo menos o tempo que o trabalho demora.",
+      "optionRationales": [
+        "O visibility timeout deve cobrir o tempo de processamento: enquanto vigente, a mensagem fica invisível para os demais consumidores, evitando a duplicação; o consumidor a exclui ao concluir.",
+        "Reduzir o timeout agravaria o problema, multiplicando reaparecimentos e processamentos duplicados.",
+        "SNS é push sem retenção para consumo em ritmo próprio — não resolve o controle de visibilidade de processamento longo.",
+        "Excluir antes de processar perde a mensagem definitivamente se o consumidor falhar no meio — sacrifica a confiabilidade."
+      ]
+    },
+    {
+      "id": "saa-med-045",
+      "domain": "resilient-architectures",
+      "text": "Uma seguradora definiu para seu sistema de apólices RTO de 30 minutos e RPO de 5 minutos em caso de desastre regional, com orçamento que não comporta rodar produção duplicada em capacidade total. Qual estratégia de DR equilibra esses objetivos e o custo?",
+      "options": [
+        "Warm standby: uma versão funcional em escala reduzida rodando na Região secundária com dados replicados continuamente, escalada ao porte total durante o failover",
+        "Backup & Restore com backups diários",
+        "Multi-site ativo-ativo em capacidade total",
+        "Sem estratégia de DR, confiando no Multi-AZ da Região principal"
+      ],
+      "correct": 0,
+      "explanation": "O warm standby mantém o ambiente completo, porém reduzido, sempre ativo com replicação contínua — failover em minutos (atende RTO de 30 min) e perda mínima de dados (atende RPO de 5 min) por fração do custo do ativo-ativo.",
+      "hint": "Entre a 'chama piloto' e o 'espelho completo' existe o meio-termo: tudo ligado, só que em tamanho reduzido.",
+      "optionRationales": [
+        "O warm standby mantém o ambiente completo, porém reduzido, sempre ativo com replicação contínua — failover em minutos (atende RTO de 30 min) e perda mínima de dados (atende RPO de 5 min) por fração do custo do ativo-ativo.",
+        "Backups diários implicam RPO de até 24 horas e RTO de horas para reconstruir tudo — muito além dos objetivos definidos.",
+        "O ativo-ativo atenderia as métricas com folga, mas o custo de produção duplicada foi explicitamente descartado pelo orçamento.",
+        "Multi-AZ não protege contra desastre REGIONAL — o requisito exige presença em segunda Região."
+      ]
+    },
+    {
+      "id": "saa-med-046",
+      "domain": "resilient-architectures",
+      "text": "Um sistema financeiro global usa Amazon Aurora e exige que, num desastre regional, o banco esteja disponível em outra Região com RPO de cerca de 1 segundo e RTO de poucos minutos. Qual recurso do Aurora foi projetado para esse requisito?",
+      "options": [
+        "Aurora Global Database, com replicação entre Regiões em latência típica abaixo de 1 segundo e promoção rápida da Região secundária",
+        "Snapshots manuais copiados para outra Região a cada hora",
+        "Aurora Multi-AZ com três réplicas na mesma Região",
+        "Exportação contínua para CSV em um bucket S3 local"
+      ],
+      "correct": 0,
+      "explanation": "O Aurora Global Database replica para Regiões secundárias na camada de armazenamento com atraso típico inferior a um segundo, e a secundária pode ser promovida em minutos — RPO ~1s e RTO baixo para DR regional.",
+      "hint": "O nome do recurso entrega a escala: o banco 'global' do Aurora com réplica de segundo nível entre Regiões.",
+      "optionRationales": [
+        "O Aurora Global Database replica para Regiões secundárias na camada de armazenamento com atraso típico inferior a um segundo, e a secundária pode ser promovida em minutos — RPO ~1s e RTO baixo para DR regional.",
+        "Cópias horárias implicam RPO de até 1 hora e restauração demorada — ordens de magnitude acima do exigido.",
+        "Réplicas na mesma Região não sobrevivem a um desastre REGIONAL — o requisito é geográfico.",
+        "Exportações para arquivo não são mecanismo de failover de banco — a recuperação exigiria reimportação lenta e sujeita a perdas."
+      ]
+    },
+    {
+      "id": "saa-med-047",
+      "domain": "resilient-architectures",
+      "text": "Uma tabela do DynamoDB sofreu uma exclusão acidental de itens em massa por um script com defeito. O time precisa restaurar a tabela ao estado exato de 10 minutos antes do incidente. Qual recurso permite essa recuperação?",
+      "options": [
+        "Point-in-Time Recovery (PITR), que permite restaurar a tabela para qualquer segundo dos últimos 35 dias",
+        "Global Tables, que mantêm cópias em outras Regiões",
+        "DAX, que guarda os itens no cache",
+        "Aumentar a capacidade de leitura para recuperar os itens apagados"
+      ],
+      "correct": 0,
+      "explanation": "Com PITR habilitado, o DynamoDB mantém backups contínuos e permite restaurar para qualquer instante na janela de retenção — recuperando o estado imediatamente anterior ao script defeituoso.",
+      "hint": "Para 'voltar no tempo' ao segundo exato antes do desastre, qual recurso de backup contínuo o DynamoDB oferece?",
+      "optionRationales": [
+        "Com PITR habilitado, o DynamoDB mantém backups contínuos e permite restaurar para qualquer instante na janela de retenção — recuperando o estado imediatamente anterior ao script defeituoso.",
+        "Global Tables replicam TODAS as alterações — inclusive as exclusões indevidas, que se propagariam para as réplicas em segundos.",
+        "O DAX é cache de leitura volátil — não é mecanismo de backup nem de restauração de dados excluídos.",
+        "Capacidade de leitura não recupera dados excluídos — itens apagados não existem mais para serem lidos."
+      ]
+    },
+    {
+      "id": "saa-med-048",
+      "domain": "resilient-architectures",
+      "text": "Um aplicativo global precisa que os usuários continuem lendo E gravando dados do DynamoDB mesmo se uma Região inteira da AWS ficar fora do ar, com redirecionamento do tráfego para outra Região sem intervenção no banco. Qual recurso fornece essa arquitetura ativa-ativa?",
+      "options": [
+        "DynamoDB Global Tables, com réplicas multi-ativas sincronizadas automaticamente entre Regiões",
+        "PITR com restauração na outra Região durante o incidente",
+        "Exportar a tabela para o S3 com replicação entre Regiões",
+        "Uma instância RDS de réplica para o DynamoDB"
+      ],
+      "correct": 0,
+      "explanation": "Global Tables mantêm réplicas com leitura e escrita em múltiplas Regiões, replicadas automaticamente: na falha de uma Região, basta o tráfego ser direcionado a outra réplica, que já aceita escritas.",
+      "hint": "Para escrita em qualquer Região com sincronização automática, o DynamoDB tem suas tabelas 'globais'.",
+      "optionRationales": [
+        "Global Tables mantêm réplicas com leitura e escrita em múltiplas Regiões, replicadas automaticamente: na falha de uma Região, basta o tráfego ser direcionado a outra réplica, que já aceita escritas.",
+        "Restaurar backups durante o desastre gera horas de RTO e perde as escritas recentes — não é arquitetura ativa-ativa.",
+        "Exportações são cópias estáticas para análise — não fornecem um banco ativo para failover em tempo real.",
+        "RDS e DynamoDB são serviços distintos e incompatíveis — não existe réplica RDS de uma tabela DynamoDB."
+      ]
+    },
+    {
+      "id": "saa-med-049",
+      "domain": "resilient-architectures",
+      "text": "Por política de proteção contra ransomware, os backups dos recursos críticos de uma empresa devem ser copiados automaticamente para um cofre em OUTRA CONTA e em OUTRA REGIÃO, de modo que o comprometimento da conta de produção não alcance as cópias. Qual serviço atende a esse desenho?",
+      "options": [
+        "AWS Backup com planos que incluem cópia entre Regiões e entre contas para um vault isolado",
+        "Snapshots manuais guardados na própria conta de produção",
+        "Replicação dos volumes via rsync entre instâncias",
+        "AMIs das instâncias mantidas na mesma Região"
+      ],
+      "correct": 0,
+      "explanation": "O AWS Backup suporta cross-Region e cross-account copy nativamente em seus planos: as cópias vão para um backup vault em conta isolada (com vault lock opcional), padrão recomendado contra ransomware e comprometimento de conta.",
+      "hint": "Backup que sobrevive ao sequestro precisa morar em outro 'prédio' E pertencer a outro 'dono'.",
+      "optionRationales": [
+        "O AWS Backup suporta cross-Region e cross-account copy nativamente em seus planos: as cópias vão para um backup vault em conta isolada (com vault lock opcional), padrão recomendado contra ransomware e comprometimento de conta.",
+        "Cópias na mesma conta caem junto com ela: um invasor com acesso pode excluí-las — exatamente o risco a mitigar.",
+        "Replicação contínua de arquivos propaga também a criptografia maliciosa do ransomware — réplica não é backup isolado.",
+        "AMIs na mesma conta e Região não oferecem o isolamento de conta/Região exigido pela política."
+      ]
+    },
+    {
+      "id": "saa-med-050",
+      "domain": "resilient-architectures",
+      "text": "Uma empresa cria snapshots EBS manualmente quando alguém lembra, resultando em cobertura irregular e snapshots antigos acumulados para sempre. Qual serviço automatiza a criação E a expiração de snapshots segundo agendas e políticas de retenção definidas?",
+      "options": [
+        "Amazon Data Lifecycle Manager (DLM), com políticas de ciclo de vida para snapshots e AMIs baseadas em tags",
+        "S3 Lifecycle Policies aplicadas aos volumes EBS",
+        "CloudWatch Logs com retenção de 30 dias",
+        "Auto Scaling de volumes EBS"
+      ],
+      "correct": 0,
+      "explanation": "O DLM agenda a criação periódica de snapshots/AMIs por tags e aplica retenção automática (mantendo N cópias ou X dias), eliminando tanto o esquecimento quanto o acúmulo de cópias antigas.",
+      "hint": "Pense no 'gerente de ciclo de vida de dados' que cria e aposenta snapshots no piloto automático.",
+      "optionRationales": [
+        "O DLM agenda a criação periódica de snapshots/AMIs por tags e aplica retenção automática (mantendo N cópias ou X dias), eliminando tanto o esquecimento quanto o acúmulo de cópias antigas.",
+        "Políticas de ciclo de vida do S3 atuam sobre objetos em buckets — não gerenciam snapshots de volumes EBS.",
+        "Retenção de logs administra registros de log — sem qualquer relação com snapshots de volumes.",
+        "Não existe Auto Scaling de volumes para backup — o escalonamento atende capacidade computacional, não cópias de segurança."
+      ]
+    },
+    {
+      "id": "saa-med-051",
+      "domain": "resilient-architectures",
+      "text": "Uma equipe sofre downtime a cada deploy: a versão nova substitui a antiga nas mesmas instâncias e, quando há bug, o rollback é demorado. Qual estratégia de implantação elimina o downtime e torna o rollback quase instantâneo?",
+      "options": [
+        "Implantação blue/green: provisionar o ambiente novo em paralelo, redirecionar o tráfego ao validá-lo e manter o antigo pronto para reversão imediata",
+        "Implantação in-place em todas as instâncias simultaneamente",
+        "Desativar os health checks durante o deploy",
+        "Fazer deploys somente de madrugada"
+      ],
+      "correct": 0,
+      "explanation": "No blue/green, duas versões coexistem: o tráfego muda do ambiente azul para o verde apenas após validação, e qualquer problema reverte com um simples redirecionamento — downtime zero e rollback em segundos.",
+      "hint": "Duas cores, dois ambientes completos: o tráfego só atravessa a ponte quando o outro lado está comprovadamente de pé.",
+      "optionRationales": [
+        "No blue/green, duas versões coexistem: o tráfego muda do ambiente azul para o verde apenas após validação, e qualquer problema reverte com um simples redirecionamento — downtime zero e rollback em segundos.",
+        "Substituir tudo de uma vez no mesmo ambiente é justamente a causa do downtime e do rollback lento descritos.",
+        "Cegar os health checks faria o balanceador enviar usuários para instâncias em estado inconsistente — aumentando o impacto.",
+        "Mudar o horário reduz a audiência do problema, mas não elimina o downtime nem acelera a reversão."
+      ]
+    },
+    {
+      "id": "saa-med-052",
+      "domain": "resilient-architectures",
+      "text": "Uma aplicação TCP global (não HTTP) roda em NLBs em duas Regiões. O requisito é failover automático entre Regiões em segundos, sem depender de TTL de DNS dos clientes, mantendo endereços IP fixos para liberação em firewalls corporativos. Qual serviço atende a esses requisitos?",
+      "options": [
+        "AWS Global Accelerator, com IPs anycast estáticos e failover automático baseado em health checks dos endpoints regionais",
+        "Route 53 failover com TTL alto para estabilidade",
+        "CloudFront com duas origens",
+        "VPC Peering entre as duas Regiões"
+      ],
+      "correct": 0,
+      "explanation": "O Global Accelerator entrega dois IPs estáticos globais e monitora os endpoints: ao detectar falha em uma Região, desvia o tráfego para a outra em segundos, sem depender de caches de DNS dos clientes.",
+      "hint": "Failover sem esperar DNS + IPs fixos de borda = o acelerador global com anycast.",
+      "optionRationales": [
+        "O Global Accelerator entrega dois IPs estáticos globais e monitora os endpoints: ao detectar falha em uma Região, desvia o tráfego para a outra em segundos, sem depender de caches de DNS dos clientes.",
+        "Failover via DNS depende da expiração do TTL nos resolvedores dos clientes — TTL alto tornaria a comutação ainda mais lenta, e os IPs mudariam.",
+        "O CloudFront atende conteúdo HTTP/HTTPS — não balanceia aplicações TCP arbitrárias nem fornece IPs estáticos para firewall.",
+        "Peering conecta redes privadas entre si — não roteia usuários da internet nem realiza failover de tráfego público."
+      ]
+    },
+    {
+      "id": "saa-med-053",
+      "domain": "resilient-architectures",
+      "text": "Uma função Lambda é invocada de forma assíncrona pelo S3 a cada upload. Alguns eventos falham após as tentativas automáticas e são descartados silenciosamente, sem rastro para reprocessamento. Qual configuração preserva esses eventos com contexto do erro para análise posterior?",
+      "options": [
+        "Configurar um destino de falha (on-failure destination) — como uma fila SQS — para invocações assíncronas da função",
+        "Aumentar a memória da função para evitar qualquer falha",
+        "Reduzir o número de tentativas automáticas para zero",
+        "Imprimir o evento no log e considerar resolvido"
+      ],
+      "correct": 0,
+      "explanation": "Destinations para falhas assíncronas enviam o evento original junto com metadados do erro para SQS/SNS/EventBridge/Lambda após esgotadas as tentativas — nada se perde e o reprocessamento fica viável.",
+      "hint": "Depois da última tentativa, o evento precisa de um 'endereço de encaminhamento' — não de uma lixeira.",
+      "optionRationales": [
+        "Destinations para falhas assíncronas enviam o evento original junto com metadados do erro para SQS/SNS/EventBridge/Lambda após esgotadas as tentativas — nada se perde e o reprocessamento fica viável.",
+        "Mais memória não elimina falhas de lógica, dependências externas ou dados inválidos — e não preserva eventos quando elas ocorrem.",
+        "Menos tentativas só acelera o descarte — agrava a perda em vez de resolvê-la.",
+        "Logs ajudam o diagnóstico, mas não estruturam o reprocessamento — o evento precisa ir para um destino consumível."
+      ]
+    },
+    {
+      "id": "saa-med-054",
+      "domain": "resilient-architectures",
+      "text": "Uma VPC tem sub-redes privadas em três AZs, todas roteando o tráfego de saída por um ÚNICO NAT Gateway na AZ-1. Durante um incidente que derrubou a AZ-1, as instâncias das outras duas AZs também perderam acesso à internet. Qual mudança elimina essa dependência?",
+      "options": [
+        "Provisionar um NAT Gateway em cada AZ e configurar a tabela de rotas de cada sub-rede privada para usar o NAT da própria zona",
+        "Substituir o NAT Gateway por um Internet Gateway nas sub-redes privadas",
+        "Criar dois NAT Gateways na mesma AZ-1",
+        "Mover todas as instâncias para a AZ-1 junto do NAT"
+      ],
+      "correct": 0,
+      "explanation": "Um NAT por AZ com rotas locais remove a dependência entre zonas: a falha de uma AZ afeta somente os recursos dela, preservando a saída das demais — além de evitar custos de tráfego entre AZs.",
+      "hint": "Cada zona deve ter sua própria 'saída de emergência' — e usar a porta do vizinho só quando necessário.",
+      "optionRationales": [
+        "Um NAT por AZ com rotas locais remove a dependência entre zonas: a falha de uma AZ afeta somente os recursos dela, preservando a saída das demais — além de evitar custos de tráfego entre AZs.",
+        "Dar rota de IGW e IPs públicos às instâncias privadas as exporia à internet — mudaria o modelo de segurança em vez de resolver a redundância.",
+        "Redundância dentro da mesma zona não sobrevive à falha DA zona — o problema é a concentração geográfica.",
+        "Concentrar tudo em uma única AZ elimina a alta disponibilidade da arquitetura inteira."
+      ]
+    },
+    {
+      "id": "saa-med-055",
+      "domain": "resilient-architectures",
+      "text": "Um administrador percebeu que o RDS permite restaurar o banco para qualquer instante dentro do período de retenção configurado (por exemplo, voltar exatamente para 14h32 de ontem). Qual mecanismo do RDS viabiliza essa restauração pontual (point-in-time restore)?",
+      "options": [
+        "Os backups automáticos, que combinam snapshots diários com o arquivamento contínuo dos logs de transação",
+        "Os snapshots manuais criados pelo administrador",
+        "O recurso Multi-AZ com réplica síncrona",
+        "As Read Replicas assíncronas"
+      ],
+      "correct": 0,
+      "explanation": "Com backups automáticos habilitados, o RDS arquiva os transaction logs além do snapshot diário, permitindo reconstruir o estado do banco em qualquer ponto da janela de retenção (até 35 dias) numa nova instância.",
+      "hint": "Foto diária + 'fita contínua' das transações = capacidade de rebobinar para qualquer minuto.",
+      "optionRationales": [
+        "Com backups automáticos habilitados, o RDS arquiva os transaction logs além do snapshot diário, permitindo reconstruir o estado do banco em qualquer ponto da janela de retenção (até 35 dias) numa nova instância.",
+        "Snapshots manuais restauram apenas o instante exato em que foram tirados — sem os logs contínuos, não há restauração para um ponto arbitrário.",
+        "O Multi-AZ replica o estado ATUAL para failover — a réplica contém os mesmos dados (inclusive erros), sem viagem no tempo.",
+        "Réplicas seguem o presente da principal com pequeno atraso — não armazenam histórico para restauração pontual."
+      ]
+    },
+    {
+      "id": "saa-med-056",
+      "domain": "resilient-architectures",
+      "text": "Uma equipe de engenharia quer validar, de forma controlada e antes que aconteça de verdade, como sua aplicação reage à perda de instâncias, picos de latência de rede e indisponibilidade de AZ — injetando essas falhas em experimentos com condições de parada automática. Qual serviço da AWS suporta essa prática de engenharia do caos?",
+      "options": [
+        "AWS Fault Injection Service (FIS)",
+        "AWS Trusted Advisor",
+        "Amazon CloudWatch Synthetics",
+        "Desligar servidores de produção manualmente sem aviso"
+      ],
+      "correct": 0,
+      "explanation": "O FIS executa experimentos de injeção de falhas controlados (terminar instâncias, degradar rede, simular indisponibilidades) com guardrails e stop conditions — validando a resiliência real antes dos incidentes.",
+      "hint": "Engenharia do caos com cinto de segurança: o serviço que 'injeta falhas' de propósito e para sozinho se algo sair do plano.",
+      "optionRationales": [
+        "O FIS executa experimentos de injeção de falhas controlados (terminar instâncias, degradar rede, simular indisponibilidades) com guardrails e stop conditions — validando a resiliência real antes dos incidentes.",
+        "O Trusted Advisor analisa configurações contra boas práticas — não injeta falhas em ambientes reais.",
+        "O Synthetics monitora endpoints com canários simulando usuários — observa o sistema, mas não provoca falhas.",
+        "Caos sem controle, guardrails ou parada automática é apenas um incidente autoinfligido — a disciplina exige experimentos controlados."
+      ]
+    },
+    {
+      "id": "saa-med-057",
+      "domain": "resilient-architectures",
+      "text": "Mensagens de uma fila SQS Standard são entregues 'pelo menos uma vez', e ocasionalmente o mesmo pedido é processado em duplicidade, gerando cobranças repetidas aos clientes. Além de considerar filas FIFO, qual prática de design no CONSUMIDOR evita os efeitos da duplicação?",
+      "options": [
+        "Tornar o processamento idempotente: verificar por um identificador único se o pedido já foi processado antes de executar os efeitos",
+        "Processar as mensagens duas vezes de propósito para padronizar",
+        "Aumentar o retention period da fila",
+        "Reduzir o número de consumidores para um único processo"
+      ],
+      "correct": 0,
+      "explanation": "Idempotência é a defesa de design contra entrega at-least-once: registrando o ID do pedido processado (ex: em tabela com escrita condicional), reprocessamentos repetidos não geram efeitos duplicados.",
+      "hint": "Se a mesma carta pode chegar duas vezes, o destinatário precisa reconhecer: 'essa eu já atendi'.",
+      "optionRationales": [
+        "Idempotência é a defesa de design contra entrega at-least-once: registrando o ID do pedido processado (ex: em tabela com escrita condicional), reprocessamentos repetidos não geram efeitos duplicados.",
+        "Duplicar deliberadamente os efeitos só agrava o problema das cobranças repetidas.",
+        "O tempo de retenção define por quanto tempo mensagens não consumidas permanecem na fila — não afeta duplicação na entrega.",
+        "Mesmo com um consumidor, a entrega at-least-once pode repetir mensagens (ex: falha após processar e antes de excluir) — o design idempotente continua necessário."
+      ]
+    },
+    {
+      "id": "saa-med-058",
+      "domain": "resilient-architectures",
+      "text": "Durante picos, uma aplicação cliente recebe erros de throttling (HTTP 429/limite excedido) de uma API e responde tentando novamente de imediato, em loop, o que multiplica a carga e prolonga a degradação. Qual padrão de resiliência o cliente deveria implementar?",
+      "options": [
+        "Retentativas com backoff exponencial e jitter: esperar intervalos progressivamente maiores e aleatorizados entre as tentativas",
+        "Retentativas imediatas e ilimitadas até obter sucesso",
+        "Ignorar os erros 429 e seguir o fluxo sem a resposta",
+        "Abrir múltiplas conexões paralelas para furar o limite"
+      ],
+      "correct": 0,
+      "explanation": "Backoff exponencial reduz a pressão sobre o serviço degradado e o jitter evita que milhares de clientes retentem sincronizados — o padrão recomendado pela AWS para consumo resiliente de APIs.",
+      "hint": "Quando o serviço pede pausa, recue dobrando a espera — e dessincronize as tentativas com um tempero aleatório.",
+      "optionRationales": [
+        "Backoff exponencial reduz a pressão sobre o serviço degradado e o jitter evita que milhares de clientes retentem sincronizados — o padrão recomendado pela AWS para consumo resiliente de APIs.",
+        "É exatamente o antipadrão descrito: o martelar contínuo amplifica a sobrecarga e atrasa a recuperação (retry storm).",
+        "Ignorar falhas silenciosamente corrompe o comportamento da aplicação — o objetivo é completar a operação com responsabilidade.",
+        "Paralelizar contra um serviço que sinaliza limite é hostil e tende a punições maiores de throttling."
+      ]
+    },
+    {
+      "id": "saa-med-059",
+      "domain": "resilient-architectures",
+      "text": "Um Network Load Balancer distribui tráfego para targets em duas AZs, mas o time notou que cada nó do balanceador envia tráfego apenas aos targets de sua própria zona; quando uma AZ ficou com poucos targets saudáveis, eles ficaram sobrecarregados. Qual configuração faz cada nó distribuir para os targets saudáveis de TODAS as zonas?",
+      "options": [
+        "Habilitar o cross-zone load balancing no balanceador",
+        "Adicionar um segundo balanceador na mesma VPC",
+        "Converter o NLB para Gateway Load Balancer",
+        "Remover os health checks para incluir todos os targets"
+      ],
+      "correct": 0,
+      "explanation": "Com cross-zone habilitado (padrão no ALB, opcional no NLB), cada nó distribui para todos os targets saudáveis registrados em todas as AZs, equalizando a carga independentemente da distribuição por zona.",
+      "hint": "O nome da configuração diz tudo: balancear 'cruzando as zonas', e não apenas dentro de cada uma.",
+      "optionRationales": [
+        "Com cross-zone habilitado (padrão no ALB, opcional no NLB), cada nó distribui para todos os targets saudáveis registrados em todas as AZs, equalizando a carga independentemente da distribuição por zona.",
+        "Outro balanceador não muda o comportamento de distribuição por zona dos nós existentes.",
+        "O GWLB destina-se a appliances de segurança em linha — não é a solução para distribuição entre zonas de uma aplicação.",
+        "Desligar health checks faria o tráfego chegar a targets quebrados — piora a confiabilidade em vez de equilibrar a carga."
+      ]
+    },
+    {
+      "id": "saa-med-060",
+      "domain": "resilient-architectures",
+      "text": "Centenas de funções Lambda abrem e fecham conexões diretas com um RDS PostgreSQL a cada invocação, esgotando o limite de conexões do banco nos picos e deixando o failover lento. Qual serviço resolve esse problema atuando como camada de gerenciamento de conexões?",
+      "options": [
+        "Amazon RDS Proxy, fazendo pooling e reutilização de conexões entre as invocações e acelerando o failover",
+        "Aumentar indefinidamente o max_connections do banco",
+        "Criar uma Read Replica para receber as conexões de escrita",
+        "Trocar o RDS por arquivos locais no /tmp das funções"
+      ],
+      "correct": 0,
+      "explanation": "O RDS Proxy mantém um pool de conexões compartilhado que as funções reutilizam, evitando o esgotamento do banco em cargas serverless e reduzindo o tempo de failover ao preservar conexões através da transição.",
+      "hint": "Entre o enxame serverless e o banco, falta um 'porteiro de conexões' que recicla em vez de abrir novas.",
+      "optionRationales": [
+        "O RDS Proxy mantém um pool de conexões compartilhado que as funções reutilizam, evitando o esgotamento do banco em cargas serverless e reduzindo o tempo de failover ao preservar conexões através da transição.",
+        "Cada conexão consome memória do servidor — elevar o limite sem controle degrada o desempenho e apenas adia o esgotamento.",
+        "Réplicas não aceitam escritas — não absorvem o volume de conexões transacionais das funções.",
+        "Armazenamento efêmero local não substitui um banco relacional compartilhado e duradouro."
+      ]
+    },
+    {
+      "id": "saa-med-061",
+      "domain": "resilient-architectures",
+      "text": "Um barramento do Amazon EventBridge roteia eventos de pedidos para vários consumidores. Após um bug em um consumidor ter processado eventos incorretamente por horas, o time quer poder REPROCESSAR eventos passados sob demanda. Qual capacidade do EventBridge viabiliza isso?",
+      "options": [
+        "Arquivar os eventos (archive) e usar o replay para reenviá-los ao barramento quando necessário",
+        "EventBridge Scheduler com expressões cron",
+        "Aumentar o número de regras do barramento",
+        "Pedir aos sistemas de origem que reenviem tudo manualmente"
+      ],
+      "correct": 0,
+      "explanation": "O EventBridge permite arquivar eventos com retenção configurável e reproduzi-los (replay) para o barramento em uma janela de tempo escolhida — habilitando reprocessamento após correção de bugs.",
+      "hint": "Gravar o 'filme' dos eventos e poder dar play de novo: arquivo + replay.",
+      "optionRationales": [
+        "O EventBridge permite arquivar eventos com retenção configurável e reproduzi-los (replay) para o barramento em uma janela de tempo escolhida — habilitando reprocessamento após correção de bugs.",
+        "O Scheduler dispara eventos em horários programados — não armazena nem reproduz eventos históricos do barramento.",
+        "Mais regras criam mais rotas para eventos NOVOS — não recuperam os que já passaram.",
+        "Depender de reenvio das origens é frágil e nem sempre possível — o arquivamento no barramento elimina essa dependência."
+      ]
+    },
+    {
+      "id": "saa-med-062",
+      "domain": "high-performing-architectures",
+      "text": "Uma tabela do DynamoDB que registra acessos de um site usa como chave de partição a data do dia (ex: '2026-06-11'). Nos horários de pico, as requisições sofrem throttling mesmo com capacidade sobrando na tabela. Qual é a causa provável e a correção recomendada?",
+      "options": [
+        "Todas as escritas do dia caem na mesma partição (hot partition); a correção é usar uma chave de partição de alta cardinalidade que distribua o acesso uniformemente",
+        "A tabela precisa de mais índices secundários globais para aumentar o throughput",
+        "O DynamoDB não suporta escrita em horários de pico",
+        "Faltou habilitar o versionamento da tabela"
+      ],
+      "correct": 0,
+      "explanation": "Chaves de baixa cardinalidade concentram o tráfego em poucas partições, estourando o limite por partição mesmo com capacidade agregada livre; chaves bem distribuídas (ex: ID do usuário, ou data com sufixo de shard) espalham a carga.",
+      "hint": "Se todo mundo bate na mesma 'gaveta' (mesmo valor de chave), a gaveta esquenta — distribua as batidas.",
+      "optionRationales": [
+        "Chaves de baixa cardinalidade concentram o tráfego em poucas partições, estourando o limite por partição mesmo com capacidade agregada livre; chaves bem distribuídas (ex: ID do usuário, ou data com sufixo de shard) espalham a carga.",
+        "GSIs servem para consultar por atributos alternativos — não aumentam o limite da partição quente da tabela base.",
+        "O DynamoDB escala a milhões de requisições por segundo — o gargalo do cenário é o design da chave, não o serviço.",
+        "Não existe versionamento de tabela no DynamoDB — o conceito não se aplica ao problema de distribuição de carga."
+      ]
+    },
+    {
+      "id": "saa-med-063",
+      "domain": "high-performing-architectures",
+      "text": "Uma aplicação precisa consultar itens do DynamoDB por um atributo que não é a chave primária (ex: buscar pedidos por e-mail do cliente), e hoje faz Scan completo da tabela, ficando lenta e cara. Qual recurso resolve essas consultas de forma eficiente?",
+      "options": [
+        "Criar um índice secundário global (GSI) com o e-mail como chave de partição e consultar o índice com Query",
+        "Aumentar a capacidade de leitura para acelerar os Scans",
+        "Habilitar PITR na tabela",
+        "Migrar os dados para o S3 e usar listagem de objetos"
+      ],
+      "correct": 0,
+      "explanation": "O GSI materializa uma visão da tabela com outra chave, permitindo Query direto pelo atributo alternativo — eliminando o Scan, que lê a tabela inteira a cada busca.",
+      "hint": "Para perguntar 'por outro campo' sem varrer tudo, crie uma segunda 'porta de entrada' indexada na tabela.",
+      "optionRationales": [
+        "O GSI materializa uma visão da tabela com outra chave, permitindo Query direto pelo atributo alternativo — eliminando o Scan, que lê a tabela inteira a cada busca.",
+        "Mais capacidade torna o Scan mais rápido, porém continua lendo (e cobrando por) a tabela inteira a cada consulta — ineficiência estrutural.",
+        "PITR é backup contínuo para restauração — não melhora padrões de consulta.",
+        "Listagem do S3 não é mecanismo de consulta indexada por atributo — trocaria um Scan por outro pior."
+      ]
+    },
+    {
+      "id": "saa-med-064",
+      "domain": "high-performing-architectures",
+      "text": "Uma aplicação de leilões usa DynamoDB e precisa reduzir a latência de leituras intensamente repetidas (itens em alta) de ~5 ms para microssegundos. Entre DAX e ElastiCache, por que o DAX é a opção de menor esforço nesse caso?",
+      "options": [
+        "Porque o DAX é compatível com a API do DynamoDB: basta apontar o cliente para o cluster, sem reescrever a lógica de cache da aplicação",
+        "Porque o DAX também acelera consultas do RDS e do Redshift",
+        "Porque o ElastiCache não consegue armazenar itens de bancos NoSQL",
+        "Porque o DAX é gratuito, ao contrário do ElastiCache"
+      ],
+      "correct": 0,
+      "explanation": "O DAX atua como cache write-through/read-through transparente com a mesma API do DynamoDB; o ElastiCache exigiria implementar manualmente a lógica de popular, invalidar e consultar o cache.",
+      "hint": "O acelerador 'fala DynamoDB' nativamente — o cache genérico exige que você escreva a conversa.",
+      "optionRationales": [
+        "O DAX atua como cache write-through/read-through transparente com a mesma API do DynamoDB; o ElastiCache exigiria implementar manualmente a lógica de popular, invalidar e consultar o cache.",
+        "O DAX é exclusivo do DynamoDB — não atende outros bancos.",
+        "O ElastiCache armazena qualquer dado serializável, inclusive itens NoSQL — a diferença é o esforço de integração, não a capacidade.",
+        "O DAX é cobrado por nó do cluster, como o ElastiCache — custo não é o diferencial."
+      ]
+    },
+    {
+      "id": "saa-med-065",
+      "domain": "high-performing-architectures",
+      "text": "Um cluster Aurora MySQL tem uma gravadora e três réplicas de leitura. A aplicação envia todas as consultas (leituras e escritas) para o cluster endpoint da gravadora, desperdiçando as réplicas. Qual ajuste distribui as leituras automaticamente entre as réplicas?",
+      "options": [
+        "Direcionar as consultas de leitura para o reader endpoint do cluster, que balanceia as conexões entre as réplicas disponíveis",
+        "Criar um Network Load Balancer na frente das réplicas",
+        "Configurar as réplicas para aceitarem escritas",
+        "Aumentar o tamanho da instância gravadora"
+      ],
+      "correct": 0,
+      "explanation": "O Aurora fornece um reader endpoint que distribui conexões entre as réplicas do cluster automaticamente — basta a aplicação separar o tráfego de leitura para esse endpoint.",
+      "hint": "O cluster tem dois 'telefones': um da titular (escritas) e um que toca rodando entre as leitoras.",
+      "optionRationales": [
+        "O Aurora fornece um reader endpoint que distribui conexões entre as réplicas do cluster automaticamente — basta a aplicação separar o tráfego de leitura para esse endpoint.",
+        "Desnecessário: o Aurora já oferece o endpoint de leitura com balanceamento nativo, sem custo e sem manutenção de NLB.",
+        "Réplicas Aurora são somente leitura — apenas a promoção em failover muda esse papel.",
+        "Escalar verticalmente a gravadora não usa as réplicas ociosas — mantém o desperdício e o custo."
+      ]
+    },
+    {
+      "id": "saa-med-066",
+      "domain": "high-performing-architectures",
+      "text": "O cache hit ratio de uma distribuição do CloudFront está baixo: a origem está sendo consultada com frequência mesmo para conteúdos que raramente mudam. A análise mostrou que as requisições incluem parâmetros de query string irrelevantes (ex: IDs de rastreamento de marketing) que variam a cada acesso. Qual otimização aumenta o aproveitamento do cache?",
+      "options": [
+        "Ajustar a cache policy para excluir da cache key os parâmetros irrelevantes, mantendo apenas os que realmente alteram o conteúdo",
+        "Reduzir o TTL para zero e revalidar tudo na origem",
+        "Remover a distribuição e servir direto do S3",
+        "Ativar restrição geográfica nas Edge Locations"
+      ],
+      "correct": 0,
+      "explanation": "Cada combinação de valores na cache key gera uma entrada distinta de cache; remover parâmetros que não afetam a resposta faz requisições equivalentes compartilharem a mesma entrada, elevando o hit ratio e aliviando a origem.",
+      "hint": "Se cada visita carrega um 'crachá diferente' na URL, o cache acha que é conteúdo novo — ensine-o a ignorar o crachá.",
+      "optionRationales": [
+        "Cada combinação de valores na cache key gera uma entrada distinta de cache; remover parâmetros que não afetam a resposta faz requisições equivalentes compartilharem a mesma entrada, elevando o hit ratio e aliviando a origem.",
+        "TTL zero elimina o cache — multiplica as idas à origem, o oposto do objetivo.",
+        "Abrir mão do CDN aumentaria latência global e carga na origem — não otimiza nada.",
+        "Geo restriction controla QUEM acessa o conteúdo — não influencia o aproveitamento do cache."
+      ]
+    },
+    {
+      "id": "saa-med-067",
+      "domain": "high-performing-architectures",
+      "text": "Consultas do Amazon Athena sobre um data lake no S3 estão lentas e caras porque varrem terabytes de arquivos CSV inteiros, mesmo quando o filtro é por um único dia. Quais duas otimizações de organização dos dados reduzem drasticamente o volume varrido por consulta?",
+      "options": [
+        "Particionar os dados por data no S3 e converter os arquivos para formato colunar comprimido como Parquet",
+        "Aumentar o tamanho dos arquivos CSV para reduzir o número de objetos",
+        "Mover o data lake para volumes EBS maiores",
+        "Executar as consultas em horários de menor tráfego"
+      ],
+      "correct": 0,
+      "explanation": "Partições permitem ao Athena pular diretórios fora do filtro (partition pruning), e formatos colunares como Parquet leem apenas as colunas consultadas com compressão — juntos, reduzem o scan (e o custo por TB varrido) em ordens de magnitude.",
+      "hint": "Duas alavancas: pular pastas inteiras (partições) e ler só as colunas necessárias (formato colunar).",
+      "optionRationales": [
+        "Partições permitem ao Athena pular diretórios fora do filtro (partition pruning), e formatos colunares como Parquet leem apenas as colunas consultadas com compressão — juntos, reduzem o scan (e o custo por TB varrido) em ordens de magnitude.",
+        "Consolidar arquivos ajuda marginalmente, mas o CSV continua exigindo a leitura de todas as colunas e de todos os períodos sem partições.",
+        "O Athena consulta dados no S3 — EBS não faz parte dessa arquitetura.",
+        "O horário não muda o volume de dados varrido — o custo e a lentidão permaneceriam."
+      ]
+    },
+    {
+      "id": "saa-med-068",
+      "domain": "high-performing-architectures",
+      "text": "Uma plataforma de telemetria precisa ingerir milhões de eventos por segundo de dispositivos IoT, preservando a ordem por dispositivo e permitindo que múltiplas aplicações leiam o MESMO fluxo de dados em paralelo (analytics em tempo real e arquivamento). Qual serviço atende a esses requisitos de streaming?",
+      "options": [
+        "Amazon Kinesis Data Streams, com shards que preservam ordem por chave de partição e múltiplos consumidores lendo o mesmo stream",
+        "Amazon SQS Standard com vários consumidores",
+        "Amazon SNS com entrega por e-mail",
+        "AWS Step Functions com execuções paralelas"
+      ],
+      "correct": 0,
+      "explanation": "O Kinesis Data Streams é o serviço de streaming de alto throughput: ordena registros por chave dentro do shard e permite vários consumidores independentes processarem o mesmo fluxo — diferentemente do SQS, onde cada mensagem é consumida uma única vez.",
+      "hint": "Fila entrega e apaga; STREAM mantém o fluxo para vários leitores rebobinarem — qual serviço é o rio de dados?",
+      "optionRationales": [
+        "O Kinesis Data Streams é o serviço de streaming de alto throughput: ordena registros por chave dentro do shard e permite vários consumidores independentes processarem o mesmo fluxo — diferentemente do SQS, onde cada mensagem é consumida uma única vez.",
+        "No SQS, cada mensagem é entregue a UM consumidor e some da fila — não há releitura do fluxo por múltiplas aplicações, nem ordem garantida na Standard.",
+        "SNS distribui notificações push, sem retenção para reprocessamento ordenado de milhões de eventos por segundo por múltiplos leitores.",
+        "Step Functions orquestra fluxos de trabalho — não é uma plataforma de ingestão de streaming de alto volume."
+      ]
+    },
+    {
+      "id": "saa-med-069",
+      "domain": "high-performing-architectures",
+      "text": "Um volume gp3 de 500 GB atende um banco de dados que passou a precisar de 10.000 IOPS. O administrador lembrou que, na geração anterior (gp2), seria preciso aumentar o tamanho do volume para ganhar IOPS. O que mudou no gp3 que evita esse desperdício?",
+      "options": [
+        "No gp3, IOPS e throughput são provisionados de forma independente do tamanho do volume",
+        "O gp3 entrega IOPS ilimitadas para qualquer volume",
+        "O gp3 exige migração para Instance Store primeiro",
+        "O gp3 só está disponível para instâncias bare metal"
+      ],
+      "correct": 0,
+      "explanation": "O gp3 desacopla desempenho de capacidade: é possível provisionar até 16.000 IOPS e 1.000 MB/s sem crescer o volume — no gp2, o desempenho escalava com o tamanho, forçando compra de espaço desnecessário.",
+      "hint": "A grande evolução do gp3: comprar desempenho e espaço em prateleiras separadas.",
+      "optionRationales": [
+        "O gp3 desacopla desempenho de capacidade: é possível provisionar até 16.000 IOPS e 1.000 MB/s sem crescer o volume — no gp2, o desempenho escalava com o tamanho, forçando compra de espaço desnecessário.",
+        "O gp3 tem teto de 16.000 IOPS por volume — acima disso, a família io2 é o caminho.",
+        "Não há etapa intermediária: volumes gp2 podem ser modificados para gp3 diretamente, inclusive online.",
+        "O gp3 funciona com praticamente todos os tipos de instância EC2 baseados em Nitro e Xen — não há restrição a bare metal."
+      ]
+    },
+    {
+      "id": "saa-med-070",
+      "domain": "high-performing-architectures",
+      "text": "Um cluster de simulação científica usa MPI com comunicação intensiva entre dezenas de instâncias EC2, e a rede tradicional virou gargalo: a aplicação precisa de latência de comunicação inter-nós próxima à de um cluster HPC local, com bypass do sistema operacional. Qual tecnologia de rede da AWS atende a esse requisito?",
+      "options": [
+        "Elastic Fabric Adapter (EFA), combinado com cluster placement group",
+        "Elastic IP em cada nó do cluster",
+        "AWS VPN entre as instâncias",
+        "CloudFront na frente do cluster"
+      ],
+      "correct": 0,
+      "explanation": "O EFA é a interface de rede para HPC que permite bypass do kernel (OS-bypass) para comunicação MPI de baixíssima latência; junto com o cluster placement group, aproxima o desempenho de interconexões HPC dedicadas.",
+      "hint": "Para MPI 'falar direto com a placa' sem passar pelo sistema operacional, a AWS criou um adaptador de malha especial.",
+      "optionRationales": [
+        "O EFA é a interface de rede para HPC que permite bypass do kernel (OS-bypass) para comunicação MPI de baixíssima latência; junto com o cluster placement group, aproxima o desempenho de interconexões HPC dedicadas.",
+        "IPs públicos estáticos não alteram a latência da comunicação interna entre instâncias.",
+        "VPN adiciona criptografia e overhead — aumentaria a latência em vez de reduzi-la.",
+        "CDN serve conteúdo a usuários finais — irrelevante para comunicação MPI entre nós de computação."
+      ]
+    },
+    {
+      "id": "saa-med-071",
+      "domain": "high-performing-architectures",
+      "text": "Um parceiro corporativo exige que a API da empresa seja exposta com endereços IP fixos para liberação em seu firewall, e o protocolo é TCP puro com milhões de conexões simultâneas e latência mínima. Qual balanceador atende a esses dois requisitos nativamente?",
+      "options": [
+        "Network Load Balancer, que opera na camada 4 com altíssimo desempenho e oferece um IP estático (ou Elastic IP) por Zona de Disponibilidade",
+        "Application Load Balancer com regras de roteamento por caminho",
+        "Classic Load Balancer",
+        "Route 53 com registros A fixos para as instâncias"
+      ],
+      "correct": 0,
+      "explanation": "O NLB combina os dois requisitos: throughput extremo com latência ultrabaixa em TCP/UDP e endereços IP estáticos por AZ — algo que o ALB não oferece (IPs variáveis atrás de DNS).",
+      "hint": "IP fixo por zona + camada 4 + milhões de conexões: a assinatura de qual membro da família ELB?",
+      "optionRationales": [
+        "O NLB combina os dois requisitos: throughput extremo com latência ultrabaixa em TCP/UDP e endereços IP estáticos por AZ — algo que o ALB não oferece (IPs variáveis atrás de DNS).",
+        "O ALB trabalha na camada 7 (HTTP) e não fornece IPs estáticos nativamente — seus IPs mudam ao longo do tempo.",
+        "O CLB é a geração legada, sem IPs estáticos e com desempenho inferior — não recomendado para novas arquiteturas.",
+        "Apontar DNS direto para instâncias elimina o balanceamento gerenciado e os health checks do ELB — não substitui um balanceador de camada 4."
+      ]
+    },
+    {
+      "id": "saa-med-072",
+      "domain": "high-performing-architectures",
+      "text": "Uma função Lambda consome uma fila SQS de alto volume processando UMA mensagem por invocação, resultando em milhões de invocações e custo elevado. As mensagens são pequenas e podem ser processadas em grupo. Qual ajuste melhora o throughput e reduz o custo?",
+      "options": [
+        "Aumentar o batch size do event source mapping para processar lotes de mensagens por invocação",
+        "Reduzir a memória da função ao mínimo",
+        "Trocar a fila SQS por chamadas síncronas diretas",
+        "Criar uma fila separada para cada mensagem"
+      ],
+      "correct": 0,
+      "explanation": "O event source mapping do SQS permite entregar até milhares de mensagens (e janelas de batching) por invocação: menos invocações, melhor aproveitamento de cada execução e custo menor por mensagem processada.",
+      "hint": "Se cada 'viagem' da função custa, leve mais passageiros por viagem.",
+      "optionRationales": [
+        "O event source mapping do SQS permite entregar até milhares de mensagens (e janelas de batching) por invocação: menos invocações, melhor aproveitamento de cada execução e custo menor por mensagem processada.",
+        "Menos memória implica menos CPU e execuções mais longas — pode até elevar o custo total e não reduz o número de invocações.",
+        "Acoplar os sistemas sincronamente elimina o buffer e a resiliência, sem resolver a granularidade do processamento.",
+        "Multiplicar filas multiplica a complexidade sem agrupar o processamento — agrava o problema."
+      ]
+    },
+    {
+      "id": "saa-med-073",
+      "domain": "high-performing-architectures",
+      "text": "Uma API REST no Amazon API Gateway repassa todas as requisições ao backend, mesmo as consultas idênticas repetidas milhares de vezes por minuto (ex: lista de categorias que muda raramente). Qual recurso do próprio API Gateway reduz a latência e a carga no backend para essas consultas?",
+      "options": [
+        "Habilitar o cache de estágio (stage cache) do API Gateway com TTL adequado para os métodos de leitura",
+        "Aumentar o limite de throttling da API",
+        "Mover a API para outra Região",
+        "Usar autenticação mais simples nos endpoints"
+      ],
+      "correct": 0,
+      "explanation": "O cache de estágio armazena as respostas dos endpoints por TTL configurável: requisições repetidas são respondidas pelo próprio gateway sem tocar o backend — menos latência e menos carga.",
+      "hint": "O 'portão' pode guardar as respostas frequentes por alguns segundos — onde fica esse depósito no API Gateway?",
+      "optionRationales": [
+        "O cache de estágio armazena as respostas dos endpoints por TTL configurável: requisições repetidas são respondidas pelo próprio gateway sem tocar o backend — menos latência e menos carga.",
+        "Elevar limites permite MAIS requisições chegarem ao backend — não evita o processamento repetido.",
+        "Trocar a Região altera a latência geográfica, mas mantém cada consulta batendo no backend.",
+        "O mecanismo de autenticação não muda o volume de chamadas repassadas ao backend."
+      ]
+    },
+    {
+      "id": "saa-med-074",
+      "domain": "high-performing-architectures",
+      "text": "Duas cargas de trabalho precisam de instâncias EC2 novas: (A) um job de codificação de vídeo que satura CPU por horas; (B) um banco analítico em memória que carrega 400 GB de dados na RAM. Qual o par de famílias de instância mais adequado para A e B, respectivamente?",
+      "options": [
+        "Família C (otimizada para computação) para a codificação e família R (otimizada para memória) para o banco em RAM",
+        "Família R para a codificação e família C para o banco em RAM",
+        "Família T com burst para ambas",
+        "Família I (otimizada para armazenamento) para ambas"
+      ],
+      "correct": 0,
+      "explanation": "A codificação é limitada por CPU — perfil da família C; o banco em memória precisa de alta proporção de RAM por vCPU — perfil da família R. Casar o gargalo da carga com a especialidade da família é a base do dimensionamento.",
+      "hint": "Pergunte a cada carga qual recurso ela devora: processador → C; memória → R.",
+      "optionRationales": [
+        "A codificação é limitada por CPU — perfil da família C; o banco em memória precisa de alta proporção de RAM por vCPU — perfil da família R. Casar o gargalo da carga com a especialidade da família é a base do dimensionamento.",
+        "Invertido: a codificação desperdiçaria a RAM extra da R, e os 400 GB não caberiam na proporção de memória da família C.",
+        "Instâncias T esgotam créditos de CPU em cargas contínuas e não oferecem a RAM massiva exigida — inadequadas para os dois casos.",
+        "A família I privilegia IOPS de NVMe local — nenhuma das cargas tem gargalo de disco."
+      ]
+    },
+    {
+      "id": "saa-med-075",
+      "domain": "high-performing-architectures",
+      "text": "Uma aplicação de RH tem pico de uso todos os dias úteis entre 8h e 10h, e o Auto Scaling reativo (por CPU) sempre escala 'atrasado', degradando o desempenho no início do pico. O time quer que o serviço use machine learning sobre o histórico para provisionar capacidade ANTES do pico previsto. Qual política de scaling implementa isso?",
+      "options": [
+        "Predictive scaling, que prevê a demanda a partir do histórico de métricas e escala antecipadamente",
+        "Simple scaling com cooldown maior",
+        "Desligar o Auto Scaling e fixar capacidade máxima permanente",
+        "Health checks mais frequentes no ALB"
+      ],
+      "correct": 0,
+      "explanation": "O predictive scaling analisa padrões históricos com ML e programa a capacidade antes dos picos recorrentes, combinável com o target tracking para correções em tempo real — eliminando o atraso do scaling puramente reativo.",
+      "hint": "Se o pico tem hora marcada na história, deixe o aprendizado de máquina 'adivinhar' e chegar antes.",
+      "optionRationales": [
+        "O predictive scaling analisa padrões históricos com ML e programa a capacidade antes dos picos recorrentes, combinável com o target tracking para correções em tempo real — eliminando o atraso do scaling puramente reativo.",
+        "Cooldown maior torna a reação ainda MAIS lenta — agrava o atraso no início do pico.",
+        "Capacidade de pico 24/7 resolve o atraso ao custo de desperdício constante — a previsão atinge o mesmo efeito pagando só quando necessário.",
+        "Frequência de health check afeta detecção de falhas — não antecipa provisionamento de capacidade."
+      ]
+    },
+    {
+      "id": "saa-med-076",
+      "domain": "high-performing-architectures",
+      "text": "Ao implementar cache com ElastiCache, um arquiteto comparou duas estratégias: (1) carregar o dado no cache somente quando há cache miss; (2) gravar no cache sempre que o banco é atualizado. Quais são, respectivamente, os nomes dessas estratégias e o trade-off central?",
+      "options": [
+        "Lazy loading (1) e write-through (2): lazy loading economiza memória mas pode servir dados defasados; write-through mantém o cache fresco ao custo de escrita dupla e dados possivelmente nunca lidos",
+        "Write-through (1) e lazy loading (2), com os mesmos trade-offs invertidos",
+        "Sharding (1) e replicação (2)",
+        "Cache warming (1) e cache busting (2)"
+      ],
+      "correct": 0,
+      "explanation": "São as duas estratégias clássicas de cache: lazy loading popula sob demanda (miss penalty e possível staleness) e write-through atualiza o cache em cada escrita (consistência maior, custo de escrita e ocupação maiores) — frequentemente combinadas com TTL.",
+      "hint": "Uma estratégia é 'preguiçosa' (só busca quando falta); a outra 'escreve através' do cache a cada atualização.",
+      "optionRationales": [
+        "São as duas estratégias clássicas de cache: lazy loading popula sob demanda (miss penalty e possível staleness) e write-through atualiza o cache em cada escrita (consistência maior, custo de escrita e ocupação maiores) — frequentemente combinadas com TTL.",
+        "Os nomes estão trocados: carregar no miss é lazy loading; gravar junto da escrita é write-through.",
+        "Sharding e replicação são técnicas de distribuição e cópia de dados — não estratégias de popular cache.",
+        "Warming é pré-carga programada e busting é invalidação de versões — não correspondem às duas estratégias descritas."
+      ]
+    },
+    {
+      "id": "saa-med-077",
+      "domain": "high-performing-architectures",
+      "text": "Um treinamento de machine learning lê milhões de pequenos arquivos do S3 e exige um sistema de arquivos POSIX com throughput de centenas de GB/s e latência submilissegundo, integrado nativamente ao S3. Qual serviço de armazenamento foi projetado para essa carga de HPC/ML?",
+      "options": [
+        "Amazon FSx for Lustre, com integração nativa a buckets S3",
+        "Amazon EFS no modo General Purpose",
+        "S3 Glacier Instant Retrieval montado como disco",
+        "AWS Storage Gateway em modo File Gateway"
+      ],
+      "correct": 0,
+      "explanation": "O FSx for Lustre é o sistema de arquivos paralelo de alto desempenho da AWS: latências submilissegundo, throughput massivo e vinculação direta com S3 (lazy loading dos objetos) — o padrão para HPC e treinamento de ML.",
+      "hint": "O sistema de arquivos paralelo famoso do mundo HPC tem versão gerenciada na AWS — e conversa direto com o S3.",
+      "optionRationales": [
+        "O FSx for Lustre é o sistema de arquivos paralelo de alto desempenho da AWS: latências submilissegundo, throughput massivo e vinculação direta com S3 (lazy loading dos objetos) — o padrão para HPC e treinamento de ML.",
+        "O EFS atende compartilhamento de uso geral, mas não alcança o throughput paralelo extremo nem a integração S3 do Lustre para HPC.",
+        "Classes Glacier são arquivamento de objetos — não são montáveis como sistema de arquivos POSIX de alto desempenho.",
+        "O File Gateway serve à integração híbrida on-premises↔S3 com cache local — não é um sistema de arquivos paralelo para clusters de treinamento na nuvem."
+      ]
+    },
+    {
+      "id": "saa-med-078",
+      "domain": "high-performing-architectures",
+      "text": "Um banco de dados de um sistema acadêmico fica praticamente ocioso durante as férias e explode de acessos na semana de matrículas. A empresa quer um banco relacional compatível com PostgreSQL cuja capacidade computacional cresça e encolha automaticamente em incrementos finos conforme a carga, cobrando pelo uso efetivo. Qual solução atende a esse perfil?",
+      "options": [
+        "Amazon Aurora Serverless v2, que escala a capacidade em ACUs de forma automática e granular",
+        "RDS provisionado no maior tamanho disponível",
+        "DynamoDB on-demand",
+        "ElastiCache Redis com persistência"
+      ],
+      "correct": 0,
+      "explanation": "O Aurora Serverless v2 ajusta a capacidade em frações de ACU em segundos, acompanhando a demanda real — ideal para cargas intermitentes ou imprevisíveis, cobrando pela capacidade efetivamente consumida.",
+      "hint": "Banco relacional que 'respira' com a demanda em incrementos finos: a versão 2 do Aurora sem servidor.",
+      "optionRationales": [
+        "O Aurora Serverless v2 ajusta a capacidade em frações de ACU em segundos, acompanhando a demanda real — ideal para cargas intermitentes ou imprevisíveis, cobrando pela capacidade efetivamente consumida.",
+        "Capacidade máxima fixa atende o pico desperdiçando recursos nas longas férias ociosas — o problema que o serverless elimina.",
+        "O DynamoDB é NoSQL — não atende o requisito de compatibilidade com PostgreSQL.",
+        "Redis é cache/estrutura em memória — não substitui um banco relacional PostgreSQL transacional."
+      ]
+    },
+    {
+      "id": "saa-med-079",
+      "domain": "high-performing-architectures",
+      "text": "Consumidores de uma fila SQS fazem polling contínuo com short polling, gerando milhões de respostas vazias, custo de requisições e latência na captura de novas mensagens. Qual ajuste simples melhora a eficiência do consumo?",
+      "options": [
+        "Habilitar long polling (ReceiveMessageWaitTimeSeconds até 20s), fazendo a chamada aguardar mensagens antes de retornar",
+        "Aumentar a frequência do short polling para capturar mensagens mais cedo",
+        "Migrar a fila para um tópico SNS",
+        "Reduzir o retention period das mensagens"
+      ],
+      "correct": 0,
+      "explanation": "Com long polling, o SQS segura a conexão até haver mensagens (ou expirar a espera), eliminando a maioria das respostas vazias — menos requisições cobradas e entrega mais rápida quando mensagens chegam.",
+      "hint": "Em vez de bater na porta a cada segundo, espere na porta até alguém chegar (ou até 20 segundos).",
+      "optionRationales": [
+        "Com long polling, o SQS segura a conexão até haver mensagens (ou expirar a espera), eliminando a maioria das respostas vazias — menos requisições cobradas e entrega mais rápida quando mensagens chegam.",
+        "Mais polling vazio multiplica requisições e custo — intensifica o problema.",
+        "SNS muda o modelo para push sem retenção de fila — não é um ajuste de eficiência do consumo do SQS.",
+        "O tempo de retenção define quanto tempo mensagens aguardam consumo — não reduz respostas vazias do polling."
+      ]
+    },
+    {
+      "id": "saa-med-080",
+      "domain": "high-performing-architectures",
+      "text": "Um pipeline de processamento usa um diretório temporário para arquivos intermediários que são descartados ao fim de cada job. O volume gp3 atual limita o desempenho, e o time quer o I/O local mais rápido possível, aceitando perder os dados quando a instância parar. Qual opção de armazenamento maximiza o desempenho para esse uso?",
+      "options": [
+        "Instance Store NVMe local da instância, que oferece IOPS e throughput máximos por estar fisicamente no host",
+        "Volume sc1 de maior capacidade",
+        "EFS montado via NFS",
+        "S3 Standard com multipart upload"
+      ],
+      "correct": 0,
+      "explanation": "O Instance Store NVMe elimina a rede do caminho de I/O, entregando milhões de IOPS e latência mínima — perfeito para dados temporários e recriáveis, já que o conteúdo é perdido ao parar a instância.",
+      "hint": "Para rascunho descartável na máxima velocidade, use o disco que mora DENTRO do servidor — ciente de que ele morre com a instância.",
+      "optionRationales": [
+        "O Instance Store NVMe elimina a rede do caminho de I/O, entregando milhões de IOPS e latência mínima — perfeito para dados temporários e recriáveis, já que o conteúdo é perdido ao parar a instância.",
+        "O sc1 é o HDD mais lento da família EBS — pioraria o desempenho drasticamente.",
+        "Sistema de arquivos de rede adiciona latência — para scratch local de máxima velocidade, perde para o NVMe físico do host.",
+        "O S3 é armazenamento de objetos via API — latência e semântica inadequadas para diretório temporário de I/O intensivo."
+      ]
+    },
+    {
+      "id": "saa-med-081",
+      "domain": "high-performing-architectures",
+      "text": "Uma aplicação multi-Região atende usuários da América e da Europa, com infraestrutura completa em duas Regiões. O requisito é que cada usuário seja atendido pela Região que oferecer o MENOR tempo de resposta de rede medido — não necessariamente a mais próxima no mapa. Qual política de roteamento do Route 53 implementa essa decisão?",
+      "options": [
+        "Roteamento baseado em latência (latency-based routing)",
+        "Roteamento de geolocalização",
+        "Roteamento de failover",
+        "Roteamento ponderado 50/50"
+      ],
+      "correct": 0,
+      "explanation": "O latency-based routing usa medições reais de latência da AWS para responder com o endpoint da Região mais rápida para cada cliente — otimizando a experiência com dados de rede, não com geografia.",
+      "hint": "A decisão é pelo cronômetro da rede, não pelo atlas — qual política mede o tempo de resposta?",
+      "optionRationales": [
+        "O latency-based routing usa medições reais de latência da AWS para responder com o endpoint da Região mais rápida para cada cliente — otimizando a experiência com dados de rede, não com geografia.",
+        "Geolocalização decide pelo PAÍS/continente de origem — útil para conteúdo localizado e conformidade, mas nem sempre coincide com a rota mais rápida.",
+        "Failover serve ao plano primário/secundário em desastres — não otimiza desempenho por usuário.",
+        "Pesos fixos dividem o tráfego cegamente — metade dos usuários cairia na Região mais lenta para eles."
+      ]
+    },
+    {
+      "id": "saa-med-082",
+      "domain": "high-performing-architectures",
+      "text": "Um site servido pelo CloudFront entrega arquivos JS e CSS grandes sem compressão, e a análise de desempenho apontou o tempo de download como gargalo em conexões móveis. Qual configuração da distribuição melhora diretamente esse cenário?",
+      "options": [
+        "Habilitar a compressão automática de objetos no CloudFront (gzip/Brotli) para clientes que a suportam",
+        "Reduzir o TTL do cache para forçar downloads frequentes",
+        "Mudar a origem para uma instância maior",
+        "Desabilitar o HTTPS para reduzir overhead"
+      ],
+      "correct": 0,
+      "explanation": "Com a compressão habilitada, o CloudFront comprime respostas elegíveis na borda (Brotli/gzip conforme o Accept-Encoding), reduzindo drasticamente os bytes transferidos e o tempo de download em redes lentas.",
+      "hint": "Bytes a menos na rede móvel: deixe a borda 'espremer' os arquivos para quem aceita.",
+      "optionRationales": [
+        "Com a compressão habilitada, o CloudFront comprime respostas elegíveis na borda (Brotli/gzip conforme o Accept-Encoding), reduzindo drasticamente os bytes transferidos e o tempo de download em redes lentas.",
+        "TTL menor aumenta idas à origem — não reduz o tamanho dos arquivos transferidos.",
+        "O gargalo é o volume de bytes na última milha do usuário — o porte da origem não muda isso.",
+        "Abrir mão de TLS compromete a segurança por ganho desprezível — e navegadores modernos penalizam sites sem HTTPS."
+      ]
+    },
+    {
+      "id": "saa-med-083",
+      "domain": "cost-optimized-architectures",
+      "text": "Antes de definir regras de transição de classes no S3, o time quer DADOS concretos sobre o padrão real de acesso dos objetos de um bucket, para decidir com base em evidência quando os objetos deixam de ser acessados. Qual recurso do S3 gera essa análise?",
+      "options": [
+        "S3 Storage Class Analysis, que monitora os padrões de acesso e indica quando os dados se tornam infrequentes",
+        "S3 Inventory com lista diária de objetos",
+        "VPC Flow Logs do bucket",
+        "AWS Cost and Usage Report"
+      ],
+      "correct": 0,
+      "explanation": "O Storage Class Analysis observa o acesso aos objetos ao longo do tempo e produz relatórios que mostram a idade em que os dados esfriam — a base factual para configurar transições de ciclo de vida bem calibradas.",
+      "hint": "Antes de mover por palpite, peça ao S3 o 'estudo de comportamento' dos objetos.",
+      "optionRationales": [
+        "O Storage Class Analysis observa o acesso aos objetos ao longo do tempo e produz relatórios que mostram a idade em que os dados esfriam — a base factual para configurar transições de ciclo de vida bem calibradas.",
+        "O Inventory lista objetos e metadados (tamanho, classe, criptografia), mas não analisa padrões de frequência de ACESSO ao longo do tempo.",
+        "Flow Logs registram tráfego de rede de ENIs na VPC — buckets S3 não geram Flow Logs.",
+        "O CUR detalha custos faturados — mostra o gasto do bucket, mas não o padrão de acesso individual dos objetos."
+      ]
+    },
+    {
+      "id": "saa-med-084",
+      "domain": "cost-optimized-architectures",
+      "text": "Um Auto Scaling Group de processamento web quer combinar economia e disponibilidade: manter uma base fixa de instâncias On-Demand para a carga garantida e completar os picos com Spot Instances de vários tipos, tudo no mesmo grupo. Qual recurso do EC2 Auto Scaling permite essa composição?",
+      "options": [
+        "Mixed instances policy, definindo a porcentagem base On-Demand e o restante em Spot com múltiplos tipos de instância",
+        "Dois ASGs independentes sem coordenação",
+        "Reserved Instances para toda a capacidade de pico",
+        "Dedicated Hosts com Spot dentro deles"
+      ],
+      "correct": 0,
+      "explanation": "A política de instâncias mistas permite combinar modelos de compra (On-Demand e Spot) e diversificar tipos/AZs no mesmo ASG — garantindo a base e capturando o desconto Spot nos picos com risco diluído.",
+      "hint": "Um único grupo, receita 'mista': tanto por cento garantido, o resto no mercado de sobras com vários sabores de instância.",
+      "optionRationales": [
+        "A política de instâncias mistas permite combinar modelos de compra (On-Demand e Spot) e diversificar tipos/AZs no mesmo ASG — garantindo a base e capturando o desconto Spot nos picos com risco diluído.",
+        "Grupos separados dificultam o balanceamento da proporção base/pico e duplicam a gestão — a política mista resolve dentro de um único grupo.",
+        "Reservar o pico inteiro paga capacidade ociosa fora dos picos — o oposto da composição dinâmica desejada.",
+        "Não existe Spot dentro de Dedicated Hosts — e hosts dedicados são a opção mais cara, sem relação com o objetivo."
+      ]
+    },
+    {
+      "id": "saa-med-085",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma empresa comparou Savings Plans e Reserved Instances para reduzir custos de EC2. Qual é a diferença central entre o compromisso assumido em cada modelo?",
+      "options": [
+        "Savings Plans comprometem um VALOR de gasto por hora (US$/h) aplicável de forma flexível; RIs comprometem o uso de uma CONFIGURAÇÃO específica de instância (tipo/Região)",
+        "RIs são pagas por segundo e Savings Plans por mês",
+        "Savings Plans aplicam-se somente ao S3 e RIs somente ao EC2",
+        "RIs garantem desconto de 100% após o primeiro ano"
+      ],
+      "correct": 0,
+      "explanation": "Essa é a distinção essencial: o Savings Plan é um compromisso financeiro (US$/h por 1 ou 3 anos) aplicado automaticamente ao uso elegível; a RI é um compromisso de capacidade/configuração, mais rígido, com desconto similar.",
+      "hint": "Um compromete DINHEIRO por hora (flexível); o outro compromete uma MÁQUINA específica (rígido).",
+      "optionRationales": [
+        "Essa é a distinção essencial: o Savings Plan é um compromisso financeiro (US$/h por 1 ou 3 anos) aplicado automaticamente ao uso elegível; a RI é um compromisso de capacidade/configuração, mais rígido, com desconto similar.",
+        "A granularidade de cobrança não é a diferença — ambos são compromissos de 1 ou 3 anos com opções de pagamento adiantado, parcial ou nenhum.",
+        "Savings Plans cobrem computação (EC2, Fargate, Lambda — e SageMaker na variante própria); S3 não faz parte de nenhum dos dois.",
+        "Nenhum modelo zera o custo — os descontos chegam à faixa de 72% sobre o On-Demand, conforme prazo e pagamento."
+      ]
+    },
+    {
+      "id": "saa-med-086",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma empresa roda workloads Linux compatíveis (Java, Python, contêineres) em instâncias x86 e quer reduzir custos de computação mantendo ou melhorando o desempenho, migrando para processadores projetados pela própria AWS. Qual opção concretiza essa economia?",
+      "options": [
+        "Migrar para instâncias com processadores AWS Graviton (ARM), que oferecem melhor relação preço-desempenho",
+        "Migrar para instâncias bare metal x86 maiores",
+        "Adicionar GPUs às instâncias atuais",
+        "Aumentar o tamanho das instâncias atuais para reduzir a quantidade"
+      ],
+      "correct": 0,
+      "explanation": "Instâncias Graviton custam significativamente menos por desempenho equivalente (até ~40% melhor preço-desempenho) e atendem nativamente workloads Linux portáveis como JVM, Python e contêineres multi-arch.",
+      "hint": "O chip 'da casa' baseado em ARM é a alavanca de preço-desempenho da AWS — qual é o nome dele?",
+      "optionRationales": [
+        "Instâncias Graviton custam significativamente menos por desempenho equivalente (até ~40% melhor preço-desempenho) e atendem nativamente workloads Linux portáveis como JVM, Python e contêineres multi-arch.",
+        "Bare metal atende casos de licenciamento e acesso ao hardware — costuma ser mais caro, não mais econômico.",
+        "GPUs aceleram cargas paralelas específicas (ML, gráficos) com custo adicional — não reduzem o custo de aplicações web comuns.",
+        "Consolidar em máquinas maiores mantém o mesmo custo por capacidade x86 — não captura o ganho de preço-desempenho de outra arquitetura."
+      ]
+    },
+    {
+      "id": "saa-med-087",
+      "domain": "cost-optimized-architectures",
+      "text": "A análise de custos de uma VPC mostrou que a maior fatura é a taxa de processamento de dados do NAT Gateway, e a investigação revelou que quase todo esse tráfego é de instâncias privadas baixando e enviando objetos ao S3 da mesma Região. Qual mudança elimina esse custo mantendo o acesso privado?",
+      "options": [
+        "Criar um Gateway VPC Endpoint para o S3 e rotear o tráfego por ele, que não tem custo de processamento",
+        "Adicionar um segundo NAT Gateway para dividir o tráfego",
+        "Dar IPs públicos às instâncias para falarem direto com o S3",
+        "Comprimir os objetos antes de enviar ao S3"
+      ],
+      "correct": 0,
+      "explanation": "Gateway endpoints para S3 são gratuitos e mantêm o tráfego na rede da AWS: o volume que hoje paga a taxa por GB do NAT passa a fluir sem custo — uma das otimizações de rede mais clássicas.",
+      "hint": "Para S3 e DynamoDB existe um 'pedágio grátis' que substitui a passagem paga do NAT.",
+      "optionRationales": [
+        "Gateway endpoints para S3 são gratuitos e mantêm o tráfego na rede da AWS: o volume que hoje paga a taxa por GB do NAT passa a fluir sem custo — uma das otimizações de rede mais clássicas.",
+        "Mais um NAT dobra o custo fixo por hora e mantém a mesma taxa por GB — não elimina nada.",
+        "Expor instâncias privadas à internet degrada a postura de segurança — e o endpoint resolve sem qualquer exposição.",
+        "Compressão reduz o volume, mas o tráfego restante continuaria pagando NAT — o endpoint zera essa taxa por completo."
+      ]
+    },
+    {
+      "id": "saa-med-088",
+      "domain": "cost-optimized-architectures",
+      "text": "Um site de mídia serve vídeos diretamente do S3 para usuários na internet, e a transferência de dados para fora (data transfer out) domina a fatura. Como colocar o Amazon CloudFront na frente do S3 ajuda a reduzir esse custo?",
+      "options": [
+        "A transferência do S3 para o CloudFront não é cobrada, e a entrega da borda ao usuário tem tarifas menores que a saída direta do S3, além do cache reduzir as idas à origem",
+        "O CloudFront torna toda a transferência para a internet gratuita",
+        "O CloudFront comprime os custos dobrando o TTL automaticamente",
+        "O CloudFront move os vídeos para o Glacier durante a madrugada"
+      ],
+      "correct": 0,
+      "explanation": "O caminho S3→CloudFront é gratuito, as tarifas de saída do CloudFront são inferiores às do S3 direto, e o cache atende a maioria das requisições na borda — combinação que reduz o custo total de entrega.",
+      "hint": "Três economias somadas: origem→borda de graça, tarifa de borda menor, e o cache evitando viagens repetidas.",
+      "optionRationales": [
+        "O caminho S3→CloudFront é gratuito, as tarifas de saída do CloudFront são inferiores às do S3 direto, e o cache atende a maioria das requisições na borda — combinação que reduz o custo total de entrega.",
+        "A entrega da borda ao usuário continua cobrada — menor e mais eficiente, mas não gratuita.",
+        "TTL é configuração de cache definida pelo cliente — não há 'dobra automática' nem relação direta com tarifa.",
+        "O CloudFront não gerencia classes de armazenamento da origem — apenas distribui e armazena em cache o conteúdo."
+      ]
+    },
+    {
+      "id": "saa-med-089",
+      "domain": "cost-optimized-architectures",
+      "text": "Um banco de dados de homologação é usado intensamente algumas semanas por trimestre e fica quase sem acesso no resto do tempo. Manter um RDS provisionado o ano todo está caro. Qual alternativa relacional ajusta a capacidade (e o custo) automaticamente a esse padrão intermitente, podendo reduzir a praticamente zero nos períodos ociosos?",
+      "options": [
+        "Amazon Aurora Serverless v2, que escala ACUs automaticamente conforme a demanda",
+        "RDS provisionado com Reserved Instance de 3 anos",
+        "Migrar o banco para arquivos CSV no S3",
+        "ElastiCache Redis como banco principal"
+      ],
+      "correct": 0,
+      "explanation": "O Aurora Serverless v2 acompanha a carga em incrementos finos e reduz a capacidade ao mínimo nos longos períodos ociosos — pagando pelo consumo real em vez de capacidade fixa o ano inteiro.",
+      "hint": "Uso em ondas trimestrais pede banco que 'murcha' sozinho na entressafra.",
+      "optionRationales": [
+        "O Aurora Serverless v2 acompanha a carga em incrementos finos e reduz a capacidade ao mínimo nos longos períodos ociosos — pagando pelo consumo real em vez de capacidade fixa o ano inteiro.",
+        "Reserva pressupõe uso contínuo — para semanas de uso por trimestre, pagaria capacidade ociosa com desconto, ainda assim desperdício.",
+        "Planilhas em objeto não substituem um banco relacional de homologação com transações e queries.",
+        "Cache em memória não é banco relacional durável para homologação de sistemas transacionais."
+      ]
+    },
+    {
+      "id": "saa-med-090",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma tabela do DynamoDB em modo on-demand atende um tráfego que se tornou estável e previsível: ~500 leituras e ~200 escritas por segundo, constantes ao longo do dia. Qual mudança tende a reduzir o custo dessa tabela?",
+      "options": [
+        "Migrar para o modo provisionado com auto scaling, pois capacidade provisionada constante custa menos que o equivalente em requisições on-demand",
+        "Permanecer no on-demand, que é sempre mais barato em qualquer padrão",
+        "Criar GSIs adicionais para dividir o custo",
+        "Exportar a tabela para o S3 a cada hora e truncá-la"
+      ],
+      "correct": 0,
+      "explanation": "O on-demand paga conveniência por requisição (preço unitário maior); com tráfego estável e previsível, capacidade provisionada (com auto scaling de margem) entrega o mesmo throughput por custo significativamente menor.",
+      "hint": "Conveniência por requisição custa prêmio; tráfego de eletrocardiograma reto combina com capacidade contratada.",
+      "optionRationales": [
+        "O on-demand paga conveniência por requisição (preço unitário maior); com tráfego estável e previsível, capacidade provisionada (com auto scaling de margem) entrega o mesmo throughput por custo significativamente menor.",
+        "O on-demand vence em tráfego imprevisível ou intermitente — em cargas constantes, o provisionado é consistentemente mais econômico.",
+        "Índices adicionais AUMENTAM o custo (replicam escritas e armazenamento) — não dividem nada.",
+        "Esvaziar a tabela operacional quebraria a aplicação — exportações servem a análise, não à redução de custo de tráfego."
+      ]
+    },
+    {
+      "id": "saa-med-091",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma função Lambda crítica foi configurada com 4.096 MB de memória 'por garantia', mas o perfil de execução mostra uso máximo de 300 MB e tempo dominado por espera de I/O de rede. O que a equipe deve fazer para otimizar o custo dessa função com segurança?",
+      "options": [
+        "Testar configurações menores de memória (ex: com o AWS Lambda Power Tuning) e ajustar para o ponto de melhor custo×duração",
+        "Dobrar a memória para 8.192 MB para acelerar ainda mais",
+        "Migrar a função para uma instância EC2 dedicada ligada 24/7",
+        "Aumentar o timeout para reduzir o número de execuções"
+      ],
+      "correct": 0,
+      "explanation": "O custo do Lambda é memória×duração: funções I/O-bound não aceleram com memória extra, então reduzir a alocação (validando com testes de potência) corta o custo por execução sem degradar o tempo.",
+      "hint": "A fatura do Lambda é 'aluguel por milissegundo proporcional à memória' — pague o apartamento do tamanho do morador.",
+      "optionRationales": [
+        "O custo do Lambda é memória×duração: funções I/O-bound não aceleram com memória extra, então reduzir a alocação (validando com testes de potência) corta o custo por execução sem degradar o tempo.",
+        "Em workload limitado por I/O externo, mais CPU/memória não reduz a espera — apenas dobra o preço de cada milissegundo.",
+        "Trocar serverless por servidor permanente para uma função eventual adiciona custo fixo e gestão — o caminho é calibrar, não migrar.",
+        "Timeout não altera a frequência de invocações — apenas o limite de duração de cada uma."
+      ]
+    },
+    {
+      "id": "saa-med-092",
+      "domain": "cost-optimized-architectures",
+      "text": "O custo da AWS de uma scale-up cresce mês a mês e o time financeiro só percebe anomalias ao fechar a fatura — tarde demais. Eles querem detecção automática de gastos atípicos (ex: um serviço que dobrou de custo de um dia para o outro) com alertas baseados em machine learning, sem definir limiares manuais para cada serviço. Qual ferramenta atende a isso?",
+      "options": [
+        "AWS Cost Anomaly Detection",
+        "AWS Budgets com um valor fixo mensal",
+        "Fatura mensal em PDF com revisão manual",
+        "Amazon GuardDuty"
+      ],
+      "correct": 0,
+      "explanation": "O Cost Anomaly Detection aprende o padrão de gasto por serviço/conta/tag com ML e alerta quando detecta desvios anormais — pegando surpresas em dias, não no fechamento da fatura, sem manutenção de limiares manuais.",
+      "hint": "Anomalia de CUSTO com aprendizado de máquina e sem limiar manual — o nome da ferramenta é literal.",
+      "optionRationales": [
+        "O Cost Anomaly Detection aprende o padrão de gasto por serviço/conta/tag com ML e alerta quando detecta desvios anormais — pegando surpresas em dias, não no fechamento da fatura, sem manutenção de limiares manuais.",
+        "Orçamentos fixos exigem limiar manual e disparam tarde quando o desvio é relativo (um serviço dobrando dentro de um total ainda abaixo do teto).",
+        "É exatamente o processo lento e reativo que se quer substituir.",
+        "GuardDuty detecta anomalias de SEGURANÇA — não monitora padrões de gasto financeiro."
+      ]
+    },
+    {
+      "id": "saa-med-093",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma frota antiga usa centenas de volumes gp2 de vários tamanhos. A equipe descobriu que pode reduzir o custo de armazenamento em ~20% e ainda ganhar desempenho de base apenas trocando o tipo de volume, sem downtime. Qual ação concretiza essa economia?",
+      "options": [
+        "Modificar os volumes de gp2 para gp3 via Elastic Volumes, mantendo os dados e ajustando IOPS/throughput conforme a necessidade",
+        "Migrar todos os volumes para io2",
+        "Converter os volumes para Instance Store",
+        "Reduzir o tamanho dos volumes gp2 pela metade"
+      ],
+      "correct": 0,
+      "explanation": "O gp3 custa ~20% menos por GB que o gp2 e entrega 3.000 IOPS de base independentes do tamanho; a modificação por Elastic Volumes é online, sem recriar volumes nem parar instâncias.",
+      "hint": "A 'troca de geração' do SSD de uso geral: mesmos dados, conta 20% menor, desempenho desacoplado do tamanho.",
+      "optionRationales": [
+        "O gp3 custa ~20% menos por GB que o gp2 e entrega 3.000 IOPS de base independentes do tamanho; a modificação por Elastic Volumes é online, sem recriar volumes nem parar instâncias.",
+        "O io2 é a família premium de IOPS provisionadas — aumentaria o custo substancialmente, não o contrário.",
+        "Instance Store é efêmero e atrelado ao hardware — não é destino de migração de volumes persistentes (nem existe 'conversão').",
+        "Volumes EBS não podem ser reduzidos de tamanho — e no gp2 encolher significaria perder IOPS de base."
+      ]
+    },
+    {
+      "id": "saa-med-094",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma política de backup exige guardar snapshots EBS mensais por 5 anos para conformidade. Esses snapshots quase nunca são restaurados após os primeiros 90 dias, e o custo acumulado da camada padrão de snapshots cresce ano após ano. Qual recurso reduz o custo de retenção desses snapshots antigos?",
+      "options": [
+        "Mover snapshots antigos para o EBS Snapshots Archive, camada de armazenamento até 75% mais barata para retenção longa",
+        "Excluir os snapshots após 90 dias, ignorando a política",
+        "Copiar os snapshots para outra Região e excluir os originais",
+        "Restaurar tudo em volumes sc1 permanentes"
+      ],
+      "correct": 0,
+      "explanation": "O Snapshots Archive armazena snapshots completos a custo muito menor, ideal para retenção de conformidade raramente restaurada — aceitando o trade-off de restauração em horas (24-72h) e cobrança mínima de 90 dias.",
+      "hint": "Snapshot 'aposentado' que quase nunca volta ao trabalho merece o arquivo morto — com até 75% de desconto.",
+      "optionRationales": [
+        "O Snapshots Archive armazena snapshots completos a custo muito menor, ideal para retenção de conformidade raramente restaurada — aceitando o trade-off de restauração em horas (24-72h) e cobrança mínima de 90 dias.",
+        "Violar o requisito de conformidade de 5 anos não é otimização — é risco regulatório.",
+        "Cópia em outra Região paga a mesma camada padrão (mais transferência) — não reduz o custo de retenção.",
+        "Manter volumes ativos para guardar backups custa mais que snapshots — e multiplica a gestão."
+      ]
+    },
+    {
+      "id": "saa-med-095",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma empresa usa Glacier Flexible Retrieval para arquivar dados e ocasionalmente precisa restaurar grandes volumes históricos para auditorias planejadas com semanas de antecedência. Hoje usam recuperação Expedited, pagando caro. Qual ajuste reduz o custo dessas restaurações sem prejudicar as auditorias?",
+      "options": [
+        "Usar a recuperação Bulk, a opção mais barata, adequada para grandes volumes quando se pode aguardar horas (5-12h)",
+        "Continuar com Expedited, pois o preço é igual entre os tiers",
+        "Mover tudo de volta ao S3 Standard permanentemente",
+        "Duplicar o arquivo no EBS para restauros instantâneos"
+      ],
+      "correct": 0,
+      "explanation": "Auditorias agendadas com antecedência não precisam de minutos: a recuperação Bulk processa petabytes ao menor custo por GB, com prazo de horas que cabe folgado no planejamento.",
+      "hint": "Urgência tem preço: se a auditoria espera semanas, escolha a esteira de recuperação mais lenta e barata.",
+      "optionRationales": [
+        "Auditorias agendadas com antecedência não precisam de minutos: a recuperação Bulk processa petabytes ao menor custo por GB, com prazo de horas que cabe folgado no planejamento.",
+        "Os tiers têm preços bem diferentes — Expedited (minutos) é o mais caro; pagar urgência sem necessidade é desperdício puro.",
+        "Reidratar o arquivo inteiro para a classe mais cara multiplicaria o custo mensal — o acesso é ocasional e planejado.",
+        "Manter cópia ativa em bloco para dados raramente lidos custa ordens de magnitude mais que o arquivamento."
+      ]
+    },
+    {
+      "id": "saa-med-096",
+      "domain": "cost-optimized-architectures",
+      "text": "Dezenas de microsserviços internos de baixo tráfego rodam cada um em sua própria instância EC2 m5.large, todas com utilização média abaixo de 5%. Qual mudança arquitetural aumenta a utilização e reduz drasticamente o custo desse conjunto?",
+      "options": [
+        "Conteinerizar os microsserviços e consolidá-los em um cluster compartilhado (ECS/EKS), empacotando múltiplos serviços por instância",
+        "Dobrar o tamanho das instâncias de cada microsserviço",
+        "Adicionar uma réplica de cada instância para alta disponibilidade",
+        "Migrar todos para Dedicated Hosts"
+      ],
+      "correct": 0,
+      "explanation": "Contêineres permitem densidade: o orquestrador aloca dezenas de serviços leves nas mesmas instâncias, elevando a utilização de ~5% para patamares saudáveis e cortando a frota — menos máquinas pagas para o mesmo trabalho.",
+      "hint": "Dezenas de apartamentos com um morador cada: a solução é o prédio compartilhado com um bom síndico (orquestrador).",
+      "optionRationales": [
+        "Contêineres permitem densidade: o orquestrador aloca dezenas de serviços leves nas mesmas instâncias, elevando a utilização de ~5% para patamares saudáveis e cortando a frota — menos máquinas pagas para o mesmo trabalho.",
+        "Instâncias maiores com a mesma carga reduziriam a utilização ainda mais e dobrariam o custo por serviço.",
+        "Duplicar máquinas ociosas duplica o desperdício — disponibilidade se resolve no desenho do cluster consolidado.",
+        "Hosts dedicados são a opção mais cara do EC2 — pioram o custo sem tocar na ociosidade."
+      ]
+    },
+    {
+      "id": "saa-med-097",
+      "domain": "cost-optimized-architectures",
+      "text": "Auditando os custos do S3, o time descobriu cobranças relevantes de armazenamento sem objetos visíveis correspondentes: são partes de multipart uploads que falharam no passado e nunca foram concluídos nem abortados. Como eliminar esse custo oculto de forma permanente?",
+      "options": [
+        "Criar uma regra de ciclo de vida que aborta automaticamente multipart uploads incompletos após N dias",
+        "Esvaziar e recriar o bucket periodicamente",
+        "Desabilitar multipart uploads no bucket",
+        "Ativar versionamento para esconder as partes"
+      ],
+      "correct": 0,
+      "explanation": "A regra AbortIncompleteMultipartUpload remove as partes órfãs pendentes e impede o acúmulo futuro — boa prática recomendada para qualquer bucket que recebe uploads multipart.",
+      "hint": "Os 'cacos' de uploads que falharam continuam na conta — programe a vassoura automática do ciclo de vida.",
+      "optionRationales": [
+        "A regra AbortIncompleteMultipartUpload remove as partes órfãs pendentes e impede o acúmulo futuro — boa prática recomendada para qualquer bucket que recebe uploads multipart.",
+        "Recriar buckets destrói dados válidos e processos — desproporcional para um problema que uma regra resolve.",
+        "Multipart é essencial para uploads grandes confiáveis — o problema não é o recurso, é a falta de limpeza dos incompletos.",
+        "Versionamento não interage com partes incompletas — e 'esconder' não elimina cobrança."
+      ]
+    },
+    {
+      "id": "saa-med-098",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma plataforma de cursos tem picos de matrícula imprevisíveis e raros (lançamentos), com tráfego baixo no restante do tempo. A arquitetura atual mantém uma frota fixa dimensionada para o pico. Entre manter a frota ou migrar a API para Lambda + API Gateway, qual análise de custo está correta?",
+      "options": [
+        "O serverless tende a custar menos nesse perfil, pois o custo acompanha as requisições reais e zera a ociosidade — enquanto a frota fixa paga o pico 24/7",
+        "A frota fixa é sempre mais barata porque o Lambda cobra por milissegundo",
+        "Os custos são idênticos em qualquer padrão de tráfego",
+        "Serverless é inviável porque não aguenta picos de matrícula"
+      ],
+      "correct": 0,
+      "explanation": "Cargas com picos raros e vales longos são o melhor caso do serverless: a frota dimensionada para o pico desperdiça a maior parte do tempo, e o Lambda cobra apenas o uso efetivo, escalando automaticamente nos lançamentos.",
+      "hint": "Frota fixa paga o ingresso do show todo dia; serverless só paga quando o show acontece.",
+      "optionRationales": [
+        "Cargas com picos raros e vales longos são o melhor caso do serverless: a frota dimensionada para o pico desperdiça a maior parte do tempo, e o Lambda cobra apenas o uso efetivo, escalando automaticamente nos lançamentos.",
+        "Cobrar por milissegundo é justamente o que zera o custo nos vales — em utilização baixa, o total serverless fica muito abaixo da frota permanente.",
+        "Os modelos divergem fortemente conforme a utilização — ociosidade alta favorece serverless; uso constante intenso pode favorecer instâncias com compromissos.",
+        "O Lambda escala automaticamente a milhares de execuções concorrentes — picos súbitos são um dos seus pontos fortes."
+      ]
+    },
+    {
+      "id": "saa-med-099",
+      "domain": "cost-optimized-architectures",
+      "text": "Uma organização precisa agrupar e ratear custos da AWS segundo dimensões de negócio que não existem nas tags (ex: agrupar dezenas de contas e tags em 'Unidade Varejo' e 'Unidade Atacado', com regras de rateio). Qual recurso de gestão financeira da AWS cria essas dimensões personalizadas nos relatórios?",
+      "options": [
+        "AWS Cost Categories, definindo regras que mapeiam contas, tags e serviços em categorias de negócio",
+        "Renomear as contas-membro com o nome da unidade",
+        "Criar uma organização separada para cada unidade de negócio",
+        "Exportar a fatura e classificar manualmente em planilhas"
+      ],
+      "correct": 0,
+      "explanation": "Cost Categories cria agrupamentos lógicos personalizados (com regras sobre contas, tags, serviços e até divisão de custos compartilhados) que aparecem no Cost Explorer, Budgets e CUR — a camada de visão de negócio sobre o faturamento.",
+      "hint": "Acima das tags existe uma camada de 'categorias' que traduz o faturamento para o organograma do negócio.",
+      "optionRationales": [
+        "Cost Categories cria agrupamentos lógicos personalizados (com regras sobre contas, tags, serviços e até divisão de custos compartilhados) que aparecem no Cost Explorer, Budgets e CUR — a camada de visão de negócio sobre o faturamento.",
+        "Nomes de conta ajudam a identificação visual, mas não criam dimensões agregadas com regras de rateio nos relatórios.",
+        "Fragmentar organizações quebra o faturamento consolidado e a governança — desnecessário quando categorias resolvem na camada de relatório.",
+        "Classificação manual recorrente é trabalhosa e propensa a erro — o recurso nativo automatiza isso de forma consistente."
+      ]
+    },
+    {
+      "id": "saa-med-100",
+      "domain": "cost-optimized-architectures",
+      "text": "Depois de consolidar relatórios, o time de FinOps quer uma lista priorizada e automática de oportunidades de economia da conta: instâncias paradas há semanas, volumes órfãos, recursos superdimensionados e compromissos (Savings Plans) recomendados com base no uso. Qual recurso da AWS entrega essas recomendações consolidadas de otimização?",
+      "options": [
+        "AWS Cost Optimization Hub, que centraliza e prioriza as recomendações de economia (right-sizing, recursos ociosos, compromissos) em um só lugar",
+        "AWS CloudFormation Drift Detection",
+        "Amazon CloudWatch ServiceLens",
+        "AWS Resource Explorer"
+      ],
+      "correct": 0,
+      "explanation": "O Cost Optimization Hub agrega recomendações de várias fontes (Compute Optimizer, Trusted Advisor, recomendações de Savings Plans/RIs) com estimativa de economia, deduplicação e priorização — o painel único de oportunidades.",
+      "hint": "Pense no 'hub' que reúne todas as dicas de economia espalhadas pelos serviços em uma fila priorizada.",
+      "optionRationales": [
+        "O Cost Optimization Hub agrega recomendações de várias fontes (Compute Optimizer, Trusted Advisor, recomendações de Savings Plans/RIs) com estimativa de economia, deduplicação e priorização — o painel único de oportunidades.",
+        "Drift detection compara recursos com o template declarado — governança de configuração, não otimização de custos.",
+        "ServiceLens correlaciona traces e métricas de aplicações para observabilidade — sem recomendações financeiras.",
+        "O Resource Explorer busca e inventaria recursos entre Regiões — não estima economias nem prioriza oportunidades."
+      ]
     }
   ]
 }
