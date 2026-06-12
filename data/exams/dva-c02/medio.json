@@ -3,10 +3,26 @@
   "certName": "AWS Certified Developer - Associate",
   "level": "medio",
   "domains": [
-    { "id": "development-aws-services", "name": "Desenvolvimento com Serviços AWS", "weight": 0.32 },
-    { "id": "security", "name": "Segurança", "weight": 0.26 },
-    { "id": "deployment", "name": "Implantação (Deployment)", "weight": 0.24 },
-    { "id": "troubleshooting-optimization", "name": "Solução de Problemas e Otimização", "weight": 0.18 }
+    {
+      "id": "development-aws-services",
+      "name": "Desenvolvimento com Serviços AWS",
+      "weight": 0.32
+    },
+    {
+      "id": "security",
+      "name": "Segurança",
+      "weight": 0.26
+    },
+    {
+      "id": "deployment",
+      "name": "Implantação (Deployment)",
+      "weight": 0.24
+    },
+    {
+      "id": "troubleshooting-optimization",
+      "name": "Solução de Problemas e Otimização",
+      "weight": 0.18
+    }
   ],
   "questions": [
     {
@@ -164,6 +180,1766 @@
       ],
       "correct": 0,
       "explanation": "Definir uma política de retenção no log group do CloudWatch (por exemplo, 30 ou 90 dias) faz com que logs mais antigos sejam excluídos automaticamente, controlando custos de armazenamento."
+    },
+    {
+      "id": "dva-med-013",
+      "domain": "development-aws-services",
+      "text": "Uma tabela do DynamoDB armazena sessões de usuários que devem ser removidas automaticamente 24 horas após a criação, sem custo de operações de exclusão nem código de limpeza. Qual recurso do DynamoDB atende a isso?",
+      "options": [
+        "TTL (Time to Live): um atributo com o timestamp de expiração faz o DynamoDB excluir os itens vencidos automaticamente, sem consumir capacidade de escrita",
+        "Um job diário que faz Scan e Delete de itens antigos",
+        "Reduzir o retention period da tabela",
+        "Habilitar versionamento e expirar versões antigas"
+      ],
+      "correct": 0,
+      "explanation": "O TTL marca um atributo numérico (epoch) como prazo de validade: itens expirados são removidos em segundo plano sem custo de WCU — o padrão para sessões, caches e dados efêmeros.",
+      "hint": "Carimbe cada item com a 'data de validade' e deixe o serviço recolher os vencidos de graça.",
+      "optionRationales": [
+        "O TTL marca um atributo numérico (epoch) como prazo de validade: itens expirados são removidos em segundo plano sem custo de WCU — o padrão para sessões, caches e dados efêmeros.",
+        "Scan + Delete consome capacidade de leitura e escrita pagas e exige manutenção de código — exatamente o que o TTL elimina.",
+        "Tabelas do DynamoDB não têm 'retention period' — esse conceito pertence a logs e filas.",
+        "DynamoDB não possui versionamento de itens — o mecanismo de expiração é o TTL."
+      ]
+    },
+    {
+      "id": "dva-med-014",
+      "domain": "development-aws-services",
+      "text": "Sempre que um item de uma tabela do DynamoDB for criado ou modificado, uma função Lambda deve reagir ao evento recebendo a imagem nova (e opcionalmente a antiga) do item. Qual recurso habilita esse fluxo orientado a eventos?",
+      "options": [
+        "DynamoDB Streams com event source mapping para a função Lambda",
+        "Fazer a função consultar a tabela inteira a cada minuto comparando os itens",
+        "Configurar um trigger SQL na tabela",
+        "Habilitar o PITR e ler os backups contínuos"
+      ],
+      "correct": 0,
+      "explanation": "O Streams captura as mudanças da tabela em ordem (com imagens new/old configuráveis), e o mapeamento de origem de eventos entrega os registros em lotes à função — o padrão CDC do DynamoDB.",
+      "hint": "A 'esteira de mudanças' da tabela alimenta a função com cada alteração, na ordem.",
+      "optionRationales": [
+        "O Streams captura as mudanças da tabela em ordem (com imagens new/old configuráveis), e o mapeamento de origem de eventos entrega os registros em lotes à função — o padrão CDC do DynamoDB.",
+        "Polling com comparação manual é caro, lento e perde alterações intermediárias — o stream entrega as mudanças prontas.",
+        "Triggers SQL pertencem a bancos relacionais — o equivalente no DynamoDB é o Streams.",
+        "PITR serve à restauração pontual — não emite eventos de mudança para consumo em tempo real."
+      ]
+    },
+    {
+      "id": "dva-med-015",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor usa BatchWriteItem para gravar 25 itens por chamada no DynamoDB. Em momentos de pico, a resposta retorna com a chave UnprocessedItems preenchida. O que isso significa e como o código deve tratar?",
+      "options": [
+        "Parte do lote não foi gravada (ex: por throttling); o código deve reenviar os itens não processados com backoff exponencial até esvaziar a lista",
+        "Todos os itens foram gravados e a lista é apenas informativa",
+        "A tabela foi corrompida e precisa ser restaurada",
+        "O DynamoDB reenviará os itens automaticamente depois"
+      ],
+      "correct": 0,
+      "explanation": "O BatchWriteItem é parcialmente bem-sucedido por design: UnprocessedItems lista o que falhou e o cliente é responsável por retentar esses itens com espera crescente — comportamento que os SDKs ajudam a automatizar.",
+      "hint": "Lote no DynamoDB pode voltar 'pela metade': o troco da resposta diz o que você mesmo deve reenviar.",
+      "optionRationales": [
+        "O BatchWriteItem é parcialmente bem-sucedido por design: UnprocessedItems lista o que falhou e o cliente é responsável por retentar esses itens com espera crescente — comportamento que os SDKs ajudam a automatizar.",
+        "Itens em UnprocessedItems NÃO foram gravados — ignorar a lista perde dados silenciosamente.",
+        "Falha parcial de lote é condição normal de operação sob pico — não indica corrupção.",
+        "O serviço não retém nem reprocessa o lote — a retentativa é responsabilidade do cliente."
+      ]
+    },
+    {
+      "id": "dva-med-016",
+      "domain": "development-aws-services",
+      "text": "Um fluxo de pagamento precisa debitar o saldo em um item e registrar a transação em outro item — e as duas escritas devem acontecer juntas ou nenhuma delas (tudo-ou-nada), mesmo entre tabelas diferentes do DynamoDB. Qual recurso garante essa atomicidade?",
+      "options": [
+        "Transações do DynamoDB (TransactWriteItems), agrupando até 100 ações com efeito atômico",
+        "BatchWriteItem, que já é atômico por padrão",
+        "Duas chamadas PutItem em sequência rápida",
+        "Habilitar Global Tables para sincronizar as escritas"
+      ],
+      "correct": 0,
+      "explanation": "O TransactWriteItems aplica o conjunto de escritas de forma atômica (com condições opcionais): qualquer falha cancela tudo — a garantia ACID para operações multi-item/multi-tabela.",
+      "hint": "Para 'ou tudo, ou nada' entre itens e tabelas, o DynamoDB tem operações 'Transact'.",
+      "optionRationales": [
+        "O TransactWriteItems aplica o conjunto de escritas de forma atômica (com condições opcionais): qualquer falha cancela tudo — a garantia ACID para operações multi-item/multi-tabela.",
+        "O batch NÃO é atômico — itens podem falhar individualmente (UnprocessedItems) enquanto outros gravam.",
+        "Chamadas independentes podem falhar entre si, deixando o estado pela metade — sem atomicidade.",
+        "Global Tables replicam entre Regiões — não agrupam escritas locais em uma unidade atômica."
+      ]
+    },
+    {
+      "id": "dva-med-017",
+      "domain": "development-aws-services",
+      "text": "Ao modelar uma tabela do DynamoDB, o desenvolvedor compara índices secundários locais (LSI) e globais (GSI). Qual diferença está correta?",
+      "options": [
+        "O LSI mantém a mesma partition key da tabela variando apenas a sort key e só pode ser criado junto com a tabela; o GSI pode ter chaves totalmente diferentes e ser criado a qualquer momento",
+        "O GSI só pode ser criado na criação da tabela; o LSI pode ser adicionado depois",
+        "LSI e GSI são sinônimos com nomes regionais diferentes",
+        "O LSI replica a tabela para outra Região"
+      ],
+      "correct": 0,
+      "explanation": "Essas são as restrições clássicas: LSI compartilha a partição (e o limite de 10 GB por valor de chave) e nasce com a tabela; GSI é flexível em chaves e ciclo de vida, com capacidade própria.",
+      "hint": "O 'local' nasce preso à partição e à criação da tabela; o 'global' é livre nas chaves e no tempo.",
+      "optionRationales": [
+        "Essas são as restrições clássicas: LSI compartilha a partição (e o limite de 10 GB por valor de chave) e nasce com a tabela; GSI é flexível em chaves e ciclo de vida, com capacidade própria.",
+        "Está invertido: o LSI é fixado na criação; GSIs são adicionados e removidos quando necessário.",
+        "São recursos distintos com restrições e usos diferentes — não sinônimos.",
+        "Replicação entre Regiões é papel das Global Tables — 'local' no LSI refere-se à mesma partição, não à geografia."
+      ]
+    },
+    {
+      "id": "dva-med-018",
+      "domain": "development-aws-services",
+      "text": "Uma Query no DynamoDB retorna a resposta com o campo LastEvaluatedKey preenchido. O que isso indica e o que o código deve fazer para obter o restante dos dados?",
+      "options": [
+        "O resultado foi paginado (limite de 1 MB por chamada); o código deve repetir a Query passando o valor em ExclusiveStartKey até LastEvaluatedKey vir vazio",
+        "A consulta falhou e deve ser refeita do zero",
+        "A tabela atingiu o tamanho máximo permitido",
+        "O item retornado é o último da tabela inteira"
+      ],
+      "correct": 0,
+      "explanation": "O DynamoDB pagina resultados grandes: o LastEvaluatedKey é o marcador da próxima página, repassado como ExclusiveStartKey no laço até o fim — os paginators dos SDKs automatizam esse padrão.",
+      "hint": "É o 'marcador de página' da leitura: devolva-o na próxima chamada para continuar de onde parou.",
+      "optionRationales": [
+        "O DynamoDB pagina resultados grandes: o LastEvaluatedKey é o marcador da próxima página, repassado como ExclusiveStartKey no laço até o fim — os paginators dos SDKs automatizam esse padrão.",
+        "A presença do marcador indica sucesso parcial com continuação — não erro.",
+        "Não há tamanho máximo de tabela — o limite de 1 MB é por RESPOSTA de leitura.",
+        "O marcador delimita a página atual da CONSULTA — não o fim físico da tabela."
+      ]
+    },
+    {
+      "id": "dva-med-019",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda processa arquivos baixando-os temporariamente para o disco local antes de transformá-los. Qual característica do armazenamento /tmp das funções o desenvolvedor deve considerar?",
+      "options": [
+        "É um armazenamento efêmero por ambiente de execução (512 MB a 10 GB configuráveis), que pode persistir entre invocações no mesmo ambiente quente, mas nunca deve ser tratado como durável",
+        "É replicado automaticamente para o S3 ao fim de cada execução",
+        "É compartilhado entre todas as funções da conta",
+        "É ilimitado em tamanho"
+      ],
+      "correct": 0,
+      "explanation": "O /tmp pertence ao ambiente de execução: útil para staging e cache oportunista entre invocações reaproveitadas, mas desaparece quando o ambiente é reciclado — dados duráveis vão para S3/EFS.",
+      "hint": "A 'bancada de trabalho' local da função: útil na sessão, mas a faxina pode passar a qualquer momento.",
+      "optionRationales": [
+        "O /tmp pertence ao ambiente de execução: útil para staging e cache oportunista entre invocações reaproveitadas, mas desaparece quando o ambiente é reciclado — dados duráveis vão para S3/EFS.",
+        "Não há sincronização automática — o que fica no /tmp morre com o ambiente.",
+        "Cada ambiente de execução tem seu /tmp isolado — não há compartilhamento entre funções ou ambientes.",
+        "O /tmp tem limite configurável de 512 MB a 10 GB — arquivos maiores exigem streaming ou EFS."
+      ]
+    },
+    {
+      "id": "dva-med-020",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda cria uma conexão com o banco e inicializa um cliente HTTP a cada invocação, dentro do handler, elevando a latência. Qual prática aproveita a reutilização do ambiente de execução para otimizar isso?",
+      "options": [
+        "Mover inicializações caras (conexões, clientes SDK) para fora do handler, no escopo global, para que invocações no mesmo ambiente quente as reutilizem",
+        "Criar e fechar a conexão dentro do handler a cada invocação, por segurança",
+        "Aumentar o timeout para dar tempo às inicializações",
+        "Armazenar a conexão em uma variável de ambiente"
+      ],
+      "correct": 0,
+      "explanation": "O código fora do handler roda uma vez por ambiente (na inicialização): conexões e clientes criados ali sobrevivem entre invocações reaproveitadas — reduzindo latência e pressão sobre o banco.",
+      "hint": "O que está 'acima do handler' roda uma vez por ambiente — monte a bancada lá e só trabalhe dentro do handler.",
+      "optionRationales": [
+        "O código fora do handler roda uma vez por ambiente (na inicialização): conexões e clientes criados ali sobrevivem entre invocações reaproveitadas — reduzindo latência e pressão sobre o banco.",
+        "Abrir/fechar a cada chamada é justamente o padrão lento que desperdiça o ambiente reutilizado.",
+        "Mais tempo-limite não elimina o custo repetido da inicialização — apenas o tolera.",
+        "Variáveis de ambiente guardam strings de configuração — não objetos vivos como conexões."
+      ]
+    },
+    {
+      "id": "dva-med-021",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor compara os dois modos de invocação direta de funções Lambda pela API: RequestResponse e Event. Qual é a diferença prática entre eles?",
+      "options": [
+        "RequestResponse é síncrono (o chamador espera e recebe a resposta/erros); Event é assíncrono (o Lambda enfileira o evento, responde 202 imediatamente e gerencia retentativas)",
+        "Event é mais rápido porque executa a função com mais CPU",
+        "RequestResponse só funciona dentro de VPCs",
+        "Os dois modos são idênticos desde 2020"
+      ],
+      "correct": 0,
+      "explanation": "Na invocação síncrona o cliente trata erros e recebe o retorno; na assíncrona o serviço assume a fila interna, com até duas retentativas e destinos/DLQ para falhas — a escolha define quem é dono do erro.",
+      "hint": "Um espera a resposta na linha; o outro deixa o recado e desliga — e o serviço cuida das retentativas.",
+      "optionRationales": [
+        "Na invocação síncrona o cliente trata erros e recebe o retorno; na assíncrona o serviço assume a fila interna, com até duas retentativas e destinos/DLQ para falhas — a escolha define quem é dono do erro.",
+        "O modo de invocação não altera os recursos da função — muda o contrato de entrega e resposta.",
+        "A invocação síncrona não tem qualquer dependência de VPC.",
+        "Permanecem contratos distintos — síncrono versus assíncrono com fila e retentativas gerenciadas."
+      ]
+    },
+    {
+      "id": "dva-med-022",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda integrada ao API Gateway via proxy integration retorna um objeto qualquer, e o cliente recebe erro 502 (Bad Gateway). Qual é a causa típica desse erro nessa integração?",
+      "options": [
+        "A resposta da função não segue o formato exigido pelo proxy: um JSON com statusCode, headers e body (string)",
+        "O API Gateway está fora do ar na Região",
+        "Faltou habilitar CORS na API",
+        "A função excedeu a memória configurada"
+      ],
+      "correct": 0,
+      "explanation": "Na integração proxy, o API Gateway espera o envelope específico; respostas fora do contrato (body não serializado, statusCode ausente) geram 502 — a correção é montar o objeto de resposta corretamente.",
+      "hint": "No modo proxy, o gateway exige o 'envelope' certo: status, cabeçalhos e corpo como string.",
+      "optionRationales": [
+        "Na integração proxy, o API Gateway espera o envelope específico; respostas fora do contrato (body não serializado, statusCode ausente) geram 502 — a correção é montar o objeto de resposta corretamente.",
+        "Indisponibilidade regional é rara e afetaria tudo — o 502 sistemático em uma rota aponta contrato de resposta inválido.",
+        "Problemas de CORS aparecem como bloqueio no navegador — não como 502 do gateway.",
+        "Estouro de memória gera erro de execução visível nos logs — o 502 do proxy nasce do formato da resposta."
+      ]
+    },
+    {
+      "id": "dva-med-023",
+      "domain": "development-aws-services",
+      "text": "Em uma API REST do API Gateway SEM proxy integration, o time precisa transformar o payload recebido antes de enviá-lo ao backend (renomear campos, montar outro JSON). Qual recurso do API Gateway realiza essas transformações?",
+      "options": [
+        "Mapping templates escritos em VTL (Velocity Template Language) na integração de requisição/resposta",
+        "Stages com variáveis de ambiente",
+        "Usage plans com chaves de API",
+        "Modelos de domínio personalizado"
+      ],
+      "correct": 0,
+      "explanation": "Na integração não-proxy, os mapping templates transformam payloads entre cliente e backend (request e response), permitindo adaptar contratos sem alterar nenhum dos lados.",
+      "hint": "O 'tradutor' entre o contrato do cliente e o do backend fala uma linguagem de template de quatro letras.",
+      "optionRationales": [
+        "Na integração não-proxy, os mapping templates transformam payloads entre cliente e backend (request e response), permitindo adaptar contratos sem alterar nenhum dos lados.",
+        "Stage variables parametrizam destinos e configurações por ambiente — não transformam payloads.",
+        "Usage plans aplicam cotas e throttling por consumidor — sem qualquer transformação de dados.",
+        "Custom domains tratam do endereço da API — não do conteúdo das mensagens."
+      ]
+    },
+    {
+      "id": "dva-med-024",
+      "domain": "development-aws-services",
+      "text": "Uma mensagem precisa ficar invisível por 15 minutos APÓS ser enviada a uma fila SQS, só então podendo ser consumida (ex: dar tempo de cancelamento do pedido). Qual recurso implementa esse atraso na entrega, e como difere do visibility timeout?",
+      "options": [
+        "Delay queue (ou DelaySeconds por mensagem): atrasa a PRIMEIRA disponibilização da mensagem; o visibility timeout esconde a mensagem APÓS ser recebida por um consumidor",
+        "Visibility timeout de 15 minutos resolve, pois atua na entrada da fila",
+        "Retention period de 15 minutos",
+        "Long polling com espera de 15 minutos"
+      ],
+      "correct": 0,
+      "explanation": "São momentos diferentes do ciclo: o delay atua na entrada (mensagem nova fica oculta pelo período), enquanto o visibility timeout protege o processamento em andamento contra consumo duplicado.",
+      "hint": "Um adia a estreia da mensagem; o outro protege a mensagem que já está no palco.",
+      "optionRationales": [
+        "São momentos diferentes do ciclo: o delay atua na entrada (mensagem nova fica oculta pelo período), enquanto o visibility timeout protege o processamento em andamento contra consumo duplicado.",
+        "O visibility timeout só conta a partir do RECEBIMENTO da mensagem — não atrasa a primeira entrega.",
+        "O retention define quando mensagens NÃO consumidas expiram — não quando passam a ficar disponíveis.",
+        "O long polling espera até 20 SEGUNDOS por mensagens disponíveis — não é mecanismo de atraso de entrega."
+      ]
+    },
+    {
+      "id": "dva-med-025",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda processa lotes de 10 mensagens do SQS. Quando UMA mensagem do lote falha, o lote inteiro retorna à fila e as 9 bem-sucedidas são reprocessadas. Qual configuração evita esse reprocessamento desnecessário?",
+      "options": [
+        "Habilitar partial batch response (ReportBatchItemFailures) e retornar na resposta apenas os IDs das mensagens que falharam",
+        "Reduzir o batch size para 1 mensagem",
+        "Capturar todas as exceções e fingir sucesso sempre",
+        "Aumentar o visibility timeout do lote"
+      ],
+      "correct": 0,
+      "explanation": "Com o relatório de falhas parciais ativado no event source mapping, só as mensagens listadas como falhas voltam à fila — as demais são confirmadas, eliminando reprocessamento e efeitos duplicados.",
+      "hint": "Ensine a função a entregar a 'lista dos reprovados' — só eles repetem a prova.",
+      "optionRationales": [
+        "Com o relatório de falhas parciais ativado no event source mapping, só as mensagens listadas como falhas voltam à fila — as demais são confirmadas, eliminando reprocessamento e efeitos duplicados.",
+        "Lotes unitários resolvem o sintoma sacrificando o throughput e multiplicando invocações — a resposta parcial mantém os lotes eficientes.",
+        "Engolir falhas confirma mensagens com erro — perda silenciosa de dados.",
+        "Mais tempo de invisibilidade não muda a semântica de 'lote inteiro falha junto'."
+      ]
+    },
+    {
+      "id": "dva-med-026",
+      "domain": "development-aws-services",
+      "text": "Um tópico SNS recebe eventos de pedidos de todos os tipos, mas a fila de 'reembolsos' só deve receber mensagens cujo atributo 'tipo' seja 'reembolso', sem que o consumidor descarte o resto. Qual recurso do SNS implementa essa seleção na própria assinatura?",
+      "options": [
+        "Filter policies (políticas de filtro) na assinatura, entregando apenas mensagens cujos atributos casem com o filtro",
+        "Criar um tópico para cada tipo de evento possível",
+        "Fazer a fila rejeitar mensagens com base no conteúdo",
+        "Configurar o consumidor para deletar o que não interessa"
+      ],
+      "correct": 0,
+      "explanation": "A filter policy avalia os atributos (ou o corpo) da mensagem na entrega: cada assinante recebe só o que lhe interessa — eliminando tráfego e lógica de descarte nos consumidores.",
+      "hint": "A assinatura pode ter um 'porteiro de atributos': só entra mensagem que bate com a política.",
+      "optionRationales": [
+        "A filter policy avalia os atributos (ou o corpo) da mensagem na entrega: cada assinante recebe só o que lhe interessa — eliminando tráfego e lógica de descarte nos consumidores.",
+        "A multiplicação de tópicos fragmenta a publicação e complica os produtores — o filtro resolve na assinatura.",
+        "O SQS não filtra conteúdo na entrada — a seleção acontece na assinatura do SNS.",
+        "Descartar no consumidor desperdiça entrega, processamento e custo — o filtro evita que a mensagem sequer chegue."
+      ]
+    },
+    {
+      "id": "dva-med-027",
+      "domain": "development-aws-services",
+      "text": "Um relatório deve ser gerado automaticamente toda segunda-feira às 7h, invocando uma função Lambda. Qual serviço agenda essa execução recorrente com expressões cron, sem servidores?",
+      "options": [
+        "Amazon EventBridge Scheduler (ou regras agendadas do EventBridge) com expressão cron invocando a função",
+        "Um loop com sleep dentro da própria função Lambda",
+        "Uma instância EC2 com crontab chamando a função",
+        "Configurar o agendamento no console do S3"
+      ],
+      "correct": 0,
+      "explanation": "O EventBridge Scheduler dispara alvos em agendas cron/rate totalmente gerenciadas — o 'crontab serverless' padrão para tarefas recorrentes.",
+      "hint": "O 'despertador gerenciado' da AWS fala cron e invoca alvos — sem máquina ligada.",
+      "optionRationales": [
+        "O EventBridge Scheduler dispara alvos em agendas cron/rate totalmente gerenciadas — o 'crontab serverless' padrão para tarefas recorrentes.",
+        "Funções têm limite de 15 minutos e cobrança por duração — dormir dentro delas é inviável e caro.",
+        "Servidor dedicado para agendar contradiz o serverless — o scheduler gerenciado elimina essa máquina.",
+        "O S3 dispara eventos de OBJETOS — não possui agendador de tarefas cron."
+      ]
+    },
+    {
+      "id": "dva-med-028",
+      "domain": "development-aws-services",
+      "text": "Um time avalia Step Functions para dois fluxos: (A) um processo de aprovação que pode durar dias, com auditoria completa de cada etapa; (B) um pipeline de ingestão de eventos de alto volume e curta duração (menos de 5 minutos) onde o custo por execução importa. Qual tipo de workflow atende melhor cada caso?",
+      "options": [
+        "Standard para o fluxo A (longa duração, execução exatamente-uma-vez, histórico completo) e Express para o fluxo B (alto volume, curta duração, custo por uso menor)",
+        "Express para o fluxo A, pois aprovações exigem velocidade expressa",
+        "Standard para ambos, pois Express foi descontinuado",
+        "Nenhum dos dois; Step Functions só executa fluxos de até 15 minutos"
+      ],
+      "correct": 0,
+      "explanation": "Workflows Standard suportam até 1 ano com histórico auditável; Express são otimizados para volume e custo em execuções de até 5 minutos com semântica pelo-menos-uma-vez — a escolha clássica por perfil.",
+      "hint": "Maratona auditável vs. sprint barato em massa: cada tipo de workflow tem sua pista.",
+      "optionRationales": [
+        "Workflows Standard suportam até 1 ano com histórico auditável; Express são otimizados para volume e custo em execuções de até 5 minutos com semântica pelo-menos-uma-vez — a escolha clássica por perfil.",
+        "Express limita-se a 5 minutos de duração — inviável para processos de dias.",
+        "Express segue ativo e é a opção recomendada para alto volume de curta duração.",
+        "O limite de 15 minutos é do Lambda — workflows Standard duram até um ano."
+      ]
+    },
+    {
+      "id": "dva-med-029",
+      "domain": "development-aws-services",
+      "text": "Um fluxo do Step Functions recebe um array com número variável de pedidos e precisa executar o MESMO conjunto de etapas para cada pedido, com paralelismo controlado. Qual estado da máquina é projetado para essa iteração dinâmica?",
+      "options": [
+        "O estado Map, que itera sobre os itens do array aplicando o sub-fluxo a cada um, com concorrência configurável",
+        "O estado Parallel, criando um branch por pedido manualmente",
+        "O estado Choice avaliando cada pedido",
+        "O estado Wait entre os pedidos"
+      ],
+      "correct": 0,
+      "explanation": "O Map é o 'for-each' do Step Functions: processa coleções de tamanho dinâmico com limite de paralelismo — diferente do Parallel, que executa ramos FIXOS e distintos.",
+      "hint": "O 'for-each' da máquina de estados: um estado que mapeia o sub-fluxo sobre cada item do array.",
+      "optionRationales": [
+        "O Map é o 'for-each' do Step Functions: processa coleções de tamanho dinâmico com limite de paralelismo — diferente do Parallel, que executa ramos FIXOS e distintos.",
+        "O Parallel exige ramos definidos estaticamente no template — não acompanha arrays de tamanho variável.",
+        "O Choice roteia o fluxo por condições — não itera sobre coleções.",
+        "O Wait apenas pausa o fluxo — sem qualquer mecânica de iteração."
+      ]
+    },
+    {
+      "id": "dva-med-030",
+      "domain": "development-aws-services",
+      "text": "Uma plataforma precisa escolher entre Kinesis Data Streams e SQS para ingestão de eventos. O requisito decisivo: múltiplas aplicações consumidoras independentes devem ler o MESMO fluxo, e deve ser possível REPROCESSAR eventos das últimas 24 horas ao corrigir um bug. Qual serviço atende e por quê?",
+      "options": [
+        "Kinesis Data Streams: os registros ficam retidos no stream (24h a 365 dias) e vários consumidores leem o mesmo fluxo de posições independentes, permitindo replay",
+        "SQS Standard, pois mensagens podem ser relidas a qualquer momento após o consumo",
+        "SQS FIFO, pois a ordenação permite reprocessamento",
+        "Os dois são equivalentes nesse requisito"
+      ],
+      "correct": 0,
+      "explanation": "O stream é um log durável e re-legível: consumidores mantêm seus próprios ponteiros e podem rebobinar — no SQS, a mensagem consumida e excluída desaparece para sempre e cada mensagem atende um só consumidor.",
+      "hint": "Fila entrega e queima a carta; stream é a fita gravada que vários podem ouvir — e rebobinar.",
+      "optionRationales": [
+        "O stream é um log durável e re-legível: consumidores mantêm seus próprios ponteiros e podem rebobinar — no SQS, a mensagem consumida e excluída desaparece para sempre e cada mensagem atende um só consumidor.",
+        "Após consumida e excluída, a mensagem do SQS não existe mais — não há replay nem múltiplos leitores do mesmo dado.",
+        "FIFO ordena e desduplica, mas mantém a semântica de fila: consumo remove a mensagem — sem releitura por múltiplas aplicações.",
+        "A diferença fila × stream é exatamente essa: retenção re-legível com múltiplos consumidores é exclusividade do modelo de stream."
+      ]
+    },
+    {
+      "id": "dva-med-031",
+      "domain": "development-aws-services",
+      "text": "Os eventos de criação de objetos de um bucket S3 precisam disparar VÁRIOS alvos com filtragem avançada por metadados do evento (prefixo, tamanho, etc.), indo além dos destinos limitados das notificações tradicionais do S3. Qual abordagem moderna a AWS recomenda?",
+      "options": [
+        "Habilitar a integração do S3 com o Amazon EventBridge e criar regras com padrões de evento para rotear aos múltiplos alvos",
+        "Configurar dezenas de notificações sobrepostas no próprio bucket",
+        "Fazer cada aplicação varrer o bucket de hora em hora",
+        "Usar replicação entre Regiões como mecanismo de notificação"
+      ],
+      "correct": 0,
+      "explanation": "Com o EventBridge habilitado no bucket, os eventos ganham filtragem rica por conteúdo e dezenas de tipos de alvo (múltiplas regras simultâneas) — superando os destinos diretos (Lambda/SQS/SNS) das notificações clássicas.",
+      "hint": "Ligue o bucket ao 'barramento': regras ricas, muitos alvos, sem as amarras da notificação clássica.",
+      "optionRationales": [
+        "Com o EventBridge habilitado no bucket, os eventos ganham filtragem rica por conteúdo e dezenas de tipos de alvo (múltiplas regras simultâneas) — superando os destinos diretos (Lambda/SQS/SNS) das notificações clássicas.",
+        "As notificações nativas limitam destinos e proíbem sobreposição de filtros para o mesmo evento — o barramento elimina essas restrições.",
+        "Polling periódico adiciona latência e custo de listagem — o evento empurrado dispensa varreduras.",
+        "CRR copia objetos — não roteia eventos para alvos de aplicação."
+      ]
+    },
+    {
+      "id": "dva-med-032",
+      "domain": "development-aws-services",
+      "text": "Em uma API REST do API Gateway, o time quer que o MESMO deployment sirva dev e produção, com cada stage invocando um alias diferente da função Lambda (dev → alias 'dev'; prod → alias 'prod'). Qual recurso do API Gateway parametriza a integração por stage?",
+      "options": [
+        "Stage variables, referenciadas na integração (ex: ${stageVariables.lambdaAlias}) para apontar o alias correto em cada stage",
+        "Criar uma API totalmente separada para cada ambiente, sempre",
+        "Mapping templates convertendo o nome do stage",
+        "Usage plans diferentes por ambiente"
+      ],
+      "correct": 0,
+      "explanation": "Stage variables funcionam como variáveis de ambiente por stage: a mesma definição de integração resolve destinos diferentes conforme o estágio — eliminando duplicação de configuração.",
+      "hint": "Cada 'palco' tem suas variáveis — e a integração as lê para escolher o alias do espetáculo.",
+      "optionRationales": [
+        "Stage variables funcionam como variáveis de ambiente por stage: a mesma definição de integração resolve destinos diferentes conforme o estágio — eliminando duplicação de configuração.",
+        "APIs duplicadas multiplicam manutenção — as variáveis de stage resolvem a parametrização na mesma API (separar APIs é opção válida, mas não o recurso pedido).",
+        "Templates transformam payloads — não parametrizam o ENDPOINT da integração por stage.",
+        "Usage plans tratam de cotas por consumidor — não roteiam integrações para aliases distintos."
+      ]
+    },
+    {
+      "id": "dva-med-033",
+      "domain": "development-aws-services",
+      "text": "Um fluxo do Step Functions precisa PAUSAR até que um humano aprove a etapa em um sistema externo, que pode demorar horas — sem manter nenhuma função em execução durante a espera. Qual padrão do Step Functions implementa essa espera por confirmação externa?",
+      "options": [
+        "Callback com task token (.waitForTaskToken): o fluxo entrega um token ao sistema externo e fica pausado até receber SendTaskSuccess/SendTaskFailure com esse token",
+        "Uma função Lambda em loop verificando a aprovação a cada segundo",
+        "Um estado Wait de duração fixa de 24 horas",
+        "Encerrar o fluxo e criar outro manualmente após a aprovação"
+      ],
+      "correct": 0,
+      "explanation": "O padrão de callback suspende a execução sem consumir computação: o token viaja ao sistema de aprovação e a resposta (sucesso/falha) retoma o fluxo — ideal para integrações humanas e sistemas externos lentos.",
+      "hint": "O fluxo entrega uma 'senha de retorno' e dorme de graça — só acorda quando alguém devolve a senha com o veredito.",
+      "optionRationales": [
+        "O padrão de callback suspende a execução sem consumir computação: o token viaja ao sistema de aprovação e a resposta (sucesso/falha) retoma o fluxo — ideal para integrações humanas e sistemas externos lentos.",
+        "Polling em função paga duração e esbarra no limite de 15 minutos — o oposto da espera passiva do callback.",
+        "Espera fixa não reage à aprovação: atrasa fluxos rápidos e estoura nos lentos — o callback retoma exatamente quando a resposta chega.",
+        "Quebrar a execução perde o estado e a trilha do processo — o token mantém tudo em uma única execução auditável."
+      ]
+    },
+    {
+      "id": "dva-med-034",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda de processamento de ML precisa de bibliotecas e modelos que somam 4 GB — muito além do limite de 250 MB do pacote ZIP. Qual opção de empacotamento do Lambda viabiliza essa função?",
+      "options": [
+        "Empacotar a função como imagem de contêiner (até 10 GB) publicada no ECR",
+        "Dividir o ZIP em 16 layers de 250 MB",
+        "Comprimir as bibliotecas com ZIP duplo",
+        "Solicitar aumento do limite de ZIP via suporte"
+      ],
+      "correct": 0,
+      "explanation": "O Lambda suporta container images de até 10 GB: dependências pesadas, modelos e runtimes customizados entram na imagem, mantendo o modelo serverless de execução.",
+      "hint": "Quando o ZIP não cabe, a função vira 'navio contêiner': até 10 GB via registro de imagens.",
+      "optionRationales": [
+        "O Lambda suporta container images de até 10 GB: dependências pesadas, modelos e runtimes customizados entram na imagem, mantendo o modelo serverless de execução.",
+        "O limite de 250 MB descomprimido vale para o CONJUNTO função+layers — multiplicar camadas não o contorna.",
+        "O limite considera o tamanho descomprimido — compressão aninhada não engana a plataforma.",
+        "O limite de pacote ZIP não é ajustável por ticket — o caminho oficial para artefatos grandes é a imagem de contêiner."
+      ]
+    },
+    {
+      "id": "dva-med-035",
+      "domain": "development-aws-services",
+      "text": "Ao rodar a aplicação localmente, o SDK da AWS encontra credenciais sem nenhuma configuração explícita no código. Qual é a ordem geral da cadeia de provedores de credenciais que os SDKs seguem?",
+      "options": [
+        "Parâmetros explícitos no código → variáveis de ambiente → arquivo de credenciais/perfil → credenciais de container/role da instância (IMDS)",
+        "O SDK pergunta a senha ao usuário no terminal",
+        "O SDK gera chaves novas na primeira execução",
+        "Apenas variáveis de ambiente são suportadas"
+      ],
+      "correct": 0,
+      "explanation": "A credential provider chain busca em ordem: configuração explícita, env vars (AWS_ACCESS_KEY_ID...), profiles do ~/.aws, e por fim credenciais do ambiente de execução (ECS/EC2 role) — por isso 'funciona sem configurar' em máquinas com perfil ou em instâncias com role.",
+      "hint": "O SDK procura a chave em bolsos sucessivos: código, ambiente, arquivo de perfil e, por fim, a role da máquina.",
+      "optionRationales": [
+        "A credential provider chain busca em ordem: configuração explícita, env vars (AWS_ACCESS_KEY_ID...), profiles do ~/.aws, e por fim credenciais do ambiente de execução (ECS/EC2 role) — por isso 'funciona sem configurar' em máquinas com perfil ou em instâncias com role.",
+        "SDKs não fazem prompts interativos — a resolução é automática pela cadeia de provedores.",
+        "SDKs jamais criam credenciais — apenas as localizam e usam.",
+        "Env vars são só um elo da cadeia — perfis e roles do ambiente também participam."
+      ]
+    },
+    {
+      "id": "dva-med-036",
+      "domain": "development-aws-services",
+      "text": "Um aplicativo de chat precisa de comunicação bidirecional persistente: o servidor deve EMPURRAR mensagens aos clientes conectados em tempo real, sem polling. Qual tipo de API do Amazon API Gateway suporta esse modelo?",
+      "options": [
+        "WebSocket API, mantendo conexões persistentes com rotas como $connect, $disconnect e ações customizadas",
+        "REST API com polling agressivo dos clientes",
+        "HTTP API com cache habilitado",
+        "API Gateway não suporta tempo real; é preciso um servidor dedicado"
+      ],
+      "correct": 0,
+      "explanation": "A WebSocket API do API Gateway gerencia conexões bidirecionais de longa duração: o backend envia mensagens aos clientes via connection IDs — o modelo para chats, jogos e dashboards em tempo real.",
+      "hint": "Para o servidor 'ligar' para o cliente a qualquer momento, a API precisa do protocolo de mão dupla.",
+      "optionRationales": [
+        "A WebSocket API do API Gateway gerencia conexões bidirecionais de longa duração: o backend envia mensagens aos clientes via connection IDs — o modelo para chats, jogos e dashboards em tempo real.",
+        "Polling consome requisições e adiciona latência — não é push verdadeiro nem conexão persistente.",
+        "Cache acelera respostas REPETIDAS — não cria canal bidirecional persistente.",
+        "O suporte a WebSocket é nativo do API Gateway — dispensa servidores de conexão próprios."
+      ]
+    },
+    {
+      "id": "dva-med-037",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor leu que o Amazon S3 oferece consistência forte (strong read-after-write) para todas as operações. O que isso garante na prática para a aplicação?",
+      "options": [
+        "Após um PUT bem-sucedido (novo ou sobrescrita), qualquer leitura subsequente retorna a versão mais recente do objeto — sem janela de dados antigos",
+        "Que dois clientes nunca conseguem escrever no mesmo objeto",
+        "Que os objetos são replicados para todas as Regiões instantaneamente",
+        "Que o S3 passou a suportar transações multi-objeto"
+      ],
+      "correct": 0,
+      "explanation": "Desde 2020 o S3 é fortemente consistente: GET/LIST após escrita refletem imediatamente o estado atual, eliminando as antigas janelas de consistência eventual em sobrescritas e listagens.",
+      "hint": "Escreveu, leu: o que volta é sempre a última versão — sem 'eco' do passado.",
+      "optionRationales": [
+        "Desde 2020 o S3 é fortemente consistente: GET/LIST após escrita refletem imediatamente o estado atual, eliminando as antigas janelas de consistência eventual em sobrescritas e listagens.",
+        "Escritas concorrentes continuam possíveis (última vence) — consistência de leitura não é bloqueio de escrita.",
+        "A consistência forte vale dentro da Região do bucket — replicação entre Regiões é recurso separado e assíncrono.",
+        "Não há transações entre objetos no S3 — a garantia é sobre leitura refletir a escrita mais recente de CADA objeto."
+      ]
+    },
+    {
+      "id": "dva-med-038",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação serverless usa várias funções Lambda que precisam de lógica comum de logging estruturado, métricas e tracing com pouco código repetido. Além de layers, qual biblioteca oficial da AWS acelera essas boas práticas em funções Lambda?",
+      "options": [
+        "AWS Lambda Powertools (Python/TypeScript/Java/.NET), com utilitários prontos de logging estruturado, métricas EMF e tracing",
+        "AWS Amplify CLI",
+        "Amazon WorkDocs SDK",
+        "AWS IoT Greengrass"
+      ],
+      "correct": 0,
+      "explanation": "O Powertools padroniza observabilidade e boas práticas (logger estruturado, métricas embutidas, tracer X-Ray, idempotência) com decorators/middlewares — reduzindo código boilerplate entre as funções.",
+      "hint": "As 'ferramentas elétricas' oficiais do Lambda: logger, métricas e tracer prontos para plugar.",
+      "optionRationales": [
+        "O Powertools padroniza observabilidade e boas práticas (logger estruturado, métricas embutidas, tracer X-Ray, idempotência) com decorators/middlewares — reduzindo código boilerplate entre as funções.",
+        "O Amplify acelera apps full-stack (front + backend) — não é a biblioteca de utilitários de observabilidade para funções.",
+        "WorkDocs trata de colaboração em documentos — nenhuma relação com padrões de Lambda.",
+        "Greengrass leva computação à borda IoT — não é toolkit de boas práticas serverless."
+      ]
+    },
+    {
+      "id": "dva-med-039",
+      "domain": "development-aws-services",
+      "text": "Um endpoint precisa servir um placar (leaderboard) em tempo real com os 10 maiores pontuadores de um jogo, atualizado a cada pontuação. Qual estrutura de dados do Redis (ElastiCache) resolve esse ranking com operações nativas de ordenação?",
+      "options": [
+        "Sorted set (ZADD/ZRANGE), que mantém membros ordenados por score automaticamente",
+        "Uma string JSON com o array completo reordenado a cada escrita",
+        "Uma lista (LPUSH) com os scores",
+        "Um set comum (SADD)"
+      ],
+      "correct": 0,
+      "explanation": "O sorted set é a estrutura clássica de leaderboard: inserções/atualizações com ZADD mantêm a ordenação por pontuação, e ZRANGE/ZREVRANGE retorna o topo em O(log N) — sem reordenação manual.",
+      "hint": "A estrutura do Redis feita para pódios: conjunto 'ordenado por pontos'.",
+      "optionRationales": [
+        "O sorted set é a estrutura clássica de leaderboard: inserções/atualizações com ZADD mantêm a ordenação por pontuação, e ZRANGE/ZREVRANGE retorna o topo em O(log N) — sem reordenação manual.",
+        "Serializar e reordenar tudo a cada ponto perde as operações nativas e cria condições de corrida.",
+        "Listas preservam ordem de INSERÇÃO — não ordenam por pontuação.",
+        "Sets garantem unicidade sem ordenação — não há ranking por score."
+      ]
+    },
+    {
+      "id": "dva-med-040",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação grava no DynamoDB e precisa decidir entre leituras eventualmente consistentes e fortemente consistentes. Qual é o trade-off entre as duas opções em uma Query/GetItem?",
+      "options": [
+        "Leituras fortemente consistentes garantem o dado mais recente, mas custam o dobro em capacidade de leitura e têm latência ligeiramente maior; as eventualmente consistentes (padrão) custam metade e podem refletir dados defasados por instantes",
+        "Leituras fortemente consistentes são gratuitas para incentivar seu uso",
+        "Leituras eventualmente consistentes podem retornar dados de outra tabela",
+        "Não há diferença prática; os termos são apenas históricos"
+      ],
+      "correct": 0,
+      "explanation": "O DynamoDB cobra 1 RCU por leitura fortemente consistente de até 4 KB contra 0,5 RCU na eventual: a escolha equilibra frescor do dado contra custo e latência — leituras eventuais bastam para a maioria dos casos.",
+      "hint": "Frescor garantido custa o dobro de RCU; a leitura 'relaxada' é meia tarifa com possível atraso de instantes.",
+      "optionRationales": [
+        "O DynamoDB cobra 1 RCU por leitura fortemente consistente de até 4 KB contra 0,5 RCU na eventual: a escolha equilibra frescor do dado contra custo e latência — leituras eventuais bastam para a maioria dos casos.",
+        "É o oposto: a consistência forte consome o dobro de capacidade de leitura.",
+        "A consistência eventual refere-se ao ATRASO de replicação interna da mesma tabela — jamais a dados de tabelas diferentes.",
+        "A diferença é real em custo (2x), latência e frescor — e configurável por chamada com o parâmetro ConsistentRead."
+      ]
+    },
+    {
+      "id": "dva-med-041",
+      "domain": "security",
+      "text": "Uma aplicação precisa criptografar arquivos de 100 MB antes de gravá-los, mas a API Encrypt do KMS aceita no máximo 4 KB de dados por chamada. Qual padrão resolve a criptografia de dados grandes com chaves do KMS?",
+      "options": [
+        "Envelope encryption: usar GenerateDataKey para obter uma chave de dados, criptografar o arquivo localmente com ela e armazenar a versão criptografada da data key junto do arquivo",
+        "Dividir o arquivo em 25.600 blocos de 4 KB e chamar Encrypt para cada um",
+        "Solicitar aumento do limite de 4 KB via suporte",
+        "Armazenar o arquivo sem criptografia, pois o KMS não suporta dados grandes"
+      ],
+      "correct": 0,
+      "explanation": "O envelope encryption é o padrão do KMS para dados grandes: a data key cifra o arquivo localmente (rápido), e apenas a própria data key — pequena — é protegida pela chave KMS; na leitura, o Decrypt da data key destrava o arquivo.",
+      "hint": "A chave grande protege uma chave pequena; a chave pequena protege o arquivo grande — tudo dentro de um 'envelope'.",
+      "optionRationales": [
+        "O envelope encryption é o padrão do KMS para dados grandes: a data key cifra o arquivo localmente (rápido), e apenas a própria data key — pequena — é protegida pela chave KMS; na leitura, o Decrypt da data key destrava o arquivo.",
+        "Milhares de chamadas por arquivo seriam lentas e caras — o limite de 4 KB existe justamente para induzir o padrão de envelope.",
+        "O limite da API não é ajustável — é uma característica de design do serviço.",
+        "O KMS suporta qualquer tamanho via envelope encryption — abrir mão da proteção não é opção."
+      ]
+    },
+    {
+      "id": "dva-med-042",
+      "domain": "security",
+      "text": "Por política de conformidade, TODO objeto gravado em um bucket S3 deve usar criptografia SSE-KMS com uma chave específica — uploads que não atendam a isso devem ser rejeitados na hora. Como impor essa regra no próprio bucket?",
+      "options": [
+        "Bucket policy com condição que nega PutObject quando os cabeçalhos de criptografia não especificam aws:kms (e a chave esperada)",
+        "Confiar que os desenvolvedores sempre passarão os cabeçalhos corretos",
+        "Rodar um job noturno que exclui objetos sem criptografia",
+        "Habilitar versionamento para criptografar versões antigas"
+      ],
+      "correct": 0,
+      "explanation": "Uma política de bucket com Deny condicionado aos cabeçalhos s3:x-amz-server-side-encryption rejeita uploads fora do padrão na própria API — a imposição acontece no recurso, independentemente do cliente.",
+      "hint": "O porteiro do bucket pode exigir o 'selo KMS' no cabeçalho — sem selo, o PUT nem entra.",
+      "optionRationales": [
+        "Uma política de bucket com Deny condicionado aos cabeçalhos s3:x-amz-server-side-encryption rejeita uploads fora do padrão na própria API — a imposição acontece no recurso, independentemente do cliente.",
+        "Disciplina sem enforcement falha — a conformidade exige bloqueio técnico no recurso.",
+        "Limpeza posterior deixa dados não conformes expostos por horas e os destrói em vez de rejeitar na origem.",
+        "Versionamento preserva versões — não aplica nem exige criptografia."
+      ]
+    },
+    {
+      "id": "dva-med-043",
+      "domain": "security",
+      "text": "Um aplicativo permite navegação como convidado (sem login) com acesso de leitura a um bucket público de catálogo, e acesso ampliado após o login. Qual recurso do Amazon Cognito suporta credenciais AWS distintas para usuários autenticados e não autenticados?",
+      "options": [
+        "Identity Pools com identidades não autenticadas habilitadas, mapeando roles IAM diferentes para convidados e autenticados",
+        "User Pools com usuários fictícios chamados 'convidado'",
+        "Distribuir access keys de um usuário IAM 'guest' no app",
+        "Cognito não suporta acesso sem login"
+      ],
+      "correct": 0,
+      "explanation": "O Identity Pool emite credenciais temporárias em dois trilhos: a role de convidado (permissões mínimas) e a role autenticada (permissões ampliadas) — o padrão para experiência guest + login.",
+      "hint": "A 'piscina de identidades' tem duas raias: uma role para visitantes, outra para quem fez check-in.",
+      "optionRationales": [
+        "O Identity Pool emite credenciais temporárias em dois trilhos: a role de convidado (permissões mínimas) e a role autenticada (permissões ampliadas) — o padrão para experiência guest + login.",
+        "Contas falsas compartilhadas destroem auditoria e segurança — o suporte a guest é nativo do Identity Pool.",
+        "Chaves estáticas embutidas em apps são extraíveis — vulnerabilidade clássica que as credenciais temporárias eliminam.",
+        "Identidades não autenticadas são um recurso explícito dos Identity Pools."
+      ]
+    },
+    {
+      "id": "dva-med-044",
+      "domain": "security",
+      "text": "Uma aplicação web quer delegar as telas de login, cadastro e MFA ao Cognito, usando o fluxo OAuth 2.0 de authorization code para receber os tokens com segurança. Qual recurso do Cognito fornece essas telas prontas e os endpoints OAuth?",
+      "options": [
+        "O Hosted UI do User Pool, com domínio próprio e endpoints OAuth 2.0 (authorize/token) suportando o authorization code grant",
+        "Construir as telas do zero e enviar as senhas à API do IAM",
+        "AWS WAF com página de login embutida",
+        "CloudFront Functions gerando formulários de login"
+      ],
+      "correct": 0,
+      "explanation": "O Hosted UI entrega as páginas de autenticação gerenciadas (login, cadastro, MFA, social) e implementa os fluxos OAuth padrão — o app recebe o código e o troca por tokens no endpoint /token.",
+      "hint": "O Cognito 'hospeda a interface' de login para você — com os endpoints OAuth clássicos por trás.",
+      "optionRationales": [
+        "O Hosted UI entrega as páginas de autenticação gerenciadas (login, cadastro, MFA, social) e implementa os fluxos OAuth padrão — o app recebe o código e o troca por tokens no endpoint /token.",
+        "O IAM não autentica usuários finais — e construir tudo manualmente reintroduz o trabalho e os riscos que o Hosted UI elimina.",
+        "O WAF filtra requisições — não fornece interface nem fluxo de autenticação.",
+        "Funções de borda manipulam requisições leves — não implementam um IdP completo com OAuth."
+      ]
+    },
+    {
+      "id": "dva-med-045",
+      "domain": "security",
+      "text": "Uma API no API Gateway precisa de autorização customizada: validar um token proprietário (não JWT de Cognito) consultando regras de negócio antes de liberar cada chamada. Qual mecanismo do API Gateway executa essa lógica personalizada?",
+      "options": [
+        "Um Lambda authorizer, que recebe o token, executa a validação customizada e retorna a política IAM permitindo ou negando a chamada",
+        "API keys com usage plans",
+        "Authorizer nativo do Cognito User Pool",
+        "Validação dentro de cada função de backend"
+      ],
+      "correct": 0,
+      "explanation": "O Lambda authorizer injeta lógica própria na autorização: valida o token contra qualquer regra/serviço e devolve Allow/Deny (com contexto), com cache opcional do resultado — o caminho para esquemas fora do padrão Cognito/IAM.",
+      "hint": "Quando o crachá é 'fora do padrão', uma função sua vira o segurança da porta — devolvendo a política de acesso.",
+      "optionRationales": [
+        "O Lambda authorizer injeta lógica própria na autorização: valida o token contra qualquer regra/serviço e devolve Allow/Deny (com contexto), com cache opcional do resultado — o caminho para esquemas fora do padrão Cognito/IAM.",
+        "API keys medem e limitam consumo — não executam validação lógica de tokens proprietários.",
+        "O authorizer de Cognito valida apenas JWTs emitidos pelo pool — tokens proprietários exigem o authorizer customizado.",
+        "Validar no backend repete código em cada rota e processa requisições não autorizadas — o authorizer barra antes."
+      ]
+    },
+    {
+      "id": "dva-med-046",
+      "domain": "security",
+      "text": "Uma fintech contrata uma consultoria que precisará assumir uma role na conta da fintech. Para evitar o problema do 'confused deputy' — em que um terceiro é induzido a usar seu acesso em benefício de outro cliente — qual elemento deve ser exigido na trust policy da role?",
+      "options": [
+        "Um External ID acordado entre as partes, validado na condição sts:ExternalId do AssumeRole",
+        "Uma senha compartilhada por e-mail mensalmente",
+        "Acesso root temporário para a consultoria",
+        "Uma chave KMS compartilhada entre as contas"
+      ],
+      "correct": 0,
+      "explanation": "O External ID é o identificador secreto que o terceiro deve apresentar ao assumir a role: impede que outro cliente da consultoria a induza a usar o acesso indevidamente — a mitigação clássica do confused deputy.",
+      "hint": "O 'código secreto do contrato' que o terceiro precisa apresentar ao bater na porta da role.",
+      "optionRationales": [
+        "O External ID é o identificador secreto que o terceiro deve apresentar ao assumir a role: impede que outro cliente da consultoria a induza a usar o acesso indevidamente — a mitigação clássica do confused deputy.",
+        "Senhas trocadas por canais informais não se integram ao AssumeRole nem oferecem a validação condicional do External ID.",
+        "Root jamais é concedido a terceiros — viola todos os princípios de segurança da conta.",
+        "Chaves KMS protegem dados — não autenticam a relação de confiança do AssumeRole."
+      ]
+    },
+    {
+      "id": "dva-med-047",
+      "domain": "security",
+      "text": "O time de segurança quer que cada imagem Docker enviada ao Amazon ECR seja automaticamente verificada contra vulnerabilidades conhecidas (CVEs) nas suas camadas e pacotes. Qual recurso atende a isso?",
+      "options": [
+        "Image scanning do ECR (basic ou enhanced via Amazon Inspector), com varredura no push e contínua",
+        "Amazon Macie analisando o repositório de imagens",
+        "AWS Shield Advanced no registro",
+        "Confiar que as imagens base oficiais nunca têm vulnerabilidades"
+      ],
+      "correct": 0,
+      "explanation": "O ECR oferece scan on push e, no modo enhanced com Inspector, varredura contínua das imagens contra bases de CVEs — os achados aparecem por imagem com severidade para bloquear promoções inseguras.",
+      "hint": "O porto inspeciona cada contêiner que atraca — e pode reinspecionar a frota quando surgem novas ameaças.",
+      "optionRationales": [
+        "O ECR oferece scan on push e, no modo enhanced com Inspector, varredura contínua das imagens contra bases de CVEs — os achados aparecem por imagem com severidade para bloquear promoções inseguras.",
+        "O Macie descobre dados sensíveis em buckets S3 — não varre camadas de imagens de contêiner.",
+        "Shield mitiga DDoS — não analisa conteúdo de imagens.",
+        "Imagens oficiais recebem CVEs constantemente — a varredura contínua existe porque a base de ontem pode estar vulnerável hoje."
+      ]
+    },
+    {
+      "id": "dva-med-048",
+      "domain": "security",
+      "text": "Um site distribui vídeos privados via CloudFront e precisa autorizar o acesso de assinantes: às vezes a um ÚNICO arquivo (link individual), às vezes a TODO o catálogo (centenas de URLs) sem gerar um link por arquivo. Quais mecanismos do CloudFront atendem, respectivamente, a cada caso?",
+      "options": [
+        "Signed URLs para autorizar um arquivo individual e signed cookies para liberar múltiplos conteúdos sem alterar as URLs",
+        "Signed cookies para um arquivo e signed URLs para o catálogo inteiro",
+        "Tornar o bucket de origem público com nomes aleatórios",
+        "Bloquear por país com geo restriction"
+      ],
+      "correct": 0,
+      "explanation": "A signed URL embute a autorização para um recurso específico; os signed cookies enviam a autorização no navegador e valem para um conjunto de conteúdos — a dupla clássica de conteúdo privado no CloudFront.",
+      "hint": "Um ingresso por filme (URL assinada) ou a pulseira do festival inteiro (cookies assinados).",
+      "optionRationales": [
+        "A signed URL embute a autorização para um recurso específico; os signed cookies enviam a autorização no navegador e valem para um conjunto de conteúdos — a dupla clássica de conteúdo privado no CloudFront.",
+        "Está invertido: URL assinada é por recurso; cookies cobrem o conjunto sem reescrever cada link.",
+        "Obscuridade não é autorização — links vazam e o conteúdo fica aberto.",
+        "Restrição geográfica filtra por origem — não autentica assinantes individuais."
+      ]
+    },
+    {
+      "id": "dva-med-049",
+      "domain": "security",
+      "text": "Um certificado público solicitado no AWS Certificate Manager está preso no estado 'Pending validation'. O domínio é gerenciado no Route 53. Qual método de validação resolve de forma mais automatizável — inclusive para as renovações futuras?",
+      "options": [
+        "Validação por DNS, criando o registro CNAME de prova no Route 53 (com botão de criação automática), que também habilita renovações automáticas contínuas",
+        "Validação por e-mail, respondendo manualmente a cada renovação",
+        "Enviar documentos da empresa ao suporte AWS",
+        "Aguardar 72 horas pela aprovação automática"
+      ],
+      "correct": 0,
+      "explanation": "A validação DNS prova o controle do domínio com um CNAME que o ACM verifica — e, mantido o registro, as renovações ocorrem sozinhas; com Route 53, a criação é um clique ou uma chamada de API.",
+      "hint": "Plante o CNAME de prova no DNS e esqueça: emissão e renovações ficam no piloto automático.",
+      "optionRationales": [
+        "A validação DNS prova o controle do domínio com um CNAME que o ACM verifica — e, mantido o registro, as renovações ocorrem sozinhas; com Route 53, a criação é um clique ou uma chamada de API.",
+        "A validação por e-mail depende de caixas postais específicas e ação humana recorrente — frágil para automação.",
+        "O ACM não valida domínios por documentação — a prova é técnica (DNS ou e-mail).",
+        "Sem o registro de validação, o certificado nunca sai do estado pendente — não há aprovação por decurso de prazo."
+      ]
+    },
+    {
+      "id": "dva-med-050",
+      "domain": "security",
+      "text": "Uma API REST interna no API Gateway deve aceitar chamadas APENAS vindas de uma VPC específica (via VPC endpoint), rejeitando qualquer acesso pela internet. Qual configuração impõe essa restrição?",
+      "options": [
+        "Criar a API como private e usar resource policy permitindo somente o VPC endpoint específico",
+        "Distribuir a URL apenas internamente e contar com o sigilo",
+        "Usar API keys como bloqueio de rede",
+        "Colocar a API atrás do CloudFront com TTL zero"
+      ],
+      "correct": 0,
+      "explanation": "APIs privadas só são alcançáveis via interface VPC endpoint, e a resource policy amarra o acesso ao endpoint/VPC autorizado — o tráfego nunca passa pela internet pública.",
+      "hint": "API 'privada' + política do recurso apontando o endpoint da VPC = porta fechada para a internet.",
+      "optionRationales": [
+        "APIs privadas só são alcançáveis via interface VPC endpoint, e a resource policy amarra o acesso ao endpoint/VPC autorizado — o tráfego nunca passa pela internet pública.",
+        "URL de API regional continua publicamente alcançável — sigilo não é controle de acesso.",
+        "API keys identificam consumidores para cotas — não restringem o caminho de rede.",
+        "CloudFront é distribuição pública de borda — o oposto de confinar a API à VPC."
+      ]
+    },
+    {
+      "id": "dva-med-051",
+      "domain": "security",
+      "text": "Em um aplicativo multiusuário, cada usuário autenticado via Cognito deve ler e gravar SOMENTE os próprios itens em uma tabela do DynamoDB cuja partition key é o ID do usuário. Como conceder esse acesso granular sem backend intermediário?",
+      "options": [
+        "Na role do Identity Pool, usar uma política IAM com a condição dynamodb:LeadingKeys igual à variável da identidade Cognito (${cognito-identity.amazonaws.com:sub})",
+        "Conceder acesso total à tabela e filtrar no código do aplicativo",
+        "Criar uma tabela separada por usuário",
+        "Criptografar os itens com a senha do usuário"
+      ],
+      "correct": 0,
+      "explanation": "O fine-grained access control do DynamoDB com LeadingKeys restringe as operações às partições cuja chave coincide com a identidade do chamador — cada usuário enxerga apenas os próprios itens, direto do cliente.",
+      "hint": "A política pode amarrar a 'primeira chave' da partição à identidade de quem chama — cada um na sua gaveta.",
+      "optionRationales": [
+        "O fine-grained access control do DynamoDB com LeadingKeys restringe as operações às partições cuja chave coincide com a identidade do chamador — cada usuário enxerga apenas os próprios itens, direto do cliente.",
+        "Filtro no cliente é burlável por qualquer usuário que chame a API diretamente — a restrição deve estar na política.",
+        "Milhares de tabelas explodem a gestão e os limites — a condição por chave resolve dentro de uma tabela.",
+        "Criptografia protege conteúdo, mas não impede leituras/escritas nas partições alheias — o controle é de autorização."
+      ]
+    },
+    {
+      "id": "dva-med-052",
+      "domain": "security",
+      "text": "Uma aplicação Node.js conecta-se a um RDS PostgreSQL e o time de segurança exige que TODAS as conexões usem TLS, rejeitando tentativas sem criptografia. Como impor isso no lado do banco?",
+      "options": [
+        "Definir o parâmetro rds.force_ssl=1 no parameter group do RDS (e usar o certificado CA da AWS no cliente)",
+        "Pedir aos desenvolvedores que usem TLS sempre que lembrarem",
+        "Colocar o RDS em sub-rede pública para usar HTTPS",
+        "Ativar criptografia em repouso, que cobre as conexões"
+      ],
+      "correct": 0,
+      "explanation": "Com force_ssl ativado, o PostgreSQL recusa conexões sem TLS; o cliente valida o certificado com o bundle CA do RDS — criptografia em trânsito garantida por configuração, não por convenção.",
+      "hint": "O próprio banco pode 'desligar a porta sem cadeado': um parâmetro que força SSL em toda conexão.",
+      "optionRationales": [
+        "Com force_ssl ativado, o PostgreSQL recusa conexões sem TLS; o cliente valida o certificado com o bundle CA do RDS — criptografia em trânsito garantida por configuração, não por convenção.",
+        "Sem enforcement no servidor, uma string de conexão sem SSL passa despercebida — a regra deve ser técnica.",
+        "Expor o banco publicamente piora a postura — e TLS de banco não depende de sub-rede pública.",
+        "Criptografia em repouso protege o armazenamento — o trânsito exige TLS, controle separado."
+      ]
+    },
+    {
+      "id": "dva-med-053",
+      "domain": "security",
+      "text": "Uma função Lambda busca um segredo no Secrets Manager A CADA invocação, adicionando latência e custo de API em milhões de execuções. Qual otimização mantém a segurança reduzindo essas chamadas?",
+      "options": [
+        "Buscar o segredo na inicialização (fora do handler) e cachear em memória com TTL — ou usar a AWS Parameters and Secrets Lambda Extension, que faz esse cache localmente",
+        "Copiar o segredo para uma variável de ambiente em texto claro no deploy",
+        "Gravar o segredo no código-fonte para eliminar a chamada",
+        "Desligar a rotação do segredo para a busca ficar mais rápida"
+      ],
+      "correct": 0,
+      "explanation": "O cache no ambiente de execução (ou via extensão oficial) reduz as chamadas ao cofre a uma por ambiente/TTL, mantendo rotação suportada (expiração do cache) — economia e latência sem expor o segredo em texto persistente.",
+      "hint": "Busque no cofre de vez em quando (com prazo de validade na memória) — não a cada visita.",
+      "optionRationales": [
+        "O cache no ambiente de execução (ou via extensão oficial) reduz as chamadas ao cofre a uma por ambiente/TTL, mantendo rotação suportada (expiração do cache) — economia e latência sem expor o segredo em texto persistente.",
+        "Mover o segredo para configuração visível enfraquece a proteção e quebra a rotação automática.",
+        "Hardcoding é a pior opção — vaza no repositório e ignora rotação.",
+        "Rotação não afeta a latência da leitura — desativá-la só reduz a segurança."
+      ]
+    },
+    {
+      "id": "dva-med-054",
+      "domain": "security",
+      "text": "Os parâmetros de configuração no Systems Manager Parameter Store foram organizados em hierarquias como /app/dev/* e /app/prod/*. Qual benefício de segurança essa organização habilita nas políticas IAM?",
+      "options": [
+        "Conceder permissões por caminho: a role de dev acessa apenas arn:...parameter/app/dev/*, sem enxergar os parâmetros de produção",
+        "Hierarquias criptografam automaticamente os parâmetros",
+        "Caminhos longos tornam os parâmetros mais difíceis de adivinhar",
+        "A hierarquia replica os parâmetros entre Regiões"
+      ],
+      "correct": 0,
+      "explanation": "Hierarquias permitem políticas IAM por prefixo de caminho — o isolamento dev/prod nasce da estrutura de nomes combinada ao menor privilégio nos ARNs.",
+      "hint": "Pastas bem nomeadas viram fronteiras de permissão: cada role só abre o seu corredor.",
+      "optionRationales": [
+        "Hierarquias permitem políticas IAM por prefixo de caminho — o isolamento dev/prod nasce da estrutura de nomes combinada ao menor privilégio nos ARNs.",
+        "Criptografia vem do tipo SecureString com KMS — a hierarquia organiza e habilita escopo de permissão, não cifragem.",
+        "Obscuridade de nomes não é controle de acesso — a proteção real é a política por caminho.",
+        "Parameter Store é regional — caminhos não criam replicação."
+      ]
+    },
+    {
+      "id": "dva-med-055",
+      "domain": "security",
+      "text": "Em uma task do Amazon ECS, qual é a diferença entre a task role e a task execution role?",
+      "options": [
+        "A task role dá permissões ao CÓDIGO da aplicação nos contêineres (ex: acessar S3/DynamoDB); a execution role é usada pelo AGENTE do ECS para puxar a imagem do ECR e enviar logs ao CloudWatch",
+        "São a mesma role com nomes diferentes nas versões do console",
+        "A execution role é a role dos desenvolvedores que fazem deploy",
+        "A task role só existe no EC2 launch type"
+      ],
+      "correct": 0,
+      "explanation": "São responsabilidades distintas: a aplicação assume a task role para suas chamadas AWS, enquanto a infraestrutura do ECS usa a execution role nas tarefas de bootstrap (pull de imagem, segredos, logs).",
+      "hint": "Uma role para o que SEU código faz; outra para o que o ECS precisa fazer POR você (imagem, logs).",
+      "optionRationales": [
+        "São responsabilidades distintas: a aplicação assume a task role para suas chamadas AWS, enquanto a infraestrutura do ECS usa a execution role nas tarefas de bootstrap (pull de imagem, segredos, logs).",
+        "São campos separados na task definition com propósitos distintos — confundi-los gera permissões erradas.",
+        "Deploy usa as credenciais do pipeline/usuário — a execution role pertence ao runtime do ECS.",
+        "Task roles funcionam em EC2 e Fargate — são independentes do tipo de capacidade."
+      ]
+    },
+    {
+      "id": "dva-med-056",
+      "domain": "security",
+      "text": "Mensagens com dados pessoais trafegam por uma fila SQS, e a política de segurança exige criptografia em repouso com chave gerenciada pelo cliente e auditoria de uso da chave. Qual configuração atende?",
+      "options": [
+        "Habilitar SSE-KMS na fila com uma customer managed key, cujo uso fica registrado no CloudTrail",
+        "Criptografar manualmente cada mensagem com Base64",
+        "Usar fila FIFO, que é criptografada por padrão com chave do cliente",
+        "Restringir a fila por Security Group"
+      ],
+      "correct": 0,
+      "explanation": "O SQS suporta criptografia em repouso via KMS: com chave do cliente, o controle de política/rotação é seu e cada uso da chave é auditável — atendendo conformidade (o SSE-SQS usa chave do serviço, sem esse controle).",
+      "hint": "Cofre da fila com a SUA chave KMS — e o extrato de uso no CloudTrail.",
+      "optionRationales": [
+        "O SQS suporta criptografia em repouso via KMS: com chave do cliente, o controle de política/rotação é seu e cada uso da chave é auditável — atendendo conformidade (o SSE-SQS usa chave do serviço, sem esse controle).",
+        "Base64 é codificação reversível sem chave — não é criptografia.",
+        "FIFO trata de ordenação/desduplicação — o tipo de fila não define a chave de criptografia.",
+        "SQS é serviço de API pública regional — não usa Security Groups; e o requisito é criptografia, não rede."
+      ]
+    },
+    {
+      "id": "dva-med-057",
+      "domain": "security",
+      "text": "A conta A precisa permitir que uma aplicação da conta B grave objetos em um bucket S3 da conta A, mantendo a conta A como dona do controle. Qual combinação de permissões viabiliza esse acesso entre contas?",
+      "options": [
+        "Bucket policy na conta A autorizando o principal (role) da conta B, e política IAM na conta B permitindo as ações S3 no ARN do bucket",
+        "Tornar o bucket público durante as gravações",
+        "Compartilhar as access keys da conta A com a conta B",
+        "Apenas a política IAM na conta B, sem mexer no bucket"
+      ],
+      "correct": 0,
+      "explanation": "Acesso cross-account no S3 exige as duas pontas: o recurso (bucket policy) autoriza o principal externo e a identidade na outra conta possui as permissões correspondentes — sem ambas, a chamada falha.",
+      "hint": "Aperto de mãos entre contas: o dono autoriza no recurso, o visitante traz a permissão na identidade.",
+      "optionRationales": [
+        "Acesso cross-account no S3 exige as duas pontas: o recurso (bucket policy) autoriza o principal externo e a identidade na outra conta possui as permissões correspondentes — sem ambas, a chamada falha.",
+        "Acesso público abre para o mundo — jamais é o mecanismo para parceria entre duas contas.",
+        "Transferir credenciais entre contas elimina rastreabilidade e viola boas práticas — políticas e roles resolvem.",
+        "Política de identidade de OUTRA conta não basta: o recurso da conta A precisa autorizar o principal externo."
+      ]
+    },
+    {
+      "id": "dva-med-058",
+      "domain": "security",
+      "text": "Uma aplicação precisa chamar uma API da AWS diretamente via HTTPS (sem SDK). Para a requisição ser aceita, ela precisa ser assinada. Qual processo de assinatura as APIs da AWS exigem e o que ele envolve?",
+      "options": [
+        "Signature Version 4 (SigV4): derivar uma chave de assinatura das credenciais e assinar o hash canônico da requisição (método, caminho, cabeçalhos, payload) com data/hora",
+        "Enviar a Secret Access Key em texto claro num cabeçalho",
+        "Basic Auth com usuário e senha do console",
+        "Nenhuma autenticação; o HTTPS já basta"
+      ],
+      "correct": 0,
+      "explanation": "O SigV4 autentica e protege a integridade de cada chamada: a assinatura embute credencial, escopo (data/Região/serviço) e o digest da requisição — os SDKs fazem isso automaticamente, mas chamadas manuais devem implementá-lo.",
+      "hint": "Cada chamada leva um 'lacre criptográfico' derivado das credenciais — versão 4 da assinatura.",
+      "optionRationales": [
+        "O SigV4 autentica e protege a integridade de cada chamada: a assinatura embute credencial, escopo (data/Região/serviço) e o digest da requisição — os SDKs fazem isso automaticamente, mas chamadas manuais devem implementá-lo.",
+        "A secret key jamais trafega — apenas a assinatura derivada dela; expor a chave a tornaria roubável em trânsito/logs.",
+        "APIs da AWS não aceitam Basic Auth — o esquema é a assinatura criptográfica SigV4.",
+        "TLS protege o canal, mas não identifica o chamador — sem assinatura válida a API rejeita a requisição."
+      ]
+    },
+    {
+      "id": "dva-med-059",
+      "domain": "security",
+      "text": "Uma aplicação usa grupos do Cognito User Pool ('admin', 'editor', 'leitor') e a API precisa autorizar cada chamada conforme o papel do usuário. Onde a aplicação encontra os grupos do usuário após o login para aplicar esse RBAC?",
+      "options": [
+        "Na claim cognito:groups dos tokens JWT emitidos, que a API valida e usa para decidir as permissões",
+        "Em um arquivo CSV exportado manualmente do Cognito por dia",
+        "No cabeçalho User-Agent da requisição",
+        "Nas tags da função Lambda"
+      ],
+      "correct": 0,
+      "explanation": "Os grupos do usuário viajam na claim cognito:groups do ID/access token: a API (ou o authorizer) lê a claim do token validado e aplica as regras por papel — sem consultas adicionais ao pool.",
+      "hint": "O papel do usuário viaja DENTRO do crachá assinado (JWT) — procure a claim dos grupos.",
+      "optionRationales": [
+        "Os grupos do usuário viajam na claim cognito:groups do ID/access token: a API (ou o authorizer) lê a claim do token validado e aplica as regras por papel — sem consultas adicionais ao pool.",
+        "Exportações manuais ficam defasadas e quebram o fluxo por requisição — a informação já vem no token.",
+        "O User-Agent identifica o software cliente — qualquer um pode forjá-lo; papéis vêm de claims assinadas.",
+        "Tags são metadados do recurso — não carregam identidade do usuário chamador."
+      ]
+    },
+    {
+      "id": "dva-med-060",
+      "domain": "security",
+      "text": "A equipe de segurança quer que a chave KMS gerenciada pelo cliente usada pela aplicação tenha seu material criptográfico trocado periodicamente sem que os dados precisem ser recriptografados nem o código alterado. Qual recurso do KMS atende?",
+      "options": [
+        "Rotação automática da chave, que gera novo material anualmente mantendo o mesmo ARN/keyId e a capacidade de decifrar com os materiais antigos",
+        "Criar uma chave nova por mês e recriptografar tudo manualmente",
+        "Exportar a chave e guardá-la em papel a cada troca",
+        "Excluir a chave antiga imediatamente após cada troca"
+      ],
+      "correct": 0,
+      "explanation": "A rotação automática troca o material por trás do mesmo identificador: novas cifragens usam o material novo e as antigas continuam decifráveis — transparente para aplicações e dados.",
+      "hint": "Mesmo ARN, motor novo por dentro a cada ano — e o passado continua legível.",
+      "optionRationales": [
+        "A rotação automática troca o material por trás do mesmo identificador: novas cifragens usam o material novo e as antigas continuam decifráveis — transparente para aplicações e dados.",
+        "Recriptografia em massa recorrente é custosa e arriscada — a rotação nativa elimina essa operação.",
+        "Chaves KMS simétricas não são exportáveis — o material nunca sai do serviço.",
+        "Excluir o material antigo tornaria ilegível tudo que foi cifrado com ele — a rotação preserva os materiais anteriores."
+      ]
+    },
+    {
+      "id": "dva-med-061",
+      "domain": "security",
+      "text": "Durante o build no CodeBuild, o time quer impedir que segredos (tokens, senhas) apareçam nos LOGS do build, além de buscá-los de forma segura. Quais práticas combinadas atendem a esse objetivo?",
+      "options": [
+        "Injetar segredos via Secrets Manager/Parameter Store no buildspec e evitar comandos que os ecoem (set +x, sem echo), confiando no mascaramento parcial mas não exclusivamente nele",
+        "Imprimir os segredos no início do build para conferência",
+        "Gravar os segredos no Dockerfile da imagem de build",
+        "Desativar todos os logs do CodeBuild"
+      ],
+      "correct": 0,
+      "explanation": "A injeção gerenciada evita segredos no repositório, e a disciplina de não imprimi-los nos comandos impede o vazamento em logs — o mascaramento automático ajuda, mas não cobre transformações do valor.",
+      "hint": "Buscar do cofre na hora + nunca 'ecoar' o valor = log limpo sem perder o build visível.",
+      "optionRationales": [
+        "A injeção gerenciada evita segredos no repositório, e a disciplina de não imprimi-los nos comandos impede o vazamento em logs — o mascaramento automático ajuda, mas não cobre transformações do valor.",
+        "Ecoar segredos nos logs os expõe a todos com acesso de leitura — o contrário do objetivo.",
+        "Segredos em Dockerfile ficam nas camadas da imagem — vazamento persistente.",
+        "Sem logs não há diagnóstico de builds — a solução é não logar segredos, não cegar o processo."
+      ]
+    },
+    {
+      "id": "dva-med-062",
+      "domain": "security",
+      "text": "Uma aplicação frontend descobriu que estava enviando o ID token do Cognito para autorizar chamadas em uma API de terceiros, que exigia o access token. Qual é a distinção correta de uso entre esses dois tokens?",
+      "options": [
+        "O ID token destina-se ao próprio cliente, carregando claims de identidade do usuário; o access token é o que autoriza chamadas a APIs e recursos protegidos (escopos)",
+        "Os dois tokens são intercambiáveis em qualquer API",
+        "O ID token nunca expira, por isso é melhor para APIs",
+        "O access token contém a senha criptografada do usuário"
+      ],
+      "correct": 0,
+      "explanation": "Na semântica OIDC/OAuth, identidade (ID token) e autorização (access token) têm papéis distintos: APIs devem validar o access token com seus escopos — usar o ID token para autorização confunde os contratos.",
+      "hint": "Um diz 'quem eu sou' (para o app); o outro diz 'o que posso acessar' (para a API).",
+      "optionRationales": [
+        "Na semântica OIDC/OAuth, identidade (ID token) e autorização (access token) têm papéis distintos: APIs devem validar o access token com seus escopos — usar o ID token para autorização confunde os contratos.",
+        "Têm audiências e propósitos diferentes — APIs bem configuradas rejeitam o token errado.",
+        "Ambos expiram (tipicamente em 1 hora) — expiração não diferencia seus papéis.",
+        "Nenhum token carrega a senha — eles carregam claims assinadas sobre identidade e escopos."
+      ]
+    },
+    {
+      "id": "dva-med-063",
+      "domain": "security",
+      "text": "Uma função Lambda armazena valores sensíveis em variáveis de ambiente. Sobre a proteção dessas variáveis, qual afirmação está correta e qual reforço é possível?",
+      "options": [
+        "As variáveis são criptografadas em repouso pelo KMS por padrão, e é possível usar uma customer managed key e helpers de criptografia em trânsito para protegê-las também de quem tem acesso de leitura à configuração",
+        "Variáveis de ambiente são públicas para qualquer usuário da AWS",
+        "O Lambda não suporta nenhuma criptografia de variáveis",
+        "Basta nomear a variável com prefixo SECRET_ para o Lambda protegê-la"
+      ],
+      "correct": 0,
+      "explanation": "O Lambda cifra env vars em repouso com chave gerenciada (ou CMK escolhida); para valores realmente sensíveis, a criptografia adicional client-side (encryption helpers) ou o uso de Secrets Manager protege contra leitura na configuração.",
+      "hint": "Cifradas em repouso por padrão — e, para o conteúdo crítico, a chave é sua ou o valor mora no cofre.",
+      "optionRationales": [
+        "O Lambda cifra env vars em repouso com chave gerenciada (ou CMK escolhida); para valores realmente sensíveis, a criptografia adicional client-side (encryption helpers) ou o uso de Secrets Manager protege contra leitura na configuração.",
+        "Elas são visíveis apenas a quem tem permissão de leitura na configuração da função — e cifradas em repouso.",
+        "A criptografia em repouso é padrão — com opções de reforço via CMK e helpers.",
+        "O nome da variável não ativa proteção alguma — os mecanismos são KMS e cofres externos."
+      ]
+    },
+    {
+      "id": "dva-med-064",
+      "domain": "deployment",
+      "text": "Um time configura o CodeDeploy para implantar uma nova versão de função Lambda com a configuração 'Canary10Percent5Minutes'. O que acontece exatamente durante esse deployment?",
+      "options": [
+        "10% do tráfego do alias muda para a nova versão; após 5 minutos sem alarmes disparados, os 90% restantes são promovidos de uma vez",
+        "10 instâncias EC2 são atualizadas a cada 5 minutos",
+        "A nova versão roda em paralelo por 5 minutos sem receber tráfego real",
+        "O tráfego cresce 10% a cada 5 minutos até 100%"
+      ],
+      "correct": 0,
+      "explanation": "As configurações Canary do CodeDeploy para Lambda deslocam uma fração inicial do tráfego pelo período de observação e, se os alarmes do CloudWatch ficarem saudáveis, completam a promoção — caso contrário, ocorre rollback automático.",
+      "hint": "Canary = dois degraus (fatia de teste + promoção); Linear = escada de degraus iguais.",
+      "optionRationales": [
+        "As configurações Canary do CodeDeploy para Lambda deslocam uma fração inicial do tráfego pelo período de observação e, se os alarmes do CloudWatch ficarem saudáveis, completam a promoção — caso contrário, ocorre rollback automático.",
+        "Deployments de Lambda não envolvem instâncias EC2 — o deslocamento é de tráfego entre versões via alias.",
+        "O canary usa tráfego REAL de produção na fração configurada — não é um ensaio sem usuários.",
+        "Crescimento em degraus regulares é o modo LINEAR — o canary tem apenas dois passos: a fração inicial e a promoção total."
+      ]
+    },
+    {
+      "id": "dva-med-065",
+      "domain": "deployment",
+      "text": "No CodeDeploy para EC2, qual é a diferença entre os tipos de implantação in-place e blue/green?",
+      "options": [
+        "In-place atualiza a aplicação nas MESMAS instâncias (parando e religando o serviço nelas); blue/green provisiona um conjunto NOVO de instâncias e redireciona o tráfego do balanceador para ele",
+        "In-place cria novas instâncias e blue/green reutiliza as antigas",
+        "Blue/green só funciona para funções Lambda",
+        "In-place não permite hooks de ciclo de vida"
+      ],
+      "correct": 0,
+      "explanation": "No in-place, cada instância existente é atualizada no lugar (com indisponibilidade parcial); no blue/green, a frota substituta recebe a versão nova e o tráfego comuta — com rollback rápido reapontando para a frota antiga.",
+      "hint": "Reformar o prédio com os moradores dentro × construir o prédio novo ao lado e mudar todo mundo.",
+      "optionRationales": [
+        "No in-place, cada instância existente é atualizada no lugar (com indisponibilidade parcial); no blue/green, a frota substituta recebe a versão nova e o tráfego comuta — com rollback rápido reapontando para a frota antiga.",
+        "Está invertido: quem reutiliza as instâncias é o in-place; o blue/green provisiona a frota paralela.",
+        "O blue/green do CodeDeploy cobre EC2, ECS e Lambda — cada plataforma com seu mecanismo de comutação.",
+        "Os hooks do appspec (BeforeInstall, ApplicationStart etc.) funcionam em ambos os tipos."
+      ]
+    },
+    {
+      "id": "dva-med-066",
+      "domain": "deployment",
+      "text": "Em um deployment do CodeDeploy em EC2, o time quer executar testes de smoke automatizados DEPOIS que a nova versão começou a rodar, fazendo o deploy falhar (e reverter) se os testes não passarem. Em qual hook do ciclo de vida do appspec esses testes devem ser executados?",
+      "options": [
+        "ValidateService, o hook final que confirma a saúde do serviço implantado",
+        "BeforeInstall, antes de copiar os arquivos",
+        "DownloadBundle, durante o download do pacote",
+        "ApplicationStop, ao parar a versão anterior"
+      ],
+      "correct": 0,
+      "explanation": "O ValidateService roda após a aplicação iniciar e é o ponto previsto para validações funcionais: scripts com código de saída diferente de zero falham o deploy, acionando o rollback configurado.",
+      "hint": "O último portão do ciclo: 'validar o serviço' que acabou de subir — reprovou, reverteu.",
+      "optionRationales": [
+        "O ValidateService roda após a aplicação iniciar e é o ponto previsto para validações funcionais: scripts com código de saída diferente de zero falham o deploy, acionando o rollback configurado.",
+        "No BeforeInstall a versão nova nem chegou às instâncias — não há o que testar do serviço novo.",
+        "Esse evento é reservado ao agente para baixar o artefato — não executa scripts do usuário.",
+        "O ApplicationStop encerra a versão ANTIGA no início do fluxo — muito antes de existir algo novo para validar."
+      ]
+    },
+    {
+      "id": "dva-med-067",
+      "domain": "deployment",
+      "text": "Um template do CloudFormation cresceu além do limite de tamanho e mistura redes, banco e aplicação, dificultando a manutenção. Qual recurso do CloudFormation permite dividi-lo em componentes reutilizáveis orquestrados por um template pai?",
+      "options": [
+        "Nested stacks: o template pai instancia stacks filhas (AWS::CloudFormation::Stack) para cada componente",
+        "Compactar o template em ZIP para caber no limite",
+        "Converter o template inteiro para Bash",
+        "Criar todos os recursos manualmente no console"
+      ],
+      "correct": 0,
+      "explanation": "Stacks aninhadas modularizam a infraestrutura: cada parte vive em seu template (reutilizável e testável) e o pai coordena os parâmetros e as dependências entre elas.",
+      "hint": "Um template 'pai' que monta o quebra-cabeça chamando stacks 'filhas' — aninhadas.",
+      "optionRationales": [
+        "Stacks aninhadas modularizam a infraestrutura: cada parte vive em seu template (reutilizável e testável) e o pai coordena os parâmetros e as dependências entre elas.",
+        "O CloudFormation não aceita templates zipados como solução de limite — a modularização é o caminho.",
+        "Scripts imperativos perdem o estado declarativo, o rollback e o gerenciamento do ciclo de vida.",
+        "Abandonar IaC elimina reprodutibilidade e versionamento — retrocesso, não solução."
+      ]
+    },
+    {
+      "id": "dva-med-068",
+      "domain": "deployment",
+      "text": "Um único template do CloudFormation deve servir dev e produção: instâncias pequenas em dev, grandes em produção, sem duplicar o template. Quais seções do template implementam essa parametrização?",
+      "options": [
+        "Parameters para receber o ambiente na criação da stack e Mappings (com FindInMap) para resolver valores por ambiente",
+        "Outputs e Metadata",
+        "Copiar o template e editar os valores em cada cópia",
+        "Tags de ambiente nos recursos"
+      ],
+      "correct": 0,
+      "explanation": "Parameters tornam o template configurável por stack, e Mappings centralizam tabelas de valores (ex: tipo de instância por ambiente) resolvidas com Fn::FindInMap — um template, N ambientes.",
+      "hint": "Pergunte o ambiente na entrada (Parameters) e consulte a 'tabela de tamanhos' (Mappings) para cada um.",
+      "optionRationales": [
+        "Parameters tornam o template configurável por stack, e Mappings centralizam tabelas de valores (ex: tipo de instância por ambiente) resolvidas com Fn::FindInMap — um template, N ambientes.",
+        "Outputs expõem valores DEPOIS da criação e Metadata descreve o template — nenhum dos dois parametriza recursos por ambiente.",
+        "Cópias divergem com o tempo — o objetivo é exatamente evitar a duplicação.",
+        "Tags categorizam recursos criados — não alteram os valores usados na criação."
+      ]
+    },
+    {
+      "id": "dva-med-069",
+      "domain": "deployment",
+      "text": "Em um template do CloudFormation, qual é a diferença entre as funções intrínsecas !Ref e !GetAtt ao referenciar um recurso como uma instância EC2?",
+      "options": [
+        "!Ref retorna o identificador padrão do recurso (ex: o ID da instância); !GetAtt acessa atributos específicos (ex: PrivateIp, PublicDnsName)",
+        "!GetAtt cria o recurso e !Ref o exclui",
+        "São idênticas e intercambiáveis",
+        "!Ref só funciona com parâmetros, nunca com recursos"
+      ],
+      "correct": 0,
+      "explanation": "Cada tipo de recurso define o que o Ref devolve (geralmente o ID/nome) e quais atributos o GetAtt expõe — saber a dupla é essencial para conectar recursos no template.",
+      "hint": "Um devolve 'o nome de batismo' do recurso; o outro abre a ficha e lê o atributo pedido.",
+      "optionRationales": [
+        "Cada tipo de recurso define o que o Ref devolve (geralmente o ID/nome) e quais atributos o GetAtt expõe — saber a dupla é essencial para conectar recursos no template.",
+        "Nenhuma das funções cria ou exclui recursos — ambas apenas LEEM valores de recursos declarados.",
+        "Retornam coisas diferentes — usar uma no lugar da outra gera valores errados ou erro de template.",
+        "O Ref funciona com parâmetros E recursos — com recursos, devolve o identificador padrão."
+      ]
+    },
+    {
+      "id": "dva-med-070",
+      "domain": "deployment",
+      "text": "A stack de rede de uma empresa cria a VPC e as sub-redes; a stack da aplicação, mantida por outro time, precisa referenciar os IDs dessas sub-redes sem copiar valores manualmente. Qual mecanismo do CloudFormation compartilha valores entre stacks independentes?",
+      "options": [
+        "Outputs com Export na stack de rede e Fn::ImportValue na stack da aplicação",
+        "Colar os IDs das sub-redes fixos no template da aplicação",
+        "Dar nomes idênticos às duas stacks",
+        "Unificar tudo em uma única stack gigante obrigatoriamente"
+      ],
+      "correct": 0,
+      "explanation": "Exports publicam valores com nome único na Região e o ImportValue os consome em outras stacks — criando inclusive proteção: a stack exportadora não pode excluir valores em uso.",
+      "hint": "Uma stack 'exporta' o valor com etiqueta; a outra 'importa' pela etiqueta — com trava contra remoção em uso.",
+      "optionRationales": [
+        "Exports publicam valores com nome único na Região e o ImportValue os consome em outras stacks — criando inclusive proteção: a stack exportadora não pode excluir valores em uso.",
+        "Valores cravados quebram quando a rede é recriada e divergem entre ambientes — o vínculo dinâmico elimina isso.",
+        "Nomes de stack não compartilham valores — a ponte é o par Export/ImportValue.",
+        "Fundir stacks de times diferentes acopla ciclos de vida — o cross-stack reference mantém a separação com integração."
+      ]
+    },
+    {
+      "id": "dva-med-071",
+      "domain": "deployment",
+      "text": "Um template do CloudFormation precisa executar uma lógica que o CloudFormation não suporta nativamente durante o deploy (ex: registrar a stack em um sistema interno e devolver um valor ao template). Qual mecanismo estende o CloudFormation com código próprio?",
+      "options": [
+        "Custom resources baseados em Lambda, que recebem os eventos Create/Update/Delete da stack e respondem com sucesso/falha e dados",
+        "Comentários especiais no YAML interpretados em runtime",
+        "Editar os recursos à mão depois que a stack sobe",
+        "O CloudFormation não pode ser estendido"
+      ],
+      "correct": 0,
+      "explanation": "O custom resource delega a uma função Lambda a lógica fora do vocabulário nativo: o CloudFormation a invoca no ciclo de vida e aguarda a resposta assinada — integrando qualquer sistema ao deploy declarativo.",
+      "hint": "Quando o vocabulário declarativo acaba, uma Lambda 'sob medida' entra no ciclo da stack como recurso customizado.",
+      "optionRationales": [
+        "O custom resource delega a uma função Lambda a lógica fora do vocabulário nativo: o CloudFormation a invoca no ciclo de vida e aguarda a resposta assinada — integrando qualquer sistema ao deploy declarativo.",
+        "Comentários são ignorados pelo processamento — não executam lógica.",
+        "Pós-edição manual cria drift e perde a automação — a extensão correta vive dentro do ciclo da stack.",
+        "Custom resources (e o CloudFormation Registry) existem exatamente para estender o serviço."
+      ]
+    },
+    {
+      "id": "dva-med-072",
+      "domain": "deployment",
+      "text": "Todo template do AWS SAM começa com a linha 'Transform: AWS::Serverless-2016-10-31'. Qual é a função dessa declaração?",
+      "options": [
+        "Instruir o CloudFormation a expandir os tipos abreviados do SAM (ex: AWS::Serverless::Function) nos recursos CloudFormation completos correspondentes durante o processamento",
+        "Converter o template de YAML para JSON",
+        "Ativar o tier gratuito para os recursos da stack",
+        "Bloquear alterações manuais nos recursos criados"
+      ],
+      "correct": 0,
+      "explanation": "O Transform aplica a macro do SAM: cada recurso serverless enxuto vira o conjunto detalhado de recursos nativos (função, roles, permissões, API) — açúcar sintático processado pelo motor padrão.",
+      "hint": "É a 'macro tradutora': o atalho serverless entra, o CloudFormation completo sai.",
+      "optionRationales": [
+        "O Transform aplica a macro do SAM: cada recurso serverless enxuto vira o conjunto detalhado de recursos nativos (função, roles, permissões, API) — açúcar sintático processado pelo motor padrão.",
+        "O formato do arquivo independe do Transform — ambos os formatos são aceitos sempre.",
+        "Cobrança não é afetada por declarações de template — o Transform é expansão de sintaxe.",
+        "Proteções contra mudanças vêm de stack policies/permissões — não do Transform."
+      ]
+    },
+    {
+      "id": "dva-med-073",
+      "domain": "deployment",
+      "text": "No AWS SAM, em vez de escrever políticas IAM completas para cada função, o desenvolvedor usou 'Policies: - DynamoDBCrudPolicy: TableName: !Ref MinhaTabela'. Que recurso do SAM é esse e qual a vantagem?",
+      "options": [
+        "Policy templates do SAM: modelos pré-definidos de permissões com escopo mínimo, parametrizados pelo recurso-alvo",
+        "Uma política de Allow * temporária para desenvolvimento",
+        "Um recurso exclusivo do CDK não suportado no SAM",
+        "Permissões aplicadas só em ambiente local"
+      ],
+      "correct": 0,
+      "explanation": "Os policy templates encapsulam conjuntos de permissões comuns (CRUD em uma tabela, leitura de um bucket) já restritos ao recurso indicado — menos verbosidade com menor privilégio embutido.",
+      "hint": "'Receitas prontas' de permissão mínima do SAM: diga o alvo e ganhe a política CRUD calibrada.",
+      "optionRationales": [
+        "Os policy templates encapsulam conjuntos de permissões comuns (CRUD em uma tabela, leitura de um bucket) já restritos ao recurso indicado — menos verbosidade com menor privilégio embutido.",
+        "Os templates fazem o oposto de curingas amplos — entregam escopo mínimo pronto.",
+        "Policy templates são nativos do SAM — o CDK tem seus próprios métodos (grant*).",
+        "As políticas valem no deploy real — o sam local apenas simula a execução."
+      ]
+    },
+    {
+      "id": "dva-med-074",
+      "domain": "deployment",
+      "text": "Antes de aplicar mudanças de CDK em produção, o desenvolvedor quer ver localmente o CloudFormation gerado e comparar com o que está implantado, listando as diferenças. Quais comandos do CDK fazem, respectivamente, essas duas tarefas?",
+      "options": [
+        "cdk synth para sintetizar o template e cdk diff para comparar com a stack implantada",
+        "cdk build e cdk push",
+        "cdk destroy e cdk init",
+        "cdk bootstrap duas vezes seguidas"
+      ],
+      "correct": 0,
+      "explanation": "O synth materializa o template resultante do código (inspecionável e versionável), e o diff confronta o estado proposto com o implantado — a revisão de impacto antes do cdk deploy.",
+      "hint": "Primeiro 'sintetize' a planta; depois peça o 'diff' contra o prédio existente.",
+      "optionRationales": [
+        "O synth materializa o template resultante do código (inspecionável e versionável), e o diff confronta o estado proposto com o implantado — a revisão de impacto antes do cdk deploy.",
+        "Esses comandos não existem no CDK — a dupla de inspeção é synth e diff.",
+        "Destroy REMOVE stacks e init cria projetos novos — perigosamente distantes de uma revisão de mudanças.",
+        "O bootstrap prepara a conta/Região para deploys do CDK — não gera nem compara templates."
+      ]
+    },
+    {
+      "id": "dva-med-075",
+      "domain": "deployment",
+      "text": "Um ambiente do Elastic Beanstalk precisa de personalizações na criação: instalar pacotes do sistema, criar arquivos de configuração e definir opções do ambiente — tudo versionado junto com o código da aplicação. Qual mecanismo do Beanstalk suporta isso?",
+      "options": [
+        "Arquivos .ebextensions (YAML/JSON) na raiz do pacote da aplicação, com seções como packages, files, commands e option_settings",
+        "Acessar cada instância via SSH e configurar manualmente",
+        "Editar a AMI base do Beanstalk diretamente em produção",
+        "Um arquivo make.config no S3 lido pelo Beanstalk"
+      ],
+      "correct": 0,
+      "explanation": "Os .ebextensions customizam o provisionamento do ambiente de forma declarativa e versionada com o código — o mecanismo oficial de configuração avançada do Beanstalk.",
+      "hint": "A pasta de 'extensões do EB' dentro do pacote: receitas declarativas que viajam com cada versão.",
+      "optionRationales": [
+        "Os .ebextensions customizam o provisionamento do ambiente de forma declarativa e versionada com o código — o mecanismo oficial de configuração avançada do Beanstalk.",
+        "Mudanças manuais se perdem quando o Beanstalk substitui instâncias — a customização deve viajar com o pacote.",
+        "Alterar AMIs ao vivo é frágil; mesmo custom AMIs devem ser construídas por processo — e configs declarativas vão nos .ebextensions.",
+        "Não existe esse mecanismo — a convenção oficial é o diretório .ebextensions no bundle."
+      ]
+    },
+    {
+      "id": "dva-med-076",
+      "domain": "deployment",
+      "text": "No Elastic Beanstalk, o time quer a política de deployment MAIS segura para produção: as novas instâncias sobem em um Auto Scaling Group temporário, são validadas e só então substituem as antigas — nunca misturando versões em uma mesma instância e com rollback simples. Qual política corresponde a isso?",
+      "options": [
+        "Immutable: cada deploy cria instâncias novas com a nova versão e descarta as antigas somente após a validação",
+        "All at once, por ser a mais rápida",
+        "Rolling sem lote adicional",
+        "Desligar o ambiente e religar com a nova versão"
+      ],
+      "correct": 0,
+      "explanation": "O immutable garante que instâncias nunca recebem atualização in-place: a frota nova provada saudável assume e a antiga é encerrada — falhas descartam apenas as instâncias novas, sem tocar produção.",
+      "hint": "A política em que nada existente é 'reformado': só nasce frota nova — e a velha sai depois da prova.",
+      "optionRationales": [
+        "O immutable garante que instâncias nunca recebem atualização in-place: a frota nova provada saudável assume e a antiga é encerrada — falhas descartam apenas as instâncias novas, sem tocar produção.",
+        "Velocidade máxima com indisponibilidade total e rollback fazendo novo deploy — o perfil oposto ao pedido.",
+        "O rolling atualiza instâncias EXISTENTES em lotes, misturando versões e reduzindo capacidade — menos seguro que o immutable.",
+        "Downtime total deliberado não é política de deployment — é interrupção."
+      ]
+    },
+    {
+      "id": "dva-med-077",
+      "domain": "deployment",
+      "text": "Um serviço do Amazon ECS precisa de implantações blue/green com validação antes da troca: o conjunto novo de tasks sobe atrás de um target group de teste, passa por verificação e então o listener de produção comuta para ele. Qual integração habilita esse fluxo no ECS?",
+      "options": [
+        "ECS com CodeDeploy (deployment controller CODE_DEPLOY), usando dois target groups e o deslocamento de tráfego gerenciado",
+        "Atualizar a task definition e aguardar o rolling update padrão",
+        "Criar manualmente um segundo cluster e trocar o DNS",
+        "Usar o S3 para versionar os contêineres"
+      ],
+      "correct": 0,
+      "explanation": "O controlador de deployment CodeDeploy no ECS orquestra o blue/green: provisiona o task set verde, permite testes pelo listener de validação e comuta o tráfego com rollback automático por alarmes.",
+      "hint": "ECS entrega as tasks; o 'implantador' assume a regência: dois target groups, validação e comutação.",
+      "optionRationales": [
+        "O controlador de deployment CodeDeploy no ECS orquestra o blue/green: provisiona o task set verde, permite testes pelo listener de validação e comuta o tráfego com rollback automático por alarmes.",
+        "O rolling update do ECS substitui tasks gradualmente no MESMO target group — sem ambiente paralelo nem validação antes da comutação.",
+        "Orquestração manual de clusters e DNS é lenta e propensa a erro — a integração nativa automatiza tudo.",
+        "Imagens versionam no ECR — e versionamento de artefato não implementa comutação de tráfego."
+      ]
+    },
+    {
+      "id": "dva-med-078",
+      "domain": "deployment",
+      "text": "Durante o rolling update padrão de um serviço ECS com 10 tasks, o time quer garantir que nunca haja menos de 8 tasks atendendo e nunca mais de 15 em execução simultânea (custo). Quais parâmetros do deployment configuration controlam esses limites?",
+      "options": [
+        "minimumHealthyPercent (80%) e maximumPercent (150%)",
+        "desiredCount e launchType",
+        "cpu e memory da task definition",
+        "healthCheckGracePeriodSeconds isolado"
+      ],
+      "correct": 0,
+      "explanation": "Os dois percentuais regem o rolling do ECS: o mínimo saudável impede degradar abaixo do piso (8 de 10) e o máximo limita a frota temporária inflada durante a substituição (15 de 10).",
+      "hint": "Dois percentuais sobre o desired: o 'piso de saúde' e o 'teto de inchaço' durante a troca.",
+      "optionRationales": [
+        "Os dois percentuais regem o rolling do ECS: o mínimo saudável impede degradar abaixo do piso (8 de 10) e o máximo limita a frota temporária inflada durante a substituição (15 de 10).",
+        "O desiredCount define o alvo permanente e o launchType escolhe a capacidade (EC2/Fargate) — nenhum dos dois controla os limites DURANTE o deploy.",
+        "Recursos por task dimensionam contêineres — não a quantidade de tasks no rolamento.",
+        "O grace period dá carência aos health checks de tasks novas — não limita mínimos e máximos da frota."
+      ]
+    },
+    {
+      "id": "dva-med-079",
+      "domain": "deployment",
+      "text": "Builds do CodeBuild estão lentos porque cada execução baixa novamente todas as dependências (node_modules) e reconstrói camadas Docker do zero. Qual recurso do CodeBuild reduz esse tempo?",
+      "options": [
+        "Cache do CodeBuild: cache de dependências no S3 (paths do buildspec) ou cache local (incluindo camadas Docker) entre builds",
+        "Aumentar o timeout do build",
+        "Rodar os builds com menos memória para forçar eficiência",
+        "Remover os testes do build"
+      ],
+      "correct": 0,
+      "explanation": "O caching declarado no buildspec/projeto reaproveita dependências e camadas entre execuções — cortando minutos de download e rebuild a cada build.",
+      "hint": "Não baixe o mundo a cada build: guarde as dependências e as camadas 'no armário' entre execuções.",
+      "optionRationales": [
+        "O caching declarado no buildspec/projeto reaproveita dependências e camadas entre execuções — cortando minutos de download e rebuild a cada build.",
+        "Mais tempo-limite tolera a lentidão — não a elimina.",
+        "Menos recursos torna o build MAIS lento — eficiência não nasce de escassez.",
+        "Sacrificar a verificação para ganhar minutos troca qualidade por velocidade — o cache ganha o tempo sem custo de qualidade."
+      ]
+    },
+    {
+      "id": "dva-med-080",
+      "domain": "deployment",
+      "text": "Um time quer ativar uma nova funcionalidade gradualmente em produção SEM novo deploy: ligar a feature para 10% dos usuários, monitorar e expandir — com validação da configuração e reversão automática se alarmes dispararem. Qual serviço da AWS é especializado nesse gerenciamento de configuração e feature flags?",
+      "options": [
+        "AWS AppConfig, com deployment strategies graduais, validators e rollback automático por alarmes do CloudWatch",
+        "Editar variáveis de ambiente da produção manualmente",
+        "Manter a flag em uma constante no código",
+        "AWS Config com regras de conformidade"
+      ],
+      "correct": 0,
+      "explanation": "O AppConfig implanta configurações e flags de forma gradual e validada (JSON Schema/Lambda validators), revertendo sozinho se os alarmes monitorados dispararem — separando release de configuração de deploy de código.",
+      "hint": "O 'distribuidor de configuração' que solta a flag aos poucos, valida o conteúdo e puxa o freio sozinho.",
+      "optionRationales": [
+        "O AppConfig implanta configurações e flags de forma gradual e validada (JSON Schema/Lambda validators), revertendo sozinho se os alarmes monitorados dispararem — separando release de configuração de deploy de código.",
+        "Mudança manual é instantânea para 100% dos usuários, sem validação nem reversão automática — o oposto do gradual controlado.",
+        "Flag no código exige novo deploy para cada mudança — justamente a dependência a eliminar.",
+        "Apesar do nome parecido, o AWS Config audita configurações de RECURSOS — não distribui configuração de aplicação."
+      ]
+    },
+    {
+      "id": "dva-med-081",
+      "domain": "deployment",
+      "text": "Uma stack do CloudFormation contém um banco RDS de produção. O time quer impedir que updates acidentais da stack substituam ou excluam esse recurso específico, exigindo uma liberação explícita para mudanças nele. Qual recurso do CloudFormation aplica essa proteção?",
+      "options": [
+        "Stack policy negando Update:Replace e Update:Delete para o recurso lógico do banco",
+        "Comentário de aviso no template",
+        "Renomear o recurso para PROTEGIDO_NaoExcluir",
+        "Remover o banco do template e gerenciá-lo à mão"
+      ],
+      "correct": 0,
+      "explanation": "A stack policy é o documento que rege o que updates podem tocar: protegendo o recurso crítico, qualquer operação destrutiva nele falha até que a política seja temporariamente liberada — guard-rail contra acidentes.",
+      "hint": "A 'política da stack' diz o que o update pode tocar — e o banco de produção fica atrás do vidro.",
+      "optionRationales": [
+        "A stack policy é o documento que rege o que updates podem tocar: protegendo o recurso crítico, qualquer operação destrutiva nele falha até que a política seja temporariamente liberada — guard-rail contra acidentes.",
+        "Comentários não são aplicados pelo motor — proteção exige política, não recado.",
+        "Nomes não influenciam o comportamento dos updates — a trava é a stack policy (e DeletionPolicy para exclusões de stack).",
+        "Tirar o recurso do IaC cria gestão paralela e drift — a proteção correta mantém o recurso governado COM trava."
+      ]
+    },
+    {
+      "id": "dva-med-082",
+      "domain": "deployment",
+      "text": "Além da stack policy, o time quer garantir que, se a stack do CloudFormation for EXCLUÍDA, o banco de dados e seus dados sobrevivam à exclusão. Qual atributo de recurso do CloudFormation implementa essa salvaguarda?",
+      "options": [
+        "DeletionPolicy: Retain (ou Snapshot) no recurso do banco, preservando-o (ou um snapshot final) quando a stack é apagada",
+        "UpdateReplacePolicy: Delete",
+        "Condition: Never no recurso",
+        "DependsOn apontando para si mesmo"
+      ],
+      "correct": 0,
+      "explanation": "O DeletionPolicy controla o destino do recurso na exclusão da stack: Retain o mantém vivo fora do gerenciamento e Snapshot captura a cópia final — proteção essencial para recursos com estado.",
+      "hint": "O atributo que decide o testamento do recurso quando a stack morre: reter, fotografar ou apagar.",
+      "optionRationales": [
+        "O DeletionPolicy controla o destino do recurso na exclusão da stack: Retain o mantém vivo fora do gerenciamento e Snapshot captura a cópia final — proteção essencial para recursos com estado.",
+        "Esse atributo trata do recurso ANTIGO em substituições durante updates — e com valor Delete faria o oposto da preservação.",
+        "Conditions decidem se o recurso é CRIADO — não o que acontece com ele na exclusão da stack.",
+        "DependsOn ordena criação entre recursos — auto-referência é erro de template, não proteção."
+      ]
+    },
+    {
+      "id": "dva-med-083",
+      "domain": "deployment",
+      "text": "Uma empresa quer hospedar seus pacotes privados (npm e Python) em um repositório gerenciado na AWS, integrado aos builds do CodeBuild e com proxy para os repositórios públicos (npmjs, PyPI). Qual serviço fornece esse repositório de artefatos?",
+      "options": [
+        "AWS CodeArtifact, com domínios e repositórios que servem pacotes privados e fazem cache de upstreams públicos",
+        "Amazon ECR",
+        "Bucket S3 com os tarballs dos pacotes",
+        "AWS CodeDeploy"
+      ],
+      "correct": 0,
+      "explanation": "O CodeArtifact é o gerenciador de artefatos da AWS: publica pacotes internos, faz proxy/cache dos registries públicos e controla o acesso via IAM — plugando npm/pip/maven dos builds e devs.",
+      "hint": "O 'registry corporativo' da AWS: seus pacotes privados + espelho dos públicos, sob IAM.",
+      "optionRationales": [
+        "O CodeArtifact é o gerenciador de artefatos da AWS: publica pacotes internos, faz proxy/cache dos registries públicos e controla o acesso via IAM — plugando npm/pip/maven dos builds e devs.",
+        "O ECR armazena IMAGENS de contêiner — pacotes de linguagem (npm/PyPI) pertencem ao CodeArtifact.",
+        "Bucket não fala os protocolos de npm/pip nem resolve dependências e versões — perde toda a semântica de registry.",
+        "O CodeDeploy implanta aplicações em destinos — não hospeda pacotes de dependências."
+      ]
+    },
+    {
+      "id": "dva-med-084",
+      "domain": "deployment",
+      "text": "Após migrar para trunk-based development, o time quer que cada pull request execute automaticamente uma suíte de testes em um ambiente isolado ANTES do merge, reportando o resultado no próprio PR. Como o CodeBuild se integra a esse fluxo com repositórios GitHub?",
+      "options": [
+        "Webhooks do CodeBuild para eventos de pull request, disparando builds de validação que reportam o status de volta ao PR",
+        "Rodar os testes apenas após o merge em produção",
+        "Pedir que cada desenvolvedor rode os testes localmente e prometa que passou",
+        "CodeBuild não integra com repositórios externos"
+      ],
+      "correct": 0,
+      "explanation": "Projetos CodeBuild conectados ao GitHub podem reagir a eventos de PR via webhook: cada PR roda o buildspec de testes em ambiente limpo e o status (sucesso/falha) aparece no check do PR, bloqueando merges quebrados.",
+      "hint": "O 'fiscal de PR': webhook dispara o build de teste e carimba o resultado no próprio pull request.",
+      "optionRationales": [
+        "Projetos CodeBuild conectados ao GitHub podem reagir a eventos de PR via webhook: cada PR roda o buildspec de testes em ambiente limpo e o status (sucesso/falha) aparece no check do PR, bloqueando merges quebrados.",
+        "Validar depois do merge inverte o propósito: o defeito já entrou na trunk — o portão é ANTES.",
+        "Verificação por confiança não escala nem audita — o check automatizado é o contrato.",
+        "A integração com GitHub/Bitbucket via webhooks e conexões é suportada nativamente."
+      ]
+    },
+    {
+      "id": "dva-med-085",
+      "domain": "troubleshooting-optimization",
+      "text": "Um desenvolvedor instrumentou a aplicação com o AWS X-Ray e quer FILTRAR traces por valores de negócio (ex: encontrar todos os traces do cliente 'cliente-123' ou de pedidos acima de R$ 500). Qual recurso do X-Ray torna esses valores pesquisáveis nas filter expressions?",
+      "options": [
+        "Annotations: pares chave-valor indexados, pesquisáveis nas filter expressions (diferentemente de metadata, que não é indexado)",
+        "Metadata, que é o campo indexado para buscas",
+        "Aumentar a taxa de amostragem para 100%",
+        "Colocar os valores no nome do segmento"
+      ],
+      "correct": 0,
+      "explanation": "Annotations são indexadas para busca e agrupamento de traces; metadata guarda dados adicionais ricos porém não pesquisáveis — gravar IDs de negócio como annotation é a prática para investigações dirigidas.",
+      "hint": "No X-Ray, um par chave-valor entra no índice de busca; o outro é só 'anexo' — qual é qual?",
+      "optionRationales": [
+        "Annotations são indexadas para busca e agrupamento de traces; metadata guarda dados adicionais ricos porém não pesquisáveis — gravar IDs de negócio como annotation é a prática para investigações dirigidas.",
+        "É o inverso: metadata NÃO é indexado — serve para contexto adicional; quem alimenta as buscas são as annotations.",
+        "Amostrar tudo multiplica custo e volume, mas não torna valores de negócio pesquisáveis — isso exige annotations.",
+        "Nomes de segmento identificam o serviço — poluí-los com dados dinâmicos quebra o service map e não cria índice de busca."
+      ]
+    },
+    {
+      "id": "dva-med-086",
+      "domain": "troubleshooting-optimization",
+      "text": "O custo do X-Ray cresceu com o volume de tráfego, e o time quer continuar rastreando 100% das requisições de um endpoint crítico de pagamentos, mas amostrar apenas uma fração pequena das demais rotas. Qual recurso do X-Ray implementa esse controle?",
+      "options": [
+        "Sampling rules customizadas, definindo reservoir/taxas por serviço, rota e método",
+        "Desligar o X-Ray nos horários de pico",
+        "Filtrar os traces depois de coletados e pagar por todos",
+        "Gravar os traces manualmente em arquivos de log"
+      ],
+      "correct": 0,
+      "explanation": "As regras de amostragem permitem granularidade por atributos da requisição: 100% no endpoint crítico e percentual reduzido no restante — equilibrando visibilidade e custo, com atualização central sem redeploy.",
+      "hint": "As 'regras de amostragem' escolhem quem entra na pesquisa: o VIP sempre, a multidão por amostra.",
+      "optionRationales": [
+        "As regras de amostragem permitem granularidade por atributos da requisição: 100% no endpoint crítico e percentual reduzido no restante — equilibrando visibilidade e custo, com atualização central sem redeploy.",
+        "Cegar a observabilidade exatamente quando os problemas acontecem inverte o propósito do tracing.",
+        "O custo nasce na coleta — filtrar depois não economiza; a amostragem decide ANTES.",
+        "Logs caseiros perdem o service map, a correlação e as ferramentas do X-Ray — não substituem amostragem."
+      ]
+    },
+    {
+      "id": "dva-med-087",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma aplicação grava logs estruturados no CloudWatch Logs e o time quer um ALARME quando a palavra 'ERROR' aparecer mais de 50 vezes em 5 minutos em um log group. Qual mecanismo converte ocorrências de log em uma métrica alarmável?",
+      "options": [
+        "Metric filter no log group, extraindo as ocorrências do padrão para uma métrica customizada usada pelo alarme",
+        "Alarme diretamente sobre o texto do log, sem métrica",
+        "Exportar os logs para o S3 e contar com Athena de hora em hora",
+        "Aumentar a retenção do log group"
+      ],
+      "correct": 0,
+      "explanation": "O metric filter varre os eventos de log em tempo real e publica a contagem (ou valor extraído) como métrica do CloudWatch — sobre a qual o alarme com limiar e período é configurado.",
+      "hint": "Texto não dispara alarme — primeiro o 'filtro' transforma o padrão em métrica contável.",
+      "optionRationales": [
+        "O metric filter varre os eventos de log em tempo real e publica a contagem (ou valor extraído) como métrica do CloudWatch — sobre a qual o alarme com limiar e período é configurado.",
+        "Alarmes do CloudWatch operam sobre MÉTRICAS — o filtro é a ponte que transforma texto em número.",
+        "Análise em lote serve a investigações — para alertas em minutos, o filtro em tempo real é o caminho.",
+        "Retenção controla por quanto tempo os logs ficam guardados — não gera métricas nem alertas."
+      ]
+    },
+    {
+      "id": "dva-med-088",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma API REST no API Gateway retorna erros intermitentes e o time precisa de visibilidade: (1) detalhes de como o gateway processa cada requisição (parâmetros, transformações, motivo de erros) para depurar; e (2) um registro padronizado de cada chamada (IP, latência, status) para análise. Quais logs do API Gateway correspondem a cada necessidade?",
+      "options": [
+        "Execution logs para a depuração do processamento interno e access logs para o registro padronizado por requisição",
+        "Access logs para depurar transformações e execution logs para o registro resumido",
+        "O API Gateway não gera logs; apenas o backend loga",
+        "VPC Flow Logs cobrem as duas necessidades"
+      ],
+      "correct": 0,
+      "explanation": "Os execution logs detalham o pipeline interno do gateway (úteis e verbosos, para debug temporário); os access logs registram uma linha configurável por chamada, ideais para análise contínua e métricas de uso.",
+      "hint": "Um log é o 'raio-X do processamento' (verboso, para depurar); o outro é o 'livro de visitas' (uma linha por chamada).",
+      "optionRationales": [
+        "Os execution logs detalham o pipeline interno do gateway (úteis e verbosos, para debug temporário); os access logs registram uma linha configurável por chamada, ideais para análise contínua e métricas de uso.",
+        "Está invertido: o detalhe interno do processamento aparece nos execution logs; o resumo por requisição é o access log.",
+        "O gateway tem os dois tipos de log próprios, habilitáveis por stage — independentes do backend.",
+        "Flow Logs registram fluxos de REDE na VPC — não o processamento HTTP do API Gateway."
+      ]
+    },
+    {
+      "id": "dva-med-089",
+      "domain": "troubleshooting-optimization",
+      "text": "Usuários relatam erros esporádicos em uma API serverless e a métrica 'Throttles' da função Lambda mostra valores acima de zero nos picos. O que essa métrica indica e qual é a primeira linha de investigação?",
+      "options": [
+        "Invocações rejeitadas por falta de concorrência disponível; investigar o consumo de concorrência da conta/função e avaliar reserved concurrency ou aumento de cota",
+        "Erros de sintaxe no código da função",
+        "Lentidão na rede da Região",
+        "Expiração dos logs da função"
+      ],
+      "correct": 0,
+      "explanation": "Throttles contam rejeições por limite de execuções concorrentes: o diagnóstico passa por ConcurrentExecutions versus as cotas, e a correção combina reservas para funções críticas, aumento de limite ou suavização do tráfego.",
+      "hint": "A métrica conta as portas fechadas na cara das invocações — o porteiro é o limite de concorrência.",
+      "optionRationales": [
+        "Throttles contam rejeições por limite de execuções concorrentes: o diagnóstico passa por ConcurrentExecutions versus as cotas, e a correção combina reservas para funções críticas, aumento de limite ou suavização do tráfego.",
+        "Falhas de código aparecem em Errors e nos logs — Throttles é rejeição ANTES de executar.",
+        "Problemas de rede elevam latência (Duration) — não contam como throttling.",
+        "Retenção de logs não interage com a execução — métrica de throttle mede limite de concorrência."
+      ]
+    },
+    {
+      "id": "dva-med-090",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma tabela do DynamoDB em modo provisionado mostra picos na métrica ThrottledRequests, mas a ConsumedCapacity agregada está bem abaixo do provisionado. Qual hipótese o desenvolvedor deve investigar primeiro?",
+      "options": [
+        "Concentração de acesso em poucas chaves (hot partition): o limite é por partição, então uma chave quente sofre throttle mesmo com capacidade agregada sobrando",
+        "A tabela está corrompida e precisa ser restaurada",
+        "O IAM está bloqueando as requisições",
+        "Os índices GSI expiraram"
+      ],
+      "correct": 0,
+      "explanation": "Throttling com capacidade total livre é a assinatura clássica da partição quente — a investigação passa por CloudWatch Contributor Insights e pelo redesenho da chave de partição.",
+      "hint": "Capacidade sobrando + throttle acontecendo = alguém está batendo sempre na mesma 'gaveta'.",
+      "optionRationales": [
+        "Throttling com capacidade total livre é a assinatura clássica da partição quente — a investigação passa por CloudWatch Contributor Insights e pelo redesenho da chave de partição.",
+        "Throttling é controle de tráfego, não corrupção — restauração não muda a distribuição de acesso.",
+        "Bloqueio de permissão gera AccessDenied — não conta na métrica de throttling.",
+        "GSIs não expiram — e o sintoma descrito aponta para distribuição de chave, não para índices."
+      ]
+    },
+    {
+      "id": "dva-med-091",
+      "domain": "troubleshooting-optimization",
+      "text": "Um time adicionou o DAX na frente do DynamoDB para acelerar leituras, mas percebeu que parte das chamadas continua indo direto ao banco sem ganho de cache. A análise mostrou que essas chamadas usam ConsistentRead=true. Qual é a explicação?",
+      "options": [
+        "O DAX atende do cache apenas leituras eventualmente consistentes; leituras fortemente consistentes são repassadas diretamente ao DynamoDB",
+        "O DAX precisa ser reiniciado diariamente para cachear tudo",
+        "O cluster DAX está em outra conta",
+        "O DAX só cacheia tabelas com menos de 1 GB"
+      ],
+      "correct": 0,
+      "explanation": "Por design, o DAX não serve strongly consistent reads do cache (passa-as ao banco) — aplicações que exigem consistência forte não se beneficiam do DAX nessas chamadas.",
+      "hint": "O acelerador serve a leitura 'relaxada' do cache; quem exige o dado certificado na hora fura a fila do cache.",
+      "optionRationales": [
+        "Por design, o DAX não serve strongly consistent reads do cache (passa-as ao banco) — aplicações que exigem consistência forte não se beneficiam do DAX nessas chamadas.",
+        "Não há reinício diário — o comportamento observado é a semântica documentada de consistência.",
+        "Configuração de conta geraria erros de conexão/permissão — não bypass seletivo por tipo de leitura.",
+        "Não existe esse limite — o critério do bypass é o modo de consistência da leitura."
+      ]
+    },
+    {
+      "id": "dva-med-092",
+      "domain": "troubleshooting-optimization",
+      "text": "Os consumidores de uma fila SQS não estão acompanhando a produção de mensagens, e o atraso de processamento cresce. Qual métrica do SQS é o melhor indicador desse backlog e como ela pode guiar a correção automática?",
+      "options": [
+        "ApproximateNumberOfMessagesVisible: o tamanho da fila pode alimentar um alarme/target tracking que escala os consumidores (ex: ASG ou concorrência) conforme o backlog cresce",
+        "NumberOfMessagesDeleted, que mostra o atraso futuro",
+        "A cor do ícone da fila no console",
+        "O tamanho médio do corpo das mensagens"
+      ],
+      "correct": 0,
+      "explanation": "A profundidade da fila é o termômetro do desequilíbrio produção×consumo — usá-la (ou o backlog por instância) como métrica de scaling dos consumidores fecha o ciclo de correção automática.",
+      "hint": "Conte quantas mensagens estão 'na sala de espera' — e use esse número para contratar mais atendentes sozinho.",
+      "optionRationales": [
+        "A profundidade da fila é o termômetro do desequilíbrio produção×consumo — usá-la (ou o backlog por instância) como métrica de scaling dos consumidores fecha o ciclo de correção automática.",
+        "Exclusões medem o que JÁ foi processado — o backlog acumulado aparece nas mensagens visíveis aguardando.",
+        "O console não codifica backlog em cores — monitoração séria usa métricas e alarmes.",
+        "Payload médio informa o peso unitário — não o acúmulo de mensagens não processadas."
+      ]
+    },
+    {
+      "id": "dva-med-093",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma função Lambda consome um stream do Kinesis e o dashboard mostra a métrica IteratorAge crescendo continuamente. O que isso significa e quais são as alavancas típicas de correção?",
+      "options": [
+        "O processamento está atrasado em relação à chegada dos registros (risco de expirar dados da retenção); corrigir acelerando a função, aumentando o paralelismo (parallelization factor/shards) ou o batch size",
+        "Os registros estão chegando do futuro com timestamps errados",
+        "O stream está vazio há muito tempo",
+        "A função está com permissões excessivas"
+      ],
+      "correct": 0,
+      "explanation": "IteratorAge mede a idade do último registro processado: crescimento constante indica consumo mais lento que a produção — as correções atacam o throughput do consumidor antes que registros expirem da janela de retenção.",
+      "hint": "É o 'atraso do leitor' em relação à esteira: se só cresce, a leitura precisa de mais velocidade ou mais leitores.",
+      "optionRationales": [
+        "IteratorAge mede a idade do último registro processado: crescimento constante indica consumo mais lento que a produção — as correções atacam o throughput do consumidor antes que registros expirem da janela de retenção.",
+        "A métrica mede o atraso do CONSUMO — não a qualidade dos timestamps dos produtores.",
+        "Stream ocioso zera o atraso — IteratorAge alto exige tráfego ENTRANDO mais rápido do que sai.",
+        "Permissões largas são questão de segurança — não afetam a velocidade de consumo do stream."
+      ]
+    },
+    {
+      "id": "dva-med-094",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma rota do API Gateway chama um processamento que leva ~50 segundos, e TODAS as chamadas retornam erro 504 do gateway. Qual limite explica o erro e qual padrão de arquitetura o contorna?",
+      "options": [
+        "O timeout de integração do API Gateway (~29 segundos no padrão) é excedido; a correção é o padrão assíncrono: a API enfileira/inicia o trabalho e retorna 202 com um ID para o cliente consultar o status",
+        "Falta de memória no API Gateway, que deve ser redimensionado",
+        "Erro de CORS nas chamadas longas",
+        "O certificado TLS expirou"
+      ],
+      "correct": 0,
+      "explanation": "O gateway não espera indefinidamente o backend: trabalhos longos devem ser desacoplados (SQS/Step Functions) com resposta imediata e polling/webhook de conclusão — eliminando o 504 estrutural.",
+      "hint": "O gateway desliga a chamada perto dos 29s — trabalho demorado recebe um 'protocolo de atendimento' e roda nos bastidores.",
+      "optionRationales": [
+        "O gateway não espera indefinidamente o backend: trabalhos longos devem ser desacoplados (SQS/Step Functions) com resposta imediata e polling/webhook de conclusão — eliminando o 504 estrutural.",
+        "O gateway é gerenciado sem dimensionamento de memória pelo cliente — o erro nasce do tempo, não de recursos.",
+        "CORS bloqueia no navegador com erros próprios — o 504 indica timeout upstream.",
+        "Certificado vencido falha o handshake imediatamente — não após 29 segundos de espera."
+      ]
+    },
+    {
+      "id": "dva-med-095",
+      "domain": "troubleshooting-optimization",
+      "text": "O alarme de latência de uma API usa a MÉDIA do tempo de resposta e nunca dispara, mas usuários reclamam de lentidão esporádica severa. Qual mudança no monitoramento captura melhor essa experiência real?",
+      "options": [
+        "Alarmar sobre percentis altos (p95/p99) da latência, que expõem a cauda lenta diluída pela média",
+        "Trocar a média pela latência mínima",
+        "Aumentar o período do alarme para 24 horas",
+        "Remover o alarme, já que a média está saudável"
+      ],
+      "correct": 0,
+      "explanation": "A média esconde extremos: com 1% das chamadas levando 10s, o p99 grita enquanto a média dorme — percentis altos refletem a experiência dos usuários mais afetados e são o padrão para SLOs.",
+      "hint": "A média esconde os 1% azarados; os 'p-noventa-e-tantos' os colocam no holofote.",
+      "optionRationales": [
+        "A média esconde extremos: com 1% das chamadas levando 10s, o p99 grita enquanto a média dorme — percentis altos refletem a experiência dos usuários mais afetados e são o padrão para SLOs.",
+        "O mínimo mostra a MELHOR chamada — ainda mais cego para a cauda lenta que a média.",
+        "Períodos longos diluem ainda mais os picos — o problema é a estatística, não a janela.",
+        "A reclamação dos usuários é o sinal real — o monitoramento é que precisa enxergá-la."
+      ]
+    },
+    {
+      "id": "dva-med-096",
+      "domain": "troubleshooting-optimization",
+      "text": "Em picos de tráfego, funções Lambda que acessam um RDS PostgreSQL começam a falhar com 'FATAL: too many connections'. Cada execução concorrente abre sua própria conexão. Qual serviço resolve estruturalmente esse esgotamento?",
+      "options": [
+        "Amazon RDS Proxy entre as funções e o banco, multiplexando milhares de execuções em um pool de conexões controlado",
+        "Aumentar max_connections indefinidamente no parameter group",
+        "Criar uma read replica para receber as escritas excedentes",
+        "Reduzir o timeout das funções para liberar conexões"
+      ],
+      "correct": 0,
+      "explanation": "O RDS Proxy compartilha e reutiliza conexões, absorvendo a natureza explosiva do serverless sem estourar o max_connections — além de acelerar failovers e integrar com Secrets Manager.",
+      "hint": "Entre o enxame de funções e o banco, falta o 'porteiro de conexões' que recicla em vez de abrir novas.",
+      "optionRationales": [
+        "O RDS Proxy compartilha e reutiliza conexões, absorvendo a natureza explosiva do serverless sem estourar o max_connections — além de acelerar failovers e integrar com Secrets Manager.",
+        "Cada conexão consome memória do banco — elevar o teto sem controle apenas move o ponto de colapso.",
+        "Réplicas não aceitam escritas — não absorvem o volume transacional das funções.",
+        "Timeout menor mata execuções legítimas — o problema é a ausência de pooling, não a duração."
+      ]
+    },
+    {
+      "id": "dva-med-097",
+      "domain": "troubleshooting-optimization",
+      "text": "Buscando reduzir custos de computação do Lambda sem perder desempenho, um time avalia migrar funções compatíveis para a arquitetura arm64 (Graviton). Qual é o ganho esperado e qual cuidado é necessário?",
+      "options": [
+        "Custo por milissegundo cerca de 20% menor com desempenho igual ou melhor; é preciso validar que dependências com binários nativos sejam compatíveis com ARM",
+        "O arm64 é gratuito para funções de até 1 GB",
+        "A migração exige reescrever o código em Rust",
+        "Funções arm64 não geram logs no CloudWatch"
+      ],
+      "correct": 0,
+      "explanation": "Funções em Graviton2 custam ~20% menos por duração com performance competitiva; código puro (Python/Node/Java) costuma migrar direto, mas bibliotecas com binários compilados exigem build para arm64.",
+      "hint": "O chip da casa cobra ~20% menos por milissegundo — só confira se seus binários nativos falam ARM.",
+      "optionRationales": [
+        "Funções em Graviton2 custam ~20% menos por duração com performance competitiva; código puro (Python/Node/Java) costuma migrar direto, mas bibliotecas com binários compilados exigem build para arm64.",
+        "Não há gratuidade por arquitetura — o ganho é o preço por GB-segundo reduzido.",
+        "Os runtimes suportados continuam os mesmos — a arquitetura muda por configuração, não a linguagem.",
+        "Logging funciona identicamente nas duas arquiteturas."
+      ]
+    },
+    {
+      "id": "dva-med-098",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma aplicação de alto volume precisa publicar métricas customizadas de negócio em cada requisição, mas as chamadas síncronas PutMetricData adicionam latência e custo de API. Qual alternativa o CloudWatch oferece para emitir métricas em escala sem chamadas extras?",
+      "options": [
+        "Embedded Metric Format (EMF): gravar logs estruturados no formato EMF e o CloudWatch extrai as métricas automaticamente de forma assíncrona",
+        "Chamar PutMetricData duas vezes para garantir",
+        "Gravar as métricas em uma planilha no S3",
+        "Métricas customizadas não funcionam em alto volume"
+      ],
+      "correct": 0,
+      "explanation": "Com EMF, a métrica viaja dentro do log já emitido (stdout/CloudWatch Logs): sem chamadas síncronas adicionais, com alta cardinalidade disponível e os eventos brutos preservados para análise.",
+      "hint": "A métrica pega carona no LOG já escrito — o CloudWatch a 'pesca' do formato embutido, sem chamada extra.",
+      "optionRationales": [
+        "Com EMF, a métrica viaja dentro do log já emitido (stdout/CloudWatch Logs): sem chamadas síncronas adicionais, com alta cardinalidade disponível e os eventos brutos preservados para análise.",
+        "Duplicar chamadas dobra custo e latência — o oposto da otimização buscada.",
+        "Arquivos em bucket não viram métricas alarmáveis do CloudWatch — fora do ecossistema de monitoramento.",
+        "Funcionam — o EMF existe exatamente para o caminho de alto volume e baixo overhead."
+      ]
+    },
+    {
+      "id": "dva-med-099",
+      "domain": "troubleshooting-optimization",
+      "text": "Tasks de um serviço ECS estão sendo encerradas repetidamente logo após subir, e o serviço nunca estabiliza. Quais são os primeiros lugares para investigar a causa das interrupções?",
+      "options": [
+        "A 'stopped reason' das tasks encerradas (console/describe-tasks), os logs dos contêineres no CloudWatch e o histórico de eventos do serviço (falha de health check, falta de memória, erro de pull de imagem)",
+        "Apagar o cluster e recriar do zero imediatamente",
+        "A fatura da conta, pois tasks param por falta de pagamento",
+        "O número de tags da task definition"
+      ],
+      "correct": 0,
+      "explanation": "O ECS registra o motivo de parada de cada task (OutOfMemory, falha de ELB health check, CannotPullContainer) e os eventos do serviço narram o ciclo — combinados aos logs do contêiner, fecham o diagnóstico.",
+      "hint": "Cada task encerrada deixa um 'atestado de óbito' (stopped reason) — leia-o junto dos logs e eventos do serviço.",
+      "optionRationales": [
+        "O ECS registra o motivo de parada de cada task (OutOfMemory, falha de ELB health check, CannotPullContainer) e os eventos do serviço narram o ciclo — combinados aos logs do contêiner, fecham o diagnóstico.",
+        "Recriar sem diagnóstico repete o problema — a causa está registrada nos motivos de parada e logs.",
+        "Suspensão por cobrança afetaria a conta inteira com avisos — não tasks individuais em loop.",
+        "Tags são metadados — não influenciam o ciclo de vida das tasks."
+      ]
+    },
+    {
+      "id": "dva-med-100",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma função Lambda crítica precisa de visibilidade além das métricas padrão: uso de memória real, CPU, rede e cold starts por execução, com dashboards prontos. Qual recurso fornece essa telemetria aprofundada de funções?",
+      "options": [
+        "CloudWatch Lambda Insights, habilitado por layer/extensão, coletando métricas de sistema e desempenho por invocação",
+        "As métricas padrão já mostram uso de memória por execução",
+        "Instalar um agente de monitoramento via SSH na função",
+        "AWS Trusted Advisor por função"
+      ],
+      "correct": 0,
+      "explanation": "O Lambda Insights adiciona telemetria de nível de sistema (memória real, CPU, rede, init duration) com dashboards dedicados — revelando, por exemplo, superalocação de memória e custos de cold start.",
+      "hint": "O 'raio-X interno' das funções: memória de verdade, CPU e cold starts, via camada de observabilidade.",
+      "optionRationales": [
+        "O Lambda Insights adiciona telemetria de nível de sistema (memória real, CPU, rede, init duration) com dashboards dedicados — revelando, por exemplo, superalocação de memória e custos de cold start.",
+        "As métricas nativas cobrem invocações, erros, duração e throttles — uso real de memória/CPU exige o Insights (ou parsing do REPORT).",
+        "Não há servidor acessível no Lambda — telemetria adicional entra por extensão/layer gerenciada.",
+        "O Trusted Advisor avalia boas práticas da conta — não monitora execuções individuais de funções."
+      ]
     }
   ]
 }
