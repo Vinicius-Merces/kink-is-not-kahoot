@@ -3,10 +3,26 @@
   "certName": "AWS Certified Developer - Associate",
   "level": "iniciante",
   "domains": [
-    { "id": "development-aws-services", "name": "Desenvolvimento com Serviços AWS", "weight": 0.32 },
-    { "id": "security", "name": "Segurança", "weight": 0.26 },
-    { "id": "deployment", "name": "Implantação (Deployment)", "weight": 0.24 },
-    { "id": "troubleshooting-optimization", "name": "Solução de Problemas e Otimização", "weight": 0.18 }
+    {
+      "id": "development-aws-services",
+      "name": "Desenvolvimento com Serviços AWS",
+      "weight": 0.32
+    },
+    {
+      "id": "security",
+      "name": "Segurança",
+      "weight": 0.26
+    },
+    {
+      "id": "deployment",
+      "name": "Implantação (Deployment)",
+      "weight": 0.24
+    },
+    {
+      "id": "troubleshooting-optimization",
+      "name": "Solução de Problemas e Otimização",
+      "weight": 0.18
+    }
   ],
   "questions": [
     {
@@ -164,6 +180,1766 @@
       ],
       "correct": 0,
       "explanation": "O AWS X-Ray permite rastrear requisições à medida que percorrem diferentes serviços, ajudando a identificar gargalos de desempenho e erros em arquiteturas distribuídas."
+    },
+    {
+      "id": "dva-ini-013",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor está criando sua primeira função AWS Lambda em Python. Qual é o papel do 'handler' na função?",
+      "options": [
+        "É o método de entrada que o Lambda invoca ao executar a função, recebendo o evento e o contexto como parâmetros",
+        "É o servidor web que o desenvolvedor precisa instalar na função",
+        "É o arquivo de configuração de rede da função",
+        "É o log gerado automaticamente após cada execução"
+      ],
+      "correct": 0,
+      "explanation": "O handler é o ponto de entrada configurado na função (ex: lambda_function.lambda_handler): a cada invocação, o serviço o chama passando o objeto do evento e o contexto de execução.",
+      "hint": "É a 'porta de entrada' do código: o método que o serviço chama com (evento, contexto).",
+      "optionRationales": [
+        "O handler é o ponto de entrada configurado na função (ex: lambda_function.lambda_handler): a cada invocação, o serviço o chama passando o objeto do evento e o contexto de execução.",
+        "Lambda é serverless — não há servidor web a instalar; o runtime invoca o handler diretamente.",
+        "Configurações de rede (VPC) são definidas na configuração da função, não no handler, que é código.",
+        "Logs vão para o CloudWatch Logs — o handler é o código executado, não o registro da execução."
+      ]
+    },
+    {
+      "id": "dva-ini-014",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda precisa se conectar a endpoints diferentes conforme o ambiente (dev aponta para a API de testes, prod para a real), sem alterar o código entre os ambientes. Qual recurso nativo do Lambda atende a isso de forma simples para valores não sensíveis?",
+      "options": [
+        "Variáveis de ambiente da função, lidas pelo código em tempo de execução",
+        "Gravar os endpoints fixos no código e comentar as linhas não usadas",
+        "Criar uma função totalmente diferente para cada endpoint",
+        "Armazenar os endpoints em um volume EBS anexado à função"
+      ],
+      "correct": 0,
+      "explanation": "Variáveis de ambiente permitem parametrizar a função por ambiente (URLs, flags, nomes de recursos) sem mudança de código — o mecanismo padrão para configuração não sensível.",
+      "hint": "Configuração que muda por ambiente, lida em runtime: o par chave-valor clássico da configuração de funções.",
+      "optionRationales": [
+        "Variáveis de ambiente permitem parametrizar a função por ambiente (URLs, flags, nomes de recursos) sem mudança de código — o mecanismo padrão para configuração não sensível.",
+        "Alternar comentários no código é manual, sujeito a erro e exige novo deploy a cada troca — exatamente o que se quer evitar.",
+        "Duplicar funções multiplica manutenção — a mesma função deve servir aos ambientes via configuração.",
+        "Funções Lambda não anexam volumes EBS — armazenamento e configuração seguem outros mecanismos."
+      ]
+    },
+    {
+      "id": "dva-ini-015",
+      "domain": "development-aws-services",
+      "text": "Várias funções Lambda de um mesmo projeto usam as mesmas bibliotecas pesadas (ex: SDK de um parceiro e utilitários internos). Hoje cada pacote de deploy repete essas dependências. Qual recurso do Lambda permite compartilhar essas bibliotecas entre funções, reduzindo o tamanho dos pacotes?",
+      "options": [
+        "Lambda Layers: camadas com as dependências compartilhadas, anexadas às funções",
+        "Aumentar a memória das funções para comportar os pacotes",
+        "Hospedar as bibliotecas em um bucket S3 público",
+        "Instalar as bibliotecas manualmente no servidor do Lambda"
+      ],
+      "correct": 0,
+      "explanation": "Layers empacotam bibliotecas e conteúdos comuns separadamente do código: várias funções referenciam a mesma camada, reduzindo duplicação e o tamanho de cada deploy.",
+      "hint": "Pense nas 'camadas' reutilizáveis que ficam por baixo do código de cada função.",
+      "optionRationales": [
+        "Layers empacotam bibliotecas e conteúdos comuns separadamente do código: várias funções referenciam a mesma camada, reduzindo duplicação e o tamanho de cada deploy.",
+        "Memória não resolve duplicação de dependências nos pacotes de deploy.",
+        "Baixar dependências de bucket público em runtime é inseguro e lento — o mecanismo nativo são as camadas.",
+        "Não há servidor acessível para instalação manual no Lambda — o ambiente é gerenciado pela AWS."
+      ]
+    },
+    {
+      "id": "dva-ini-016",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor planeja usar AWS Lambda para um processamento que pode demorar até 30 minutos. Por que essa escolha é inadequada e qual é o limite relevante?",
+      "options": [
+        "O tempo máximo de execução de uma função Lambda é de 15 minutos; processos mais longos devem usar alternativas como ECS/Fargate ou Step Functions dividindo o trabalho",
+        "O Lambda só executa funções de até 30 segundos",
+        "O Lambda não tem limite de tempo, o problema é apenas o custo",
+        "O Lambda exige a compra de capacidade reservada para passar de 5 minutos"
+      ],
+      "correct": 0,
+      "explanation": "O timeout máximo configurável do Lambda é 900 segundos (15 minutos) — tarefas maiores precisam ser quebradas em etapas ou movidas para serviços de execução prolongada.",
+      "hint": "O relógio do Lambda corta a execução em um quarto de hora — trabalhos maiores precisam de outro lar.",
+      "optionRationales": [
+        "O timeout máximo configurável do Lambda é 900 segundos (15 minutos) — tarefas maiores precisam ser quebradas em etapas ou movidas para serviços de execução prolongada.",
+        "O limite não é 30 segundos — esse valor é o timeout padrão de integração do API Gateway, não o máximo do Lambda.",
+        "Há limite rígido de 15 minutos — a execução é encerrada ao atingi-lo, independentemente do custo.",
+        "Não existe compra de capacidade para estender o timeout — o limite de 15 minutos vale para todos."
+      ]
+    },
+    {
+      "id": "dva-ini-017",
+      "domain": "development-aws-services",
+      "text": "Uma API criada no Amazon API Gateway precisa de URLs separadas para os ambientes de desenvolvimento e produção (ex: /dev e /prod), cada uma podendo apontar para versões e configurações diferentes da mesma API. Qual conceito do API Gateway implementa essa separação?",
+      "options": [
+        "Stages (estágios), que publicam a API em ambientes distintos com configurações próprias",
+        "Resources, que dividem a API por ambiente",
+        "Usage plans, que criam ambientes para grupos de usuários",
+        "Modelos (models), que validam os ambientes"
+      ],
+      "correct": 0,
+      "explanation": "Cada stage é uma 'publicação' nomeada da API (dev, staging, prod) com URL, variáveis e configurações independentes — permitindo evoluir e testar sem afetar produção.",
+      "hint": "Cada 'palco' da API tem sua própria URL e plateia: dev, homologação, produção.",
+      "optionRationales": [
+        "Cada stage é uma 'publicação' nomeada da API (dev, staging, prod) com URL, variáveis e configurações independentes — permitindo evoluir e testar sem afetar produção.",
+        "Resources definem os caminhos (rotas) da API, como /pedidos — não separam ambientes de publicação.",
+        "Usage plans controlam limites e cotas de consumo por chave de API — não publicam ambientes distintos.",
+        "Models definem schemas de validação de payloads — sem relação com separação de ambientes."
+      ]
+    },
+    {
+      "id": "dva-ini-018",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor modela uma tabela do DynamoDB para armazenar mensagens de chat: precisa buscar todas as mensagens de uma conversa ordenadas por data/hora. Qual desenho de chave primária atende a esse acesso?",
+      "options": [
+        "Chave composta: partition key = ID da conversa e sort key = timestamp da mensagem",
+        "Apenas partition key = timestamp da mensagem",
+        "Apenas partition key = texto da mensagem",
+        "Sem chave primária, deixando o DynamoDB ordenar sozinho"
+      ],
+      "correct": 0,
+      "explanation": "A chave composta agrupa os itens da mesma conversa na partição e os mantém ordenados pela sort key — uma Query pelo ID da conversa retorna as mensagens em ordem cronológica.",
+      "hint": "Agrupe pelo 'dono' (partição) e ordene pelo 'quando' (chave de ordenação).",
+      "optionRationales": [
+        "A chave composta agrupa os itens da mesma conversa na partição e os mantém ordenados pela sort key — uma Query pelo ID da conversa retorna as mensagens em ordem cronológica.",
+        "Com o timestamp como chave de partição, mensagens da mesma conversa se espalham e não há como buscá-las juntas eficientemente.",
+        "O conteúdo da mensagem não identifica a conversa nem fornece ordenação — inviável como chave de acesso.",
+        "Toda tabela do DynamoDB exige chave primária definida — e a ordenação só existe dentro da partição via sort key."
+      ]
+    },
+    {
+      "id": "dva-ini-019",
+      "domain": "development-aws-services",
+      "text": "Uma tabela do DynamoDB usa o ID do pedido como chave primária, mas a aplicação também precisa buscar pedidos pelo ID do cliente com eficiência. Qual recurso permite essas consultas sem varrer a tabela inteira?",
+      "options": [
+        "Um índice secundário global (GSI) com o ID do cliente como chave de partição",
+        "Executar Scan com filtro de cliente em cada busca",
+        "Criar uma segunda tabela copiando os dados manualmente",
+        "Aumentar a capacidade de leitura da tabela"
+      ],
+      "correct": 0,
+      "explanation": "O GSI cria uma visão da tabela indexada por outro atributo: consultas por cliente usam Query no índice em vez de Scan na tabela — eficiente e econômico.",
+      "hint": "Para perguntar por outro atributo sem varrer tudo, crie uma segunda 'porta indexada' — global.",
+      "optionRationales": [
+        "O GSI cria uma visão da tabela indexada por outro atributo: consultas por cliente usam Query no índice em vez de Scan na tabela — eficiente e econômico.",
+        "Scan lê a tabela inteira e filtra depois — lento e caro, exatamente o que índices evitam.",
+        "Cópia manual gera inconsistência e trabalho duplicado — o GSI faz a projeção automaticamente.",
+        "Mais capacidade acelera o Scan ineficiente sem mudar sua natureza de varredura completa."
+      ]
+    },
+    {
+      "id": "dva-ini-020",
+      "domain": "development-aws-services",
+      "text": "Em uma aplicação Node.js, o desenvolvedor precisa enviar objetos ao S3, ler itens do DynamoDB e publicar mensagens no SNS, tudo a partir do código. Qual ferramenta a AWS fornece para interagir programaticamente com os serviços a partir da aplicação?",
+      "options": [
+        "O AWS SDK para a linguagem da aplicação (ex: AWS SDK for JavaScript)",
+        "O Console de Gerenciamento da AWS embutido na aplicação",
+        "Uma conexão SSH direta com cada serviço",
+        "O AWS CloudFormation"
+      ],
+      "correct": 0,
+      "explanation": "O SDK encapsula as chamadas às APIs da AWS na linguagem do desenvolvedor — autenticação, assinatura de requisições, retries e tipos prontos para uso no código.",
+      "hint": "A 'caixa de ferramentas' oficial em cada linguagem para falar com as APIs da AWS dentro do código.",
+      "optionRationales": [
+        "O SDK encapsula as chamadas às APIs da AWS na linguagem do desenvolvedor — autenticação, assinatura de requisições, retries e tipos prontos para uso no código.",
+        "O console é a interface web para humanos — aplicações usam SDKs/APIs, não páginas do console.",
+        "Serviços gerenciados não expõem SSH — a interação é via APIs HTTPS encapsuladas pelo SDK.",
+        "CloudFormation provisiona infraestrutura declarativamente — não é a biblioteca de chamadas de serviço dentro do código da aplicação."
+      ]
+    },
+    {
+      "id": "dva-ini-021",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor configurou a AWS CLI em sua máquina com o comando 'aws configure'. Quais informações esse comando armazena para autenticar as chamadas?",
+      "options": [
+        "Access Key ID, Secret Access Key, Região padrão e formato de saída",
+        "Usuário e senha do console de gerenciamento",
+        "O número do cartão de crédito da conta",
+        "Apenas o nome da conta AWS"
+      ],
+      "correct": 0,
+      "explanation": "O 'aws configure' grava as credenciais (access key e secret) e preferências (região e formato) nos arquivos de perfil (~/.aws/credentials e ~/.aws/config), usados para assinar as chamadas da CLI.",
+      "hint": "São as duas 'chaves' programáticas + duas preferências (onde e como responder).",
+      "optionRationales": [
+        "O 'aws configure' grava as credenciais (access key e secret) e preferências (região e formato) nos arquivos de perfil (~/.aws/credentials e ~/.aws/config), usados para assinar as chamadas da CLI.",
+        "A CLI não usa login de console — usa credenciais programáticas (chaves de acesso ou credenciais temporárias).",
+        "Dados de pagamento pertencem ao cadastro de billing — jamais são usados para autenticar chamadas de API.",
+        "O nome da conta não autentica nada — as chamadas exigem credenciais criptográficas."
+      ]
+    },
+    {
+      "id": "dva-ini-022",
+      "domain": "development-aws-services",
+      "text": "Em uma arquitetura de pedidos, o serviço de checkout deve continuar funcionando mesmo quando o serviço de faturamento estiver fora do ar, entregando as tarefas a ele assim que voltar. Qual serviço da AWS desacopla esses componentes com uma fila durável de mensagens?",
+      "options": [
+        "Amazon SQS",
+        "Amazon Route 53",
+        "Amazon CloudFront",
+        "AWS X-Ray"
+      ],
+      "correct": 0,
+      "explanation": "O SQS armazena as mensagens de forma durável até serem consumidas: o checkout publica e segue, e o faturamento processa no seu ritmo — desacoplamento clássico entre produtor e consumidor.",
+      "hint": "O 'amortecedor' durável entre quem produz e quem consome tarefas.",
+      "optionRationales": [
+        "O SQS armazena as mensagens de forma durável até serem consumidas: o checkout publica e segue, e o faturamento processa no seu ritmo — desacoplamento clássico entre produtor e consumidor.",
+        "O Route 53 resolve DNS — não armazena nem entrega mensagens entre serviços.",
+        "O CloudFront entrega conteúdo em cache para usuários finais — não é mecanismo de mensageria entre microsserviços.",
+        "O X-Ray rastreia requisições para análise de desempenho — não transporta mensagens de negócio."
+      ]
+    },
+    {
+      "id": "dva-ini-023",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor precisa decidir entre Amazon SNS e Amazon SQS para dois fluxos: (A) avisar imediatamente vários sistemas interessados quando um evento ocorre; (B) acumular tarefas para um único worker processar no próprio ritmo. Qual é a associação correta?",
+      "options": [
+        "SNS para o fluxo A (publicação push para múltiplos assinantes) e SQS para o fluxo B (fila pull para um consumidor)",
+        "SQS para o fluxo A e SNS para o fluxo B",
+        "SNS para ambos os fluxos",
+        "SQS para ambos os fluxos"
+      ],
+      "correct": 0,
+      "explanation": "SNS é pub/sub de entrega imediata a vários assinantes; SQS é fila durável consumida por polling — a dupla clássica de mensageria, frequentemente combinada (fan-out).",
+      "hint": "Tópico grita para todos os inscritos (push); fila guarda para quem vier buscar (pull).",
+      "optionRationales": [
+        "SNS é pub/sub de entrega imediata a vários assinantes; SQS é fila durável consumida por polling — a dupla clássica de mensageria, frequentemente combinada (fan-out).",
+        "Invertido: a fila não distribui cópias a vários interessados, e o tópico não acumula tarefas para consumo posterior em ritmo próprio.",
+        "O SNS não retém mensagens para um worker buscar depois — sem assinante disponível na entrega, o fluxo B falharia.",
+        "Uma fila entrega cada mensagem a um único consumidor — não faz a distribuição simultânea para vários sistemas do fluxo A."
+      ]
+    },
+    {
+      "id": "dva-ini-024",
+      "domain": "development-aws-services",
+      "text": "Uma aplicação de e-commerce quer reagir a eventos como 'pedido criado' roteando-os para destinos diferentes conforme o conteúdo (pedidos acima de R$ 1.000 vão para análise antifraude; os demais, para o fluxo padrão), usando regras declarativas sem código de roteamento. Qual serviço fornece esse barramento de eventos com regras?",
+      "options": [
+        "Amazon EventBridge",
+        "Amazon S3 Event Notifications",
+        "AWS CloudTrail",
+        "Amazon ElastiCache"
+      ],
+      "correct": 0,
+      "explanation": "O EventBridge é o barramento de eventos com regras de filtragem por conteúdo: padrões de evento decidem o destino (Lambda, SQS, Step Functions) sem lógica de roteamento na aplicação.",
+      "hint": "A 'ponte de eventos' onde regras leem o conteúdo e escolhem o destino.",
+      "optionRationales": [
+        "O EventBridge é o barramento de eventos com regras de filtragem por conteúdo: padrões de evento decidem o destino (Lambda, SQS, Step Functions) sem lógica de roteamento na aplicação.",
+        "Notificações do S3 disparam apenas eventos do próprio bucket (criação/remoção de objetos) — não roteiam eventos de negócio arbitrários por regras de conteúdo.",
+        "O CloudTrail registra chamadas de API para auditoria — não é barramento de eventos de aplicação.",
+        "ElastiCache é cache em memória — sem qualquer função de roteamento de eventos."
+      ]
+    },
+    {
+      "id": "dva-ini-025",
+      "domain": "development-aws-services",
+      "text": "Um processo de aprovação de cadastro envolve etapas sequenciais (validar documentos → verificar crédito → criar conta), com decisões e possibilidade de retentativas, executadas por funções Lambda. O desenvolvedor quer definir esse fluxo visualmente como uma máquina de estados, sem codificar a coordenação. Qual serviço usar?",
+      "options": [
+        "AWS Step Functions",
+        "Amazon SQS encadeando filas entre as etapas",
+        "AWS CodePipeline",
+        "Amazon CloudWatch Alarms"
+      ],
+      "correct": 0,
+      "explanation": "O Step Functions define fluxos como máquinas de estado (sequências, escolhas, paralelo, retries) orquestrando Lambdas e outros serviços, com execução visual e auditável.",
+      "hint": "O maestro de 'estados e transições' que rege as Lambdas em sequência.",
+      "optionRationales": [
+        "O Step Functions define fluxos como máquinas de estado (sequências, escolhas, paralelo, retries) orquestrando Lambdas e outros serviços, com execução visual e auditável.",
+        "Filas encadeadas exigiriam codificar manualmente o controle de fluxo, decisões e retentativas — o que o orquestrador entrega pronto.",
+        "CodePipeline orquestra CI/CD de software (build/test/deploy) — não fluxos de negócio em runtime.",
+        "Alarmes reagem a métricas — não definem nem executam fluxos de trabalho de múltiplas etapas."
+      ]
+    },
+    {
+      "id": "dva-ini-026",
+      "domain": "development-aws-services",
+      "text": "Um aplicativo permite que usuários façam upload de fotos diretamente para um bucket S3 privado, sem que os arquivos passem pelo servidor da aplicação. Como o backend pode autorizar cada upload de forma segura e temporária?",
+      "options": [
+        "Gerando uma presigned URL de upload (PUT) com o SDK e entregando-a ao cliente para envio direto ao S3",
+        "Distribuindo as chaves de acesso da conta no código do aplicativo",
+        "Tornando o bucket público para uploads",
+        "Pedindo que os usuários enviem as fotos por e-mail ao suporte"
+      ],
+      "correct": 0,
+      "explanation": "A presigned URL embute uma autorização temporária assinada pelas credenciais do backend: o cliente envia o arquivo direto ao S3 dentro do prazo, sem expor o bucket nem sobrecarregar o servidor.",
+      "hint": "O backend assina um 'bilhete com hora para expirar' e o cliente usa o bilhete direto no S3.",
+      "optionRationales": [
+        "A presigned URL embute uma autorização temporária assinada pelas credenciais do backend: o cliente envia o arquivo direto ao S3 dentro do prazo, sem expor o bucket nem sobrecarregar o servidor.",
+        "Credenciais embutidas no app cliente vazam com facilidade — falha grave de segurança.",
+        "Bucket público de escrita vira alvo de abuso e armazenamento malicioso — nunca é a solução.",
+        "Processo manual sem escala nem integração — não é uma solução de engenharia."
+      ]
+    },
+    {
+      "id": "dva-ini-027",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor precisa enviar ao S3 arquivos de vídeo de vários gigabytes a partir da aplicação, com paralelismo e retomada de partes que falharem. Qual mecanismo da API do S3 (automatizado pelos SDKs) é recomendado para esses uploads?",
+      "options": [
+        "Multipart upload, dividindo o arquivo em partes enviadas em paralelo",
+        "Upload único com timeout maior",
+        "Dividir o vídeo em vários objetos pequenos manualmente",
+        "Enviar via e-mail para o suporte da AWS importar"
+      ],
+      "correct": 0,
+      "explanation": "O multipart upload é o mecanismo do S3 para objetos grandes: partes independentes enviadas em paralelo, retransmissão isolada de falhas e melhor throughput — os SDKs o utilizam automaticamente acima de certos tamanhos.",
+      "hint": "Quebrar em 'múltiplas partes', subir em paralelo, S3 monta o quebra-cabeça no final.",
+      "optionRationales": [
+        "O multipart upload é o mecanismo do S3 para objetos grandes: partes independentes enviadas em paralelo, retransmissão isolada de falhas e melhor throughput — os SDKs o utilizam automaticamente acima de certos tamanhos.",
+        "Um fluxo único monolítico recomeça do zero a cada falha e não aproveita paralelismo — frágil para gigabytes.",
+        "Fragmentar o objeto final complica o consumo — o multipart junta as partes em UM objeto automaticamente ao concluir.",
+        "Não existe importação por e-mail — o caminho é a API do S3."
+      ]
+    },
+    {
+      "id": "dva-ini-028",
+      "domain": "development-aws-services",
+      "text": "Um aplicativo web precisa de cadastro e login de usuários com verificação de e-mail, recuperação de senha e suporte a login social (Google), sem que o time construa esse backend de autenticação. Qual serviço fornece esse diretório de usuários gerenciado?",
+      "options": [
+        "Amazon Cognito User Pools",
+        "AWS IAM com um usuário por cliente",
+        "Amazon RDS com tabela de senhas em texto puro",
+        "AWS Directory Service"
+      ],
+      "correct": 0,
+      "explanation": "O User Pool é o diretório gerenciado de usuários finais: fluxos prontos de cadastro, confirmação, login, recuperação de senha e federação com provedores sociais, emitindo tokens para a aplicação.",
+      "hint": "A 'piscina de usuários' do Cognito cuida do cadastro ao login social.",
+      "optionRationales": [
+        "O User Pool é o diretório gerenciado de usuários finais: fluxos prontos de cadastro, confirmação, login, recuperação de senha e federação com provedores sociais, emitindo tokens para a aplicação.",
+        "IAM gerencia identidades de acesso à AWS (equipe e workloads) — não é diretório de clientes finais de aplicativos.",
+        "Armazenar senhas em texto puro é falha grave — e construir autenticação própria é o que se quer evitar.",
+        "Directory Service fornece Active Directory corporativo — não fluxos de cadastro/login social de apps de consumo."
+      ]
+    },
+    {
+      "id": "dva-ini-029",
+      "domain": "development-aws-services",
+      "text": "Um time conteinerizou sua aplicação com Docker e precisa de um registro privado e gerenciado na AWS para armazenar e versionar as imagens, integrado ao ECS e com controle de acesso via IAM. Qual serviço atende a isso?",
+      "options": [
+        "Amazon ECR (Elastic Container Registry)",
+        "Amazon S3 com upload dos arquivos .tar das imagens",
+        "AWS CodeBuild",
+        "Amazon EBS"
+      ],
+      "correct": 0,
+      "explanation": "O ECR é o registro de imagens de contêiner gerenciado da AWS: repositórios privados, integração nativa com ECS/EKS, varredura de imagens e permissões via IAM.",
+      "hint": "O 'porto de contêineres' da AWS onde o docker push atraca.",
+      "optionRationales": [
+        "O ECR é o registro de imagens de contêiner gerenciado da AWS: repositórios privados, integração nativa com ECS/EKS, varredura de imagens e permissões via IAM.",
+        "Guardar tarballs em bucket perde a semântica de registro (tags, pull/push do Docker, integração de deploy).",
+        "CodeBuild CONSTRÓI as imagens — quem as armazena e distribui é o registro (ECR).",
+        "EBS é disco de bloco para instâncias — não é repositório de imagens de contêiner."
+      ]
+    },
+    {
+      "id": "dva-ini-030",
+      "domain": "development-aws-services",
+      "text": "No Amazon ECS, qual é o papel da task definition no deploy de uma aplicação conteinerizada?",
+      "options": [
+        "É o 'blueprint' que descreve como executar os contêineres: imagem, CPU, memória, portas, variáveis e roles",
+        "É o cluster físico onde os contêineres rodam",
+        "É a fatura mensal dos contêineres executados",
+        "É o código-fonte da aplicação dentro do contêiner"
+      ],
+      "correct": 0,
+      "explanation": "A task definition é o documento de configuração (versionado) que o ECS usa para lançar tasks: define imagens do ECR, recursos, rede, logging e permissões dos contêineres.",
+      "hint": "Pense na 'receita' que diz qual imagem rodar, com quanto recurso e em que configuração.",
+      "optionRationales": [
+        "A task definition é o documento de configuração (versionado) que o ECS usa para lançar tasks: define imagens do ECR, recursos, rede, logging e permissões dos contêineres.",
+        "O cluster é o agrupamento de capacidade computacional — a task definition é a receita, não o lugar.",
+        "Faturamento é tratado pelo billing da conta — a task definition é configuração técnica.",
+        "O código vive na imagem do contêiner — a task definition apenas referencia a imagem e define como executá-la."
+      ]
+    },
+    {
+      "id": "dva-ini-031",
+      "domain": "development-aws-services",
+      "text": "Um time quer rodar contêineres no Amazon ECS sem provisionar, escalar ou aplicar patches em instâncias EC2 — apenas declarar CPU/memória por tarefa e pagar pelo que executar. Qual opção de capacidade atende a esse modelo serverless?",
+      "options": [
+        "AWS Fargate",
+        "Frota de instâncias EC2 gerenciada pelo próprio time",
+        "AWS Lambda com a imagem dentro de um layer",
+        "Amazon Lightsail"
+      ],
+      "correct": 0,
+      "explanation": "O Fargate executa as tasks do ECS (e pods do EKS) sem servidores visíveis: a AWS gerencia a infraestrutura e cobra pela vCPU/memória alocadas durante a execução.",
+      "hint": "Contêiner sem servidor para administrar: o motor cujo nome lembra 'carga' em inglês.",
+      "optionRationales": [
+        "O Fargate executa as tasks do ECS (e pods do EKS) sem servidores visíveis: a AWS gerencia a infraestrutura e cobra pela vCPU/memória alocadas durante a execução.",
+        "EC2 como capacidade exige gerenciar AMIs, patches e escala das instâncias — justamente o trabalho a eliminar.",
+        "Layers não executam contêineres do ECS — e o cenário pede orquestração de contêineres, não funções.",
+        "Lightsail oferece VPS simplificado — não é o motor serverless de tasks do ECS."
+      ]
+    },
+    {
+      "id": "dva-ini-032",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor serverless quer definir funções Lambda, APIs e tabelas DynamoDB em um template simplificado, testar as funções localmente e fazer deploy com poucos comandos. Qual framework da AWS foi criado especificamente para isso?",
+      "options": [
+        "AWS SAM (Serverless Application Model)",
+        "AWS Trusted Advisor",
+        "Amazon WorkSpaces",
+        "AWS Snow Family"
+      ],
+      "correct": 0,
+      "explanation": "O SAM estende o CloudFormation com sintaxe abreviada para recursos serverless e fornece a SAM CLI para build, teste local (sam local) e deploy (sam deploy).",
+      "hint": "O 'modelo de aplicação serverless' da AWS: template enxuto + CLI com teste local.",
+      "optionRationales": [
+        "O SAM estende o CloudFormation com sintaxe abreviada para recursos serverless e fornece a SAM CLI para build, teste local (sam local) e deploy (sam deploy).",
+        "Trusted Advisor recomenda boas práticas na conta — não é framework de definição e deploy de aplicações.",
+        "WorkSpaces fornece desktops virtuais — nenhuma relação com aplicações serverless.",
+        "A família Snow trata de migração física de dados — não de templates serverless."
+      ]
+    },
+    {
+      "id": "dva-ini-033",
+      "domain": "development-aws-services",
+      "text": "Qual é a diferença fundamental entre as operações Query e Scan do DynamoDB, e por que a documentação recomenda preferir Query sempre que possível?",
+      "options": [
+        "Query busca itens pela chave de partição (lendo apenas a partição alvo); Scan lê a tabela inteira filtrando depois — por isso Query é muito mais eficiente e barata",
+        "Scan é mais rápido porque lê em paralelo por padrão",
+        "Query só funciona em tabelas com menos de 1 GB",
+        "São idênticas, mudando apenas o nome no SDK"
+      ],
+      "correct": 0,
+      "explanation": "A Query navega direto à partição da chave informada; o Scan percorre todos os itens da tabela consumindo capacidade proporcional ao total lido — em tabelas grandes, a diferença de custo e latência é enorme.",
+      "hint": "Uma vai direto à 'gaveta certa' pela chave; a outra abre todas as gavetas e filtra no final.",
+      "optionRationales": [
+        "A Query navega direto à partição da chave informada; o Scan percorre todos os itens da tabela consumindo capacidade proporcional ao total lido — em tabelas grandes, a diferença de custo e latência é enorme.",
+        "Mesmo com parallel scan, a operação continua lendo a tabela inteira — eficiência estrutural inferior à busca direcionada.",
+        "Não há limite de tamanho para Query — ela escala justamente por ler apenas a partição relevante.",
+        "São operações com semânticas e custos completamente diferentes."
+      ]
+    },
+    {
+      "id": "dva-ini-034",
+      "domain": "development-aws-services",
+      "text": "Um endpoint de pagamento pode receber a mesma requisição duas vezes (ex: cliente clicando duas vezes ou retry automático do SDK). O time quer garantir que processar a mesma requisição repetida não gere cobrança dupla. Como esse princípio de design é chamado e como costuma ser implementado?",
+      "options": [
+        "Idempotência: a operação repetida produz o mesmo resultado — implementada, por exemplo, com um identificador único de requisição verificado antes de executar os efeitos",
+        "Elasticidade: a operação escala para absorver os cliques duplicados",
+        "Atomicidade: dividir a cobrança em duas metades",
+        "Paginação: processar as requisições em páginas"
+      ],
+      "correct": 0,
+      "explanation": "Operações idempotentes podem ser repetidas com segurança; registrar um idempotency key (ex: condicionalmente no DynamoDB) e ignorar duplicatas é o padrão para integrações com retries.",
+      "hint": "Apertar o botão do elevador dez vezes não o chama dez vezes — qual o nome dessa propriedade?",
+      "optionRationales": [
+        "Operações idempotentes podem ser repetidas com segurança; registrar um idempotency key (ex: condicionalmente no DynamoDB) e ignorar duplicatas é o padrão para integrações com retries.",
+        "Elasticidade trata de capacidade — não impede efeitos duplicados de requisições repetidas.",
+        "Atomicidade garante 'tudo ou nada' em uma transação — não trata da repetição da operação inteira.",
+        "Paginação divide RESULTADOS grandes em blocos — irrelevante para duplicidade de execução."
+      ]
+    },
+    {
+      "id": "dva-ini-035",
+      "domain": "development-aws-services",
+      "text": "Uma função Lambda deve processar mensagens de uma fila SQS automaticamente, sem que o desenvolvedor escreva o loop de polling. Qual mecanismo do Lambda conecta a fila à função, buscando mensagens e invocando-a com lotes?",
+      "options": [
+        "Event source mapping, que o Lambda usa para fazer polling da fila e invocar a função com lotes de mensagens",
+        "Um cron job em uma instância EC2 chamando a função",
+        "Uma assinatura de e-mail entre a fila e a função",
+        "Habilitar acesso público na fila para o Lambda encontrá-la"
+      ],
+      "correct": 0,
+      "explanation": "O event source mapping é o componente gerenciado que consome fontes como SQS, Kinesis e DynamoDB Streams: ele faz o polling, agrupa em lotes e invoca a função, gerenciando erros e escala.",
+      "hint": "O 'mapeamento de fonte de eventos' é o garçom: busca os pedidos na fila e serve à função em bandejas (lotes).",
+      "optionRationales": [
+        "O event source mapping é o componente gerenciado que consome fontes como SQS, Kinesis e DynamoDB Streams: ele faz o polling, agrupa em lotes e invoca a função, gerenciando erros e escala.",
+        "Infraestrutura própria de polling é exatamente o que o mapeamento gerenciado elimina.",
+        "E-mail não é mecanismo de integração entre SQS e Lambda.",
+        "Acesso público não conecta serviços — a integração usa o mapeamento com permissões IAM adequadas."
+      ]
+    },
+    {
+      "id": "dva-ini-036",
+      "domain": "development-aws-services",
+      "text": "Uma startup precisa de uma API GraphQL gerenciada que agregue dados de múltiplas fontes (DynamoDB, Lambda) e ofereça subscriptions em tempo real para os clientes. Qual serviço da AWS fornece essa API GraphQL gerenciada?",
+      "options": [
+        "AWS AppSync",
+        "Amazon API Gateway REST API",
+        "Amazon CloudFront Functions",
+        "AWS Glue"
+      ],
+      "correct": 0,
+      "explanation": "O AppSync é o serviço gerenciado de APIs GraphQL: resolvers conectam o schema a fontes como DynamoDB e Lambda, com subscriptions em tempo real e cache integrados.",
+      "hint": "O serviço cujo nome sugere 'sincronizar apps' fala GraphQL nativamente.",
+      "optionRationales": [
+        "O AppSync é o serviço gerenciado de APIs GraphQL: resolvers conectam o schema a fontes como DynamoDB e Lambda, com subscriptions em tempo real e cache integrados.",
+        "O API Gateway atende APIs REST/HTTP/WebSocket — GraphQL gerenciado com resolvers e subscriptions é a especialidade do AppSync.",
+        "CloudFront Functions executam lógica leve na borda — não implementam um servidor GraphQL completo.",
+        "Glue é serviço de ETL para dados — não expõe APIs GraphQL."
+      ]
+    },
+    {
+      "id": "dva-ini-037",
+      "domain": "development-aws-services",
+      "text": "Ao chamar APIs da AWS, o SDK ocasionalmente recebe erros transitórios (ex: throttling). Qual comportamento os SDKs oficiais já implementam por padrão para lidar com essas falhas, e que o desenvolvedor deve conhecer ao ajustar integrações?",
+      "options": [
+        "Retentativas automáticas com backoff exponencial e jitter, configuráveis em número e modo",
+        "Abertura de chamado automático no suporte AWS a cada erro",
+        "Troca automática das credenciais por novas chaves",
+        "Envio da requisição para outra conta AWS"
+      ],
+      "correct": 0,
+      "explanation": "Os SDKs trazem retry automático com espera exponencial e aleatorizada para erros transitórios (5xx, throttling) — o desenvolvedor pode calibrar tentativas e modos conforme a criticidade.",
+      "hint": "Tentar de novo, esperando cada vez mais (com um tempero aleatório) — já vem de fábrica no SDK.",
+      "optionRationales": [
+        "Os SDKs trazem retry automático com espera exponencial e aleatorizada para erros transitórios (5xx, throttling) — o desenvolvedor pode calibrar tentativas e modos conforme a criticidade.",
+        "SDKs não abrem tickets — tratam erros programaticamente com retries e exceções.",
+        "Erros transitórios não são problema de credencial — e SDKs não criam chaves sozinhos.",
+        "Requisições jamais migram de conta — o retry repete a chamada no mesmo destino com espera crescente."
+      ]
+    },
+    {
+      "id": "dva-ini-038",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor precisa escolher entre HTTP API e REST API no Amazon API Gateway para um novo backend serverless simples (proxy para Lambda com JWT do Cognito). Qual consideração está correta?",
+      "options": [
+        "HTTP APIs são mais simples, mais baratas e com menor latência, cobrindo casos comuns como proxy Lambda e autorização JWT; REST APIs oferecem recursos extras (api keys, caching, request validation)",
+        "REST APIs são sempre mais baratas que HTTP APIs",
+        "HTTP APIs não conseguem invocar funções Lambda",
+        "As duas são idênticas em recursos e preço"
+      ],
+      "correct": 0,
+      "explanation": "A HTTP API é a opção moderna e econômica para a maioria dos backends serverless; a REST API se justifica quando recursos avançados específicos (usage plans, cache de estágio, transformações) são necessários.",
+      "hint": "A variante 'enxuta' cobre o feijão com arroz serverless por menos; a 'completa' cobra pelos extras.",
+      "optionRationales": [
+        "A HTTP API é a opção moderna e econômica para a maioria dos backends serverless; a REST API se justifica quando recursos avançados específicos (usage plans, cache de estágio, transformações) são necessários.",
+        "É o contrário: HTTP APIs custam significativamente menos por milhão de requisições.",
+        "Proxy para Lambda é justamente o caso de uso central das HTTP APIs.",
+        "Diferem em recursos, preço e latência — a escolha depende das funcionalidades exigidas."
+      ]
+    },
+    {
+      "id": "dva-ini-039",
+      "domain": "development-aws-services",
+      "text": "Quando o tráfego de uma API serverless dobra de repente, o que acontece com a capacidade de execução da função AWS Lambda que a atende?",
+      "options": [
+        "O Lambda escala automaticamente criando execuções concorrentes adicionais para atender as requisições simultâneas, dentro dos limites de concorrência da conta",
+        "O desenvolvedor precisa adicionar servidores manualmente ao cluster do Lambda",
+        "As requisições extras são descartadas silenciosamente",
+        "A função muda automaticamente para uma instância EC2 maior"
+      ],
+      "correct": 0,
+      "explanation": "Cada requisição simultânea usa uma instância de execução; o serviço provisiona novas automaticamente conforme a demanda — a escala é nativa, limitada pela cota de concorrência configurável.",
+      "hint": "Mais requisições simultâneas = mais 'cópias' da função rodando lado a lado, automaticamente.",
+      "optionRationales": [
+        "Cada requisição simultânea usa uma instância de execução; o serviço provisiona novas automaticamente conforme a demanda — a escala é nativa, limitada pela cota de concorrência configurável.",
+        "Não há cluster a administrar — a escala do Lambda é totalmente gerenciada.",
+        "O Lambda escala para atender; somente ao estourar o limite de concorrência ocorre throttling — com erro explícito, não descarte silencioso.",
+        "O Lambda não roda em instância visível nem 'cresce verticalmente' — multiplica execuções concorrentes."
+      ]
+    },
+    {
+      "id": "dva-ini-040",
+      "domain": "development-aws-services",
+      "text": "Um desenvolvedor recebeu a tarefa de listar objetos de um bucket S3 cuja listagem retorna milhões de itens. A API retorna no máximo 1.000 objetos por chamada. Qual técnica o desenvolvedor deve usar para percorrer todos os resultados?",
+      "options": [
+        "Paginação: repetir as chamadas usando o token de continuação retornado (ou os paginators do SDK) até esgotar os resultados",
+        "Aumentar o limite para 1 milhão por chamada",
+        "Fazer download do bucket inteiro para contar localmente",
+        "Abrir um chamado para a AWS enviar a lista"
+      ],
+      "correct": 0,
+      "explanation": "APIs de listagem da AWS são paginadas: cada resposta traz um token de continuação para a próxima página, e os SDKs oferecem paginators que automatizam o laço.",
+      "hint": "Mil por página + 'marcador de onde parou' = continue virando as páginas até o fim.",
+      "optionRationales": [
+        "APIs de listagem da AWS são paginadas: cada resposta traz um token de continuação para a próxima página, e os SDKs oferecem paginators que automatizam o laço.",
+        "O limite de página da API não é configurável para esse valor — a iteração por tokens é o mecanismo previsto.",
+        "Baixar milhões de objetos para listar é desperdício extremo — a listagem paginada resolve sem transferir conteúdo.",
+        "Listagem é operação self-service da API — não envolve suporte."
+      ]
+    },
+    {
+      "id": "dva-ini-041",
+      "domain": "security",
+      "text": "Ao criar a política IAM da execution role de uma função Lambda que apenas lê itens de UMA tabela do DynamoDB, qual abordagem segue o princípio do menor privilégio?",
+      "options": [
+        "Conceder somente as ações de leitura necessárias (ex: dynamodb:GetItem, dynamodb:Query) restritas ao ARN daquela tabela",
+        "Anexar a política gerenciada AdministratorAccess para evitar erros de permissão",
+        "Conceder dynamodb:* em todos os recursos (*)",
+        "Não anexar política nenhuma e desativar a verificação de permissões"
+      ],
+      "correct": 0,
+      "explanation": "Menor privilégio significa ações mínimas sobre recursos específicos: leitura apenas, na tabela exata — limitando o impacto de um eventual comprometimento da função.",
+      "hint": "Só os verbos necessários, só no recurso necessário — nada de curingas generosos.",
+      "optionRationales": [
+        "Menor privilégio significa ações mínimas sobre recursos específicos: leitura apenas, na tabela exata — limitando o impacto de um eventual comprometimento da função.",
+        "Acesso administrativo em uma função simples é o oposto do menor privilégio — um comprometimento entregaria a conta inteira.",
+        "Todas as ações em todas as tabelas extrapola em muito a necessidade — inclui exclusões e tabelas alheias.",
+        "A avaliação do IAM não pode ser desativada — sem permissões, a função simplesmente falharia com Access Denied."
+      ]
+    },
+    {
+      "id": "dva-ini-042",
+      "domain": "security",
+      "text": "Uma aplicação precisa da senha do banco de dados em tempo de execução. O time quer armazená-la criptografada, com rotação automática programada e recuperação via SDK no startup da aplicação. Qual serviço atende a TODOS esses requisitos?",
+      "options": [
+        "AWS Secrets Manager",
+        "Arquivo .env commitado no repositório privado",
+        "Variável de ambiente em texto claro no servidor",
+        "Amazon CloudWatch Logs"
+      ],
+      "correct": 0,
+      "explanation": "O Secrets Manager guarda segredos criptografados via KMS, oferece rotação automática agendada (nativa para RDS) e APIs/SDK para a aplicação buscar o valor em runtime.",
+      "hint": "Cofre gerenciado + troca automática de senha + busca via API: o 'gerente de segredos'.",
+      "optionRationales": [
+        "O Secrets Manager guarda segredos criptografados via KMS, oferece rotação automática agendada (nativa para RDS) e APIs/SDK para a aplicação buscar o valor em runtime.",
+        "Segredo em repositório vaza com clones, forks e históricos — repositório 'privado' não é cofre.",
+        "Texto claro no ambiente fica visível a quem acessa a configuração e não oferece rotação automática.",
+        "Logs são para registros de execução — jamais para armazenar segredos (aliás, segredos nem devem ser logados)."
+      ]
+    },
+    {
+      "id": "dva-ini-043",
+      "domain": "security",
+      "text": "Um time precisa armazenar parâmetros de configuração da aplicação na AWS: a maioria são valores comuns (URLs, flags), mas alguns são sensíveis e devem ser criptografados. O orçamento pede uma opção sem custo para o nível padrão. Qual serviço e tipo de parâmetro atendem aos valores sensíveis?",
+      "options": [
+        "AWS Systems Manager Parameter Store com parâmetros do tipo SecureString (criptografados via KMS)",
+        "Parameter Store com tipo String para tudo, pois a criptografia é automática",
+        "Tabela pública do DynamoDB",
+        "Comentários no código-fonte"
+      ],
+      "correct": 0,
+      "explanation": "O Parameter Store armazena configurações hierárquicas gratuitamente no tier padrão, e o tipo SecureString criptografa valores sensíveis com KMS, recuperáveis com decifragem via SDK/CLI.",
+      "hint": "No armário de parâmetros gratuito, os itens sensíveis vão no compartimento 'SecureString'.",
+      "optionRationales": [
+        "O Parameter Store armazena configurações hierárquicas gratuitamente no tier padrão, e o tipo SecureString criptografa valores sensíveis com KMS, recuperáveis com decifragem via SDK/CLI.",
+        "Parâmetros String não são criptografados — valores sensíveis exigem o tipo SecureString.",
+        "Dados sensíveis em recurso público é falha grave — e o DynamoDB não é o serviço de configuração com tipos seguros prontos.",
+        "Comentários viajam com o código para qualquer lugar — nunca são local de configuração sensível."
+      ]
+    },
+    {
+      "id": "dva-ini-044",
+      "domain": "security",
+      "text": "Após o login de um usuário em um Amazon Cognito User Pool, a aplicação recebe três tokens: ID token, access token e refresh token. Qual é a função de cada um?",
+      "options": [
+        "ID token carrega as informações de identidade do usuário; access token autoriza chamadas às APIs; refresh token obtém novos tokens quando os primeiros expiram",
+        "Os três são cópias idênticas por redundância",
+        "ID token é a senha criptografada; access token é o nome de usuário; refresh token é o e-mail",
+        "Apenas o refresh token é usado nas chamadas de API"
+      ],
+      "correct": 0,
+      "explanation": "Esse é o trio padrão OIDC do Cognito: identidade (claims do usuário), autorização de acesso e renovação da sessão sem novo login.",
+      "hint": "Quem sou (ID) + o que posso (access) + como renovo (refresh).",
+      "optionRationales": [
+        "Esse é o trio padrão OIDC do Cognito: identidade (claims do usuário), autorização de acesso e renovação da sessão sem novo login.",
+        "Cada token tem conteúdo e propósito distintos — não são cópias.",
+        "Tokens não transportam a senha, e os papéis descritos não correspondem ao padrão OIDC.",
+        "O refresh token serve só para renovar a sessão — quem autoriza chamadas é o access token."
+      ]
+    },
+    {
+      "id": "dva-ini-045",
+      "domain": "security",
+      "text": "Um aplicativo mobile autentica usuários no Cognito User Pool e, depois, precisa que cada usuário envie arquivos diretamente a um bucket S3 com credenciais AWS temporárias e limitadas. Qual componente troca o token de login por essas credenciais?",
+      "options": [
+        "Cognito Identity Pool, que federa a identidade autenticada e emite credenciais AWS temporárias associadas a uma role",
+        "Embutir chaves de acesso permanentes no aplicativo",
+        "Enviar a senha do usuário junto a cada upload para o S3 validar",
+        "O próprio User Pool emite as credenciais AWS"
+      ],
+      "correct": 0,
+      "explanation": "O Identity Pool recebe o token do User Pool (ou de provedores sociais) e entrega credenciais STS temporárias com as permissões da role configurada — o caminho seguro para o app tocar serviços AWS.",
+      "hint": "A 'segunda piscina' do Cognito converte o crachá de login em credenciais AWS de curta duração.",
+      "optionRationales": [
+        "O Identity Pool recebe o token do User Pool (ou de provedores sociais) e entrega credenciais STS temporárias com as permissões da role configurada — o caminho seguro para o app tocar serviços AWS.",
+        "Chaves no app cliente são extraíveis por qualquer pessoa — vulnerabilidade clássica.",
+        "O S3 não valida senhas de usuários finais — autorização usa credenciais/assinaturas AWS.",
+        "O User Pool emite tokens de identidade/acesso — a troca por credenciais AWS é papel do Identity Pool."
+      ]
+    },
+    {
+      "id": "dva-ini-046",
+      "domain": "security",
+      "text": "Uma API pública no Amazon API Gateway precisa expor um domínio próprio (api.empresa.com) servido exclusivamente via HTTPS. Qual serviço fornece o certificado TLS para o domínio personalizado, com renovação automática e sem custo?",
+      "options": [
+        "AWS Certificate Manager (ACM)",
+        "AWS KMS",
+        "Amazon Route 53 sozinho",
+        "Gerar certificado autoassinado e instalar no API Gateway"
+      ],
+      "correct": 0,
+      "explanation": "O ACM emite e renova automaticamente certificados públicos gratuitos, associáveis ao custom domain do API Gateway (e a CloudFront/ALB) para tráfego HTTPS.",
+      "hint": "Certificados públicos gratuitos com renovação no piloto automático: o 'gerente de certificados'.",
+      "optionRationales": [
+        "O ACM emite e renova automaticamente certificados públicos gratuitos, associáveis ao custom domain do API Gateway (e a CloudFront/ALB) para tráfego HTTPS.",
+        "KMS gerencia chaves de criptografia de dados — não emite certificados TLS de domínios.",
+        "O Route 53 registra domínios e resolve DNS — o certificado TLS vem do ACM.",
+        "Autoassinados disparam alertas nos clientes e exigem renovação manual — o ACM elimina ambos os problemas."
+      ]
+    },
+    {
+      "id": "dva-ini-047",
+      "domain": "security",
+      "text": "Uma API REST exposta pelo API Gateway sofre tentativas de exploração com payloads maliciosos (SQL injection) e rajadas de requisições de scrapers. Qual serviço pode ser associado ao API Gateway para filtrar essas requisições na camada de aplicação?",
+      "options": [
+        "AWS WAF, com regras gerenciadas contra exploits e regras rate-based contra rajadas",
+        "Security Group anexado à API",
+        "Amazon Inspector na frente da API",
+        "AWS Backup com snapshots da API"
+      ],
+      "correct": 0,
+      "explanation": "O WAF integra-se ao API Gateway (e CloudFront/ALB) inspecionando as requisições HTTP: regras gerenciadas bloqueiam padrões de ataque e regras de taxa contêm abusos volumétricos por IP.",
+      "hint": "O firewall que 'lê' as requisições web fica na porta do gateway.",
+      "optionRationales": [
+        "O WAF integra-se ao API Gateway (e CloudFront/ALB) inspecionando as requisições HTTP: regras gerenciadas bloqueiam padrões de ataque e regras de taxa contêm abusos volumétricos por IP.",
+        "APIs do API Gateway não recebem Security Groups — e SGs não inspecionam conteúdo HTTP.",
+        "O Inspector varre vulnerabilidades em workloads — não filtra tráfego em tempo real.",
+        "Backups protegem dados — não bloqueiam requisições maliciosas."
+      ]
+    },
+    {
+      "id": "dva-ini-048",
+      "domain": "security",
+      "text": "Durante um code review, foi encontrado um arquivo de configuração com Access Key e Secret Key commitados no repositório Git. Além de remover as chaves do histórico, quais ações imediatas o time deve tomar?",
+      "options": [
+        "Revogar/desativar as chaves expostas imediatamente, gerar novas se necessário e migrar a aplicação para roles com credenciais temporárias",
+        "Apenas apagar o arquivo no próximo commit, mantendo as chaves ativas",
+        "Tornar o repositório privado e considerar o caso encerrado",
+        "Trocar apenas o nome do usuário IAM dono das chaves"
+      ],
+      "correct": 0,
+      "explanation": "Credencial commitada deve ser considerada comprometida: revoga-se na hora, e a correção estrutural é eliminar chaves estáticas do código usando roles (EC2/Lambda/ECS) com credenciais temporárias.",
+      "hint": "Chave que viu a luz do repositório está queimada: revogar primeiro, depois eliminar a categoria do problema com roles.",
+      "optionRationales": [
+        "Credencial commitada deve ser considerada comprometida: revoga-se na hora, e a correção estrutural é eliminar chaves estáticas do código usando roles (EC2/Lambda/ECS) com credenciais temporárias.",
+        "O histórico do Git preserva o conteúdo — e as chaves continuam válidas para quem as copiou.",
+        "Restringir visibilidade dali em diante não desfaz a exposição já ocorrida — a chave permanece comprometida.",
+        "Renomear o usuário não invalida as chaves — elas continuam funcionando normalmente."
+      ]
+    },
+    {
+      "id": "dva-ini-049",
+      "domain": "security",
+      "text": "Como prática recorrente de higiene de segurança, o que a AWS recomenda fazer periodicamente com as access keys de usuários IAM que precisam existir?",
+      "options": [
+        "Rotacioná-las regularmente: criar a nova chave, atualizar as aplicações, desativar e depois excluir a antiga",
+        "Compartilhá-las entre os membros do time para reduzir a quantidade de chaves",
+        "Publicá-las no wiki interno para facilitar o acesso",
+        "Imprimir e guardar em papel como única cópia"
+      ],
+      "correct": 0,
+      "explanation": "A rotação periódica limita a janela de uso de uma chave eventualmente vazada; o fluxo com desativação intermediária permite reverter sem downtime se algo ainda usar a antiga.",
+      "hint": "Chave estática que precisa existir deve, no mínimo, ter prazo de validade na prática: girar, migrar, aposentar.",
+      "optionRationales": [
+        "A rotação periódica limita a janela de uso de uma chave eventualmente vazada; o fluxo com desativação intermediária permite reverter sem downtime se algo ainda usar a antiga.",
+        "Compartilhar credenciais destrói a rastreabilidade individual e amplia a exposição.",
+        "Wiki é repositório de conhecimento amplo — divulgar credenciais ali é exposição direta.",
+        "Inviável operacionalmente e sem qualquer ganho — o controle correto é rotação e mínimo uso de chaves estáticas."
+      ]
+    },
+    {
+      "id": "dva-ini-050",
+      "domain": "security",
+      "text": "Um desenvolvedor da conta A precisa acessar temporariamente recursos na conta B da mesma empresa. A equipe de segurança configurou na conta B uma role confiando na conta A. Qual serviço/operação o desenvolvedor usa para obter credenciais temporárias dessa role?",
+      "options": [
+        "AWS STS com a operação AssumeRole, que retorna credenciais temporárias da role da conta B",
+        "Pedir as access keys do administrador da conta B",
+        "Criar um usuário root adicional na conta B",
+        "Clonar a conta B dentro da conta A"
+      ],
+      "correct": 0,
+      "explanation": "O Security Token Service emite credenciais de curta duração: o AssumeRole na role confiável da conta B concede acesso temporário e auditável, sem criar usuários ou chaves permanentes na outra conta.",
+      "hint": "O 'balcão de fichas temporárias' da AWS: assuma a role e receba credenciais com hora para expirar.",
+      "optionRationales": [
+        "O Security Token Service emite credenciais de curta duração: o AssumeRole na role confiável da conta B concede acesso temporário e auditável, sem criar usuários ou chaves permanentes na outra conta.",
+        "Transferir credenciais permanentes entre pessoas é violação básica — o mecanismo correto são roles e STS.",
+        "Cada conta tem um único root — e jamais se usa root para acesso rotineiro.",
+        "Não existe clonagem de contas — o acesso entre contas é resolvido por confiança entre roles."
+      ]
+    },
+    {
+      "id": "dva-ini-051",
+      "domain": "security",
+      "text": "Um bucket S3 de uma aplicação guarda documentos internos de clientes. O time quer uma trava na configuração que impeça que QUALQUER política ou ACL futura torne esse conteúdo público, mesmo por engano de um desenvolvedor. Qual recurso aplica essa proteção?",
+      "options": [
+        "S3 Block Public Access habilitado no bucket (ou na conta)",
+        "Habilitar versionamento no bucket",
+        "Mover os objetos para a classe Standard-IA",
+        "Renomear o bucket com um nome difícil de adivinhar"
+      ],
+      "correct": 0,
+      "explanation": "O Block Public Access sobrepõe-se a políticas e ACLs: com ele ativo, concessões públicas são bloqueadas ou ignoradas — a rede de proteção contra exposições acidentais.",
+      "hint": "O 'cadeado mestre' do S3 que veta acesso público mesmo quando alguém tenta conceder.",
+      "optionRationales": [
+        "O Block Public Access sobrepõe-se a políticas e ACLs: com ele ativo, concessões públicas são bloqueadas ou ignoradas — a rede de proteção contra exposições acidentais.",
+        "Versionamento protege contra perda de versões — não contra exposição pública.",
+        "Classe de armazenamento trata custo/acesso — irrelevante para visibilidade pública.",
+        "Obscuridade não é controle de acesso — listagens e vazamentos revelam nomes."
+      ]
+    },
+    {
+      "id": "dva-ini-052",
+      "domain": "security",
+      "text": "Uma API no API Gateway será consumida por parceiros, e o time quer distribuir uma chave para cada parceiro a fim de aplicar limites de requisições (throttling) e cotas mensais por consumidor. Qual recurso do API Gateway implementa esse controle, e qual ressalva de segurança se aplica?",
+      "options": [
+        "API keys associadas a usage plans — lembrando que API keys controlam consumo e identificação, mas não substituem autenticação/autorização",
+        "API keys, que são o mecanismo oficial de autenticação de usuários do API Gateway",
+        "Distribuir as credenciais IAM da conta para cada parceiro",
+        "Stages separados para cada parceiro"
+      ],
+      "correct": 0,
+      "explanation": "Usage plans com API keys aplicam throttling e cotas por consumidor; como as chaves não são mecanismo de autenticação forte, a segurança real deve vir de authorizers (Cognito/IAM/Lambda).",
+      "hint": "Chave de API mede e limita o consumo de cada parceiro — mas o 'crachá de identidade' de verdade é outro mecanismo.",
+      "optionRationales": [
+        "Usage plans com API keys aplicam throttling e cotas por consumidor; como as chaves não são mecanismo de autenticação forte, a segurança real deve vir de authorizers (Cognito/IAM/Lambda).",
+        "API keys identificam consumidores para medição/limites — a documentação é explícita em não usá-las como autenticação.",
+        "Entregar credenciais da conta a terceiros é gravíssimo — parceiros recebem chaves de API e/ou federação adequada.",
+        "Stages separam ambientes de publicação — não aplicam cotas por consumidor."
+      ]
+    },
+    {
+      "id": "dva-ini-053",
+      "domain": "security",
+      "text": "Para que um bucket S3 possa invocar uma função Lambda quando novos objetos são criados, é preciso autorizar o serviço S3 a chamar a função. Onde essa permissão é concedida?",
+      "options": [
+        "Na resource-based policy da função Lambda, permitindo que o principal s3.amazonaws.com a invoque a partir daquele bucket",
+        "Na execution role da função",
+        "No Security Group da função",
+        "Nas tags do bucket"
+      ],
+      "correct": 0,
+      "explanation": "A política baseada em recurso da função (lambda add-permission) autoriza outros serviços/contas a invocá-la — é assim que o S3 ganha o direito de disparar a função nos eventos do bucket.",
+      "hint": "Para 'quem pode me chamar', a função tem sua própria política colada NELA (recurso), não na role.",
+      "optionRationales": [
+        "A política baseada em recurso da função (lambda add-permission) autoriza outros serviços/contas a invocá-la — é assim que o S3 ganha o direito de disparar a função nos eventos do bucket.",
+        "A execution role define o que a FUNÇÃO pode fazer nos serviços — não quem pode invocá-la.",
+        "Security Groups regem tráfego de rede em VPC — não autorizam invocações entre serviços.",
+        "Tags são metadados organizacionais — não concedem permissões."
+      ]
+    },
+    {
+      "id": "dva-ini-054",
+      "domain": "security",
+      "text": "Em um pipeline de CI/CD com AWS CodeBuild, o build precisa de um token de acesso a um registro privado de pacotes. Qual é a forma recomendada de fornecer esse segredo ao buildspec sem expô-lo no repositório?",
+      "options": [
+        "Referenciar o segredo no buildspec a partir do Secrets Manager ou do Parameter Store (SecureString), com a service role do CodeBuild autorizada a lê-lo",
+        "Gravar o token no buildspec.yml commitado",
+        "Imprimir o token nos logs do build para reutilização",
+        "Enviar o token por mensagem ao time a cada build"
+      ],
+      "correct": 0,
+      "explanation": "O buildspec suporta variáveis vindas de secrets-manager e parameter-store: o valor é injetado em tempo de build, fora do código-fonte, com acesso controlado pela role do projeto.",
+      "hint": "O buildspec sabe buscar valores 'no cofre' na hora do build — o repositório nunca vê o segredo.",
+      "optionRationales": [
+        "O buildspec suporta variáveis vindas de secrets-manager e parameter-store: o valor é injetado em tempo de build, fora do código-fonte, com acesso controlado pela role do projeto.",
+        "O buildspec vive no repositório — segredo ali é segredo vazado.",
+        "Logs são amplamente acessíveis e retidos — jamais devem conter segredos.",
+        "Distribuição manual de segredo é insegura e não automatizável."
+      ]
+    },
+    {
+      "id": "dva-ini-055",
+      "domain": "security",
+      "text": "Uma empresa exige autenticação multifator para todos os usuários IAM humanos que acessam o console, como proteção adicional contra senhas roubadas. O que o MFA adiciona ao processo de login?",
+      "options": [
+        "Um segundo fator de posse (código de aplicativo autenticador ou chave física) exigido além da senha",
+        "Uma segunda senha memorizada pelo usuário",
+        "Criptografia automática de todos os buckets do usuário",
+        "Aprovação manual do administrador a cada login"
+      ],
+      "correct": 0,
+      "explanation": "O MFA combina 'algo que se sabe' (senha) com 'algo que se tem' (dispositivo) — uma senha vazada deixa de ser suficiente para o invasor entrar.",
+      "hint": "Senha (o que você sabe) + dispositivo (o que você tem) = dois fatores.",
+      "optionRationales": [
+        "O MFA combina 'algo que se sabe' (senha) com 'algo que se tem' (dispositivo) — uma senha vazada deixa de ser suficiente para o invasor entrar.",
+        "Duas senhas continuam sendo o mesmo fator (conhecimento) — o MFA exige um fator de natureza diferente.",
+        "MFA é controle de autenticação — não configura criptografia de armazenamento.",
+        "O MFA é automático com o dispositivo do próprio usuário — não envolve aprovação humana de terceiros."
+      ]
+    },
+    {
+      "id": "dva-ini-056",
+      "domain": "security",
+      "text": "Um desenvolvedor notou que tabelas do DynamoDB criadas recentemente exibem criptografia em repouso habilitada, embora ninguém a tenha configurado. Qual é a explicação correta?",
+      "options": [
+        "O DynamoDB criptografa todas as tabelas em repouso por padrão, usando chaves gerenciadas pela AWS, com opção de trocar para chaves do cliente",
+        "Outro desenvolvedor ativou manualmente e escondeu a configuração",
+        "É um erro de exibição do console; os dados estão em texto claro",
+        "A criptografia só existe nas tabelas com índices secundários"
+      ],
+      "correct": 0,
+      "explanation": "A criptografia em repouso é nativa e obrigatória no DynamoDB: por padrão usa chaves de propriedade da AWS, e o cliente pode optar por chaves KMS gerenciadas pela AWS ou por ele próprio.",
+      "hint": "Alguns serviços nasceram com o cofre trancado de fábrica — o DynamoDB é um deles.",
+      "optionRationales": [
+        "A criptografia em repouso é nativa e obrigatória no DynamoDB: por padrão usa chaves de propriedade da AWS, e o cliente pode optar por chaves KMS gerenciadas pela AWS ou por ele próprio.",
+        "Não é necessário ativar — o serviço aplica a criptografia em repouso a todas as tabelas desde a criação.",
+        "A indicação é real — não existe tabela do DynamoDB sem criptografia em repouso.",
+        "A proteção cobre todas as tabelas, índices e streams — independentemente de GSIs."
+      ]
+    },
+    {
+      "id": "dva-ini-057",
+      "domain": "security",
+      "text": "Uma aplicação em EC2 acessa um banco RDS PostgreSQL. Na configuração de rede segura, qual regra de Security Group do RDS segue a boa prática para permitir apenas essa aplicação?",
+      "options": [
+        "Entrada na porta 5432 tendo como origem o Security Group das instâncias da aplicação",
+        "Entrada na porta 5432 aberta para 0.0.0.0/0",
+        "Entrada em todas as portas para a VPC inteira",
+        "Nenhuma regra de entrada, conectando via porta de saída"
+      ],
+      "correct": 0,
+      "explanation": "Restringir a porta do banco à origem do SG da aplicação garante que apenas membros daquele grupo alcancem o RDS — dinâmico (acompanha o Auto Scaling) e mínimo.",
+      "hint": "Porta exata + origem 'crachá do grupo da aplicação' = acesso mínimo e dinâmico.",
+      "optionRationales": [
+        "Restringir a porta do banco à origem do SG da aplicação garante que apenas membros daquele grupo alcancem o RDS — dinâmico (acompanha o Auto Scaling) e mínimo.",
+        "Banco exposto à internet inteira é um dos erros mais explorados — viola o menor privilégio de rede.",
+        "Todas as portas para toda a rede excede em muito o necessário — só a porta do PostgreSQL, só para a aplicação.",
+        "Sem regra de entrada no SG do banco, as conexões da aplicação são bloqueadas — regras de saída de quem chama não substituem a autorização de entrada."
+      ]
+    },
+    {
+      "id": "dva-ini-058",
+      "domain": "security",
+      "text": "Na avaliação de permissões do IAM, uma requisição não corresponde a nenhuma declaração Allow nas políticas aplicáveis. Qual é o resultado e qual conceito explica esse comportamento?",
+      "options": [
+        "A requisição é negada: o IAM nega por padrão (implicit deny) tudo o que não for explicitamente permitido",
+        "A requisição é permitida, pois não havia proibição explícita",
+        "O IAM pergunta ao administrador em tempo real",
+        "A requisição fica pendente por 24 horas"
+      ],
+      "correct": 0,
+      "explanation": "O modelo do IAM parte do implicit deny: sem um Allow aplicável a ação é negada, e um Deny explícito vence qualquer Allow — a base do 'fechado por padrão'.",
+      "hint": "No IAM, o silêncio significa 'não': tudo começa negado até alguém permitir.",
+      "optionRationales": [
+        "O modelo do IAM parte do implicit deny: sem um Allow aplicável a ação é negada, e um Deny explícito vence qualquer Allow — a base do 'fechado por padrão'.",
+        "É o oposto: a ausência de permissão já nega — o IAM não funciona como 'liberado salvo proibição'.",
+        "A avaliação é automática e instantânea — não há aprovação interativa.",
+        "Não existe fila de pendência — o veredito é imediato: negado sem Allow aplicável."
+      ]
+    },
+    {
+      "id": "dva-ini-059",
+      "domain": "security",
+      "text": "Os logs de uma aplicação registravam o corpo completo das requisições, incluindo números de cartão e senhas — descoberto durante uma auditoria. Qual prática de desenvolvimento seguro deveria ter sido aplicada aos logs?",
+      "options": [
+        "Nunca registrar dados sensíveis: mascarar ou remover segredos, senhas e dados de cartão antes de logar",
+        "Logar tudo, pois os logs do CloudWatch são secretos por natureza",
+        "Desativar todos os logs da aplicação",
+        "Compactar os logs para dificultar a leitura"
+      ],
+      "correct": 0,
+      "explanation": "Logs se replicam para sistemas de análise, backups e equipes amplas — dados sensíveis neles viram vazamento permanente; a sanitização na origem é obrigatória (e exigida por padrões como PCI DSS).",
+      "hint": "O que cai no log se espalha — dado sensível se mascara ANTES de escrever.",
+      "optionRationales": [
+        "Logs se replicam para sistemas de análise, backups e equipes amplas — dados sensíveis neles viram vazamento permanente; a sanitização na origem é obrigatória (e exigida por padrões como PCI DSS).",
+        "Logs têm ampla audiência e retenção — não são cofres, e o acesso a eles costuma ser menos restrito que a dados de produção.",
+        "Sem logs não há diagnóstico nem auditoria — a solução é sanitizar, não cegar a operação.",
+        "Compactação é reversível e não é controle de segurança."
+      ]
+    },
+    {
+      "id": "dva-ini-060",
+      "domain": "security",
+      "text": "Uma SPA (single-page application) hospedada em um domínio chama uma API no API Gateway em outro domínio, e o navegador bloqueia as respostas com erros de política de origem cruzada. Qual configuração resolve o problema no lado da API?",
+      "options": [
+        "Habilitar CORS na API, retornando os cabeçalhos Access-Control-Allow-Origin (e relacionados) apropriados para o domínio da SPA",
+        "Desativar o HTTPS da API",
+        "Pedir aos usuários que usem outro navegador",
+        "Aumentar o timeout da integração"
+      ],
+      "correct": 0,
+      "explanation": "O CORS é o mecanismo que autoriza origens distintas no navegador: a API precisa responder aos preflights OPTIONS e incluir os cabeçalhos de permissão para o domínio da aplicação.",
+      "hint": "Domínios diferentes no navegador exigem que a API 'autorize a origem' nos cabeçalhos — a sigla é de quatro letras.",
+      "optionRationales": [
+        "O CORS é o mecanismo que autoriza origens distintas no navegador: a API precisa responder aos preflights OPTIONS e incluir os cabeçalhos de permissão para o domínio da aplicação.",
+        "O bloqueio é de política de origem, não de TLS — remover HTTPS só degrada a segurança.",
+        "Todos os navegadores modernos aplicam a same-origin policy — a correção é no servidor, não no cliente.",
+        "Timeout não tem relação com bloqueio de origem cruzada."
+      ]
+    },
+    {
+      "id": "dva-ini-061",
+      "domain": "security",
+      "text": "Um endpoint administrativo de uma aplicação interna deve aceitar chamadas apenas de identidades AWS autorizadas, assinando cada requisição com credenciais IAM (SigV4). No API Gateway, qual tipo de autorização implementa esse modelo?",
+      "options": [
+        "Autorização IAM (AWS_IAM), exigindo requisições assinadas com SigV4 e permissões execute-api na política do chamador",
+        "API key no cabeçalho x-api-key",
+        "Acesso aberto com validação por IP no código da Lambda",
+        "Basic Auth com usuário e senha fixos no API Gateway"
+      ],
+      "correct": 0,
+      "explanation": "Com auth AWS_IAM, o API Gateway valida a assinatura SigV4 e as permissões IAM do chamador — ideal para APIs internas consumidas por identidades AWS (roles de serviços, ferramentas internas).",
+      "hint": "Requisição 'assinada' com as credenciais AWS do chamador: o modo de autorização que fala IAM.",
+      "optionRationales": [
+        "Com auth AWS_IAM, o API Gateway valida a assinatura SigV4 e as permissões IAM do chamador — ideal para APIs internas consumidas por identidades AWS (roles de serviços, ferramentas internas).",
+        "API keys medem consumo e não autenticam identidades — qualquer portador da chave passa.",
+        "Validação caseira por IP é frágil (NAT, proxies) e tardia — a autorização nativa bloqueia antes do backend.",
+        "O API Gateway não oferece Basic Auth nativa — e credenciais fixas compartilhadas são má prática."
+      ]
+    },
+    {
+      "id": "dva-ini-062",
+      "domain": "security",
+      "text": "Uma função Lambda precisa acessar um banco RDS que está em sub-redes privadas de uma VPC. Qual configuração permite que a função alcance o banco pela rede privada?",
+      "options": [
+        "Configurar a função para executar na VPC, associando-a às sub-redes e a um Security Group autorizado no SG do RDS",
+        "Tornar o RDS publicamente acessível na internet",
+        "Copiar os dados do RDS para o S3 a cada hora",
+        "Usar o console da AWS como intermediário das queries"
+      ],
+      "correct": 0,
+      "explanation": "Funções conectadas à VPC recebem ENIs nas sub-redes indicadas e passam a alcançar recursos privados; o SG da função é então autorizado na regra de entrada do banco — o caminho padrão Lambda→RDS privado.",
+      "hint": "Para falar com quem mora na rede privada, a função precisa 'morar' lá também (ENIs na VPC) — com o crachá de SG certo.",
+      "optionRationales": [
+        "Funções conectadas à VPC recebem ENIs nas sub-redes indicadas e passam a alcançar recursos privados; o SG da função é então autorizado na regra de entrada do banco — o caminho padrão Lambda→RDS privado.",
+        "Expor o banco publicamente para conveniência da função inverte a postura de segurança — a função é que vai até a rede privada.",
+        "Cópias periódicas mudam a arquitetura e a consistência — não resolvem o acesso transacional da função ao banco.",
+        "O console é interface humana — aplicações conectam-se diretamente pela rede com credenciais próprias."
+      ]
+    },
+    {
+      "id": "dva-ini-063",
+      "domain": "security",
+      "text": "Um time de desenvolvimento recebeu acesso à conta AWS de produção e o gestor pediu para aplicarem o princípio de 'separação de ambientes' nas permissões: desenvolvedores podem experimentar livremente no ambiente de dev, mas em produção só implantam via pipeline. Qual é a principal motivação de segurança dessa separação?",
+      "options": [
+        "Reduzir o risco de mudanças manuais não auditadas em produção: humanos têm permissões amplas só onde o impacto é baixo, e produção muda apenas por processo automatizado e rastreável",
+        "Economizar custos, pois permissões amplas são cobradas pela AWS",
+        "Impedir que o pipeline tenha qualquer permissão em produção",
+        "Permitir que todos usem o usuário root em dev"
+      ],
+      "correct": 0,
+      "explanation": "Restringir produção ao pipeline garante revisão, trilha de auditoria e reprodutibilidade, enquanto a liberdade fica no ambiente de baixo impacto — alinhado ao menor privilégio por contexto.",
+      "hint": "Mão humana solta no playground; em produção, só o robô com trilha de auditoria.",
+      "optionRationales": [
+        "Restringir produção ao pipeline garante revisão, trilha de auditoria e reprodutibilidade, enquanto a liberdade fica no ambiente de baixo impacto — alinhado ao menor privilégio por contexto.",
+        "Permissões IAM não geram cobrança — a motivação é controle de risco, não preço.",
+        "É o contrário: o pipeline é justamente o caminho autorizado para mudar produção.",
+        "O root nunca é ferramenta de trabalho diário em nenhum ambiente."
+      ]
+    },
+    {
+      "id": "dva-ini-064",
+      "domain": "deployment",
+      "text": "Um time quer automatizar o caminho do código até produção: a cada push no repositório, executar build e testes e, se tudo passar, implantar automaticamente. Qual serviço da AWS orquestra essas etapas em um fluxo de entrega contínua?",
+      "options": [
+        "AWS CodePipeline, definindo estágios de source, build e deploy conectados em sequência",
+        "AWS CloudTrail, que executa os deploys registrados",
+        "Amazon SQS, encadeando filas de build e deploy",
+        "AWS Trusted Advisor"
+      ],
+      "correct": 0,
+      "explanation": "O CodePipeline é o orquestrador de CI/CD da AWS: detecta mudanças na origem e conduz os artefatos pelos estágios (build, testes, aprovações, deploy) automaticamente.",
+      "hint": "O 'encanamento' que liga o commit à produção, estágio por estágio.",
+      "optionRationales": [
+        "O CodePipeline é o orquestrador de CI/CD da AWS: detecta mudanças na origem e conduz os artefatos pelos estágios (build, testes, aprovações, deploy) automaticamente.",
+        "O CloudTrail registra chamadas de API para auditoria — não constrói nem implanta código.",
+        "Filas transportam mensagens — não executam builds, testes ou implantações.",
+        "O Trusted Advisor emite recomendações de boas práticas — não é ferramenta de entrega contínua."
+      ]
+    },
+    {
+      "id": "dva-ini-065",
+      "domain": "deployment",
+      "text": "Dentro de um pipeline, a etapa de compilar o código, rodar os testes unitários e gerar o artefato de deploy precisa de um ambiente gerenciado que execute esses comandos sob demanda, definidos em um arquivo no repositório. Qual serviço executa essa etapa e qual arquivo a define?",
+      "options": [
+        "AWS CodeBuild, com os comandos definidos no buildspec.yml",
+        "AWS CodeDeploy, com os comandos no appspec.yml",
+        "Amazon EC2 com um servidor de build ligado 24/7",
+        "AWS Lambda, limitada a builds de 15 minutos"
+      ],
+      "correct": 0,
+      "explanation": "O CodeBuild provisiona ambientes efêmeros de build sob demanda e executa as fases declaradas no buildspec.yml (install, build, artifacts) — pagando apenas pelo tempo de build.",
+      "hint": "O 'construtor' sob demanda lê sua receita de build em um YAML específico na raiz do repositório.",
+      "optionRationales": [
+        "O CodeBuild provisiona ambientes efêmeros de build sob demanda e executa as fases declaradas no buildspec.yml (install, build, artifacts) — pagando apenas pelo tempo de build.",
+        "O CodeDeploy implanta artefatos em destinos (EC2, Lambda, ECS) usando o appspec — a compilação e os testes pertencem ao CodeBuild.",
+        "Servidor permanente de build é o modelo que o serviço gerenciado sob demanda substitui com menos custo e manutenção.",
+        "Lambda executa funções de aplicação — não é o serviço de build com ambientes e cache de dependências do pipeline."
+      ]
+    },
+    {
+      "id": "dva-ini-066",
+      "domain": "deployment",
+      "text": "Após o build, o artefato precisa ser implantado em uma frota de instâncias EC2, executando hooks como parar o serviço, copiar arquivos e reiniciar a aplicação em cada máquina. Qual serviço gerencia essa implantação e qual arquivo descreve os hooks?",
+      "options": [
+        "AWS CodeDeploy, com o ciclo de implantação descrito no appspec.yml",
+        "AWS CodeBuild, com os hooks no buildspec.yml",
+        "Amazon S3 com replicação para as instâncias",
+        "AWS Config com regras de implantação"
+      ],
+      "correct": 0,
+      "explanation": "O CodeDeploy coordena implantações em EC2/on-premises, Lambda e ECS; o appspec.yml define os arquivos a copiar e os hooks do ciclo de vida (BeforeInstall, ApplicationStart etc.) em cada destino.",
+      "hint": "O 'implantador' oficial segue o roteiro do appspec: antes de instalar, instalar, iniciar, validar.",
+      "optionRationales": [
+        "O CodeDeploy coordena implantações em EC2/on-premises, Lambda e ECS; o appspec.yml define os arquivos a copiar e os hooks do ciclo de vida (BeforeInstall, ApplicationStart etc.) em cada destino.",
+        "O CodeBuild compila e testa — a entrega nos servidores com hooks de ciclo de vida é papel do CodeDeploy.",
+        "O S3 armazena artefatos, mas não executa hooks nem coordena a implantação nas máquinas.",
+        "O Config avalia conformidade de configurações — não implanta aplicações."
+      ]
+    },
+    {
+      "id": "dva-ini-067",
+      "domain": "deployment",
+      "text": "Um time avalia estratégias de implantação e quer entender a diferença entre rolling e blue/green. Qual descrição está correta?",
+      "options": [
+        "Rolling substitui as instâncias em lotes dentro do mesmo ambiente; blue/green cria um ambiente novo completo e troca o tráfego de uma vez, mantendo o antigo para rollback rápido",
+        "Rolling exige o dobro de infraestrutura; blue/green atualiza no mesmo ambiente",
+        "As duas estratégias derrubam o ambiente inteiro durante a troca",
+        "Blue/green só funciona para bancos de dados"
+      ],
+      "correct": 0,
+      "explanation": "Essas são as definições clássicas: rolling atualiza gradualmente o ambiente existente (capacidade mista durante o processo), enquanto blue/green paraleliza ambientes e comuta o tráfego — rollback é só voltar o ponteiro.",
+      "hint": "Um troca as peças do avião em voo, aos poucos; o outro estaciona um avião novo ao lado e transfere os passageiros.",
+      "optionRationales": [
+        "Essas são as definições clássicas: rolling atualiza gradualmente o ambiente existente (capacidade mista durante o processo), enquanto blue/green paraleliza ambientes e comuta o tráfego — rollback é só voltar o ponteiro.",
+        "Está invertido: quem duplica a infraestrutura temporariamente é o blue/green; o rolling reaproveita o ambiente atual.",
+        "Ambas existem justamente para evitar indisponibilidade total — atualização gradual ou comutação de tráfego.",
+        "Blue/green aplica-se a aplicações em geral (EC2, ECS, Lambda) — bancos exigem cuidados adicionais, mas não são o único alvo."
+      ]
+    },
+    {
+      "id": "dva-ini-068",
+      "domain": "deployment",
+      "text": "Em uma implantação canary de uma nova versão de função Lambda, qual é o comportamento característico dessa estratégia?",
+      "options": [
+        "Uma pequena porcentagem do tráfego (ex: 10%) vai para a nova versão por um período de observação; se as métricas estiverem saudáveis, o restante é promovido",
+        "Todo o tráfego muda imediatamente para a nova versão",
+        "A nova versão roda apenas em ambiente de testes, sem tráfego real",
+        "As duas versões respondem juntas a cada requisição e comparam resultados"
+      ],
+      "correct": 0,
+      "explanation": "O canary expõe a novidade a uma fatia controlada de usuários como 'sentinela': problemas afetam poucos e disparam rollback; sucesso libera o tráfego total — padrão suportado nativamente por CodeDeploy para Lambda.",
+      "hint": "Como o canário na mina: poucos usuários 'testam o ar' da versão nova antes da turma toda entrar.",
+      "optionRationales": [
+        "O canary expõe a novidade a uma fatia controlada de usuários como 'sentinela': problemas afetam poucos e disparam rollback; sucesso libera o tráfego total — padrão suportado nativamente por CodeDeploy para Lambda.",
+        "Troca total imediata é o all-at-once — sem o período de observação parcial que define o canary.",
+        "Validação sem tráfego real é estágio de homologação — o canary usa tráfego de produção em pequena dose.",
+        "Execução paralela com comparação é shadow testing — no canary, cada requisição é atendida por UMA versão conforme o percentual."
+      ]
+    },
+    {
+      "id": "dva-ini-069",
+      "domain": "deployment",
+      "text": "Um desenvolvedor publicou uma função Lambda e criou as versões 1, 2 e 3. Qual característica das versões numeradas do Lambda é importante para implantações confiáveis?",
+      "options": [
+        "Versões publicadas são imutáveis: código e configuração ficam congelados, garantindo que apontar para a versão N sempre execute exatamente o mesmo artefato",
+        "Versões publicadas podem ser editadas livremente a qualquer momento",
+        "Apenas três versões podem existir por função",
+        "Versões antigas são excluídas automaticamente após 30 dias"
+      ],
+      "correct": 0,
+      "explanation": "A imutabilidade das versões dá previsibilidade a deploys e rollbacks — diferentemente de $LATEST, que muda a cada atualização do código.",
+      "hint": "Versão publicada é fotografia revelada: ninguém edita depois — e isso é uma virtude para rollback.",
+      "optionRationales": [
+        "A imutabilidade das versões dá previsibilidade a deploys e rollbacks — diferentemente de $LATEST, que muda a cada atualização do código.",
+        "Editável é apenas a $LATEST — versões numeradas não aceitam alteração de código ou configuração.",
+        "Não há limite de três — funções acumulam versões conforme publicadas (limitadas pelo armazenamento da conta).",
+        "Versões permanecem até exclusão explícita — não expiram sozinhas."
+      ]
+    },
+    {
+      "id": "dva-ini-070",
+      "domain": "deployment",
+      "text": "A aplicação cliente invoca uma função Lambda e o time quer trocar a versão em produção (da v3 para a v4) sem alterar o ARN configurado nos clientes, podendo ainda fazer a transição gradualmente. Qual recurso do Lambda fornece esse ponteiro estável?",
+      "options": [
+        "Um alias (ex: 'prod') apontando para a versão atual, atualizável e com suporte a divisão de tráfego entre duas versões",
+        "Editar a versão 3 substituindo o código pela v4",
+        "Pedir aos clientes que atualizem o ARN a cada release",
+        "Usar $LATEST diretamente em produção"
+      ],
+      "correct": 0,
+      "explanation": "O alias é um ponteiro nomeado com ARN estável: os clientes invocam 'prod' e o time muda o destino (v3→v4) ou divide tráfego por pesos — base das implantações canary/linear no Lambda.",
+      "hint": "O 'apelido' fixo que os clientes chamam — e que o time reaponta (ou divide) por baixo dos panos.",
+      "optionRationales": [
+        "O alias é um ponteiro nomeado com ARN estável: os clientes invocam 'prod' e o time muda o destino (v3→v4) ou divide tráfego por pesos — base das implantações canary/linear no Lambda.",
+        "Versões publicadas são imutáveis — e sobrescrever versões destruiria a rastreabilidade do deploy.",
+        "Acoplar os clientes à versão numérica gera coordenação frágil a cada deploy — o alias elimina essa dependência.",
+        "$LATEST muda a cada salvamento de código — produção apontada para ela recebe alterações não controladas."
+      ]
+    },
+    {
+      "id": "dva-ini-071",
+      "domain": "deployment",
+      "text": "Um desenvolvedor prefere definir a infraestrutura serverless (funções, filas, tabelas) usando uma linguagem de programação como TypeScript ou Python — com loops, condições e classes — em vez de escrever YAML manualmente. Qual ferramenta da AWS atende a essa preferência, gerando CloudFormation por baixo?",
+      "options": [
+        "AWS CDK (Cloud Development Kit)",
+        "AWS CloudShell",
+        "Amazon CodeWhisperer sozinho",
+        "AWS Artifact"
+      ],
+      "correct": 0,
+      "explanation": "O CDK define infraestrutura em linguagens de programação reais e 'sintetiza' templates CloudFormation — unindo abstrações de código (constructs) ao motor de provisionamento padrão da AWS.",
+      "hint": "O 'kit de desenvolvimento' que transforma classes e loops em templates CloudFormation.",
+      "optionRationales": [
+        "O CDK define infraestrutura em linguagens de programação reais e 'sintetiza' templates CloudFormation — unindo abstrações de código (constructs) ao motor de provisionamento padrão da AWS.",
+        "O CloudShell é um terminal no navegador — não é framework de infraestrutura como código.",
+        "Assistentes de código sugerem trechos, mas não são o framework que define e provisiona a infraestrutura.",
+        "O Artifact entrega relatórios de conformidade — nenhuma relação com IaC."
+      ]
+    },
+    {
+      "id": "dva-ini-072",
+      "domain": "deployment",
+      "text": "No AWS CloudFormation, o que é uma stack?",
+      "options": [
+        "O conjunto de recursos provisionados e gerenciados como uma unidade a partir de um template",
+        "A fila de espera dos deploys da conta",
+        "Um tipo de instância EC2 otimizada para infraestrutura",
+        "O log de erros do template"
+      ],
+      "correct": 0,
+      "explanation": "A stack é a instância viva do template: criação, atualização e exclusão atuam sobre o conjunto inteiro de recursos de forma coordenada, com estado e histórico gerenciados.",
+      "hint": "O template é a planta; a 'pilha' é o prédio construído e administrado como um todo.",
+      "optionRationales": [
+        "A stack é a instância viva do template: criação, atualização e exclusão atuam sobre o conjunto inteiro de recursos de forma coordenada, com estado e histórico gerenciados.",
+        "Stack não é fila de execução — é o agrupamento dos recursos provisionados de um template.",
+        "Stack é conceito do CloudFormation — não um hardware ou família de instância.",
+        "Eventos e logs existem DENTRO da stack — mas a stack em si é o conjunto de recursos."
+      ]
+    },
+    {
+      "id": "dva-ini-073",
+      "domain": "deployment",
+      "text": "Antes de aplicar uma atualização em uma stack do CloudFormation de produção, a equipe quer visualizar exatamente quais recursos serão criados, modificados ou SUBSTITUÍDOS pela mudança — sem executá-la ainda. Qual recurso do CloudFormation fornece essa prévia?",
+      "options": [
+        "Change sets, que listam as alterações planejadas para revisão antes da execução",
+        "Drift detection, que aplica a mudança e mostra o resultado",
+        "Excluir a stack e recriá-la para ver o que muda",
+        "Outputs da stack"
+      ],
+      "correct": 0,
+      "explanation": "O change set compara o template novo com o estado atual e detalha cada ação prevista (incluindo substituições destrutivas) — a revisão prévia que evita surpresas em produção.",
+      "hint": "O 'orçamento detalhado da reforma' antes de autorizar a obra.",
+      "optionRationales": [
+        "O change set compara o template novo com o estado atual e detalha cada ação prevista (incluindo substituições destrutivas) — a revisão prévia que evita surpresas em produção.",
+        "Drift detection compara a stack com o template para detectar alterações manuais — não é prévia de atualização.",
+        "Destruir produção para descobrir o efeito de uma mudança é exatamente o desastre que a prévia evita.",
+        "Outputs expõem valores de recursos criados — não preveem os efeitos de uma atualização."
+      ]
+    },
+    {
+      "id": "dva-ini-074",
+      "domain": "deployment",
+      "text": "Durante a criação de uma stack do CloudFormation, um dos recursos falhou ao ser provisionado. Qual é o comportamento padrão do CloudFormation nessa situação?",
+      "options": [
+        "Executa rollback automático, desfazendo os recursos já criados para não deixar a stack pela metade",
+        "Mantém os recursos criados e ignora os restantes",
+        "Tenta criar o recurso com falha indefinidamente",
+        "Transfere a stack para outra Região automaticamente"
+      ],
+      "correct": 0,
+      "explanation": "Por padrão, a falha na criação dispara o rollback: o CloudFormation remove o que havia provisionado, evitando infraestrutura parcial e órfã — o estado volta ao anterior.",
+      "hint": "Obra que falha no meio é desfeita: tudo ou nada, por padrão.",
+      "optionRationales": [
+        "Por padrão, a falha na criação dispara o rollback: o CloudFormation remove o que havia provisionado, evitando infraestrutura parcial e órfã — o estado volta ao anterior.",
+        "Manter metade da infraestrutura é o comportamento que o rollback padrão evita (há opções para preservar em troubleshooting, mas não é o padrão).",
+        "Não há loop infinito — a falha encerra a operação e aciona o rollback.",
+        "Stacks são regionais e não migram sozinhas — a reação à falha é o rollback local."
+      ]
+    },
+    {
+      "id": "dva-ini-075",
+      "domain": "deployment",
+      "text": "No AWS Elastic Beanstalk, qual é a diferença entre os tiers de ambiente web server e worker?",
+      "options": [
+        "O web server atende requisições HTTP dos usuários; o worker processa tarefas em segundo plano consumindo mensagens de uma fila SQS",
+        "O web server é pago e o worker é gratuito",
+        "O worker é apenas o ambiente de testes do web server",
+        "O web server roda Linux e o worker roda apenas Windows"
+      ],
+      "correct": 0,
+      "explanation": "São os dois tiers do Beanstalk: o web responde tráfego HTTP atrás de balanceador, e o worker roda processos assíncronos alimentados por SQS (com daemon que entrega as mensagens à aplicação).",
+      "hint": "Um atende o balcão (HTTP); o outro trabalha na cozinha consumindo a fila de pedidos.",
+      "optionRationales": [
+        "São os dois tiers do Beanstalk: o web responde tráfego HTTP atrás de balanceador, e o worker roda processos assíncronos alimentados por SQS (com daemon que entrega as mensagens à aplicação).",
+        "Ambos cobram pelos recursos subjacentes provisionados — a diferença é o papel, não o preço.",
+        "O worker é um tier de produção para processamento assíncrono — não um ambiente de homologação.",
+        "Os tiers não se distinguem por sistema operacional — ambos suportam as plataformas do Beanstalk."
+      ]
+    },
+    {
+      "id": "dva-ini-076",
+      "domain": "deployment",
+      "text": "No Elastic Beanstalk, o time quer implantar uma nova versão da aplicação sem reduzir a capacidade disponível durante o deploy, lançando instâncias novas em lotes antes de remover as antigas. Qual política de implantação do Beanstalk faz isso?",
+      "options": [
+        "Rolling with additional batch, que adiciona um lote extra de instâncias novas antes de substituir as antigas",
+        "All at once, que substitui todas as instâncias simultaneamente",
+        "Rolling simples, que atualiza em lotes reduzindo a capacidade durante o processo",
+        "Excluir o ambiente e criar outro com a nova versão"
+      ],
+      "correct": 0,
+      "explanation": "Essa política mantém a capacidade total durante o deploy: o lote adicional absorve a carga enquanto os lotes antigos são atualizados — ao custo temporário das instâncias extras.",
+      "hint": "Rolling 'com lote extra': primeiro chegam reforços, depois os veteranos saem.",
+      "optionRationales": [
+        "Essa política mantém a capacidade total durante o deploy: o lote adicional absorve a carga enquanto os lotes antigos são atualizados — ao custo temporário das instâncias extras.",
+        "All at once é a mais rápida, porém derruba a capacidade inteira durante a troca — downtime garantido.",
+        "O rolling simples tira cada lote de serviço enquanto atualiza — a capacidade cai temporariamente, o que o requisito proíbe.",
+        "Recriar o ambiente gera indisponibilidade total e perda de configurações — não é política de deploy."
+      ]
+    },
+    {
+      "id": "dva-ini-077",
+      "domain": "deployment",
+      "text": "Em um serviço do Amazon ECS configurado com desired count = 4, o que o ECS faz quando uma task falha ou é encerrada inesperadamente?",
+      "options": [
+        "Lança automaticamente uma nova task para restaurar a contagem desejada de 4 em execução",
+        "Reduz o desired count para 3 e segue normalmente",
+        "Pausa o serviço inteiro até intervenção manual",
+        "Migra o cluster para outra conta"
+      ],
+      "correct": 0,
+      "explanation": "O service scheduler do ECS mantém o estado desejado: monitora as tasks e repõe as que falham, garantindo a quantidade declarada continuamente — autorrecuperação nativa.",
+      "hint": "O orquestrador é teimoso: declarou 4, ele mantém 4 — repondo o que cair.",
+      "optionRationales": [
+        "O service scheduler do ECS mantém o estado desejado: monitora as tasks e repõe as que falham, garantindo a quantidade declarada continuamente — autorrecuperação nativa.",
+        "O desired count é a meta declarada — o serviço não a rebaixa; ele trabalha para alcançá-la novamente.",
+        "A reposição é automática — pausar tudo por uma task contrariaria o propósito do orquestrador.",
+        "Clusters não migram de conta — a recuperação acontece no próprio serviço."
+      ]
+    },
+    {
+      "id": "dva-ini-078",
+      "domain": "deployment",
+      "text": "Um desenvolvedor terminou a imagem Docker da aplicação e precisa disponibilizá-la no Amazon ECR para o deploy no ECS. Qual sequência de passos descreve o fluxo correto?",
+      "options": [
+        "Autenticar o Docker no ECR, taguear a imagem com o URI do repositório e executar docker push",
+        "Anexar a imagem .tar em um e-mail para a AWS importar",
+        "Fazer upload da imagem pelo console do S3",
+        "Copiar o Dockerfile para dentro da task definition"
+      ],
+      "correct": 0,
+      "explanation": "O fluxo padrão: login no registro (get-login-password), docker tag apontando o URI do repositório ECR e docker push — a imagem fica disponível para as task definitions referenciarem.",
+      "hint": "Login no porto, etiqueta com o endereço do cais, e 'push' do contêiner.",
+      "optionRationales": [
+        "O fluxo padrão: login no registro (get-login-password), docker tag apontando o URI do repositório ECR e docker push — a imagem fica disponível para as task definitions referenciarem.",
+        "Não há importação por e-mail — o ECR recebe imagens pelo protocolo padrão do Docker.",
+        "S3 guarda objetos, mas não funciona como registro Docker — o push é direto ao ECR.",
+        "A task definition referencia a IMAGEM pronta no registro — o Dockerfile é insumo do build, não do deploy."
+      ]
+    },
+    {
+      "id": "dva-ini-079",
+      "domain": "deployment",
+      "text": "Uma aplicação será implantada em dev, staging e produção, e cada ambiente usa um banco e endpoints diferentes. Qual prática de implantação evita gerar um pacote de código diferente para cada ambiente?",
+      "options": [
+        "Construir um único artefato e externalizar as configurações por ambiente (variáveis de ambiente, Parameter Store), injetadas no deploy",
+        "Compilar um pacote diferente por ambiente com os valores embutidos",
+        "Editar o código manualmente no servidor após cada deploy",
+        "Usar o mesmo banco para os três ambientes"
+      ],
+      "correct": 0,
+      "explanation": "'Build once, deploy many': o mesmo artefato testado segue para todos os ambientes, e o que varia é a configuração externa — eliminando o risco de divergência entre pacotes.",
+      "hint": "Um único pacote viaja por todos os palcos; só o 'figurino' (config) muda em cada um.",
+      "optionRationales": [
+        "'Build once, deploy many': o mesmo artefato testado segue para todos os ambientes, e o que varia é a configuração externa — eliminando o risco de divergência entre pacotes.",
+        "Pacotes distintos significam que o testado em staging NÃO é o binário que vai à produção — fonte clássica de bugs de release.",
+        "Alterações manuais pós-deploy destroem a reprodutibilidade e a auditoria do processo.",
+        "Compartilhar banco entre ambientes mistura dados de teste com produção — risco operacional grave."
+      ]
+    },
+    {
+      "id": "dva-ini-080",
+      "domain": "deployment",
+      "text": "Durante um deploy com AWS CodeDeploy, o time quer que a implantação seja revertida automaticamente caso um alarme do CloudWatch (ex: taxa de erros 5xx) dispare durante o processo. Qual recurso do CodeDeploy atende a isso?",
+      "options": [
+        "Rollback automático associado a alarmes do CloudWatch na configuração do deployment group",
+        "Reexecutar o pipeline manualmente quando alguém perceber o problema",
+        "Desativar os alarmes durante os deploys",
+        "Fazer deploys somente em fins de semana"
+      ],
+      "correct": 0,
+      "explanation": "O CodeDeploy suporta auto-rollback acionado por falha do deploy ou por alarmes monitorados: se o alarme dispara durante a implantação, a versão anterior é restaurada sem intervenção humana.",
+      "hint": "Alarme tocou no meio do deploy? O implantador volta a fita sozinho.",
+      "optionRationales": [
+        "O CodeDeploy suporta auto-rollback acionado por falha do deploy ou por alarmes monitorados: se o alarme dispara durante a implantação, a versão anterior é restaurada sem intervenção humana.",
+        "Reação manual depende de detecção humana e prolonga o impacto — a automação reverte em minutos.",
+        "Silenciar os alarmes na hora mais arriscada elimina justamente a rede de proteção.",
+        "Mudar o calendário não cria mecanismo de reversão — só muda quem está acordado quando falhar."
+      ]
+    },
+    {
+      "id": "dva-ini-081",
+      "domain": "deployment",
+      "text": "Em um pipeline do CodePipeline com estágios de build e deploy, onde os artefatos gerados por um estágio ficam armazenados para serem consumidos pelo estágio seguinte?",
+      "options": [
+        "Em um bucket S3 de artefatos do pipeline, que transporta as saídas de um estágio como entradas do próximo",
+        "Na memória RAM do pipeline entre os estágios",
+        "No repositório Git, commitados automaticamente",
+        "Em um volume EBS compartilhado entre os estágios"
+      ],
+      "correct": 0,
+      "explanation": "O CodePipeline usa um artifact store no S3: cada estágio publica seus artefatos lá e o seguinte os consome — o 'correio' entre as etapas do fluxo.",
+      "hint": "O 'correio' entre estágios é o serviço de objetos: cada etapa posta a encomenda para a próxima.",
+      "optionRationales": [
+        "O CodePipeline usa um artifact store no S3: cada estágio publica seus artefatos lá e o seguinte os consome — o 'correio' entre as etapas do fluxo.",
+        "Estágios executam em ambientes separados e assíncronos — a passagem exige armazenamento durável, não memória.",
+        "Artefatos de build não voltam ao repositório de código — seguem pelo armazenamento do pipeline.",
+        "EBS prende-se a instâncias e AZs — o transporte do pipeline usa o armazenamento de objetos."
+      ]
+    },
+    {
+      "id": "dva-ini-082",
+      "domain": "deployment",
+      "text": "Um desenvolvedor quer testar localmente uma função Lambda e sua API antes do deploy, simulando o ambiente de execução na própria máquina. Qual ferramenta do ecossistema serverless da AWS oferece comandos como 'local invoke' e 'local start-api'?",
+      "options": [
+        "SAM CLI, que emula o ambiente Lambda em contêineres locais",
+        "AWS CloudShell",
+        "Amazon WorkSpaces",
+        "AWS Device Farm"
+      ],
+      "correct": 0,
+      "explanation": "A SAM CLI executa funções localmente (sam local invoke) e sobe uma API local (sam local start-api) usando contêineres que simulam o runtime — encurtando o ciclo de desenvolvimento serverless.",
+      "hint": "A CLI do 'modelo serverless' tem o modo 'local' para invocar e servir a API na sua máquina.",
+      "optionRationales": [
+        "A SAM CLI executa funções localmente (sam local invoke) e sobe uma API local (sam local start-api) usando contêineres que simulam o runtime — encurtando o ciclo de desenvolvimento serverless.",
+        "O CloudShell é um terminal NA NUVEM — não emula Lambda na máquina do desenvolvedor.",
+        "WorkSpaces fornece desktops virtuais — não ferramentas de emulação serverless local.",
+        "Device Farm testa aplicativos em dispositivos móveis reais — não funções Lambda locais."
+      ]
+    },
+    {
+      "id": "dva-ini-083",
+      "domain": "deployment",
+      "text": "O time quer que o pipeline de produção NÃO prossiga do estágio de staging para o deploy final sem que um responsável revise e aprove explicitamente. Qual recurso do CodePipeline implementa esse portão?",
+      "options": [
+        "Uma manual approval action entre os estágios, que pausa o pipeline até aprovação (com notificação via SNS)",
+        "Reduzir a frequência de commits no repositório",
+        "Remover o estágio de produção do pipeline e implantar manualmente",
+        "Configurar o pipeline para rodar apenas uma vez por mês"
+      ],
+      "correct": 0,
+      "explanation": "A ação de aprovação manual interrompe o fluxo no ponto definido e aguarda o aceite de um humano autorizado — o controle de qualidade/compliance antes de produção.",
+      "hint": "Um 'pare e aguarde o carimbo' no meio da esteira — com aviso para o aprovador.",
+      "optionRationales": [
+        "A ação de aprovação manual interrompe o fluxo no ponto definido e aguarda o aceite de um humano autorizado — o controle de qualidade/compliance antes de produção.",
+        "Menos commits não cria etapa de revisão — apenas atrasa o fluxo sem controle formal.",
+        "Abandonar a automação do deploy final perde rastreabilidade e repetibilidade — o portão de aprovação mantém ambos.",
+        "Agendamento não substitui aprovação — mudanças continuariam fluindo sem revisão humana."
+      ]
+    },
+    {
+      "id": "dva-ini-084",
+      "domain": "deployment",
+      "text": "Uma equipe mantém templates do CloudFormation no Git e provisiona toda a infraestrutura por pipeline. Um administrador alterou manualmente um Security Group pelo console, e a stack ficou diferente do template. Qual recurso do CloudFormation detecta esse tipo de divergência?",
+      "options": [
+        "Drift detection, que compara o estado real dos recursos com o definido no template e aponta as diferenças",
+        "Change sets, que mostram alterações manuais em tempo real",
+        "Stack outputs, que listam os recursos modificados",
+        "Rollback automático, que desfaz a mudança manual imediatamente"
+      ],
+      "correct": 0,
+      "explanation": "A detecção de drift identifica recursos que 'derivaram' do template por mudanças manuais — essencial para manter a disciplina de infraestrutura como código e corrigir desvios.",
+      "hint": "Quando a realidade 'deriva' da planta, qual recurso mede o desvio?",
+      "optionRationales": [
+        "A detecção de drift identifica recursos que 'derivaram' do template por mudanças manuais — essencial para manter a disciplina de infraestrutura como código e corrigir desvios.",
+        "Change sets preveem o efeito de um NOVO template — não auditam mudanças manuais já feitas nos recursos.",
+        "Outputs expõem valores definidos no template — não comparam estado real com declarado.",
+        "O rollback atua em falhas de operações da stack — não monitora nem reverte edições manuais feitas fora do CloudFormation."
+      ]
+    },
+    {
+      "id": "dva-ini-085",
+      "domain": "troubleshooting-optimization",
+      "text": "Um desenvolvedor adicionou instruções de log (console.log/print) em uma função Lambda para investigar um bug. Onde essas mensagens podem ser consultadas após as execuções?",
+      "options": [
+        "No Amazon CloudWatch Logs, no log group da função (/aws/lambda/nome-da-funcao)",
+        "Em um arquivo de texto no servidor da função, acessível via SSH",
+        "No AWS CloudTrail, junto das chamadas de API",
+        "Os logs são descartados ao fim de cada execução"
+      ],
+      "correct": 0,
+      "explanation": "O Lambda envia automaticamente a saída padrão e os logs do runtime para o CloudWatch Logs, organizados em log group por função e log streams por instância de execução — desde que a execution role tenha as permissões de log.",
+      "hint": "Tudo que a função 'imprime' desemboca no serviço de logs, num grupo com o nome dela.",
+      "optionRationales": [
+        "O Lambda envia automaticamente a saída padrão e os logs do runtime para o CloudWatch Logs, organizados em log group por função e log streams por instância de execução — desde que a execution role tenha as permissões de log.",
+        "Não há servidor acessível no Lambda — o ambiente é gerenciado e os logs fluem para o CloudWatch.",
+        "O CloudTrail registra chamadas de API administrativas — não a saída de log do código da função.",
+        "Os logs persistem no CloudWatch Logs conforme a retenção configurada — não se perdem com o fim da execução."
+      ]
+    },
+    {
+      "id": "dva-ini-086",
+      "domain": "troubleshooting-optimization",
+      "text": "O time quer ser notificado por e-mail quando a taxa de erros 5xx de uma API ultrapassar 1% por 5 minutos. Qual combinação de recursos do CloudWatch implementa essa notificação?",
+      "options": [
+        "Um alarme do CloudWatch sobre a métrica de erros, com ação publicando em um tópico SNS assinado pelo e-mail do time",
+        "Um dashboard do CloudWatch que envia e-mails sozinho",
+        "Consultar manualmente as métricas a cada hora",
+        "Ativar o AWS Config para enviar o alerta"
+      ],
+      "correct": 0,
+      "explanation": "O fluxo padrão de alertas: métrica → alarme com limiar e período → ação para tópico SNS → assinaturas (e-mail, chat) notificadas quando o estado muda para ALARM.",
+      "hint": "Métrica + 'despertador' com limiar + tópico de notificação = alerta no e-mail.",
+      "optionRationales": [
+        "O fluxo padrão de alertas: métrica → alarme com limiar e período → ação para tópico SNS → assinaturas (e-mail, chat) notificadas quando o estado muda para ALARM.",
+        "Dashboards exibem gráficos para consulta — quem dispara notificações é o alarme com ação configurada.",
+        "Vigília manual não escala e atrasa a detecção — o alarme automatiza a observação contínua.",
+        "O Config avalia conformidade de configurações — não monitora métricas de erro de aplicações."
+      ]
+    },
+    {
+      "id": "dva-ini-087",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma função Lambda que chama uma API externa está falhando com a mensagem 'Task timed out after 3.00 seconds'. A API externa responde normalmente em até 8 segundos. Qual é o diagnóstico e a correção?",
+      "options": [
+        "O timeout configurado da função (3s, o padrão) é menor que o tempo da dependência; deve-se aumentar o timeout para acomodar a chamada (com margem)",
+        "A AWS limita todas as funções a 3 segundos, sem configuração possível",
+        "Falta memória na função, que trava ao alocar variáveis",
+        "A execution role está sem permissões para a API externa"
+      ],
+      "correct": 0,
+      "explanation": "A mensagem indica que a execução atingiu o limite configurado: com a dependência levando 8s, o timeout precisa ser maior (ex: 10-15s) — avaliando também se a chamada lenta merece otimização ou processamento assíncrono.",
+      "hint": "A mensagem entrega o vilão: o relógio da função expirou antes da dependência responder — ajuste o relógio.",
+      "optionRationales": [
+        "A mensagem indica que a execução atingiu o limite configurado: com a dependência levando 8s, o timeout precisa ser maior (ex: 10-15s) — avaliando também se a chamada lenta merece otimização ou processamento assíncrono.",
+        "3 segundos é apenas o padrão — o timeout é configurável até 15 minutos.",
+        "Estouro de memória gera erro específico de memória — a mensagem de timeout aponta o limite de tempo.",
+        "APIs externas não passam pelo IAM — falta de permissão gera erros de acesso em serviços AWS, não timeout."
+      ]
+    },
+    {
+      "id": "dva-ini-088",
+      "domain": "troubleshooting-optimization",
+      "text": "Usuários percebem que a primeira requisição a uma API serverless após períodos de inatividade demora mais que as seguintes. Qual fenômeno do AWS Lambda explica essa latência inicial?",
+      "options": [
+        "Cold start: quando não há ambiente de execução ativo, o Lambda precisa provisionar o ambiente e inicializar o runtime e o código antes de processar",
+        "Throttling da conta na primeira chamada do dia",
+        "O API Gateway desliga à noite para economizar",
+        "Cache DNS expirado no cliente"
+      ],
+      "correct": 0,
+      "explanation": "O cold start é o custo de inicialização de um ambiente novo (download do código, boot do runtime, código de inicialização); invocações seguintes reutilizam o ambiente 'quente' e são mais rápidas.",
+      "hint": "Motor frio demora a dar partida; depois de aquecido, as voltas são rápidas.",
+      "optionRationales": [
+        "O cold start é o custo de inicialização de um ambiente novo (download do código, boot do runtime, código de inicialização); invocações seguintes reutilizam o ambiente 'quente' e são mais rápidas.",
+        "Throttling rejeita requisições acima da concorrência com erro 429 — não adiciona latência de inicialização à primeira chamada.",
+        "O API Gateway é um serviço sempre ativo — não hiberna por inatividade.",
+        "Resolução DNS adiciona milissegundos ocasionais — não o padrão consistente de 'primeira chamada lenta após ociosidade' do ambiente de execução."
+      ]
+    },
+    {
+      "id": "dva-ini-089",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma aplicação começou a receber erros ProvisionedThroughputExceededException ao gravar em uma tabela do DynamoDB em modo provisionado durante picos. Quais são duas respostas adequadas a esse throttling?",
+      "options": [
+        "Garantir retentativas com backoff exponencial no cliente (padrão dos SDKs) e ajustar a capacidade (auto scaling ou modo on-demand) para acompanhar os picos",
+        "Remover o tratamento de erros para acelerar as escritas",
+        "Migrar a tabela para o S3",
+        "Reduzir a capacidade provisionada para forçar menos tráfego"
+      ],
+      "correct": 0,
+      "explanation": "O tratamento combina resiliência no cliente (retries com espera crescente absorvem picos curtos) e dimensionamento no serviço (auto scaling da capacidade provisionada ou troca para on-demand em tráfego imprevisível).",
+      "hint": "Dois remédios juntos: paciência inteligente no cliente (backoff) e fôlego no servidor (capacidade).",
+      "optionRationales": [
+        "O tratamento combina resiliência no cliente (retries com espera crescente absorvem picos curtos) e dimensionamento no serviço (auto scaling da capacidade provisionada ou troca para on-demand em tráfego imprevisível).",
+        "Ignorar erros derruba dados silenciosamente — as escritas rejeitadas seriam perdidas.",
+        "O S3 não substitui tabela transacional de chave-valor — o problema é de dimensionamento, não de serviço errado.",
+        "Menos capacidade gera MAIS throttling — agrava exatamente o sintoma."
+      ]
+    },
+    {
+      "id": "dva-ini-090",
+      "domain": "troubleshooting-optimization",
+      "text": "Mesmo com capacidade total sobrando, uma tabela do DynamoDB sofre throttling porque a maior parte das requisições usa o mesmo valor de chave de partição (um cliente gigante concentra o tráfego). Como esse problema é chamado e qual é a direção da solução?",
+      "options": [
+        "Hot partition (partição quente): a solução envolve redistribuir o acesso, por exemplo com chaves de maior cardinalidade ou sufixos de sharding na chave",
+        "Cold start: basta aquecer a tabela com requisições de teste",
+        "Drift: basta rodar a detecção de desvios do CloudFormation",
+        "Star schema: basta normalizar as tabelas"
+      ],
+      "correct": 0,
+      "explanation": "Os limites valem POR partição: concentrar o tráfego em uma chave estoura o limite local mesmo com capacidade agregada livre — o redesenho da chave (espalhar o acesso) é a correção estrutural.",
+      "hint": "Todo mundo batendo na mesma 'gaveta' — a gaveta esquenta; espalhe as batidas.",
+      "optionRationales": [
+        "Os limites valem POR partição: concentrar o tráfego em uma chave estoura o limite local mesmo com capacidade agregada livre — o redesenho da chave (espalhar o acesso) é a correção estrutural.",
+        "Cold start é fenômeno de inicialização do Lambda — não de partições do DynamoDB.",
+        "Drift é divergência entre stack e template — sem relação com distribuição de tráfego em partições.",
+        "Modelagem dimensional é conceito de data warehouse — o problema aqui é concentração de acesso numa chave NoSQL."
+      ]
+    },
+    {
+      "id": "dva-ini-091",
+      "domain": "troubleshooting-optimization",
+      "text": "O time de operações precisa descobrir QUEM excluiu uma tabela do DynamoDB de produção na última sexta-feira — usuário, horário e IP de origem da chamada. Qual serviço fornece esse registro?",
+      "options": [
+        "AWS CloudTrail, que registra a chamada DeleteTable com a identidade, o horário e o IP de origem",
+        "Amazon CloudWatch Metrics",
+        "AWS X-Ray",
+        "Amazon Inspector"
+      ],
+      "correct": 0,
+      "explanation": "O CloudTrail é a trilha de auditoria das chamadas de API: o evento DeleteTable aparece com userIdentity, sourceIPAddress e timestamp — a resposta direta para investigações de 'quem fez o quê'.",
+      "hint": "Para o 'quem, quando e de onde' de uma ação na conta, siga a trilha.",
+      "optionRationales": [
+        "O CloudTrail é a trilha de auditoria das chamadas de API: o evento DeleteTable aparece com userIdentity, sourceIPAddress e timestamp — a resposta direta para investigações de 'quem fez o quê'.",
+        "Métricas agregam números de desempenho — não registram a identidade de quem executou ações administrativas.",
+        "O X-Ray rastreia requisições de APLICAÇÃO para análise de latência — não auditoria de ações administrativas.",
+        "O Inspector varre vulnerabilidades — não mantém histórico de chamadas de API."
+      ]
+    },
+    {
+      "id": "dva-ini-092",
+      "domain": "troubleshooting-optimization",
+      "text": "Mensagens malformadas em uma fila SQS falham repetidamente no consumidor e voltam para a fila em ciclo infinito, atrapalhando o processamento das mensagens válidas. Qual configuração isola essas mensagens problemáticas para análise?",
+      "options": [
+        "Configurar uma dead-letter queue (DLQ) com maxReceiveCount: após N tentativas, a mensagem é movida para a fila de quarentena",
+        "Excluir a fila e criar outra sempre que travar",
+        "Aumentar o retention period para as mensagens expirarem sozinhas",
+        "Reduzir o visibility timeout para acelerar o reprocessamento"
+      ],
+      "correct": 0,
+      "explanation": "A redrive policy com DLQ tira as mensagens 'venenosas' do ciclo após o limite de recebimentos, preservando-as para diagnóstico e liberando a fila principal para o tráfego saudável.",
+      "hint": "Depois de N falhas, a mensagem vai para a 'enfermaria' — qual fila especial é essa?",
+      "optionRationales": [
+        "A redrive policy com DLQ tira as mensagens 'venenosas' do ciclo após o limite de recebimentos, preservando-as para diagnóstico e liberando a fila principal para o tráfego saudável.",
+        "Recriar a fila descarta TODAS as mensagens, inclusive válidas — e o ciclo recomeça com a próxima malformada.",
+        "Esperar dias até expirarem mantém o ruído no processamento e perde as mensagens sem diagnóstico.",
+        "Reaparecer mais rápido só intensifica o loop de falhas — o problema é a falta de quarentena."
+      ]
+    },
+    {
+      "id": "dva-ini-093",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma função Lambda de processamento de imagens leva 30 segundos com 256 MB de memória. O desenvolvedor dobrou a memória para 512 MB e o tempo caiu para 14 segundos, com custo total praticamente igual. O que explica essa melhoria?",
+      "options": [
+        "No Lambda, a CPU é alocada proporcionalmente à memória: mais memória significa mais poder de processamento, e a execução mais curta compensa o preço maior por milissegundo",
+        "Foi coincidência; memória não afeta desempenho no Lambda",
+        "O Lambda migrou a função para uma Região mais rápida",
+        "A AWS não cobra funções com mais de 512 MB"
+      ],
+      "correct": 0,
+      "explanation": "Memória é o único 'botão' de recursos do Lambda e arrasta CPU junto: para cargas de processamento, subir a memória frequentemente reduz a duração a ponto de manter (ou reduzir) o custo total — o ajuste clássico de tuning.",
+      "hint": "No Lambda, memória e CPU vêm no mesmo pacote: pagar por um 'motor maior' que termina bem mais cedo pode sair de graça.",
+      "optionRationales": [
+        "Memória é o único 'botão' de recursos do Lambda e arrasta CPU junto: para cargas de processamento, subir a memória frequentemente reduz a duração a ponto de manter (ou reduzir) o custo total — o ajuste clássico de tuning.",
+        "A relação memória→CPU é documentada e determinística — o ganho é esperado em cargas limitadas por processamento.",
+        "Funções não trocam de Região sozinhas — o ganho veio do poder computacional adicional.",
+        "A cobrança continua por GB-segundo em qualquer configuração — não há faixa gratuita por tamanho."
+      ]
+    },
+    {
+      "id": "dva-ini-094",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma chamada da aplicação ao S3 retorna o erro 'AccessDenied'. A equipe confirmou que o bucket e o objeto existem. Qual é a sequência de verificação mais eficaz para diagnosticar o problema de permissão?",
+      "options": [
+        "Revisar a política da identidade que chama (role/usuário), a política do bucket e configurações como Block Public Access/criptografia exigida, lembrando que um Deny explícito em qualquer camada prevalece",
+        "Reiniciar a aplicação até o erro desaparecer",
+        "Tornar o bucket público para eliminar o erro",
+        "Trocar a Região do bucket"
+      ],
+      "correct": 0,
+      "explanation": "Access Denied resulta da avaliação combinada: a identidade precisa de Allow, o recurso não pode negar, e controles como BPA, SCPs e condições (ex: chave KMS) também participam — a investigação cobre as camadas na ordem.",
+      "hint": "Negado? Confira as duas pontas (quem chama e o recurso) e os 'vetos' globais — lembrando que um Deny ganha de tudo.",
+      "optionRationales": [
+        "Access Denied resulta da avaliação combinada: a identidade precisa de Allow, o recurso não pode negar, e controles como BPA, SCPs e condições (ex: chave KMS) também participam — a investigação cobre as camadas na ordem.",
+        "Permissão não muda com reinicialização — o erro é determinístico até alguém ajustar as políticas.",
+        "Resolver Access Denied com exposição pública troca um erro por um incidente de segurança.",
+        "A Região não participa da decisão de autorização — mover dados não corrige políticas."
+      ]
+    },
+    {
+      "id": "dva-ini-095",
+      "domain": "troubleshooting-optimization",
+      "text": "Após uma campanha de marketing, uma função Lambda passou a receber erros de 'Rate exceeded' (throttling) por estourar o limite de execuções concorrentes. Além de solicitar aumento de cota, qual recurso do Lambda garante que uma função CRÍTICA específica sempre tenha capacidade de execução disponível?",
+      "options": [
+        "Reserved concurrency, reservando uma fatia da concorrência da conta exclusivamente para essa função",
+        "Aumentar o timeout da função",
+        "Adicionar mais memória à função",
+        "Publicar mais versões da função"
+      ],
+      "correct": 0,
+      "explanation": "A concorrência reservada garante o mínimo dedicado à função crítica (e simultaneamente limita seu máximo), protegendo-a da disputa com as demais funções da conta nos picos.",
+      "hint": "Para a função VIP nunca ficar sem mesa no restaurante lotado, reserve os lugares dela.",
+      "optionRationales": [
+        "A concorrência reservada garante o mínimo dedicado à função crítica (e simultaneamente limita seu máximo), protegendo-a da disputa com as demais funções da conta nos picos.",
+        "Timeout controla a duração máxima de cada execução — não a quantidade de execuções simultâneas disponíveis.",
+        "Memória acelera execuções individuais, mas não reserva slots de concorrência na conta.",
+        "Versões organizam deploys — não multiplicam a capacidade concorrente disponível."
+      ]
+    },
+    {
+      "id": "dva-ini-096",
+      "domain": "troubleshooting-optimization",
+      "text": "Um desenvolvedor precisa investigar um erro intermitente procurando padrões nos logs de uma função Lambda — filtrar mensagens por conteúdo, agregar por campo e analisar períodos específicos — com uma linguagem de consulta sobre os log groups. Qual ferramenta do CloudWatch faz isso?",
+      "options": [
+        "CloudWatch Logs Insights, com consultas interativas (filter, parse, stats) sobre os log groups",
+        "Baixar os logs e procurar manualmente em um editor de texto",
+        "AWS X-Ray Analytics",
+        "Amazon Inspector"
+      ],
+      "correct": 0,
+      "explanation": "O Logs Insights executa consultas analíticas sobre os logs (filtros, extração de campos, agregações e gráficos) — a ferramenta para investigar padrões sem exportar nada.",
+      "hint": "O 'SQL dos logs' do CloudWatch: filtre, extraia e agregue direto nos log groups.",
+      "optionRationales": [
+        "O Logs Insights executa consultas analíticas sobre os logs (filtros, extração de campos, agregações e gráficos) — a ferramenta para investigar padrões sem exportar nada.",
+        "Inspeção manual não escala para milhões de linhas — a consulta estruturada encontra padrões em segundos.",
+        "O X-Ray analisa traces de requisições distribuídas — a investigação textual de logs pertence ao Logs Insights.",
+        "O Inspector varre vulnerabilidades — não consulta logs de aplicação."
+      ]
+    },
+    {
+      "id": "dva-ini-097",
+      "domain": "troubleshooting-optimization",
+      "text": "O dashboard de uma API no API Gateway mostra aumento de erros 4xx e 5xx. Na triagem do problema, qual interpretação orienta corretamente a investigação?",
+      "options": [
+        "4xx indicam problemas do lado do cliente (autenticação, validação, recurso inexistente, throttling); 5xx indicam falhas do lado do servidor/backend (exceções, timeouts de integração)",
+        "4xx e 5xx são ambos culpa exclusiva do servidor",
+        "5xx são informativos e não exigem ação",
+        "4xx significam sucesso parcial da requisição"
+      ],
+      "correct": 0,
+      "explanation": "A classe do status direciona a investigação: 4xx levam a tokens, payloads e limites dos chamadores; 5xx levam ao backend (logs da Lambda, timeouts de integração, erros não tratados).",
+      "hint": "A centena do código aponta o culpado: 4 = quem chamou; 5 = quem atendeu.",
+      "optionRationales": [
+        "A classe do status direciona a investigação: 4xx levam a tokens, payloads e limites dos chamadores; 5xx levam ao backend (logs da Lambda, timeouts de integração, erros não tratados).",
+        "4xx apontam erro na REQUISIÇÃO do cliente — misturar as classes desperdiça tempo de diagnóstico.",
+        "5xx são falhas reais do serviço percebidas pelos usuários — exatamente os erros mais urgentes.",
+        "Sucesso usa classes 2xx — 4xx são rejeições por erro do cliente."
+      ]
+    },
+    {
+      "id": "dva-ini-098",
+      "domain": "troubleshooting-optimization",
+      "text": "Uma aplicação de negócio quer monitorar um indicador próprio — 'pedidos processados por minuto' — com gráficos e alarmes no CloudWatch, mas essa métrica não existe nativamente. Como a aplicação pode publicá-la?",
+      "options": [
+        "Enviando métricas customizadas via API PutMetricData (ou pelo formato de logs EMF), tornando-as disponíveis para dashboards e alarmes",
+        "Não é possível; o CloudWatch só aceita métricas dos serviços AWS",
+        "Gravar os números em uma planilha no S3",
+        "Criar uma trilha no CloudTrail para o indicador"
+      ],
+      "correct": 0,
+      "explanation": "Métricas customizadas permitem publicar indicadores de negócio no CloudWatch — via SDK (PutMetricData) ou Embedded Metric Format nos logs — com os mesmos recursos de visualização e alerta das métricas nativas.",
+      "hint": "O CloudWatch aceita métricas 'de fora' — basta a aplicação publicá-las pela API certa.",
+      "optionRationales": [
+        "Métricas customizadas permitem publicar indicadores de negócio no CloudWatch — via SDK (PutMetricData) ou Embedded Metric Format nos logs — com os mesmos recursos de visualização e alerta das métricas nativas.",
+        "Métricas customizadas existem exatamente para indicadores da aplicação — limite nativo não se aplica.",
+        "Planilha em bucket não se integra a alarmes nem dashboards — fica fora do ecossistema de monitoramento.",
+        "CloudTrail audita chamadas de API — não publica métricas de negócio."
+      ]
+    },
+    {
+      "id": "dva-ini-099",
+      "domain": "troubleshooting-optimization",
+      "text": "Usuários relatam falhas na aplicação e o time desconfia de um problema na infraestrutura da própria AWS na Região. Qual recurso confirma rapidamente se há um incidente em andamento nos serviços da AWS que afeta a conta?",
+      "options": [
+        "AWS Health Dashboard, que mostra eventos e incidentes dos serviços, incluindo a visão personalizada do que afeta seus recursos",
+        "Amazon Route 53 Resolver logs",
+        "Fazer um post em redes sociais perguntando a outros usuários",
+        "AWS Pricing Calculator"
+      ],
+      "correct": 0,
+      "explanation": "O Health Dashboard informa o status dos serviços por Região e, na visão da conta, lista eventos que impactam especificamente seus recursos — o primeiro lugar para separar 'problema nosso' de 'problema da nuvem'.",
+      "hint": "O 'boletim médico' oficial da AWS — com seção personalizada para os SEUS recursos.",
+      "optionRationales": [
+        "O Health Dashboard informa o status dos serviços por Região e, na visão da conta, lista eventos que impactam especificamente seus recursos — o primeiro lugar para separar 'problema nosso' de 'problema da nuvem'.",
+        "Logs de resolução DNS não informam o estado de saúde dos serviços da AWS.",
+        "Fontes informais são imprecisas — o canal oficial e personalizado é o Health Dashboard.",
+        "A calculadora estima custos — nenhuma relação com status operacional dos serviços."
+      ]
+    },
+    {
+      "id": "dva-ini-100",
+      "domain": "troubleshooting-optimization",
+      "text": "Após habilitar o AWS X-Ray em uma aplicação de microsserviços, qual visualização o serviço oferece para identificar rapidamente qual componente está lento ou falhando na cadeia de chamadas?",
+      "options": [
+        "O service map: um grafo dos serviços e suas dependências com latências e taxas de erro em cada nó e aresta",
+        "Uma lista alfabética dos buckets da conta",
+        "O diagrama de rede da VPC",
+        "A fatura detalhada por microsserviço"
+      ],
+      "correct": 0,
+      "explanation": "O mapa de serviços do X-Ray desenha a topologia das chamadas com métricas visuais (latência média, percentuais de erro) — o gargalo ou o componente com falhas salta aos olhos antes de mergulhar nos traces individuais.",
+      "hint": "O 'mapa do metrô' das requisições: cada estação mostra atraso e falhas da linha.",
+      "optionRationales": [
+        "O mapa de serviços do X-Ray desenha a topologia das chamadas com métricas visuais (latência média, percentuais de erro) — o gargalo ou o componente com falhas salta aos olhos antes de mergulhar nos traces individuais.",
+        "Inventário de recursos não mostra o fluxo das requisições nem onde a latência se acumula.",
+        "Topologia de rede mostra sub-redes e rotas — não o desempenho das chamadas entre serviços da aplicação.",
+        "Custos não indicam latência nem erros — o X-Ray trata de rastreamento de desempenho."
+      ]
     }
   ]
 }
