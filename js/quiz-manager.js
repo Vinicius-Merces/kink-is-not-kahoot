@@ -97,9 +97,9 @@ class QuizManager {
             return `
             <div class="quiz-card" data-quiz-id="${quiz.id}">
                 <div class="quiz-actions">
-                    <button class="btn-icon edit-quiz" data-id="${quiz.id}" title="Editar">✏️</button>
-                    <button class="btn-icon delete-quiz" data-id="${quiz.id}" title="Excluir">🗑️</button>
-                    <button class="btn-icon play-quiz" data-id="${quiz.id}" title="Jogar">🎮</button>
+                    <button class="btn-icon edit-quiz" data-id="${quiz.id}" title="Editar" aria-label="Editar quiz ${title}">✏️</button>
+                    <button class="btn-icon delete-quiz" data-id="${quiz.id}" title="Excluir" aria-label="Excluir quiz ${title}">🗑️</button>
+                    <button class="btn-icon play-quiz" data-id="${quiz.id}" title="Jogar" aria-label="Jogar quiz ${title}">🎮</button>
                 </div>
                 <h3>${title}</h3>
                 <p>${description}</p>

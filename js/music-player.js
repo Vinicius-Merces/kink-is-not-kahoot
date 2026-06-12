@@ -136,7 +136,7 @@ class MusicPlayer {
                     <!-- Cabeçalho -->
                     <div class="player-header">
                         <div class="player-mode-badge">${this.getModeBadgeText()}</div>
-                        <button id="minimizeBtn" class="minimize-btn" title="Minimizar (M)">−</button>
+                        <button id="minimizeBtn" class="minimize-btn" title="Minimizar (M)" aria-label="Minimizar player de música">−</button>
                     </div>
 
                     <!-- Capa da música -->
@@ -154,46 +154,48 @@ class MusicPlayer {
                     <!-- Barra de progresso -->
                     <div class="player-progress-section">
                         <div class="progress-time" id="currentTime">0:00</div>
+                        <label class="sr-only" for="progressBar">Progresso da música</label>
                         <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
                         <div class="progress-time" id="totalDuration">0:00</div>
                     </div>
 
                     <!-- Controles principais -->
                     <div class="player-controls-main">
-                        <button id="prevBtn" class="control-btn" title="Anterior (←)">⏮️</button>
-                        <button id="playPauseBtn" class="control-btn play-pause" title="Play/Pause (Espaço)">▶️</button>
-                        <button id="nextBtn" class="control-btn" title="Próxima (→)">⏭️</button>
+                        <button id="prevBtn" class="control-btn" title="Anterior (←)" aria-label="Faixa anterior">⏮️</button>
+                        <button id="playPauseBtn" class="control-btn play-pause" title="Play/Pause (Espaço)" aria-label="Tocar ou pausar">▶️</button>
+                        <button id="nextBtn" class="control-btn" title="Próxima (→)" aria-label="Próxima faixa">⏭️</button>
                     </div>
 
                     <!-- Volume e outras funções -->
                     <div class="player-controls-secondary">
                         <div class="volume-control">
-                            <span class="volume-icon" id="volumeIcon">🔊</span>
+                            <span class="volume-icon" id="volumeIcon" aria-hidden="true">🔊</span>
+                            <label class="sr-only" for="volumeSlider">Volume</label>
                             <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.01" value="${this.volume}">
                         </div>
                         <div class="secondary-buttons">
-                            <button id="repeatBtn" class="secondary-btn" title="Repetição">🔁</button>
-                            <button id="playlistBtn" class="secondary-btn" title="Playlist">📋</button>
+                            <button id="repeatBtn" class="secondary-btn" title="Repetição" aria-label="Alternar repetição">🔁</button>
+                            <button id="playlistBtn" class="secondary-btn" title="Playlist" aria-label="Abrir playlist">📋</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- PLAYER MINIMIZADO -->
                 <div class="player-minimized" id="playerMinimized" style="display: ${this.isMinimized ? 'flex' : 'none'};">
-                    <div class="minimized-icon" id="minimizedIcon">🎵</div>
+                    <div class="minimized-icon" id="minimizedIcon" aria-hidden="true">🎵</div>
                     <div class="minimized-info">
                         <div class="minimized-title" id="minimizedTitle">Carregando...</div>
                         <div class="minimized-time" id="minimizedTime">0:00 / 0:00</div>
                     </div>
-                    <button id="minimizedPlayPause" class="minimized-play">▶️</button>
-                    <button id="expandBtn" class="expand-btn" title="Expandir">+</button>
+                    <button id="minimizedPlayPause" class="minimized-play" aria-label="Tocar ou pausar">▶️</button>
+                    <button id="expandBtn" class="expand-btn" title="Expandir" aria-label="Expandir player de música">+</button>
                 </div>
 
                 <!-- PAINEL DE PLAYLIST -->
                 <div id="playlistPanel" class="playlist-panel" style="display: none;">
                     <div class="playlist-header">
                         <h4>${this.getPlaylistTitleText()}</h4>
-                        <button class="playlist-close" id="closePlaylist">✕</button>
+                        <button class="playlist-close" id="closePlaylist" aria-label="Fechar playlist">✕</button>
                     </div>
                     <div class="playlist-list" id="playlistList"></div>
                 </div>

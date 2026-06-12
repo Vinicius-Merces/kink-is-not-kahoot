@@ -228,7 +228,7 @@
     function renderQuestionDots() {
         const container = document.getElementById('examQuestionDots');
         container.innerHTML = currentSimulado.questions.map((q, i) => `
-            <button type="button" class="exam-dot" data-index="${i}" title="Pergunta ${i + 1}">${i + 1}</button>
+            <button type="button" class="exam-dot" data-index="${i}" title="Pergunta ${i + 1}" aria-label="Pergunta ${i + 1}">${i + 1}</button>
         `).join('');
 
         container.querySelectorAll('.exam-dot').forEach(dot => {
@@ -242,8 +242,15 @@
         const dots = document.querySelectorAll('#examQuestionDots .exam-dot');
         dots.forEach((dot, i) => {
             const question = currentSimulado.questions[i];
-            dot.classList.toggle('answered', Object.prototype.hasOwnProperty.call(userAnswers, question.id));
+            const answered = Object.prototype.hasOwnProperty.call(userAnswers, question.id);
+            dot.classList.toggle('answered', answered);
             dot.classList.toggle('current', i === currentQuestionIndex);
+            if (i === currentQuestionIndex) {
+                dot.setAttribute('aria-current', 'true');
+            } else {
+                dot.removeAttribute('aria-current');
+            }
+            dot.setAttribute('aria-label', `Pergunta ${i + 1}${answered ? ' (respondida)' : ''}`);
         });
     }
 

@@ -171,7 +171,7 @@
     function renderQuestionDots() {
         const container = document.getElementById('liveControlQuestionDots');
         container.innerHTML = Array.from({ length: totalQuestions }, (_, i) => `
-            <button type="button" class="exam-dot" data-index="${i}" title="Pergunta ${i + 1}">${i + 1}</button>
+            <button type="button" class="exam-dot" data-index="${i}" title="Pergunta ${i + 1}" aria-label="Pergunta ${i + 1}">${i + 1}</button>
         `).join('');
 
         container.querySelectorAll('.exam-dot').forEach(dot => {
@@ -184,9 +184,16 @@
     function updateQuestionDots() {
         const dots = document.querySelectorAll('#liveControlQuestionDots .exam-dot');
         dots.forEach((dot, i) => {
-            dot.classList.toggle('answered', answeredIndices.has(i));
+            const answered = answeredIndices.has(i);
+            dot.classList.toggle('answered', answered);
             dot.classList.toggle('current', i === viewingIndex);
             dot.classList.toggle('live', i === currentIndex && i !== viewingIndex);
+            if (i === viewingIndex) {
+                dot.setAttribute('aria-current', 'true');
+            } else {
+                dot.removeAttribute('aria-current');
+            }
+            dot.setAttribute('aria-label', `Pergunta ${i + 1}${answered ? ' (respondida)' : ''}`);
         });
     }
 
