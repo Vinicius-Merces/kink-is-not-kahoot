@@ -129,9 +129,9 @@ class SocketClient {
     // ============================================
 
     // Criar sala (host)
-    createRoom(quizId, creatorName, creatorId, callback) {
+    createRoom(quizId, creatorName, creatorId, idToken, callback) {
         console.log(`🏠 Criando sala: quiz=${quizId}, criador=${creatorName}`);
-        this.emit('create-room', { quizId, creatorName, creatorId }, (response) => {
+        this.emit('create-room', { quizId, creatorName, creatorId, idToken }, (response) => {
             if (response && response.success) {
                 this.roomId = response.roomId;
                 this.role = 'host';
@@ -235,9 +235,9 @@ class SocketClient {
     // ============================================
 
     // Criar sala de simulado ao vivo (professor)
-    createLiveSimuladoRoom(certId, level, numQuestions, creatorName, creatorId, callback) {
+    createLiveSimuladoRoom(certId, level, numQuestions, creatorName, creatorId, idToken, callback) {
         console.log(`📝 Criando simulado ao vivo: ${certId}/${level} (${numQuestions} perguntas)`);
-        this.emit('simulado:create-room', { certId, level, numQuestions, creatorName, creatorId }, (response) => {
+        this.emit('simulado:create-room', { certId, level, numQuestions, creatorName, creatorId, idToken }, (response) => {
             if (response && response.success) {
                 this.roomId = response.roomId;
                 this.role = 'host';

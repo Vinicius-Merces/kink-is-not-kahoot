@@ -157,18 +157,19 @@ class HostSocketManager {
         
         const createRoomBtn = document.getElementById('createRoomBtn');
         if (createRoomBtn && !createRoomBtn.hasListener) {
-            createRoomBtn.addEventListener('click', () => {
+            createRoomBtn.addEventListener('click', async () => {
                 if (!this.quizId) {
                     Utils.showToast('Quiz não identificado', 'error');
                     return;
                 }
                 const creatorName = auth.currentUser?.displayName || auth.currentUser?.email;
                 const creatorId = auth.currentUser?.uid;
-                
+                const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+
                 console.log('🎮 Criando sala para quiz:', this.quizId);
                 Utils.showToast('Criando sala...', 'info');
-                
-                window.socketClient.createRoom(this.quizId, creatorName, creatorId, (response) => {
+
+                window.socketClient.createRoom(this.quizId, creatorName, creatorId, idToken, (response) => {
                     if (response && response.success) {
                         this.roomId = response.roomId;
                         this.roomCode = response.roomCode;

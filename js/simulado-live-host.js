@@ -43,7 +43,7 @@
     // ============================================
     // Criação da sala
     // ============================================
-    function createRoom(certId, level, numQuestions) {
+    async function createRoom(certId, level, numQuestions) {
         const user = auth.currentUser;
         if (!user) {
             Utils.showToast('Faça login para criar uma sala de simulado ao vivo', 'warning');
@@ -56,8 +56,10 @@
             btn.textContent = '⏳ Criando sala...';
         }
 
+        const idToken = await user.getIdToken();
+
         ensureSocket(() => {
-            socketClient.createLiveSimuladoRoom(certId, level, numQuestions, user.displayName || 'Professor', user.uid, (response) => {
+            socketClient.createLiveSimuladoRoom(certId, level, numQuestions, user.displayName || 'Professor', user.uid, idToken, (response) => {
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = '🎓 Criar Sala ao Vivo';

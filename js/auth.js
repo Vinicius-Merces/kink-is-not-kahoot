@@ -1,4 +1,9 @@
 // Sistema de Autenticação KINK - Versão Simplificada (Apenas Google)
+
+// E-mail do administrador: usado apenas para mostrar/esconder o link "Admin" na navbar.
+// O acesso real ao painel e às rotas /api/admin/* é validado no servidor.
+window.ADMIN_EMAIL = 'vmerces24@gmail.com';
+
 class AuthManager {
     constructor() {
         this.user = null;
@@ -130,7 +135,7 @@ class AuthManager {
     updateUI() {
         const userNameElements = document.querySelectorAll('#userName');
         const userAvatarElements = document.querySelectorAll('.user-avatar');
-        
+
         if (this.user) {
             const displayName = this.user.displayName || this.user.email?.split('@')[0] || 'Usuário';
             userNameElements.forEach(el => {
@@ -149,6 +154,36 @@ class AuthManager {
             userNameElements.forEach(el => el.style.display = 'none');
             userAvatarElements.forEach(el => el.style.display = 'none');
         }
+
+        this.updateAdminLink();
+    }
+
+    // Mostra/esconde o link "Admin" na navbar, visível apenas para ADMIN_EMAIL
+    updateAdminLink() {
+        const isAdmin = !!(this.user && this.user.email === window.ADMIN_EMAIL);
+
+        document.querySelectorAll('.nav-menu').forEach(menu => {
+            let adminLink = menu.querySelector('#adminNavLink');
+
+            if (isAdmin) {
+                if (!adminLink) {
+                    adminLink = document.createElement('a');
+                    adminLink.id = 'adminNavLink';
+                    adminLink.href = 'admin.html';
+                    adminLink.className = 'nav-link';
+                    adminLink.textContent = '🔐 Admin';
+                    const logoutBtn = menu.querySelector('#logoutBtn');
+                    if (logoutBtn) menu.insertBefore(adminLink, logoutBtn);
+                    else menu.appendChild(adminLink);
+                }
+                if (window.location.pathname.endsWith('admin.html')) {
+                    adminLink.classList.add('active');
+                    adminLink.setAttribute('aria-current', 'page');
+                }
+            } else if (adminLink) {
+                adminLink.remove();
+            }
+        });
     }
 
     requireAuth(redirectTo = 'index.html') {
@@ -170,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', async () => await authManager.logout());
     }
     
-    const protectedPages = ['my-quizzes.html', 'create-quiz.html', 'host.html', 'simulados.html', 'historico.html'];
+    const protectedPages = ['my-quizzes.html', 'create-quiz.html', 'host.html', 'simulados.html', 'historico.html', 'admin.html'];
     const currentPage = window.location.pathname.split('/').pop();
     if (protectedPages.includes(currentPage)) {
         auth.onAuthStateChanged((user) => {

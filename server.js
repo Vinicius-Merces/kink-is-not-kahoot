@@ -7,14 +7,18 @@ const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 // Inicializar Firebase Admin (apenas para persistência final)
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 
 // Credenciais via variável de ambiente (produção) ou arquivo local (dev)
 // FIREBASE_SERVICE_ACCOUNT_BASE64 é o formato recomendado: evita problemas
 // de parsing em paineis que nao aceitam espacos/aspas em variaveis de ambiente.
 let db = null;
+let auth = null;
 try {
     let serviceAccount;
     if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
@@ -25,15 +29,19 @@ try {
     } else {
         serviceAccount = require('./serviceAccountKey.json');
     }
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+    initializeApp({
+        credential: cert(serviceAccount)
     });
-    db = admin.firestore();
+    db = getFirestore();
+    auth = getAuth();
     console.log('✅ Firebase Admin inicializado');
 } catch (error) {
     console.log('⚠️ Firebase Admin não configurado (defina FIREBASE_SERVICE_ACCOUNT_BASE64 ou crie serviceAccountKey.json)');
     console.log('   O jogo funcionará sem persistência no Firestore');
 }
+
+// E-mail do administrador: único usuário com acesso ao painel /admin.html e às rotas /api/admin/*
+const ADMIN_EMAIL = 'vmerces24@gmail.com';
 
 // Configuração do Express
 const app = express();
@@ -82,6 +90,31 @@ app.use((req, res, next) => {
         return res.status(404).send('Not found');
     }
     next();
+});
+
+// 🔒 Rate limiting de rotas sensíveis (evita spam/abuso de endpoints da API)
+const reportLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutos
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Muitos reports enviados. Tente novamente em alguns minutos.' }
+});
+
+const simuladoActionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
+
+const adminLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutos
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
 });
 
 app.use(express.static(path.join(__dirname)));
@@ -256,7 +289,7 @@ async function persistSimuladoAttempt(uid, attemptData) {
         if (db) {
             const docRef = await db.collection('users').doc(uid).collection('simuladoAttempts').add({
                 ...attemptData,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                createdAt: FieldValue.serverTimestamp()
             });
             attemptId = docRef.id;
         } else {
@@ -285,7 +318,24 @@ async function getAuthenticatedUser(req) {
     }
 
     try {
-        return await admin.auth().verifyIdToken(token);
+        return await auth.verifyIdToken(token);
+    } catch (error) {
+        return null;
+    }
+}
+
+// Verifica o ID token do Firebase enviado por eventos de Socket.IO (ex: criação de salas),
+// para não confiar em creatorId/creatorName enviados livremente pelo cliente.
+async function verifySocketIdToken(idToken) {
+    if (!idToken || typeof idToken !== 'string') return null;
+
+    // Sem Firebase Admin configurado (ambiente de desenvolvimento): aceita qualquer token presente
+    if (!db) {
+        return { uid: 'dev-user', email: 'dev@local', name: 'Usuário (dev)' };
+    }
+
+    try {
+        return await auth.verifyIdToken(idToken);
     } catch (error) {
         return null;
     }
@@ -312,7 +362,7 @@ app.get('/api/simulado/certifications', (req, res) => {
 });
 
 // Inicia um simulado: seleciona perguntas respeitando a proporção de domínios e oculta gabaritos
-app.post('/api/simulado/start', async (req, res) => {
+app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
     const user = await getAuthenticatedUser(req);
     if (!user) {
         return res.status(401).json({ success: false, error: 'Faça login para iniciar um simulado' });
@@ -365,7 +415,7 @@ app.post('/api/simulado/start', async (req, res) => {
 });
 
 // Corrige um simulado e devolve pontuação geral, por domínio e revisão completa
-app.post('/api/simulado/:id/submit', async (req, res) => {
+app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => {
     const user = await getAuthenticatedUser(req);
     if (!user) {
         return res.status(401).json({ success: false, error: 'Faça login para enviar o simulado' });
@@ -552,7 +602,7 @@ app.get('/api/simulado/history/:attemptId', async (req, res) => {
 // Reports de questões com possível erro (não exige login - alunos do modo ao vivo não têm conta)
 const devQuestionReports = []; // usado apenas quando Firebase Admin não está configurado
 
-app.post('/api/simulado/report', async (req, res) => {
+app.post('/api/simulado/report', reportLimiter, async (req, res) => {
     const { source, certCode, level, domain, questionId, questionIndex, questionText, options, message, reporterName } = req.body || {};
 
     if (!questionText || typeof questionText !== 'string' || !questionText.trim()) {
@@ -573,17 +623,19 @@ app.post('/api/simulado/report', async (req, res) => {
         message: typeof message === 'string' ? message.slice(0, 1000) : '',
         reporterName: typeof reporterName === 'string' ? reporterName.slice(0, 80) : null,
         reporterUid: user ? user.uid : null,
-        reporterEmail: user ? user.email : null
+        reporterEmail: user ? user.email : null,
+        status: 'open'
     };
 
     try {
         if (db) {
             await db.collection('questionReports').add({
                 ...report,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                createdAt: FieldValue.serverTimestamp()
             });
         } else {
-            devQuestionReports.push({ ...report, createdAt: new Date().toISOString() });
+            const id = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            devQuestionReports.push({ id, ...report, createdAt: new Date().toISOString() });
             if (devQuestionReports.length > 200) devQuestionReports.shift();
         }
     } catch (error) {
@@ -594,6 +646,85 @@ app.post('/api/simulado/report', async (req, res) => {
     console.log(`🚩 Report de questão recebido (${report.source} / ${report.certCode || '?'} / ${report.level || '?'}): ${report.questionText.slice(0, 80)}`);
 
     res.json({ success: true });
+});
+
+// Verifica se a requisição pertence ao administrador (único e-mail definido em ADMIN_EMAIL)
+async function requireAdmin(req, res) {
+    const user = await getAuthenticatedUser(req);
+    if (!user || (user.email || '').toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        res.status(403).json({ success: false, error: 'Acesso restrito ao administrador' });
+        return null;
+    }
+    return user;
+}
+
+// Lista os reports de questões com erro (painel admin)
+app.get('/api/admin/reports', adminLimiter, async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+
+    try {
+        let reports;
+        if (db) {
+            const snapshot = await db.collection('questionReports').orderBy('createdAt', 'desc').limit(300).get();
+            reports = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null
+                };
+            });
+        } else {
+            reports = devQuestionReports.slice().reverse();
+        }
+        res.json({ success: true, reports });
+    } catch (error) {
+        console.error('⚠️ Erro ao buscar reports:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar reports' });
+    }
+});
+
+// Atualiza o status de um report (ex: marcar como resolvido)
+app.patch('/api/admin/reports/:id', adminLimiter, async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+
+    const { status } = req.body || {};
+    if (status !== 'open' && status !== 'resolved') {
+        return res.status(400).json({ success: false, error: 'Status inválido' });
+    }
+
+    try {
+        if (db) {
+            await db.collection('questionReports').doc(req.params.id).update({ status });
+        } else {
+            const report = devQuestionReports.find(r => r.id === req.params.id);
+            if (!report) return res.status(404).json({ success: false, error: 'Report não encontrado' });
+            report.status = status;
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('⚠️ Erro ao atualizar report:', error);
+        res.status(500).json({ success: false, error: 'Erro ao atualizar report' });
+    }
+});
+
+// Exclui permanentemente um report
+app.delete('/api/admin/reports/:id', adminLimiter, async (req, res) => {
+    if (!(await requireAdmin(req, res))) return;
+
+    try {
+        if (db) {
+            await db.collection('questionReports').doc(req.params.id).delete();
+        } else {
+            const index = devQuestionReports.findIndex(r => r.id === req.params.id);
+            if (index === -1) return res.status(404).json({ success: false, error: 'Report não encontrado' });
+            devQuestionReports.splice(index, 1);
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('⚠️ Erro ao excluir report:', error);
+        res.status(500).json({ success: false, error: 'Erro ao excluir report' });
+    }
 });
 
 // ============================================
@@ -1001,8 +1132,8 @@ class GameRoom {
                     quizTitle: this.quiz.title,
                     creatorId: this.creatorId,
                     creatorName: this.creatorName,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                    finishedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    createdAt: FieldValue.serverTimestamp(),
+                    finishedAt: FieldValue.serverTimestamp(),
                     players: Array.from(this.players.values()).map(p => ({
                         id: p.id, name: p.name, avatar: p.avatar, score: p.score
                     })),
@@ -1012,8 +1143,8 @@ class GameRoom {
 
                 // ✅ CORRIGIDO: Incrementar timesPlayed individualmente por quiz
                 await db.collection('quizzes').doc(this.quiz.id).update({
-                    timesPlayed: admin.firestore.FieldValue.increment(1),
-                    lastPlayedAt: admin.firestore.FieldValue.serverTimestamp()
+                    timesPlayed: FieldValue.increment(1),
+                    lastPlayedAt: FieldValue.serverTimestamp()
                 });
 
                 console.log(`✅ timesPlayed incrementado para quiz ${this.quiz.id}`);
@@ -1353,6 +1484,50 @@ function generateRoomId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
 }
 
+const VALID_AVATARS = ['avatar1', 'avatar2', 'avatar3', 'avatar4', 'avatar5', 'avatar6', 'avatar7', 'avatar8'];
+
+// Valida e normaliza os dados enviados por um aluno ao entrar em uma sala (join-room / simulado:join-room)
+function sanitizePlayerJoinData(data) {
+    const { roomCode, playerId, playerName, playerAvatar } = data || {};
+
+    if (typeof roomCode !== 'string' || !roomCode.trim()) return null;
+    if (typeof playerId !== 'string' || !playerId.trim()) return null;
+
+    const safeName = typeof playerName === 'string' && playerName.trim()
+        ? playerName.trim().slice(0, 30)
+        : 'Jogador';
+
+    const safeAvatar = VALID_AVATARS.includes(playerAvatar) ? playerAvatar : 'avatar1';
+
+    return {
+        roomCode: roomCode.trim(),
+        playerId: playerId.trim().slice(0, 64),
+        playerName: safeName,
+        playerAvatar: safeAvatar
+    };
+}
+
+// Registra um handler de evento garantindo que "callback" seja sempre uma função
+// e capturando erros (síncronos ou de promises) — um payload malformado (ex: evento
+// emitido sem dados/callback por um cliente malicioso) não pode mais derrubar o servidor.
+function safeOn(socket, event, handler) {
+    socket.on(event, (data, callback) => {
+        const safeCallback = typeof callback === 'function' ? callback : () => {};
+        try {
+            const result = handler(data, safeCallback);
+            if (result && typeof result.catch === 'function') {
+                result.catch((error) => {
+                    console.error(`⚠️ Erro no evento "${event}":`, error);
+                    safeCallback({ success: false, error: 'Erro interno do servidor' });
+                });
+            }
+        } catch (error) {
+            console.error(`⚠️ Erro no evento "${event}":`, error);
+            safeCallback({ success: false, error: 'Erro interno do servidor' });
+        }
+    });
+}
+
 // ============================================
 // EVENTOS SOCKET.IO
 // ============================================
@@ -1361,14 +1536,21 @@ io.on('connection', (socket) => {
     console.log(`🔌 Cliente conectado: ${socket.id}`);
 
     // Criar nova sala (professor)
-    socket.on('create-room', async (data, callback) => {
+    safeOn(socket, 'create-room', async (data, callback) => {
         try {
-            const { quizId, creatorName, creatorId } = data;
-            
-            if (!quizId) {
+            const { quizId, creatorName, idToken } = data || {};
+
+            if (!quizId || typeof quizId !== 'string') {
                 callback({ success: false, error: 'Quiz ID não fornecido' });
                 return;
             }
+
+            // creatorId nunca é aceito do cliente: usa o uid verificado pelo ID token (ou null se anônimo)
+            const verifiedUser = await verifySocketIdToken(idToken);
+            const creatorId = verifiedUser ? verifiedUser.uid : null;
+            const safeCreatorName = typeof creatorName === 'string' && creatorName.trim()
+                ? creatorName.slice(0, 100)
+                : 'Anônimo';
 
             // Buscar quiz no Firestore (se disponível)
             let quiz = null;
@@ -1399,7 +1581,7 @@ io.on('connection', (socket) => {
             const roomCode = generateRoomCode();
             const roomId = generateRoomId();
 
-            const room = new GameRoom(roomId, roomCode, quiz, socket.id, creatorName, creatorId);
+            const room = new GameRoom(roomId, roomCode, quiz, socket.id, safeCreatorName, creatorId);
             activeRooms.set(roomId, room);
             roomCodeMap.set(roomCode, roomId);
 
@@ -1407,7 +1589,7 @@ io.on('connection', (socket) => {
             socket.roomId = roomId;
             socket.role = 'host';
 
-            console.log(`🏠 Sala criada: ${roomCode} (${roomId}) por ${creatorName}`);
+            console.log(`🏠 Sala criada: ${roomCode} (${roomId}) por ${safeCreatorName}`);
 
             callback({
                 success: true,
@@ -1426,8 +1608,8 @@ io.on('connection', (socket) => {
     });
 
     // Verificar se sala existe (aluno)
-    socket.on('check-room', (data, callback) => {
-        const { roomCode } = data;
+    safeOn(socket, 'check-room', (data, callback) => {
+        const { roomCode } = data || {};
 
         const roomId = roomCodeMap.get(roomCode);
         if (roomId && activeRooms.has(roomId)) {
@@ -1461,9 +1643,14 @@ io.on('connection', (socket) => {
     });
 
     // Entrar em sala (aluno)
-    socket.on('join-room', (data, callback) => {
+    safeOn(socket, 'join-room', (data, callback) => {
         try {
-            const { roomCode, playerId, playerName, playerAvatar } = data;
+            const joinData = sanitizePlayerJoinData(data);
+            if (!joinData) {
+                callback({ success: false, error: 'Dados inválidos' });
+                return;
+            }
+            const { roomCode, playerId, playerName, playerAvatar } = joinData;
             const roomId = roomCodeMap.get(roomCode);
 
             if (!roomId || !activeRooms.has(roomId)) {
@@ -1513,8 +1700,8 @@ io.on('connection', (socket) => {
     });
 
     // Obter estado da sala
-    socket.on('get-room-state', (data, callback) => {
-        const room = activeRooms.get(data.roomId);
+    safeOn(socket, 'get-room-state', (data, callback) => {
+        const room = activeRooms.get((data || {}).roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
             return;
@@ -1523,7 +1710,7 @@ io.on('connection', (socket) => {
     });
 
     // Iniciar quiz (host)
-    socket.on('start-quiz', async (data, callback) => {
+    safeOn(socket, 'start-quiz', async (data, callback) => {
         const room = activeRooms.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1545,7 +1732,7 @@ io.on('connection', (socket) => {
     });
 
     // Iniciar pergunta (host)
-    socket.on('start-question', async (data, callback) => {
+    safeOn(socket, 'start-question', async (data, callback) => {
         const room = activeRooms.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1568,20 +1755,20 @@ io.on('connection', (socket) => {
     });
 
     // Responder pergunta (aluno)
-    socket.on('submit-answer', (data, callback) => {
+    safeOn(socket, 'submit-answer', (data, callback) => {
         const room = activeRooms.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
             return;
         }
 
-        const { answer, responseTime } = data;
+        const { answer, responseTime } = data || {};
         const result = room.submitAnswer(socket.playerId, answer, responseTime);
         callback(result);
     });
 
     // Próxima pergunta (host)
-    socket.on('next-question', async (data, callback) => {
+    safeOn(socket, 'next-question', async (data, callback) => {
         const room = activeRooms.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1604,7 +1791,7 @@ io.on('connection', (socket) => {
     });
 
     // Finalizar jogo (host)
-    socket.on('end-game', async (data, callback) => {
+    safeOn(socket, 'end-game', async (data, callback) => {
         const room = activeRooms.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1628,9 +1815,21 @@ io.on('connection', (socket) => {
     // ============================================
 
     // Criar sala de simulado ao vivo (professor)
-    socket.on('simulado:create-room', (data, callback) => {
+    safeOn(socket, 'simulado:create-room', async (data, callback) => {
         try {
-            const { certId, level, numQuestions, creatorName, creatorId } = data || {};
+            const { certId, level, numQuestions, creatorName, idToken } = data || {};
+
+            // O resultado fica gravado no histórico do professor (users/{uid}/simuladoAttempts),
+            // então creatorId precisa ser o uid verificado pelo ID token - nunca o valor enviado pelo cliente.
+            const verifiedUser = await verifySocketIdToken(idToken);
+            if (!verifiedUser) {
+                callback({ success: false, error: 'Sessão expirada. Faça login novamente para criar uma sala de simulado.' });
+                return;
+            }
+            const creatorId = verifiedUser.uid;
+            const safeCreatorName = typeof creatorName === 'string' && creatorName.trim()
+                ? creatorName.slice(0, 100)
+                : (verifiedUser.name || verifiedUser.email || 'Professor');
 
             const cert = CERTIFICATIONS[certId];
             if (!cert || !cert.levels.includes(level)) {
@@ -1663,7 +1862,7 @@ io.on('connection', (socket) => {
                 level,
                 domains: pool.domains,
                 questions
-            }, socket.id, creatorName, creatorId);
+            }, socket.id, safeCreatorName, creatorId);
 
             activeLiveSimulados.set(roomId, room);
             liveSimuladoCodeMap.set(roomCode, roomId);
@@ -1673,7 +1872,7 @@ io.on('connection', (socket) => {
             socket.role = 'host';
             socket.simuladoMode = true;
 
-            console.log(`📝 Sala de simulado ao vivo criada: ${roomCode} (${roomId}) por ${creatorName}`);
+            console.log(`📝 Sala de simulado ao vivo criada: ${roomCode} (${roomId}) por ${safeCreatorName}`);
 
             callback({
                 success: true,
@@ -1692,9 +1891,14 @@ io.on('connection', (socket) => {
     });
 
     // Entrar em sala de simulado ao vivo (aluno)
-    socket.on('simulado:join-room', (data, callback) => {
+    safeOn(socket, 'simulado:join-room', (data, callback) => {
         try {
-            const { roomCode, playerId, playerName, playerAvatar } = data || {};
+            const joinData = sanitizePlayerJoinData(data);
+            if (!joinData) {
+                callback({ success: false, error: 'Dados inválidos' });
+                return;
+            }
+            const { roomCode, playerId, playerName, playerAvatar } = joinData;
             const roomId = liveSimuladoCodeMap.get(roomCode);
 
             if (!roomId || !activeLiveSimulados.has(roomId)) {
@@ -1751,7 +1955,7 @@ io.on('connection', (socket) => {
     });
 
     // Iniciar sessão de simulado ao vivo (professor)
-    socket.on('simulado:start-session', (data, callback) => {
+    safeOn(socket, 'simulado:start-session', (data, callback) => {
         const room = activeLiveSimulados.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1775,7 +1979,7 @@ io.on('connection', (socket) => {
     });
 
     // Avançar para a próxima pergunta (professor)
-    socket.on('simulado:advance', (data, callback) => {
+    safeOn(socket, 'simulado:advance', (data, callback) => {
         const room = activeLiveSimulados.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1795,7 +1999,7 @@ io.on('connection', (socket) => {
     });
 
     // Repetir votação de uma pergunta já apresentada (professor)
-    socket.on('simulado:revote', (data, callback) => {
+    safeOn(socket, 'simulado:revote', (data, callback) => {
         const room = activeLiveSimulados.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1807,12 +2011,16 @@ io.on('connection', (socket) => {
         }
 
         const { index } = data || {};
+        if (!Number.isInteger(index)) {
+            callback({ success: false, error: 'Pergunta inválida para repetir votação' });
+            return;
+        }
         const result = room.revote(index);
         callback(result);
     });
 
     // Revisar uma pergunta já apresentada, sem alterar o que os alunos veem (professor)
-    socket.on('simulado:goto-question', (data, callback) => {
+    safeOn(socket, 'simulado:goto-question', (data, callback) => {
         const room = activeLiveSimulados.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1824,6 +2032,10 @@ io.on('connection', (socket) => {
         }
 
         const { index } = data || {};
+        if (!Number.isInteger(index)) {
+            callback({ success: false, error: 'Pergunta inválida' });
+            return;
+        }
         const state = room.getTeacherQuestionState(index);
         if (!state) {
             callback({ success: false, error: 'Pergunta inválida' });
@@ -1834,7 +2046,7 @@ io.on('connection', (socket) => {
     });
 
     // Registrar voto (aluno)
-    socket.on('simulado:vote', (data, callback) => {
+    safeOn(socket, 'simulado:vote', (data, callback) => {
         const room = activeLiveSimulados.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
@@ -1851,7 +2063,7 @@ io.on('connection', (socket) => {
     });
 
     // Encerrar sessão de simulado ao vivo (professor)
-    socket.on('simulado:end-session', async (data, callback) => {
+    safeOn(socket, 'simulado:end-session', async (data, callback) => {
         const room = activeLiveSimulados.get(socket.roomId);
         if (!room) {
             callback({ success: false, error: 'Sala não encontrada' });
