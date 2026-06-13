@@ -740,6 +740,13 @@ const playerSocketMap = new Map();   // playerId -> socketId
 const activeLiveSimulados = new Map(); // roomId -> LiveSimuladoRoom
 const liveSimuladoCodeMap = new Map(); // code -> roomId
 
+// Normaliza question.correct (número legado ou array) para sempre retornar um array de índices
+function normalizeCorrect(correct) {
+    if (Array.isArray(correct)) return correct;
+    if (correct === undefined || correct === null) return [];
+    return [correct];
+}
+
 // Classe GameRoom (Container)
 class GameRoom {
     constructor(roomId, code, quizData, creatorSocketId, creatorName, creatorId) {
@@ -821,11 +828,13 @@ class GameRoom {
     // ✅ NOVO: Calcular estatísticas de respostas por opção
     getQuestionStatistics() {
         const stats = {};
-        
+
         if (!this.currentQuestion || !this.currentQuestion.options) {
             return stats;
         }
-        
+
+        const correctArr = normalizeCorrect(this.currentQuestion.correct);
+
         // Criar entrada para cada opção
         this.currentQuestion.options.forEach((option, index) => {
             const optionLabel = String.fromCharCode(65 + index); // A, B, C, D...
@@ -833,31 +842,25 @@ class GameRoom {
                 label: option,
                 count: 0,
                 percentage: 0,
-                isCorrect: this.currentQuestion.correct === optionLabel || this.currentQuestion.correct === index
+                isCorrect: correctArr.includes(index)
             };
         });
-        
-        // Contar quantos escolheram cada opção
+
+        // Contar quantos marcaram cada opção (cada resposta é um array de índices)
         console.log(`📊 Contando respostas. Total de respostas: ${this.answers.size}`);
         for (const [playerId, answerData] of this.answers) {
-            const answer = answerData.answer;
-            console.log(`  - Jogador ${playerId} respondeu: ${answer} (tipo: ${typeof answer})`);
-            
-            // Converter número para letra se necessário
-            let answerKey = answer;
-            if (typeof answer === 'number') {
-                answerKey = String.fromCharCode(65 + answer); // 0 -> A, 1 -> B, etc
-            }
-            
-            if (stats[answerKey]) {
-                stats[answerKey].count++;
-                console.log(`    ✅ Contabilizado: ${answerKey} agora tem ${stats[answerKey].count}`);
-            } else {
-                console.log(`    ❌ Chave inválida: ${answerKey}`);
-            }
+            const answerArr = answerData.answer;
+            console.log(`  - Jogador ${playerId} respondeu: [${answerArr}]`);
+
+            answerArr.forEach(index => {
+                const answerKey = String.fromCharCode(65 + index); // 0 -> A, 1 -> B, etc
+                if (stats[answerKey]) {
+                    stats[answerKey].count++;
+                }
+            });
         }
-        
-        // Calcular percentual
+
+        // Calcular percentual (% de jogadores que marcaram cada opção)
         const totalAnswers = this.answers.size;
         if (totalAnswers > 0) {
             Object.keys(stats).forEach(option => {
@@ -866,7 +869,7 @@ class GameRoom {
                 );
             });
         }
-        
+
         console.log(`📊 Stats finais:`, stats);
         return stats;
     }
@@ -875,12 +878,12 @@ class GameRoom {
     getAnswerFeedback(playerId) {
         const answer = this.answers.get(playerId);
         if (!answer) return null;
-        
+
         return {
             isCorrect: answer.isCorrect,
             points: answer.points,
             yourAnswer: answer.answer,
-            correctAnswer: this.currentQuestion.correct,
+            correctAnswer: normalizeCorrect(this.currentQuestion.correct),
             explanation: this.currentQuestion.explanation || '',
             responseTime: answer.responseTime
         };
@@ -920,8 +923,9 @@ class GameRoom {
         this.status = 'reading';
 
         const timeLimit = this.currentQuestion.timeLimit || 30;
+        const readingTime = this.currentQuestion.readingTime ?? 5;
 
-        console.log(`📖 Fase de leitura - Pergunta ${questionIndex + 1}: ${this.currentQuestion.text.substring(0, 50)}...`);
+        console.log(`📖 Fase de leitura (${readingTime}s) - Pergunta ${questionIndex + 1}: ${this.currentQuestion.text.substring(0, 50)}...`);
 
         // Enviar fase de leitura para todos
         io.to(this.id).emit('reading-phase', {
@@ -930,13 +934,14 @@ class GameRoom {
                 text: this.currentQuestion.text,
                 timeLimit: timeLimit
             },
-            readingTime: 5
+            readingTime: readingTime,
+            pointsMultiplier: this.currentQuestion.pointsMultiplier || 1
         });
 
-        // Timer para leitura (5s)
+        // Timer para leitura (configurável pelo professor)
         this.timers.reading = setTimeout(() => {
             this.startAnsweringPhase();
-        }, 5000);
+        }, readingTime * 1000);
 
         return {
             success: true,
@@ -945,7 +950,7 @@ class GameRoom {
                 text: this.currentQuestion.text,
                 timeLimit: timeLimit
             },
-            readingTime: 5
+            readingTime: readingTime
         };
     }
 
@@ -955,13 +960,16 @@ class GameRoom {
         this.status = 'answering';
         this.questionStartTime = Date.now();
         const timeLimit = this.currentQuestion.timeLimit || 30;
+        const correctCount = normalizeCorrect(this.currentQuestion.correct).length;
 
         console.log(`⚡ Fase de respostas - ${timeLimit}s para responder`);
 
         // Enviar fase de respostas para todos
         io.to(this.id).emit('answering-phase', {
             timeLimit: timeLimit,
-            options: this.currentQuestion.options
+            options: this.currentQuestion.options,
+            correctCount: correctCount,
+            pointsMultiplier: this.currentQuestion.pointsMultiplier || 1
         });
 
         // Timer para finalizar pergunta
@@ -979,10 +987,22 @@ class GameRoom {
             return { success: false, error: 'Você já respondeu' };
         }
 
-        // ✅ Validar formato da resposta e do tempo de resposta vindos do cliente
+        // ✅ Normalizar e validar formato da resposta vinda do cliente (aceita null, número ou array)
         const optionsCount = this.currentQuestion.options?.length || 0;
-        const isValidAnswer = answer === null ||
-            (Number.isInteger(answer) && answer >= 0 && answer < optionsCount);
+        let answerArr;
+        if (answer === null || answer === undefined) {
+            answerArr = [];
+        } else if (Number.isInteger(answer)) {
+            answerArr = [answer];
+        } else if (Array.isArray(answer)) {
+            answerArr = answer;
+        } else {
+            return { success: false, error: 'Resposta inválida' };
+        }
+
+        const isValidAnswer = answerArr.length <= optionsCount &&
+            answerArr.every(a => Number.isInteger(a) && a >= 0 && a < optionsCount) &&
+            new Set(answerArr).size === answerArr.length;
         if (!isValidAnswer) {
             return { success: false, error: 'Resposta inválida' };
         }
@@ -991,17 +1011,21 @@ class GameRoom {
         const isValidResponseTime = typeof responseTime === 'number' && Number.isFinite(responseTime);
         const safeResponseTime = isValidResponseTime ? Math.max(0, responseTime) : timeLimit;
 
-        const isCorrect = (answer === this.currentQuestion.correct);
+        const correctArr = normalizeCorrect(this.currentQuestion.correct);
+        const isCorrect = answerArr.length === correctArr.length &&
+            correctArr.every(c => answerArr.includes(c));
+        const multiplier = this.currentQuestion.pointsMultiplier || 1;
         let points = 0;
 
         if (isCorrect) {
             const timeRemaining = Math.max(0, timeLimit - safeResponseTime);
             points = Math.floor(1000 * (timeRemaining / timeLimit));
             points = Math.min(1000, Math.max(0, points));
+            points *= multiplier;
         }
 
         this.answers.set(playerId, {
-            answer: answer,
+            answer: answerArr,
             responseTime: safeResponseTime,
             isCorrect: isCorrect,
             points: points
@@ -1019,12 +1043,12 @@ class GameRoom {
         }
 
         // ✅ NOVO: Retornar feedback completo
-        return { 
-            success: true, 
-            points: points, 
+        return {
+            success: true,
+            points: points,
             isCorrect: isCorrect,
-            yourAnswer: answer,
-            correctAnswer: this.currentQuestion.correct,
+            yourAnswer: answerArr,
+            correctAnswer: correctArr,
             explanation: this.currentQuestion.explanation || ''
         };
     }
@@ -1077,17 +1101,23 @@ class GameRoom {
 
         // Gerar ranking
         const ranking = this.getRanking();
-        
+
         // ✅ NOVO: Obter estatísticas de resposta
         const questionStats = this.getQuestionStatistics();
+
+        // Resposta(s) correta(s) — array de índices, texto e letras (A, B, A/C, etc.)
+        const correctArr = normalizeCorrect(this.currentQuestion.correct);
+        const correctAnswerText = correctArr.map(i => this.currentQuestion.options[i]).join(', ');
+        const correctAnswerLabel = correctArr.map(i => String.fromCharCode(65 + i)).join(', ');
 
         // Enviar resultado para todos
         io.to(this.id).emit('question-result', {
             questionIndex: this.currentQuestionIndex,
             results: results,
             ranking: ranking,
-            correctAnswer: this.currentQuestion.correct,
-            correctAnswerText: this.currentQuestion.options[this.currentQuestion.correct] || this.currentQuestion.correct,
+            correctAnswer: correctArr,
+            correctAnswerText: correctAnswerText,
+            correctAnswerLabel: correctAnswerLabel,
             explanation: this.currentQuestion.explanation || '',
             stats: questionStats  // ✅ NOVO: Gráfico de respostas
         });

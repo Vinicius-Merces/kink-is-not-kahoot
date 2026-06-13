@@ -89,12 +89,17 @@ class HostSocketManager {
         window.socketClient.on('reading-phase', (data) => {
             this.status = 'reading';
             this.currentQuestion = data.question;
+            this.currentQuestion.readingTime = data.readingTime ?? 5;
+            this.currentQuestion.pointsMultiplier = data.pointsMultiplier || 1;
             this.currentQuestionIndex = data.question?.index || 0;
             this.updateReadingPhase();
         });
 
         window.socketClient.on('answering-phase', (data) => {
             this.status = 'answering';
+            if (this.currentQuestion) {
+                this.currentQuestion.pointsMultiplier = data.pointsMultiplier || 1;
+            }
             this.updateAnsweringPhase(data);
         });
 
@@ -107,10 +112,10 @@ class HostSocketManager {
             if (data.stats) {
                 this.displayAnswerStatistics(data.stats, data.correctAnswer);
             }
-            
+
             // ✅ NOVO: Mostrar resposta correta e explicação
             if (data.correctAnswerText || data.explanation) {
-                this.showCorrectAnswerFeedback(data.correctAnswer, data.correctAnswerText, data.explanation);
+                this.showCorrectAnswerFeedback(data.correctAnswerLabel, data.correctAnswerText, data.explanation);
             }
             
             this.showRankingModalWithDistribution(data);
@@ -419,18 +424,22 @@ class HostSocketManager {
     updateReadingPhase() {
         const display = document.getElementById('currentQuestionDisplay');
         if (!display) return;
-        
+
+        const readingTime = this.currentQuestion?.readingTime ?? 5;
+        const multiplier = this.currentQuestion?.pointsMultiplier || 1;
+        const multiplierBadge = multiplier > 1 ? `<span class="multiplier-badge" style="margin-left: 0.5rem;">🔥 Vale ${multiplier}x!</span>` : '';
+
         display.innerHTML = `
             <div class="current-question" style="background: rgba(78, 205, 196, 0.2);">
-                <strong>📖 Leia a pergunta (5s)</strong>
+                <strong>📖 Leia a pergunta (${readingTime}s)</strong>${multiplierBadge}
                 <p style="font-size: 1.2rem; margin-top: 1rem;">${Utils.escapeHtml(this.currentQuestion?.text || '')}</p>
                 <small>As opções aparecerão em breve...</small>
             </div>
         `;
-        
+
         const timerDisplay = document.getElementById('questionTimer');
         if (timerDisplay) timerDisplay.style.display = 'none';
-        
+
         const startBtn = document.getElementById('startQuestionBtn');
         const nextBtn = document.getElementById('nextQuestionBtn');
         if (startBtn) startBtn.style.display = 'none';
@@ -440,15 +449,18 @@ class HostSocketManager {
     updateAnsweringPhase(data) {
         const display = document.getElementById('currentQuestionDisplay');
         if (!display) return;
-        
+
+        const multiplier = this.currentQuestion?.pointsMultiplier || 1;
+        const multiplierBadge = multiplier > 1 ? `<span class="multiplier-badge" style="margin-left: 0.5rem;">🔥 Vale ${multiplier}x!</span>` : '';
+
         display.innerHTML = `
             <div class="current-question">
-                <strong>⚡ Responda agora!</strong>
+                <strong>⚡ Responda agora!</strong>${multiplierBadge}
                 <p>${Utils.escapeHtml(this.currentQuestion?.text || '')}</p>
                 <small>Tempo limite: ${data.timeLimit}s</small>
             </div>
         `;
-        
+
         this.startTimer(data.timeLimit);
         
         const startBtn = document.getElementById('startQuestionBtn');
@@ -612,7 +624,7 @@ class HostSocketManager {
         let html = `
             <div class="correct-answer-display">
                 <div class="check-icon">✅</div>
-                <div class="correct-text">Resposta Correta: <strong>${correctOption}</strong></div>
+                <div class="correct-text">Resposta Correta: <strong>${Utils.escapeHtml(correctOption || '')}</strong></div>
         `;
         
         if (correctAnswerText) {

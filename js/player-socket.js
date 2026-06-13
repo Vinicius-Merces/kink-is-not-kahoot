@@ -14,7 +14,8 @@ class PlayerSocketManager {
         this.currentScreen = 'joinScreen';
         this.readingTimer = null;
         this.answerTimer = null;
-        this.lastAnswerWasCorrect = false;
+        this.correctCount = 1; // ✅ NOVO: quantas respostas a pergunta atual exige
+        this.selectedOptions = new Set(); // ✅ NOVO: seleção em perguntas de múltipla escolha
         this.roomType = 'quiz'; // 'quiz' ou 'simulado' (modo professor ao vivo)
         this.simuladoVoted = false;
         this.simuladoCurrentIndex = null;
@@ -498,15 +499,18 @@ class PlayerSocketManager {
         }
         
         this.currentQuestion = data.question;
+        this.currentQuestion.pointsMultiplier = data.pointsMultiplier || 1;
         this.hasAnswered = false;
-        
+
         this.showScreen('readingScreen');
-        
+
         const readingTextElem = document.getElementById('readingQuestionText');
         if (readingTextElem) {
             readingTextElem.textContent = this.currentQuestion.text;
         }
-        
+
+        this.updateMultiplierBadge('readingMultiplierBadge');
+
         let timeLeft = data.readingTime || 5;
         const timerSpan = document.getElementById('readingTimer');
         if (timerSpan) timerSpan.textContent = timeLeft;
@@ -528,6 +532,9 @@ class PlayerSocketManager {
             <div id="readingScreen" class="player-screen">
                 <div class="reading-card">
                     <h2>📖 Leia a pergunta</h2>
+                    <div style="text-align: center; margin: 0.5rem 0;">
+                        <span id="readingMultiplierBadge" class="multiplier-badge" style="display:none;"></span>
+                    </div>
                     <div class="question-reading">
                         <p id="readingQuestionText" style="font-size: 1.3rem; margin: 1rem 0;"></p>
                     </div>
@@ -545,15 +552,28 @@ class PlayerSocketManager {
         container.insertAdjacentHTML('beforeend', readingHTML);
     }
 
+    // ✅ NOVO: Mostra/esconde o badge "🔥 Vale Nx!" quando a pergunta tem multiplicador > 1
+    updateMultiplierBadge(elementId) {
+        const badge = document.getElementById(elementId);
+        if (!badge) return;
+
+        const multiplier = this.currentQuestion?.pointsMultiplier || 1;
+        if (multiplier > 1) {
+            badge.textContent = `🔥 Vale ${multiplier}x!`;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
     createRankingScreen() {
         if (document.getElementById('rankingScreen')) return;
-        
+
         const rankingHTML = `
             <div id="rankingScreen" class="player-screen">
                 <div class="ranking-card">
                     <h2>🏆 Ranking Parcial 🏆</h2>
                     <div id="rankingListModal" class="ranking-list-modal"></div>
-                    <div id="answerFeedback" style="margin: 1rem 0; display: none;"></div>
                     <div class="next-question-timer">
                         Aguardando próxima pergunta...
                     </div>
@@ -575,7 +595,9 @@ class PlayerSocketManager {
         
         this.currentQuestion.options = data.options;
         this.currentQuestion.timeLimit = data.timeLimit;
-        
+        this.currentQuestion.pointsMultiplier = data.pointsMultiplier || 1;
+        this.correctCount = data.correctCount || 1;
+
         this.questionStartTime = new Date();
         this.hasAnswered = false;
         
@@ -592,24 +614,81 @@ class PlayerSocketManager {
         if (questionTextElem) {
             questionTextElem.textContent = this.currentQuestion.text;
         }
-        
+
+        this.updateMultiplierBadge('questionMultiplierBadge');
+
         const optionsGrid = document.getElementById('optionsGrid');
         if (!optionsGrid) return;
-        
+
         const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-        
+        const multiSelect = this.correctCount > 1;
+        this.selectedOptions = new Set();
+
         optionsGrid.innerHTML = this.currentQuestion.options.map((option, index) => `
-            <button class="option-btn" data-option="${index}" aria-label="Opção ${letters[index]}: ${Utils.escapeHtml(option)}">
+            <button class="option-btn" data-option="${index}"${multiSelect ? ' role="checkbox" aria-checked="false"' : ''} aria-label="Opção ${letters[index]}: ${Utils.escapeHtml(option)}">
                 <div class="option-letter" aria-hidden="true">${letters[index]}</div>
                 <div class="option-text">${Utils.escapeHtml(option)}</div>
             </button>
         `).join('');
-        
-        document.querySelectorAll('.option-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!this.hasAnswered) this.submitAnswer(parseInt(btn.dataset.option));
+
+        const feedbackMessage = document.getElementById('feedbackMessage');
+
+        if (multiSelect) {
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!this.hasAnswered) this.toggleOptionSelection(btn);
+                });
             });
-        });
+
+            if (feedbackMessage) {
+                feedbackMessage.innerHTML = `
+                    <p id="multiSelectHint">Selecione ${this.correctCount} respostas (marcadas: 0/${this.correctCount})</p>
+                    <button id="confirmAnswerBtn" class="btn btn-primary" disabled>✅ Confirmar Resposta</button>
+                `;
+
+                const confirmBtn = document.getElementById('confirmAnswerBtn');
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', () => {
+                        if (!this.hasAnswered && this.selectedOptions.size > 0) {
+                            this.submitAnswer(Array.from(this.selectedOptions));
+                        }
+                    });
+                }
+            }
+        } else {
+            if (feedbackMessage) feedbackMessage.innerHTML = '';
+
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!this.hasAnswered) this.submitAnswer(parseInt(btn.dataset.option));
+                });
+            });
+        }
+    }
+
+    // ✅ NOVO: Alterna a seleção de uma opção em perguntas de múltipla escolha
+    toggleOptionSelection(btn) {
+        const index = parseInt(btn.dataset.option);
+
+        if (this.selectedOptions.has(index)) {
+            this.selectedOptions.delete(index);
+            btn.classList.remove('selected');
+            btn.setAttribute('aria-checked', 'false');
+        } else {
+            this.selectedOptions.add(index);
+            btn.classList.add('selected');
+            btn.setAttribute('aria-checked', 'true');
+        }
+
+        const hint = document.getElementById('multiSelectHint');
+        if (hint) {
+            hint.textContent = `Selecione ${this.correctCount} respostas (marcadas: ${this.selectedOptions.size}/${this.correctCount})`;
+        }
+
+        const confirmBtn = document.getElementById('confirmAnswerBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = this.selectedOptions.size === 0;
+        }
     }
 
     startQuestionTimer() {
@@ -634,28 +713,37 @@ class PlayerSocketManager {
     async submitAnswer(selectedOption) {
         if (this.hasAnswered) return;
         this.hasAnswered = true;
-        
+
         if (this.answerTimer) clearInterval(this.answerTimer);
-        
+
         const responseTime = (new Date() - this.questionStartTime) / 1000;
-        const isCorrect = (selectedOption === this.currentQuestion.correct);
-        
-        // Guardar se acertou para mostrar no feedback final
-        this.lastAnswerWasCorrect = isCorrect;
-        
+
+        // ✅ Normaliza para array: número → [número], array → mantém, null/undefined → []
+        let answerArr;
+        if (Array.isArray(selectedOption)) {
+            answerArr = selectedOption;
+        } else if (selectedOption === null || selectedOption === undefined) {
+            answerArr = [];
+        } else {
+            answerArr = [selectedOption];
+        }
+
         if (window.socketClient && window.socketClient.connected) {
-            socketClient.submitAnswer(selectedOption, responseTime, (result) => {
+            socketClient.submitAnswer(answerArr, responseTime, (result) => {
                 // Não atualiza UI aqui, aguarda question-result
             });
         } else {
             Utils.showToast('Conexão perdida com o servidor', 'error');
         }
-        
+
         // Desabilitar opções imediatamente
         document.querySelectorAll('.option-btn').forEach(btn => {
             btn.disabled = true;
             btn.classList.add('disabled');
         });
+
+        const confirmBtn = document.getElementById('confirmAnswerBtn');
+        if (confirmBtn) confirmBtn.disabled = true;
     }
 
     handleQuestionResult(data) {
@@ -671,30 +759,29 @@ class PlayerSocketManager {
             }
             this.updatePlayerInfoDisplay();
         }
-        
-        // ✅ NOVO: Mostrar feedback visual melhorado
-        this.showAnswerFeedbackImproved(data);
-        
-        // Mostrar ranking
-        this.showRankingModal(data.ranking);
-        
+
+        // ✅ NOVO: Montar feedback (acerto/erro, explicação, resposta correta e distribuição)
+        const feedbackHtml = this.buildAnswerFeedbackHtml(data);
+
+        // Mostrar ranking junto com o feedback
+        this.showRankingModal(data.ranking, feedbackHtml);
+
         // Voltar para tela de espera após 4 segundos
         setTimeout(() => {
             this.showScreen('waitingScreen');
         }, 4000);
     }
 
-    // ✅ NOVO: Feedback visual melhorado com animação
-    showAnswerFeedbackImproved(data) {
-        const feedbackDiv = document.getElementById('answerFeedback');
-        if (!feedbackDiv || !this.currentQuestion) return;
-        
+    // ✅ NOVO: Monta o HTML de feedback (acerto/erro, explicação, resposta correta e distribuição de respostas)
+    buildAnswerFeedbackHtml(data) {
+        if (!this.currentQuestion) return '';
+
         const myResult = data.results?.find(r => r.playerId === this.playerId);
-        if (!myResult) return;
-        
+        if (!myResult) return '';
+
         const isCorrect = myResult.isCorrect;
         const points = myResult.points || 0;
-        
+
         let html = `
             <div class="answer-feedback ${isCorrect ? 'correct' : 'incorrect'}">
                 <div class="feedback-icon">${isCorrect ? '✅' : '❌'}</div>
@@ -705,8 +792,8 @@ class PlayerSocketManager {
                     ${isCorrect ? `+${points} pontos` : '0 pontos'}
                 </div>
         `;
-        
-        // ✅ NOVO: Mostrar explicação se existir
+
+        // ✅ Mostrar explicação se existir
         if (data.explanation) {
             html += `
                 <div class="feedback-explanation">
@@ -715,47 +802,57 @@ class PlayerSocketManager {
                 </div>
             `;
         }
-        
-        // ✅ NOVO: Mostrar resposta correta
+
+        // ✅ Mostrar resposta correta (letra(s))
         html += `
                 <div class="feedback-hint">
-                    Resposta correta: <strong>${data.correctAnswer}</strong>
+                    Resposta correta: <strong>${Utils.escapeHtml(data.correctAnswerLabel || '')}</strong>
                 </div>
             </div>
         `;
-        
-        feedbackDiv.innerHTML = html;
-        feedbackDiv.style.display = 'block';
-        
-        // Esconder após 4 segundos
-        setTimeout(() => {
-            feedbackDiv.style.display = 'none';
-        }, 4000);
+
+        // ✅ NOVO: Distribuição de respostas (% por opção, destacando a correta e a minha)
+        html += this.renderAnswerDistribution(data.stats, myResult.answer);
+
+        return html;
     }
 
-    // ✅ MANTÉM compatibilidade - função antiga
-    showAnswerFeedback() {
-        const feedbackDiv = document.getElementById('answerFeedback');
-        if (!feedbackDiv || !this.currentQuestion) return;
-        
-        const isCorrect = this.lastAnswerWasCorrect;
-        
-        if (isCorrect) {
-            feedbackDiv.innerHTML = `<div class="feedback correct">✅ Parabéns! Você acertou!</div>`;
-        } else {
-            const correctAnswerText = this.currentQuestion.options[this.currentQuestion.correct];
-            feedbackDiv.innerHTML = `<div class="feedback incorrect">❌ Você errou! A resposta correta era: "${Utils.escapeHtml(correctAnswerText)}"</div>`;
-        }
-        
-        feedbackDiv.style.display = 'block';
-        
-        // Esconder após 3 segundos
-        setTimeout(() => {
-            feedbackDiv.style.display = 'none';
-        }, 3000);
+    // ✅ NOVO: Renderiza a distribuição de respostas (% por opção), destacando a correta e a minha
+    renderAnswerDistribution(stats, myAnswerIndices) {
+        if (!stats || Object.keys(stats).length === 0) return '';
+
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+        const myIndices = Array.isArray(myAnswerIndices) ? myAnswerIndices : [];
+
+        const rows = Object.entries(stats).map(([letter, stat]) => {
+            const isMine = myIndices.includes(letters.indexOf(letter));
+
+            return `
+                <div class="stat-row ${stat.isCorrect ? 'correct-answer' : ''}">
+                    <div class="stat-label">
+                        <div class="option-letter">${letter}</div>
+                        ${isMine ? '<span aria-hidden="true" title="Sua resposta">👈</span>' : ''}
+                    </div>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar" style="width: ${stat.percentage}%"></div>
+                    </div>
+                    <div class="stat-count">
+                        <span class="count-number">${stat.count}</span>
+                        <span class="count-percent">${stat.percentage}%</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="stats-container" style="margin-top: 1.5rem;" aria-live="polite">
+                <h3 style="margin: 0 0 0.5rem; font-size: 1rem; color: #fff; text-align: center;">📊 Distribuição de Respostas</h3>
+                ${rows}
+            </div>
+        `;
     }
 
-    showRankingModal(ranking) {
+    showRankingModal(ranking, feedbackHtml = '') {
         const topRanking = ranking?.slice(0, 10) || [];
         const existingModal = document.querySelector('.ranking-modal');
         if (existingModal) existingModal.remove();
@@ -823,6 +920,7 @@ class PlayerSocketManager {
                 border: 1px solid rgba(78,205,196,0.25);
                 border-radius: 20px; padding: 1.5rem;
             ">
+                ${feedbackHtml ? `<div style="margin-bottom: 1.2rem;">${feedbackHtml}</div>` : ''}
                 <div style="margin-bottom: 1.2rem;">
                     <div style="font-size:2rem; margin-bottom:0.2rem;" aria-hidden="true">🏆</div>
                     <h2 id="partialRankingModalTitle" style="

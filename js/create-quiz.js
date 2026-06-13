@@ -1,4 +1,12 @@
 // Gerenciador de criação/edição de quizzes
+
+// Normaliza question.correct (número legado ou array) para sempre retornar um array de índices
+function normalizeCorrect(correct) {
+    if (Array.isArray(correct)) return correct;
+    if (correct === undefined || correct === null) return [];
+    return [correct];
+}
+
 class QuizEditor {
     constructor() {
         console.log('🔧 QuizEditor instanciado');
@@ -189,44 +197,54 @@ class QuizEditor {
     clearForm() {
         const questionText = document.getElementById('questionText');
         const timeLimit = document.getElementById('timeLimit');
+        const readingTime = document.getElementById('readingTime');
+        const pointsMultiplier = document.getElementById('pointsMultiplier');
         const optionsList = document.getElementById('optionsList');
-        
+
         if (questionText) questionText.value = '';
         if (timeLimit) timeLimit.value = '30';
+        if (readingTime) readingTime.value = '5';
+        if (pointsMultiplier) pointsMultiplier.value = '1';
         if (optionsList) optionsList.innerHTML = '';
-        
+
         // Adicionar 4 opções vazias
         for (let i = 0; i < 4; i++) {
             this.addOption();
         }
-        
-        // Resetar radio buttons
-        const radios = document.querySelectorAll('input[name="correctOption"]');
-        radios.forEach(radio => radio.checked = false);
+
+        // Resetar checkboxes de resposta correta
+        const checkboxes = document.querySelectorAll('input[name="correctOption"]');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
     }
 
     loadQuestionToForm(question) {
         const questionText = document.getElementById('questionText');
         const timeLimit = document.getElementById('timeLimit');
+        const readingTime = document.getElementById('readingTime');
+        const pointsMultiplier = document.getElementById('pointsMultiplier');
         const optionsList = document.getElementById('optionsList');
-        
+
         if (questionText) questionText.value = question.text;
         if (timeLimit) timeLimit.value = question.timeLimit || 30;
+        if (readingTime) readingTime.value = question.readingTime ?? 5;
+        if (pointsMultiplier) pointsMultiplier.value = question.pointsMultiplier || 1;
         if (optionsList) optionsList.innerHTML = '';
-        
+
+        const correctIndices = normalizeCorrect(question.correct);
+
         question.options.forEach((option, index) => {
             const optionDiv = this.createOptionElement(index);
             const input = optionDiv.querySelector('.option-text');
             if (input) input.value = option;
-            
-            const radio = optionDiv.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.value = index;
-                if (index === question.correct) {
-                    radio.checked = true;
+
+            const checkbox = optionDiv.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.value = index;
+                if (correctIndices.includes(index)) {
+                    checkbox.checked = true;
                 }
             }
-            
+
             if (optionsList) optionsList.appendChild(optionDiv);
         });
     }
@@ -246,7 +264,7 @@ class QuizEditor {
         div.innerHTML = `
             <input type="text" class="option-text" placeholder="Opção ${String.fromCharCode(65 + index)}" required>
             <label class="radio-label">
-                <input type="radio" name="correctOption" value="${index}"> Correta
+                <input type="checkbox" name="correctOption" value="${index}"> Correta
             </label>
             <button type="button" class="remove-option" onclick="this.parentElement.remove()">🗑️</button>
         `;
@@ -256,7 +274,14 @@ class QuizEditor {
     saveQuestion() {
         const questionText = document.getElementById('questionText')?.value.trim();
         const timeLimit = parseInt(document.getElementById('timeLimit')?.value || '30');
-        
+
+        let readingTime = parseInt(document.getElementById('readingTime')?.value ?? '5');
+        if (Number.isNaN(readingTime)) readingTime = 5;
+        readingTime = Math.min(60, Math.max(0, readingTime));
+
+        let pointsMultiplier = parseInt(document.getElementById('pointsMultiplier')?.value || '1');
+        if (![1, 2, 3].includes(pointsMultiplier)) pointsMultiplier = 1;
+
         if (!questionText) {
             Utils.showToast('Por favor, digite a pergunta', 'warning');
             return;
@@ -265,8 +290,7 @@ class QuizEditor {
         // Coletar opções
         const options = [];
         const optionInputs = document.querySelectorAll('#optionsList .option-text');
-        let correctIndex = null;
-        
+
         optionInputs.forEach((input, idx) => {
             const value = input.value.trim();
             if (value) {
@@ -274,11 +298,12 @@ class QuizEditor {
             }
         });
 
-        // Verificar opção correta
-        const radios = document.querySelectorAll('input[name="correctOption"]');
-        radios.forEach((radio, idx) => {
-            if (radio.checked && idx < options.length) {
-                correctIndex = idx;
+        // Verificar opções corretas (pode marcar mais de uma)
+        const correctIndices = [];
+        const checkboxes = document.querySelectorAll('input[name="correctOption"]');
+        checkboxes.forEach((checkbox, idx) => {
+            if (checkbox.checked && idx < options.length) {
+                correctIndices.push(idx);
             }
         });
 
@@ -286,9 +311,9 @@ class QuizEditor {
             Utils.showToast('Adicione pelo menos 2 opções de resposta', 'warning');
             return;
         }
-        
-        if (correctIndex === null) {
-            Utils.showToast('Marque a resposta correta', 'warning');
+
+        if (correctIndices.length === 0) {
+            Utils.showToast('Marque ao menos uma resposta correta', 'warning');
             return;
         }
 
@@ -296,9 +321,10 @@ class QuizEditor {
             id: Utils.generateId(),
             text: questionText,
             options: options,
-            correct: correctIndex,
+            correct: correctIndices,
             timeLimit: timeLimit,
-            pointsMultiplier: 1
+            readingTime: readingTime,
+            pointsMultiplier: pointsMultiplier
         };
 
         if (this.editingQuestionIndex !== null) {
@@ -327,7 +353,13 @@ class QuizEditor {
             return;
         }
         
-        container.innerHTML = this.questions.map((question, index) => `
+        container.innerHTML = this.questions.map((question, index) => {
+            const correctLabels = normalizeCorrect(question.correct)
+                .map(i => String.fromCharCode(65 + i))
+                .join(', ');
+            const multiplier = question.pointsMultiplier || 1;
+
+            return `
             <div class="question-item" data-index="${index}">
                 <div class="question-text">
                     <span class="question-number-badge">${index + 1}</span>
@@ -335,15 +367,18 @@ class QuizEditor {
                 </div>
                 <div class="question-meta">
                     <span>📝 ${question.options.length} opções</span>
-                    <span>⏱️ ${question.timeLimit}s</span>
-                    <span>✅ Opção correta: ${String.fromCharCode(65 + question.correct)}</span>
+                    <span>⏱️ Resposta: ${question.timeLimit}s</span>
+                    <span>📖 Leitura: ${question.readingTime ?? 5}s</span>
+                    <span>✅ Resposta${correctLabels.includes(',') ? 's' : ''} correta${correctLabels.includes(',') ? 's' : ''}: ${correctLabels}</span>
+                    ${multiplier > 1 ? `<span>🔥 Vale ${multiplier}x</span>` : ''}
                 </div>
                 <div class="question-actions">
                     <button class="edit-question" data-index="${index}">✏️ Editar</button>
                     <button class="delete-question" data-index="${index}">🗑️ Excluir</button>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         // Adicionar event listeners
         document.querySelectorAll('.edit-question').forEach(btn => {
@@ -392,7 +427,7 @@ class QuizEditor {
                 Utils.showToast(`Pergunta ${i + 1} precisa ter pelo menos 2 opções`, 'warning');
                 return false;
             }
-            if (q.correct === undefined || q.correct === null) {
+            if (!Array.isArray(q.correct) || q.correct.length === 0) {
                 Utils.showToast(`Pergunta ${i + 1} precisa ter uma resposta correta marcada`, 'warning');
                 return false;
             }
