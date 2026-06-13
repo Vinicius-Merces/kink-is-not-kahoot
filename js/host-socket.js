@@ -329,6 +329,9 @@ class HostSocketManager {
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal-host';
         modal.style.cssText = 'display:block; z-index:10000;';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'rankingModalTitle');
         modal.innerHTML = `
             <div class="modal-content" style="
                 max-width: 520px; text-align: center;
@@ -338,8 +341,8 @@ class HostSocketManager {
                 border-radius: 20px; padding: 2rem;
             ">
                 <div style="margin-bottom: 1.5rem;">
-                    <div style="font-size: 2.5rem; margin-bottom: 0.3rem;">🏆</div>
-                    <h2 style="
+                    <div style="font-size: 2.5rem; margin-bottom: 0.3rem;" aria-hidden="true">🏆</div>
+                    <h2 id="rankingModalTitle" style="
                         background: linear-gradient(135deg, #FFD700, #ff6b6b);
                         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                         font-size: 1.4rem; font-weight: 900; margin: 0;
@@ -380,9 +383,9 @@ class HostSocketManager {
         }
         
         list.innerHTML = this.players.map(player => `
-            <div class="player-item">
+            <div class="player-item" role="listitem">
                 <div class="player-info">
-                    <span class="player-avatar">${Utils.getAvatarEmoji(player.avatar)}</span>
+                    <span class="player-avatar" aria-hidden="true">${Utils.getAvatarEmoji(player.avatar)}</span>
                     <span>${Utils.escapeHtml(player.name)}</span>
                 </div>
                 <div class="player-score">${player.score || 0} pts</div>
@@ -402,7 +405,7 @@ class HostSocketManager {
         }
         
         list.innerHTML = this.ranking.slice(0, 10).map((player, index) => `
-            <div class="ranking-item">
+            <div class="ranking-item" role="listitem">
                 <div class="ranking-position">${index + 1}º</div>
                 <div class="player-info">
                     <span>${Utils.escapeHtml(player.playerName)}</span>
@@ -480,7 +483,10 @@ class HostSocketManager {
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.style.display = 'block';
-        
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'finalRankingModalTitle');
+
         let podiumHTML = '';
         if (ranking.length >= 1) {
             podiumHTML += `<div style="font-size: 1.8rem; margin: 1rem 0;">🥇 ${Utils.escapeHtml(ranking[0].playerName)} — ${ranking[0].score} pts</div>`;
@@ -491,10 +497,10 @@ class HostSocketManager {
         if (ranking.length >= 3) {
             podiumHTML += `<div style="font-size: 1.2rem; margin: 0.5rem 0;">🥉 ${Utils.escapeHtml(ranking[2].playerName)} — ${ranking[2].score} pts</div>`;
         }
-        
+
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 500px; text-align: center;">
-                <h2 style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Final 🏆</h2>
+                <h2 id="finalRankingModalTitle" style="color: #ff6b6b; margin-bottom: 1rem;">🏆 Ranking Final 🏆</h2>
                 ${podiumHTML}
                 <div style="margin: 1rem 0; max-height: 400px; overflow-y: auto;">
                     ${ranking.map((player, index) => `

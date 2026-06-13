@@ -188,24 +188,36 @@ class PlayerSocketManager {
         if (!grid) return;
         
         grid.innerHTML = avatars.map(avatar => `
-            <div class="avatar-option" data-avatar="${avatar.id}">
-                <div class="avatar-emoji">${avatar.emoji}</div>
+            <div class="avatar-option" data-avatar="${avatar.id}" role="button" tabindex="0" aria-pressed="false" aria-label="Avatar ${avatar.name}">
+                <div class="avatar-emoji" aria-hidden="true">${avatar.emoji}</div>
                 <div class="avatar-name">${avatar.name}</div>
             </div>
         `).join('');
-        
+
         const firstAvatar = document.querySelector('.avatar-option');
         if (firstAvatar) {
             firstAvatar.classList.add('selected');
+            firstAvatar.setAttribute('aria-pressed', 'true');
             this.playerAvatar = 'avatar1';
         }
-        
+
         document.querySelectorAll('.avatar-option').forEach(option => {
-            option.addEventListener('click', () => {
-                document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+            const selectAvatar = () => {
+                document.querySelectorAll('.avatar-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                    opt.setAttribute('aria-pressed', 'false');
+                });
                 option.classList.add('selected');
+                option.setAttribute('aria-pressed', 'true');
                 this.playerAvatar = option.dataset.avatar;
                 this.updatePlayerInfoDisplay();
+            };
+            option.addEventListener('click', selectAvatar);
+            option.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectAvatar();
+                }
             });
         });
     }
@@ -342,8 +354,8 @@ class PlayerSocketManager {
         }
 
         list.innerHTML = players.map(p => `
-            <div class="player-item-mini">
-                <span class="player-avatar-mini">${Utils.getAvatarEmoji(p.avatar)}</span>
+            <div class="player-item-mini" role="listitem">
+                <span class="player-avatar-mini" aria-hidden="true">${Utils.getAvatarEmoji(p.avatar)}</span>
                 <span>${Utils.escapeHtml(p.name)}</span>
             </div>
         `).join('');
@@ -363,8 +375,8 @@ class PlayerSocketManager {
         const optionsGrid = document.getElementById('simuladoOptionsGrid');
         const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
         optionsGrid.innerHTML = data.options.map((option, index) => `
-            <button class="option-btn" data-option="${index}">
-                <div class="option-letter">${letters[index]}</div>
+            <button class="option-btn" data-option="${index}" aria-label="Opção ${letters[index]}: ${Utils.escapeHtml(option)}">
+                <div class="option-letter" aria-hidden="true">${letters[index]}</div>
                 <div class="option-text">${Utils.escapeHtml(option)}</div>
             </button>
         `).join('');
@@ -565,8 +577,8 @@ class PlayerSocketManager {
         const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
         
         optionsGrid.innerHTML = this.currentQuestion.options.map((option, index) => `
-            <button class="option-btn" data-option="${index}">
-                <div class="option-letter">${letters[index]}</div>
+            <button class="option-btn" data-option="${index}" aria-label="Opção ${letters[index]}: ${Utils.escapeHtml(option)}">
+                <div class="option-letter" aria-hidden="true">${letters[index]}</div>
                 <div class="option-text">${Utils.escapeHtml(option)}</div>
             </button>
         `).join('');
@@ -778,6 +790,9 @@ class PlayerSocketManager {
         const modal = document.createElement('div');
         modal.className = 'modal ranking-modal';
         modal.style.cssText = 'display:block; z-index:10000;';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'partialRankingModalTitle');
         modal.innerHTML = `
             <div class="modal-content" style="
                 max-width: 460px; text-align: center;
@@ -787,8 +802,8 @@ class PlayerSocketManager {
                 border-radius: 20px; padding: 1.5rem;
             ">
                 <div style="margin-bottom: 1.2rem;">
-                    <div style="font-size:2rem; margin-bottom:0.2rem;">🏆</div>
-                    <h2 style="
+                    <div style="font-size:2rem; margin-bottom:0.2rem;" aria-hidden="true">🏆</div>
+                    <h2 id="partialRankingModalTitle" style="
                         background: linear-gradient(135deg, #FFD700, #ff6b6b);
                         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                         font-size: 1.2rem; font-weight: 900; margin: 0;
@@ -843,7 +858,7 @@ class PlayerSocketManager {
         }
         
         list.innerHTML = ranking.map((player, index) => `
-            <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}">
+            <div class="ranking-item ${player.playerId === this.playerId ? 'current-player' : ''}" role="listitem">
                 <div class="ranking-position">${index + 1}º</div>
                 <div class="player-info">
                     <span>${Utils.escapeHtml(player.playerName)}</span>
