@@ -104,9 +104,9 @@ class QuizManager {
                 <h3>${title}</h3>
                 <p>${description}</p>
                 <div class="quiz-stats">
-                    <span>📊 ${questionCount} perguntas</span>
-                    <span>🎯 ${timesPlayed} jogadas</span>
-                    <span>📅 ${createdAt}</span>
+                    <span title="Número de perguntas">📊 ${questionCount} ${questionCount === 1 ? 'pergunta' : 'perguntas'}</span>
+                    <span title="Vezes jogado">🎯 ${timesPlayed} ${timesPlayed === 1 ? 'jogada' : 'jogadas'}</span>
+                    <span title="Data de criação">📅 ${createdAt}</span>
                 </div>
             </div>
         `}).join('');

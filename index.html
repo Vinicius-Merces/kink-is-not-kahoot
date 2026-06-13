@@ -59,21 +59,37 @@
                 <h1 class="glitch" data-text="KINK">KINK</h1>
                 <p class="tagline">is not Kahoot</p>
                 <p class="subtitle">The rebellious quiz platform</p>
+                <div class="hero-badges">
+                    <span class="hero-badge">⚡ Tempo real</span>
+                    <span class="hero-badge">🏆 Ranking ao vivo</span>
+                    <span class="hero-badge">🎓 Simulados AWS</span>
+                    <span class="hero-badge">📚 Trilha de Estudos</span>
+                </div>
             </div>
-            
+
             <div class="main-options">
                 <div class="card host-card">
                     <div class="card-icon">🎮</div>
                     <h2>Sou Professor</h2>
                     <p>Crie quizzes sem limites, gerencie salas e desafie seus alunos</p>
+                    <ul class="card-feature-list">
+                        <li><span>✏️</span> Perguntas sem limite de caracteres</li>
+                        <li><span>📊</span> Resultados e ranking em tempo real</li>
+                        <li><span>🎮</span> Controle total da sala ao vivo</li>
+                    </ul>
                     <button id="hostBtn" class="btn btn-primary">Criar Quiz</button>
                     <button id="loginBtn" class="btn btn-google">🔐 Entrar com Google</button>
                 </div>
-                
+
                 <div class="card player-card">
                     <div class="card-icon">👨‍🎓</div>
                     <h2>Sou Aluno</h2>
                     <p>Entre com o código da sala e participe do quiz</p>
+                    <ul class="card-feature-list">
+                        <li><span>🔢</span> Código de 6 caracteres, sem login</li>
+                        <li><span>⚡</span> Responda em tempo real do seu celular</li>
+                        <li><span>🏆</span> Acompanhe sua posição no ranking</li>
+                    </ul>
                     <div class="join-form">
                         <input type="text" id="roomCode" placeholder="Código KINK" maxlength="6">
                         <button id="joinBtn" class="btn btn-success">Entrar</button>
@@ -136,7 +152,6 @@
             <button id="googleLoginBtn" class="btn btn-google btn-large" style="width: 100%; margin-top: 1rem;">
                 🔐 Entrar com Google
             </button>
-            <!-- DEBUG REMOVIDO - linha abaixo foi removida -->
         </div>
     </div>
     
@@ -153,12 +168,10 @@
     <script>
         // Aguardar o DOM e Firebase carregarem
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('=== INICIANDO KINK ===');
-            
             // Aguardar Firebase inicializar
             let attempts = 0;
             const maxAttempts = 20;
-            
+
             function waitForFirebase() {
                 return new Promise((resolve) => {
                     const checkInterval = setInterval(() => {
@@ -173,11 +186,10 @@
                     }, 100);
                 });
             }
-            
+
             const firebaseLoaded = await waitForFirebase();
-            
+
             if (firebaseLoaded) {
-                console.log('✅ Firebase carregado com sucesso!');
                 document.getElementById('loading-overlay').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('loading-overlay').style.display = 'none';
@@ -194,7 +206,7 @@
                 `;
                 return;
             }
-            
+
             // Elementos
             const loginModal = document.getElementById('loginModal');
             const hostBtn = document.getElementById('hostBtn');
@@ -202,53 +214,33 @@
             const joinBtn = document.getElementById('joinBtn');
             const googleLoginBtn = document.getElementById('googleLoginBtn');
             const simuladosBtn = document.getElementById('simuladosBtn');
-            const debugDiv = document.getElementById('loginDebug');
 
             // Para onde ir após o login (depende de qual botão abriu o modal)
             let loginRedirectTarget = 'my-quizzes.html';
-            
-            function showDebug(message) {
-                console.log('[DEBUG]', message);
-                if (debugDiv) {
-                    debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
-                }
-            }
-            
-            showDebug('Página carregada, Firebase OK');
-            
+
             // Função de login com Google
             async function loginWithGoogle() {
-                showDebug('Iniciando login com Google...');
-                
-                if (!auth) {
-                    showDebug('ERRO: Auth não está definido!');
-                    return;
-                }
-                
+                if (!auth) return;
+
                 try {
-                    showDebug('Criando provider Google...');
                     const provider = new firebase.auth.GoogleAuthProvider();
                     provider.setCustomParameters({ prompt: 'select_account' });
-                    
-                    showDebug('Chamando signInWithPopup...');
+
                     const result = await auth.signInWithPopup(provider);
-                    
-                    showDebug('✅ SUCESSO! Usuário logado: ' + result.user.displayName);
-                    
+
                     if (typeof Utils !== 'undefined') {
                         Utils.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
                     }
-                    
+
                     loginModal.style.display = 'none';
 
                     setTimeout(() => {
                         window.location.href = loginRedirectTarget;
                     }, 1000);
-                    
+
                 } catch (error) {
-                    showDebug('❌ ERRO: ' + error.code + ' - ' + error.message);
-                    console.error('Erro detalhado:', error);
-                    
+                    console.error('Erro no login:', error);
+
                     if (error.code === 'auth/popup-blocked') {
                         alert('Pop-up bloqueado! Permita pop-ups para este site e tente novamente.');
                     } else if (error.code === 'auth/unauthorized-domain') {
@@ -258,23 +250,19 @@
                     }
                 }
             }
-            
+
             // Abrir modal
             function openLoginModal() {
-                showDebug('Abrindo modal de login');
                 loginModal.style.display = 'block';
             }
-            
+
             // Event Listeners
             if (hostBtn) {
                 hostBtn.addEventListener('click', () => {
-                    showDebug('Botão "Criar Quiz" clicado');
                     const user = auth.currentUser;
                     if (user) {
-                        showDebug('Usuário já logado: ' + user.displayName);
                         window.location.href = 'my-quizzes.html';
                     } else {
-                        showDebug('Usuário não logado, abrindo modal');
                         loginRedirectTarget = 'my-quizzes.html';
                         openLoginModal();
                     }
@@ -283,7 +271,6 @@
 
             if (loginBtn) {
                 loginBtn.addEventListener('click', () => {
-                    showDebug('Botão "Entrar com Google" (card) clicado');
                     loginRedirectTarget = 'my-quizzes.html';
                     openLoginModal();
                 });
@@ -293,11 +280,9 @@
                 simuladosBtn.addEventListener('click', (e) => {
                     const user = auth.currentUser;
                     if (user) {
-                        showDebug('Usuário já logado, indo para Simulados AWS');
                         return;
                     }
                     e.preventDefault();
-                    showDebug('Usuário não logado, abrindo modal (Simulados AWS)');
                     loginRedirectTarget = 'simulados.html';
                     openLoginModal();
                 });
@@ -305,15 +290,13 @@
 
             if (googleLoginBtn) {
                 googleLoginBtn.addEventListener('click', () => {
-                    showDebug('Botão "Entrar com Google" (modal) clicado');
                     loginWithGoogle();
                 });
             }
-            
+
             if (joinBtn) {
                 joinBtn.addEventListener('click', () => {
                     const code = document.getElementById('roomCode').value.toUpperCase();
-                    showDebug(`Código da sala: ${code}`);
                     if (code && code.length === 6) {
                         window.location.href = `player.html?code=${code}`;
                     } else {
@@ -325,34 +308,21 @@
                     }
                 });
             }
-            
+
             // Fechar modal
             const closeBtns = document.querySelectorAll('.close');
             closeBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const modal = btn.closest('.modal');
                     if (modal) modal.style.display = 'none';
-                    showDebug('Modal fechado');
                 });
             });
-            
+
             window.onclick = function(event) {
                 if (event.target === loginModal) {
                     loginModal.style.display = 'none';
-                    showDebug('Modal fechado (clique fora)');
                 }
             };
-            
-            // Verificar estado de autenticação
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    showDebug(`👤 Usuário logado: ${user.displayName} (${user.email})`);
-                } else {
-                    showDebug('👤 Nenhum usuário logado');
-                }
-            });
-            
-            showDebug('✅ KINK pronto! Aguardando interação...');
         });
     </script>
 

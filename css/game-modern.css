@@ -1,0 +1,612 @@
+/* ============================================================
+   KINK is not Kahoot — Game Modern (Fase 4)
+   Refresh visual das telas de jogo ao vivo: Host e Player.
+   Usa os tokens --kink-* definidos em css/style.css (:root).
+   Não renomeia nenhuma classe/id gerado dinamicamente por
+   js/host-socket.js e js/player-socket.js.
+   ============================================================ */
+
+/* ============================================================
+   1. HOST — Layout geral
+   ============================================================ */
+.host-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--kink-space-lg);
+    margin-top: var(--kink-space-lg);
+    align-items: start;
+}
+
+.host-controls,
+.host-status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--kink-space-md);
+}
+
+/* ============================================================
+   2. HOST — Painéis de controle / status
+   ============================================================ */
+.control-card,
+.status-card {
+    background: var(--kink-card-bg);
+    border: var(--kink-card-border);
+    border-radius: var(--kink-radius-lg);
+    padding: var(--kink-space-md);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--kink-shadow-card);
+    transition: var(--kink-transition);
+}
+
+.control-card:hover,
+.status-card:hover {
+    border-color: var(--kink-card-border-hover);
+    box-shadow: var(--kink-shadow-card-hover);
+}
+
+.control-card h3,
+.status-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: var(--kink-space-sm);
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+}
+
+/* Código da sala em destaque */
+.room-code-display span {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.18), rgba(255, 107, 107, 0.12));
+    border: var(--kink-card-border);
+    border-radius: var(--kink-radius-sm);
+    box-shadow: inset 0 1px 0 rgba(78, 205, 196, 0.12);
+}
+
+/* Timer (barra) do host */
+.timer-display {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--kink-radius-sm);
+    padding: var(--kink-space-xs) var(--kink-space-sm);
+    margin-top: var(--kink-space-sm);
+}
+
+.timer-bar {
+    background: linear-gradient(90deg, var(--kink-teal), var(--kink-coral));
+    border-radius: var(--kink-radius-pill);
+    box-shadow: 0 0 12px rgba(78, 205, 196, 0.4);
+    transition: width 0.1s linear, background 0.3s ease;
+}
+
+/* ============================================================
+   3. HOST — Lista de jogadores conectados
+   ============================================================ */
+.players-list {
+    max-height: 320px;
+    overflow-y: auto;
+    margin: var(--kink-space-sm) 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+    background: rgba(78, 205, 196, 0.06);
+    border: 1px solid rgba(78, 205, 196, 0.15);
+    border-radius: var(--kink-radius-sm);
+    transition: var(--kink-transition);
+    animation: kinkPlayerJoin 0.35s ease;
+}
+
+.player-item:hover {
+    background: rgba(78, 205, 196, 0.12);
+    border-color: var(--kink-card-border-hover);
+    transform: translateX(2px);
+}
+
+.player-item .player-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.player-item .player-avatar {
+    background: linear-gradient(135deg, var(--kink-coral), var(--kink-coral-2));
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.player-item .player-score {
+    font-weight: 700;
+    color: var(--kink-teal);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+@keyframes kinkPlayerJoin {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ============================================================
+   4. RANKING — Host (.ranking-item) e Player (.ranking-list-large)
+   ============================================================ */
+.ranking-list,
+.ranking-list-large {
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: var(--kink-space-sm) 0;
+}
+
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    background: rgba(78, 205, 196, 0.06);
+    border: 1px solid rgba(78, 205, 196, 0.15);
+    border-radius: var(--kink-radius-sm);
+    transition: var(--kink-transition);
+    animation: kinkPlayerJoin 0.35s ease;
+}
+
+.ranking-item:hover {
+    background: rgba(78, 205, 196, 0.12);
+    border-color: var(--kink-card-border-hover);
+    transform: translateX(2px);
+}
+
+.ranking-item.current-player {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.22), rgba(78, 205, 196, 0.08));
+    border: 1px solid var(--kink-teal);
+    box-shadow: 0 0 16px rgba(78, 205, 196, 0.25);
+}
+
+.ranking-position {
+    font-weight: 900;
+    font-size: 1.15rem;
+    width: 46px;
+    flex-shrink: 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.ranking-score {
+    font-weight: 800;
+    color: var(--kink-coral);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Destaque para o pódio (1º, 2º, 3º lugar) */
+.ranking-list .ranking-item:nth-child(1),
+.ranking-list-large .ranking-item:nth-child(1) {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.16), rgba(15, 52, 96, 0.5));
+    border: 1px solid rgba(255, 215, 0, 0.45);
+}
+
+.ranking-list .ranking-item:nth-child(1) .ranking-position,
+.ranking-list-large .ranking-item:nth-child(1) .ranking-position {
+    color: #FFD700;
+}
+
+.ranking-list .ranking-item:nth-child(1) .ranking-score,
+.ranking-list-large .ranking-item:nth-child(1) .ranking-score {
+    color: #FFD700;
+}
+
+.ranking-list .ranking-item:nth-child(2),
+.ranking-list-large .ranking-item:nth-child(2) {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.14), rgba(15, 52, 96, 0.5));
+    border: 1px solid rgba(192, 192, 192, 0.4);
+}
+
+.ranking-list .ranking-item:nth-child(2) .ranking-position,
+.ranking-list-large .ranking-item:nth-child(2) .ranking-position {
+    color: #C0C0C0;
+}
+
+.ranking-list .ranking-item:nth-child(3),
+.ranking-list-large .ranking-item:nth-child(3) {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.14), rgba(15, 52, 96, 0.5));
+    border: 1px solid rgba(205, 127, 50, 0.4);
+}
+
+.ranking-list .ranking-item:nth-child(3) .ranking-position,
+.ranking-list-large .ranking-item:nth-child(3) .ranking-position {
+    color: #CD7F32;
+}
+
+.ranking-list-large {
+    max-height: 420px;
+}
+
+/* ============================================================
+   5. HOST — Gráfico de distribuição de respostas
+   ============================================================ */
+.answer-chart {
+    min-height: 150px;
+    margin-top: var(--kink-space-sm);
+}
+
+.answer-chart > div > div {
+    border-radius: var(--kink-radius-sm) !important;
+    transition: var(--kink-transition);
+}
+
+.answer-chart > div > div:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================================
+   6. COMPARTILHADO / PLAYER — Opções de resposta
+   ============================================================ */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--kink-space-sm);
+    margin-top: var(--kink-space-lg);
+}
+
+.option-btn {
+    background: var(--kink-card-bg);
+    border: 2px solid rgba(78, 205, 196, 0.18);
+    border-radius: var(--kink-radius-md);
+    padding: var(--kink-space-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: var(--kink-transition);
+    display: flex;
+    align-items: center;
+    gap: var(--kink-space-sm);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--kink-shadow-card);
+    color: #fff;
+}
+
+.option-btn:hover:not(:disabled) {
+    background: var(--kink-card-bg-hover);
+    border-color: var(--kink-card-border-hover);
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: var(--kink-shadow-card-hover);
+}
+
+.option-btn:active:not(:disabled) {
+    transform: translateY(-1px) scale(0.99);
+}
+
+.option-btn .option-letter {
+    font-weight: 800;
+    font-size: 1.2rem;
+    background: linear-gradient(135deg, var(--kink-coral), var(--kink-coral-2));
+    color: #fff;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--kink-radius-sm);
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.option-btn .option-text {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Estado: opção selecionada pelo jogador */
+.option-btn.selected {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.35), rgba(78, 205, 196, 0.15));
+    border-color: var(--kink-teal);
+    box-shadow: 0 0 24px rgba(78, 205, 196, 0.35), var(--kink-shadow-card);
+}
+
+.option-btn.selected .option-letter {
+    background: linear-gradient(135deg, var(--kink-teal), var(--kink-teal-2));
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
+}
+
+/* Estado: desabilitado (após responder) */
+.option-btn.disabled,
+.option-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    transform: none !important;
+}
+
+/* Estados opcionais de acerto/erro (caso aplicados via JS) */
+.option-btn.correct {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.4), rgba(76, 175, 80, 0.3));
+    border-color: var(--kink-teal);
+    box-shadow: 0 0 24px rgba(78, 205, 196, 0.4);
+    opacity: 1;
+}
+
+.option-btn.incorrect {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.4), rgba(244, 67, 54, 0.25));
+    border-color: var(--kink-coral);
+    box-shadow: 0 0 24px rgba(255, 107, 107, 0.35);
+    opacity: 1;
+}
+
+/* ============================================================
+   7. COMPARTILHADO — Cronômetro circular
+   ============================================================ */
+.timer-circle {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.18), rgba(78, 205, 196, 0.05));
+    border: 2px solid rgba(78, 205, 196, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+    position: relative;
+    box-shadow: 0 0 24px rgba(78, 205, 196, 0.22);
+    transition: var(--kink-transition);
+    color: #fff;
+}
+
+.timer-circle::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    border: 3px solid var(--kink-teal);
+    animation: kinkTimerRing 1s infinite;
+}
+
+@keyframes kinkTimerRing {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.2); opacity: 0; }
+}
+
+/* Quando o tempo está baixo (aplicado via JS: animation: pulse 0.5s infinite) */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 24px rgba(255, 107, 107, 0.25);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 32px rgba(255, 107, 107, 0.55);
+    }
+}
+
+.timer-circle[style*="pulse"] {
+    border-color: var(--kink-coral);
+    color: var(--kink-coral);
+}
+
+.timer-circle[style*="pulse"]::before {
+    border-color: var(--kink-coral);
+}
+
+/* ============================================================
+   8. COMPARTILHADO — Seleção de avatar
+   ============================================================ */
+.avatars-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--kink-space-sm);
+    margin: var(--kink-space-sm) 0;
+}
+
+.avatar-option {
+    cursor: pointer;
+    text-align: center;
+    padding: var(--kink-space-sm);
+    border: 2px solid rgba(78, 205, 196, 0.15);
+    border-radius: var(--kink-radius-md);
+    transition: var(--kink-transition);
+    background: var(--kink-card-bg);
+}
+
+.avatar-option:hover {
+    background: var(--kink-card-bg-hover);
+    border-color: var(--kink-card-border-hover);
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: var(--kink-shadow-card-hover);
+}
+
+.avatar-option.selected {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.3), rgba(255, 107, 107, 0.12));
+    border: 2px solid var(--kink-teal);
+    box-shadow: 0 0 24px rgba(78, 205, 196, 0.35);
+}
+
+.avatar-option .avatar-emoji {
+    font-size: 3rem;
+    transition: var(--kink-transition);
+}
+
+.avatar-option.selected .avatar-emoji {
+    transform: scale(1.1);
+}
+
+.avatar-option .avatar-name {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================================
+   9. PLAYER — Cards de tela (join / profile / waiting / question / final)
+   ============================================================ */
+.join-card,
+.profile-card,
+.waiting-card,
+.question-container,
+.final-card {
+    background: var(--kink-card-bg);
+    border: var(--kink-card-border);
+    backdrop-filter: blur(10px);
+    border-radius: var(--kink-radius-lg);
+    padding: var(--kink-space-lg);
+    text-align: center;
+    box-shadow: var(--kink-shadow-card);
+    transition: var(--kink-transition);
+}
+
+.join-card:hover,
+.profile-card:hover,
+.waiting-card:hover,
+.final-card:hover {
+    border-color: var(--kink-card-border-hover);
+    box-shadow: var(--kink-shadow-card-hover);
+}
+
+.join-card h2,
+.profile-card h2,
+.waiting-card h2,
+.final-card h2 {
+    background: linear-gradient(135deg, var(--kink-coral), var(--kink-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 900;
+    margin-bottom: var(--kink-space-sm);
+}
+
+/* Campo de código da sala */
+.code-input-group input {
+    border-radius: var(--kink-radius-sm);
+    transition: var(--kink-transition);
+}
+
+.code-input-group input:focus {
+    box-shadow: 0 4px 24px rgba(78, 205, 196, 0.45);
+}
+
+.code-input-group button {
+    border-radius: var(--kink-radius-pill);
+}
+
+/* Tela de espera */
+.waiting-card .pulse {
+    background: linear-gradient(135deg, var(--kink-coral), var(--kink-teal));
+    box-shadow: 0 0 32px rgba(78, 205, 196, 0.4);
+}
+
+.players-waiting h3 {
+    margin-bottom: var(--kink-space-xs);
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.players-list-mini {
+    max-height: 220px;
+    overflow-y: auto;
+    margin-top: var(--kink-space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.player-item-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    background: rgba(78, 205, 196, 0.08);
+    border: 1px solid rgba(78, 205, 196, 0.12);
+    border-radius: var(--kink-radius-sm);
+    transition: var(--kink-transition);
+    animation: kinkPlayerJoin 0.35s ease;
+}
+
+.player-item-mini:hover {
+    background: rgba(78, 205, 196, 0.14);
+    border-color: var(--kink-card-border-hover);
+}
+
+.player-avatar-mini {
+    font-size: 1.5rem;
+}
+
+/* Tela de pergunta */
+.question-card {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--kink-radius-md);
+    padding: var(--kink-space-md);
+    margin: var(--kink-space-sm) 0;
+}
+
+.question-card h2 {
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.score-display {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.18), rgba(255, 107, 107, 0.12));
+    border: var(--kink-card-border);
+    border-radius: var(--kink-radius-pill);
+    padding: 0.6rem 1.2rem;
+    font-weight: 700;
+}
+
+.feedback-message {
+    margin-top: var(--kink-space-sm);
+    text-align: center;
+}
+
+/* Tela final */
+.final-ranking h3 {
+    margin-bottom: var(--kink-space-sm);
+    color: var(--kink-teal);
+}
+
+/* ============================================================
+   10. Responsivo
+   ============================================================ */
+@media (max-width: 1024px) {
+    .host-layout {
+        grid-template-columns: 1fr;
+        gap: var(--kink-space-sm);
+    }
+}
+
+@media (max-width: 768px) {
+    .options-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .avatars-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .timer-circle {
+        width: 64px;
+        height: 64px;
+        font-size: 1.5rem;
+    }
+
+    .join-card,
+    .profile-card,
+    .waiting-card,
+    .question-container,
+    .final-card {
+        padding: var(--kink-space-md);
+    }
+}

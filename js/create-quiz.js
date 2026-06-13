@@ -328,10 +328,10 @@ class QuizEditor {
         }
         
         container.innerHTML = this.questions.map((question, index) => `
-            <div class="question-item">
+            <div class="question-item" data-index="${index}">
                 <div class="question-text">
-                    <strong>Pergunta ${index + 1}</strong><br>
-                    ${Utils.escapeHtml(question.text)}
+                    <span class="question-number-badge">${index + 1}</span>
+                    <span>${Utils.escapeHtml(question.text)}</span>
                 </div>
                 <div class="question-meta">
                     <span>📝 ${question.options.length} opções</span>
