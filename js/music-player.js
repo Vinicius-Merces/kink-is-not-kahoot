@@ -30,12 +30,19 @@ class MusicPlayer {
 
     detectPageType() {
         const path = window.location.pathname.toLowerCase();
-        if (path.includes('host.html') || path.includes('player.html')) {
+        const page = path.substring(path.lastIndexOf('/') + 1);
+        const isLanding = page === '' || page === 'index.html';
+
+        if (isLanding) {
+            // Apenas a landing page toca a trilha própria/animada
+            this.playlistType = 'menu';
+        } else if (page === 'host.html' || page === 'player.html') {
             this.playlistType = 'game';
-        } else if (path.includes('simulados.html') || path.includes('historico.html')) {
+        } else if (page === 'simulados.html' || page === 'historico.html') {
             this.playlistType = 'simulado';
         } else {
-            this.playlistType = 'menu';
+            // Todas as demais páginas (quizzes, trilhas etc.) usam a playlist calma
+            this.playlistType = 'ambient';
         }
         console.log(`🎵 MusicPlayer: Modo ${this.playlistType} detectado`);
     }
@@ -57,8 +64,8 @@ class MusicPlayer {
             { id: 'game7', title: 'KINK Drama', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Dark drama 2.mp3', cover: '⚛️', duration: '2:14' },
             { id: 'game8', title: 'Be KINK', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher.mp3', cover: '🪯', duration: '1:36' }
         ];
-        // Simulados usam a mesma trilha instrumental/calma do modo jogo
-        this.currentPlaylist = (this.playlistType === 'game' || this.playlistType === 'simulado') ? gamePlaylist : menuPlaylist;
+        // Apenas a landing page usa a playlist própria; todo o resto usa a trilha instrumental/calma
+        this.currentPlaylist = (this.playlistType === 'menu') ? menuPlaylist : gamePlaylist;
 
         const savedVolume = localStorage.getItem('kink_volume');
         if (savedVolume !== null) {
@@ -74,12 +81,14 @@ class MusicPlayer {
     getModeBadgeText() {
         if (this.playlistType === 'game') return '🎮 Jogo';
         if (this.playlistType === 'simulado') return '🎓 Simulado';
+        if (this.playlistType === 'ambient') return '🎧 Ambiente';
         return '🎵 Menu';
     }
 
     getPlaylistTitleText() {
         if (this.playlistType === 'game') return '🎮 Playlist de Jogo';
         if (this.playlistType === 'simulado') return '🎓 Playlist de Estudo';
+        if (this.playlistType === 'ambient') return '🎧 Playlist Ambiente';
         return '🎵 Playlist KINK';
     }
 
