@@ -64,6 +64,26 @@ app.use((req, res, next) => {
     next();
 });
 
+// 🔒 Bloqueia acesso via HTTP a arquivos internos do servidor (código-fonte, configs,
+// credenciais e banco de questões com gabarito) que não fazem parte do frontend público.
+const STATIC_BLOCKLIST = [
+    /^\/server\.js$/i,
+    /^\/package(-lock)?\.json$/i,
+    /^\/update-version\.js$/i,
+    /^\/squarecloud\.app$/i,
+    /^\/serviceAccountKey\.json$/i,
+    /^\/data(\/|$)/i,
+    /^\/scripts(\/|$)/i,
+    /^\/node_modules(\/|$)/i
+];
+
+app.use((req, res, next) => {
+    if (STATIC_BLOCKLIST.some(pattern => pattern.test(req.path))) {
+        return res.status(404).send('Not found');
+    }
+    next();
+});
+
 app.use(express.static(path.join(__dirname)));
 
 // ============================================
@@ -527,6 +547,53 @@ app.get('/api/simulado/history/:attemptId', async (req, res) => {
         console.error('⚠️ Erro ao buscar detalhe do simulado:', error);
         res.status(500).json({ success: false, error: 'Erro ao buscar detalhe da tentativa' });
     }
+});
+
+// Reports de questões com possível erro (não exige login - alunos do modo ao vivo não têm conta)
+const devQuestionReports = []; // usado apenas quando Firebase Admin não está configurado
+
+app.post('/api/simulado/report', async (req, res) => {
+    const { source, certCode, level, domain, questionId, questionIndex, questionText, options, message, reporterName } = req.body || {};
+
+    if (!questionText || typeof questionText !== 'string' || !questionText.trim()) {
+        return res.status(400).json({ success: false, error: 'Dados da pergunta inválidos' });
+    }
+
+    const user = await getAuthenticatedUser(req);
+
+    const report = {
+        source: typeof source === 'string' ? source.slice(0, 40) : 'unknown',
+        certCode: typeof certCode === 'string' ? certCode.slice(0, 20) : null,
+        level: typeof level === 'string' ? level.slice(0, 20) : null,
+        domain: typeof domain === 'string' ? domain.slice(0, 100) : null,
+        questionId: typeof questionId === 'string' ? questionId.slice(0, 100) : null,
+        questionIndex: Number.isInteger(questionIndex) ? questionIndex : null,
+        questionText: questionText.slice(0, 2000),
+        options: Array.isArray(options) ? options.slice(0, 10).map(o => String(o).slice(0, 500)) : [],
+        message: typeof message === 'string' ? message.slice(0, 1000) : '',
+        reporterName: typeof reporterName === 'string' ? reporterName.slice(0, 80) : null,
+        reporterUid: user ? user.uid : null,
+        reporterEmail: user ? user.email : null
+    };
+
+    try {
+        if (db) {
+            await db.collection('questionReports').add({
+                ...report,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            devQuestionReports.push({ ...report, createdAt: new Date().toISOString() });
+            if (devQuestionReports.length > 200) devQuestionReports.shift();
+        }
+    } catch (error) {
+        console.error('⚠️ Erro ao salvar report de questão:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao registrar o report' });
+    }
+
+    console.log(`🚩 Report de questão recebido (${report.source} / ${report.certCode || '?'} / ${report.level || '?'}): ${report.questionText.slice(0, 80)}`);
+
+    res.json({ success: true });
 });
 
 // ============================================

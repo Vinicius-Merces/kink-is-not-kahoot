@@ -19,6 +19,9 @@ class PlayerSocketManager {
         this.simuladoVoted = false;
         this.simuladoCurrentIndex = null;
         this.simuladoTotalQuestions = null;
+        this.simuladoCertCode = null;
+        this.simuladoLevel = null;
+        this.simuladoCurrentQuestion = null;
         this.init();
     }
 
@@ -160,7 +163,23 @@ class PlayerSocketManager {
 
         const exitSimuladoBtn = document.getElementById('exitSimuladoBtn');
         if (exitSimuladoBtn) exitSimuladoBtn.addEventListener('click', () => window.location.href = 'index.html');
-        
+
+        const simuladoReportBtn = document.getElementById('simuladoReportBtn');
+        if (simuladoReportBtn) simuladoReportBtn.addEventListener('click', () => {
+            if (!this.simuladoCurrentQuestion) return;
+            const data = this.simuladoCurrentQuestion;
+            window.ReportQuestion.open({
+                source: 'live-player',
+                certCode: this.simuladoCertCode,
+                level: this.simuladoLevel,
+                domain: data.domain,
+                questionIndex: data.index,
+                questionText: data.text,
+                options: data.options,
+                reporterName: this.playerName
+            });
+        });
+
         const roomCodeInput = document.getElementById('roomCodeInput');
         if (roomCodeInput) roomCodeInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.checkRoom();
@@ -310,6 +329,8 @@ class PlayerSocketManager {
                 if (response && response.success) {
                     this.roomId = response.roomId;
                     this.simuladoTotalQuestions = response.totalQuestions;
+                    this.simuladoCertCode = response.certCode;
+                    this.simuladoLevel = response.level;
                     this.showSimuladoWaitingScreen();
                     Utils.showToast('Entrou no simulado! Aguardando o professor...', 'success');
                 } else {
@@ -364,6 +385,7 @@ class PlayerSocketManager {
     handleSimuladoQuestion(data) {
         this.simuladoCurrentIndex = data.index;
         this.simuladoTotalQuestions = data.total;
+        this.simuladoCurrentQuestion = data;
         this.simuladoVoted = false;
 
         const progressBadge = document.getElementById('simuladoProgressBadge');
@@ -689,7 +711,7 @@ class PlayerSocketManager {
             html += `
                 <div class="feedback-explanation">
                     <strong>Explicação:</strong><br>
-                    ${data.explanation}
+                    ${Utils.escapeHtml(data.explanation)}
                 </div>
             `;
         }
@@ -722,7 +744,7 @@ class PlayerSocketManager {
             feedbackDiv.innerHTML = `<div class="feedback correct">✅ Parabéns! Você acertou!</div>`;
         } else {
             const correctAnswerText = this.currentQuestion.options[this.currentQuestion.correct];
-            feedbackDiv.innerHTML = `<div class="feedback incorrect">❌ Você errou! A resposta correta era: "${correctAnswerText}"</div>`;
+            feedbackDiv.innerHTML = `<div class="feedback incorrect">❌ Você errou! A resposta correta era: "${Utils.escapeHtml(correctAnswerText)}"</div>`;
         }
         
         feedbackDiv.style.display = 'block';

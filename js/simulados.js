@@ -299,6 +299,19 @@
         if (currentQuestionIndex < currentSimulado.questions.length - 1) renderQuestion(currentQuestionIndex + 1);
     });
 
+    document.getElementById('examReportBtn').addEventListener('click', () => {
+        const question = currentSimulado.questions[currentQuestionIndex];
+        window.ReportQuestion.open({
+            source: 'solo',
+            certCode: currentSimulado.certCode,
+            level: currentSimulado.level,
+            domain: question.domain,
+            questionId: question.id,
+            questionText: question.text,
+            options: question.options
+        });
+    });
+
     // ============================================
     // Finalizar Simulado
     // ============================================

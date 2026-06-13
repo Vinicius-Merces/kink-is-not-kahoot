@@ -16,6 +16,7 @@
     let viewingIndex = null;     // pergunta que o professor está visualizando no momento
     let answeredIndices = new Set();
     let listenersSetup = false;
+    let currentQuestionData = null; // última pergunta renderizada (para o report de erro)
 
     // ============================================
     // Utilidades
@@ -234,6 +235,7 @@
     }
 
     function renderQuestionState(data) {
+        currentQuestionData = data;
         document.getElementById('liveControlCertBadge').textContent =
             `${session.certCode} • ${LEVEL_LABELS[session.level] || session.level}`;
         document.getElementById('liveControlProgress').textContent = `Pergunta ${data.index + 1} de ${data.total}`;
@@ -361,6 +363,20 @@
 
     document.getElementById('liveBackToCurrentBtn').addEventListener('click', () => {
         gotoQuestion(currentIndex);
+    });
+
+    document.getElementById('liveControlReportBtn').addEventListener('click', () => {
+        if (!currentQuestionData || !session) return;
+        window.ReportQuestion.open({
+            source: 'live-host',
+            certCode: session.certCode,
+            level: session.level,
+            domain: currentQuestionData.domain,
+            questionIndex: currentQuestionData.index,
+            questionText: currentQuestionData.text,
+            options: currentQuestionData.options,
+            reporterName: auth.currentUser?.displayName || 'Professor'
+        });
     });
 
     document.getElementById('liveEndSessionBtn').addEventListener('click', () => {
