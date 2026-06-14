@@ -1,220 +1,108 @@
 {
   "questions": [
     {
-      "questionNumber": 1,
-      "question": "Uma empresa executa um workload de processamento em lote tolerante a falhas e horizontalmente escalável usando instâncias EC2 Spot dentro de um Auto Scaling Group. A equipe observou que, quando a AWS recupera capacidade Spot, o aviso padrão de interrupção de 2 minutos às vezes não é suficiente para que as tarefas em andamento sejam finalizadas de forma limpa e para que capacidade de substituição seja lançada e fique saudável, causando pequenas lacunas de processamento e, ocasionalmente, perda de trabalho. A equipe quer substituir PROATIVAMENTE instâncias Spot com risco elevado de interrupção ANTES mesmo do aviso de 2 minutos ser emitido, ganhando mais tempo para tratamento gracioso e substituição, mantendo o uso de Spot para economia de custos.",
+      "question": "Uma equipe quer detectar PROATIVAMENTE quando seu endpoint de API pública (ou um fluxo crítico voltado ao usuário, ex.: login → busca → checkout) fica indisponível ou começa a retornar erros/conteúdo inesperado, ANTES que usuários reais reportem problemas — executando requisições sintéticas em uma AGENDA (ex.: a cada 5 minutos) a partir de múltiplas regiões da AWS, e alertando se a verificação sintética falhar. Eles querem isso SEM construir/manter scripts de monitoramento customizados baseados em EC2. Qual abordagem atende a esse requisito?",
+      "hint": "Pense em qual serviço do CloudWatch executa scripts de verificação configuráveis em um cronograma, usando funções Lambda gerenciadas por baixo dos panos, e publica os resultados como métricas.",
       "answerOptions": [
         {
-          "text": "Habilitar o Capacity Rebalancing no Auto Scaling Group que utiliza instâncias Spot, permitindo que o ASG inicie proativamente a substituição de uma instância ao receber o sinal de 'rebalance recommendation' do EC2.",
-          "rationale": "Correto. O Capacity Rebalancing utiliza o sinal de 'rebalance recommendation' do EC2 Spot — emitido quando a AWS detecta que a instância está em risco elevado de interrupção, geralmente bem antes do aviso de 2 minutos — para lançar proativamente uma instância de substituição, podendo o ASG iniciar o dreno/desregistro da instância em risco assim que a substituição estiver saudável. Isso fornece mais tempo de antecedência do que o aviso de 2 minutos isoladamente, mantendo o custo reduzido do Spot.",
-          "isCorrect": true
+          "text": "Usar CloudWatch SYNTHETICS — criar um CANARY (um script configurável, usando Node.js/Puppeteer ou Python/Selenium, executado em um runtime baseado em Lambda gerenciado pelo Synthetics) que executa em uma AGENDA (via EventBridge Scheduler, gerenciado pelo Synthetics), realiza as requisições/passos do fluxo sintético contra o(s) endpoint(s) alvo, e reporta SUCESSO/FALHA como MÉTRICAS DO CLOUDWATCH (ex.: 'SuccessPercent', 'Duration') — um Alarme do CloudWatch sobre essas métricas pode então disparar notificações quando o canary detectar falhas, tudo SEM gerenciar infraestrutura EC2 customizada.",
+          "isCorrect": true,
+          "rationale": "Correto. CloudWatch Synthetics permite criar canaries — scripts configuráveis (Node.js/Puppeteer ou Python/Selenium) executados em um runtime Lambda GERENCIADO — que executam em um cronograma definido (via EventBridge Scheduler, abstraído pelo Synthetics) e publicam métricas como 'SuccessPercent' e 'Duration' no CloudWatch. Alarmes podem ser configurados sobre essas métricas para notificar a equipe proativamente quando o endpoint/fluxo monitorado falhar, sem que a equipe precise provisionar ou manter infraestrutura própria de monitoramento."
         },
         {
-          "text": "Migrar o workload de instâncias Spot para instâncias On-Demand, eliminando completamente o risco de interrupções.",
-          "rationale": "Incorreto. Isso elimina o risco de interrupção, mas também elimina o desconto do Spot (até 90% de economia), contradizendo diretamente o objetivo de 'manter o uso de Spot para economia de custos' — resolve o problema de confiabilidade abandonando a otimização de custo que motivou a escolha do Spot.",
-          "isCorrect": false
+          "text": "Configurar o AWS X-Ray para gerar 'traces sintéticos' periodicamente, simulando requisições reais a partir de múltiplas regiões.",
+          "isCorrect": false,
+          "rationale": "Incorreto. O X-Ray rastreia requisições REAIS que ocorrem (instrumentadas pelo X-Ray SDK dentro da aplicação); ele não gera/injeta requisições SINTÉTICAS em um cronograma a partir de locais externos — esse é o propósito específico dos canaries do CloudWatch Synthetics."
         },
         {
-          "text": "Aumentar o período de tolerância (health check grace period) do Auto Scaling Group para dar mais tempo às instâncias de substituição se tornarem saudáveis.",
-          "rationale": "Incorreto. Aumentar o grace period dá mais tempo para uma NOVA instância (lançada APÓS a interrupção) passar pelos health checks, mas não resolve a questão central: a equipe quer ser notificada e iniciar a substituição ANTES/MAIS CEDO do que o aviso padrão de 2 minutos — não fornece um sinal mais antecipado, apenas mais paciência depois que uma substituição já está sendo lançada.",
-          "isCorrect": false
+          "text": "Usar o AWS Health Dashboard para configurar verificações periódicas (health checks) do endpoint, com alarmes do CloudWatch baseados no status reportado pelo Health Dashboard.",
+          "isCorrect": false,
+          "rationale": "Incorreto. O AWS Health Dashboard reporta sobre a saúde/status dos PRÓPRIOS SERVIÇOS DA AWS (eventos de serviço, notificações em nível de conta), não sobre a disponibilidade dos ENDPOINTS DA APLICAÇÃO DO CLIENTE; não há mecanismo para executar verificações sintéticas customizadas contra a API de um cliente."
         },
         {
-          "text": "Configurar um segundo Auto Scaling Group com instâncias On-Demand como pool de standby, alternando manualmente o tráfego durante interrupções Spot.",
-          "rationale": "Incorreto. Essa é uma abordagem manual e operacionalmente pesada que duplica a infraestrutura (mantendo pools Spot E On-Demand simultaneamente) — não fornece a substituição proativa e automatizada baseada em aviso antecipado que o Capacity Rebalancing oferece nativamente, e manter um pool On-Demand standby continuamente adiciona custo.",
-          "isCorrect": false
+          "text": "Criar uma função Lambda agendada via EventBridge Scheduler que faz uma requisição HTTP simples ao endpoint a cada 5 minutos e publica uma métrica customizada via PutMetricData indicando sucesso/falha.",
+          "isCorrect": false,
+          "rationale": "Incorreto como melhor abordagem. Essa é uma abordagem DIY aproximadamente equivalente, mas o CloudWatch Synthetics fornece essa CAPACIDADE NATIVAMENTE e de forma GERENCIADA (scripts de canary, agendamento, métricas, fluxos multi-etapa com suporte a Puppeteer/Selenium, capturas de tela em caso de falha para canaries de UI) sem que a equipe precise construir/manter esse arcabouço customizado de Lambda+agendamento+PutMetricData — exatamente o requisito de 'sem construir/manter scripts de monitoramento customizados'."
         }
-      ],
-      "hint": "Pense em um recurso do Auto Scaling que reage a um sinal de risco de interrupção emitido pelo EC2 ANTES do aviso formal de 2 minutos."
+      ]
     },
     {
-      "questionNumber": 2,
-      "question": "Uma empresa habilitou o Amazon S3 Transfer Acceleration em um bucket usado por uma aplicação cujos clientes (instâncias EC2 e servidores on-premises conectados via AWS Direct Connect) estão TODOS localizados na MESMA Região AWS do bucket. Após habilitar o Transfer Acceleration, a equipe percebe um AUMENTO nos custos de upload de dados, sem nenhuma melhoria mensurável na velocidade de transferência para esses clientes que já estão na mesma região. A equipe quer entender o motivo e corrigir a configuração para evitar cobranças desnecessárias.",
+      "question": "Uma equipe tem X-Ray Active Tracing habilitado em dezenas de microsserviços. Eles querem que a AWS DETECTE AUTOMATICAMENTE padrões anômalos nos dados de trace — ex.: um aumento súbito de faults (5xx) ou uma degradação significativa de latência para um serviço específico — SEM que a equipe precise monitorar manualmente dashboards ou definir limiares de alarme customizados do CloudWatch para cada serviço, e receber um RESUMO gerado automaticamente (com o serviço afetado, a janela de tempo, e uma lista de fatores candidatos à causa raiz) quando tal anomalia for detectada. Qual abordagem atende a esse requisito?",
+      "hint": "Pense em qual recurso do X-Ray analisa continuamente os dados de trace de um grupo, detecta desvios em relação a uma linha de base aprendida automaticamente, e gera um resumo com possíveis fatores contribuintes.",
       "answerOptions": [
         {
-          "text": "Desabilitar o S3 Transfer Acceleration para este bucket (ou para esses caminhos de transferência dentro da mesma região).",
-          "rationale": "Correto. O Transfer Acceleration funciona roteando uploads através de localizações de borda do CloudFront para alcançar o ponto de presença AWS mais próximo, o que traz benefícios de velocidade principalmente para clientes GEOGRAFICAMENTE DISTANTES da região do bucket. Para clientes já na MESMA região do bucket, esse roteamento por borda não traz benefício de velocidade relevante (o caminho direto já é ótimo), mas AINDA GERA a taxa por GB do Transfer Acceleration sobre a transferência de dados normal — desabilitá-lo para clientes da mesma região elimina essa taxa desnecessária sem qualquer perda de desempenho.",
-          "isCorrect": true
+          "text": "Habilitar o AWS X-RAY INSIGHTS no(s) GRUPO(S) relevante(s) do X-Ray — o X-Ray Insights analisa continuamente os dados de trace do grupo e DETECTA AUTOMATICAMENTE anomalias (ex.: picos na taxa de fault ou na latência em relação a uma linha de base aprendida) SEM exigir limiares definidos manualmente; quando uma anomalia é detectada, o X-Ray gera um 'Insight' com detalhes incluindo a JANELA DE TEMPO, o(s) SERVIÇO(S) AFETADO(S), e possíveis FATORES CONTRIBUINTES (ex.: uma dependência downstream específica), visualizável no console do X-Ray (e opcionalmente notificado via EventBridge).",
+          "isCorrect": true,
+          "rationale": "Correto. O X-Ray Insights analisa continuamente os dados de trace de um X-Ray Group, aprendendo uma linha de base de comportamento normal e detectando automaticamente desvios (picos de fault rate ou latência) sem exigir limiares manuais por serviço. Ao detectar uma anomalia, gera um 'Insight' estruturado contendo a janela de tempo, o(s) serviço(s) afetado(s) e uma lista de possíveis fatores contribuintes — exatamente o resumo automático solicitado, disponível no console do X-Ray e opcionalmente integrável via EventBridge."
         },
         {
-          "text": "Trocar para S3 Multipart Upload em vez de Transfer Acceleration, que é sempre mais rápido para objetos grandes independentemente da localização do cliente.",
-          "rationale": "Incorreto. O Multipart Upload É uma boa prática válida para objetos grandes (melhora throughput e resiliência a erros de rede via upload paralelo de partes) e não tem a taxa do Transfer Acceleration, mas aborda uma otimização DIFERENTE (paralelização de uploads de objetos grandes) da questão descrita (pagar pelo benefício de roteamento por borda do Transfer Acceleration que clientes da mesma região não precisam) — a correção direta para o custo descrito é desabilitar o Transfer Acceleration, independentemente de também usar Multipart Upload.",
-          "isCorrect": false
+          "text": "Configurar CloudWatch Anomaly Detection em todas as métricas 'FaultRate' e 'Latency' de cada serviço individualmente, criando um alarme de anomalia por serviço.",
+          "isCorrect": false,
+          "rationale": "Incorreto como melhor abordagem. Embora o CloudWatch Anomaly Detection possa ser aplicado por métrica, fazê-lo para CADA SERVIÇO individualmente é exatamente o ônus de configuração manual por serviço que a equipe quer evitar; além disso, isso não produziria o tipo de resumo de FATORES CONTRIBUINTES/CANDIDATOS À CAUSA RAIZ entre serviços que o X-Ray Insights gera especificamente a partir dos dados de trace."
         },
         {
-          "text": "Manter o Transfer Acceleration habilitado, mas mudar o bucket para S3 One Zone-IA para compensar o aumento de custo de transferência com um custo de armazenamento menor.",
-          "rationale": "Incorreto. O S3 One Zone-IA reduz o custo de ARMAZENAMENTO (com trade-off de durabilidade), mas não resolve a taxa desnecessária do TRANSFER ACCELERATION sendo cobrada para transferências que não obtêm benefício de velocidade — misturar uma mudança de classe de armazenamento para 'compensar' uma taxa de transferência evitável e não relacionada não resolve a causa raiz.",
-          "isCorrect": false
+          "text": "Habilitar o AWS Trusted Advisor, que monitora continuamente os traces do X-Ray em busca de padrões anômalos de erro e latência entre serviços.",
+          "isCorrect": false,
+          "rationale": "Incorreto. O Trusted Advisor fornece recomendações sobre CUSTO, SEGURANÇA, TOLERÂNCIA A FALHAS, PERFORMANCE e LIMITES DE SERVIÇO baseadas em boas práticas de CONFIGURAÇÃO da conta (ex.: recursos não utilizados, security groups abertos) — ele NÃO analisa DADOS DE TRACE DO X-RAY em busca de anomalias de runtime; esse é o propósito específico do X-Ray Insights."
         },
         {
-          "text": "Mudar a conexão dos servidores on-premises de Direct Connect para VPN, já que o Transfer Acceleration é obrigatório para conexões via Direct Connect.",
-          "rationale": "Incorreto. Essa afirmação é factualmente incorreta — o Transfer Acceleration não é 'obrigatório' para Direct Connect; são mecanismos independentes. Além disso, trocar de Direct Connect para VPN geralmente REDUZIRIA o desempenho/confiabilidade da rede sem resolver o problema real (uma taxa desnecessária de Transfer Acceleration para transferências dentro da mesma região).",
-          "isCorrect": false
+          "text": "Usar o CloudWatch Contributor Insights sobre os logs de cada serviço para identificar automaticamente quais serviços têm o maior número de erros 5xx em um dado período.",
+          "isCorrect": false,
+          "rationale": "Incorreto. O Contributor Insights identifica os principais contribuintes (top-N) para uma métrica a partir de DADOS DE LOG (ex.: qual API key gera mais erros), mas não analisa DADOS DE TRACE/LATÊNCIA DO X-RAY em um sistema distribuído para detectar DESVIOS ANÔMALOS em relação a uma linha de base aprendida, nem fornece a análise de fatores contribuintes que o X-Ray Insights oferece."
         }
-      ],
-      "hint": "Pense em para qual cenário geográfico o Transfer Acceleration foi projetado para trazer benefício de velocidade, e o que acontece quando clientes já estão na mesma região do bucket."
+      ]
     },
     {
-      "questionNumber": 3,
-      "question": "Uma empresa usa o AWS Backup para criar backups diários de seus volumes Amazon EBS e bancos de dados Amazon RDS, retidos por exigência regulatória de compliance por 7 anos. Atualmente, todos os backups permanecem no nível de armazenamento padrão (quente) do AWS Backup durante todo o período de retenção de 7 anos, o que é custoso dado o volume acumulado de backups. Backups com mais de 90 dias praticamente nunca são restaurados (apenas os ~90 dias mais recentes são efetivamente usados para recuperação), mas precisam permanecer recuperáveis (sendo aceitável um tempo de recuperação de várias horas) durante todo o período de compliance de 7 anos.",
+      "question": "Um engenheiro de plantão está configurando Alarmes do CloudWatch para uma função AWS Lambda crítica e quer alarmes que distingam entre TRÊS modos de falha diferentes: (1) o próprio código da função está lançando exceções/retornando erros; (2) a função está sendo REJEITADA de executar devido a limites de concorrência; e (3) a função está executando com sucesso, porém demorando mais que o esperado (possível degradação de performance). Quais TRÊS métricas do CloudWatch correspondem a esses três modos de falha distintos, e como os alarmes devem ser configurados para distingui-los?",
+      "hint": "Pense em três métricas do Lambda que medem, respectivamente: falhas dentro da execução do código, rejeições ANTES de o código executar, e o tempo que a execução bem-sucedida leva.",
       "answerOptions": [
         {
-          "text": "Configurar as definições de ciclo de vida do plano do AWS Backup para transicionar os pontos de recuperação para o nível de 'armazenamento frio' (cold storage) após 90 dias, mantendo a retenção total de 7 anos.",
-          "rationale": "Correto. O nível de cold storage do AWS Backup oferece custo de armazenamento por GB significativamente menor que o armazenamento padrão (quente), enquanto ainda atende ao tempo de recuperação de várias horas considerado aceitável para os backups mais antigos raramente necessários — e o AWS Backup impõe um período mínimo de 90 dias em cold storage antes da exclusão. Isso alinha diretamente o custo de armazenamento ao objetivo real de tempo de recuperação dos backups antigos, mantendo o requisito regulatório de retenção de 7 anos.",
-          "isCorrect": true
+          "text": "(1) Métrica 'ERRORS' — conta invocações em que o código da função retornou um erro (exceção não tratada, ou, para invocações assíncronas, respostas de erro); um alarme em Errors (ex.: Errors > 0, ou taxa de erro = Errors/Invocations > limiar) indica FALHAS NO NÍVEL DE CÓDIGO. (2) Métrica 'THROTTLES' — conta requisições de invocação REJEITADAS por excederem limites de concorrência (TooManyRequestsException) ANTES mesmo de o código da função executar; um alarme em Throttles > 0 indica um problema de CONCORRÊNCIA/CAPACIDADE, distinto de erros de código. (3) Métrica 'DURATION' — o TEMPO DE EXECUÇÃO de invocações bem-sucedidas; um alarme em Duration (ex.: p99 da Duration se aproximando do timeout configurado) indica DEGRADAÇÃO DE PERFORMANCE, distinta dos dois tipos de falha anteriores. Essas três métricas são emitidas independentemente e devem ter alarmes SEPARADOS, já que cada uma aponta para uma remediação diferente.",
+          "isCorrect": true,
+          "rationale": "Correto. 'Errors' mede falhas DENTRO da execução do código (exceções/erros retornados pela função); 'Throttles' mede invocações REJEITADAS ANTES de o código executar, por limite de concorrência; 'Duration' mede o tempo de execução de invocações bem-sucedidas. Cada métrica aponta para uma causa raiz e remediação distintas — corrigir bugs de código, aumentar concorrência/reserved concurrency, ou otimizar performance/investigar dependências lentas, respectivamente — por isso devem ter alarmes separados em vez de serem combinadas."
         },
         {
-          "text": "Reduzir o período de retenção dos backups de 7 anos para 90 dias para diminuir o custo de armazenamento.",
-          "rationale": "Incorreto. Reduzir a retenção abaixo da exigência regulatória (7 anos) criaria uma VIOLAÇÃO DE COMPLIANCE; o cenário afirma explicitamente que a retenção de 7 anos é uma exigência regulatória e não pode simplesmente ser reduzida para diminuir custos.",
-          "isCorrect": false
+          "text": "Usar apenas a métrica 'Invocations' com três alarmes em limiares diferentes (baixo, médio, alto), já que diferentes limiares de Invocations correspondem a erros de código, throttling e degradação de performance, respectivamente.",
+          "isCorrect": false,
+          "rationale": "Incorreto. 'Invocations' simplesmente conta o NÚMERO TOTAL de vezes que a função foi invocada (ou teve uma invocação tentada), independentemente do resultado (sucesso, erro, ou mesmo excluindo requisições throttled que nunca chegam à função) — ela não consegue distinguir entre erros de código, throttling e problemas de performance; essas distinções exigem as métricas dedicadas Errors, Throttles e Duration, respectivamente."
         },
         {
-          "text": "Copiar, via script customizado, os backups com mais de 90 dias para um bucket do Amazon S3 Glacier Deep Archive e excluí-los do AWS Backup.",
-          "rationale": "Incorreto. Isso exigiria construir e manter um processo CUSTOMIZADO de exportação/migração fora do gerenciamento de ciclo de vida nativo do AWS Backup, E removeria esses backups do catálogo unificado de pontos de recuperação/fluxo de restauração do AWS Backup — a transição nativa para cold storage do AWS Backup atinge a redução de custo sem ferramentas customizadas e sem perder a interface unificada de gerenciamento de backups.",
-          "isCorrect": false
+          "text": "Usar a métrica 'ConcurrentExecutions' para detectar erros de código, 'IteratorAge' para detectar throttling, e 'Errors' para detectar degradação de performance.",
+          "isCorrect": false,
+          "rationale": "Incorreto. Esse mapeamento está incorreto: 'ConcurrentExecutions' mede a CONTAGEM de invocações concorrentes (não erros de código), 'IteratorAge' aplica-se apenas a event sources baseados em STREAM e mede atraso de processamento (não throttling em geral), e 'Errors' mede falhas NO NÍVEL DE CÓDIGO (não performance/duração) — nenhum desses mapeamentos corresponde corretamente aos modos de falha descritos."
         },
         {
-          "text": "Mudar de backups diários para backups semanais para volumes/bancos de dados com mais de 90 dias, reduzindo o número de pontos de recuperação armazenados.",
-          "rationale": "Incorreto. Alterar a FREQUÊNCIA de backup para dados ANTIGOS não faz sentido (os backups já existem; não é possível reduzir retroativamente a frequência de backups passados), e reduzir a frequência futura não resolve o CUSTO DO NÍVEL DE ARMAZENAMENTO dos backups já acumulados, que é o fator de custo descrito — é uma alavanca diferente (e parcialmente incoerente) da que está sendo solicitada.",
-          "isCorrect": false
+          "text": "Configurar um único alarme composto combinando 'Errors', 'Throttles' e 'Duration' com lógica OR, já que qualquer uma das três condições indica que algo está errado e precisa da mesma resposta de remediação.",
+          "isCorrect": false,
+          "rationale": "Incorreto. Embora um alarme combinado pudesse notificar que 'algo está errado', o cenário exige explicitamente DISTINGUIR entre os três modos de falha (cada um exigindo uma remediação DIFERENTE: correção de código vs aumento de concorrência vs otimização de performance); combiná-los em um único alarme com OR perde essa distinção e exigiria investigação adicional para determinar qual das três realmente ocorreu — frustrando o objetivo declarado."
         }
-      ],
-      "hint": "Pense em um recurso nativo do AWS Backup que move pontos de recuperação mais antigos para um nível de armazenamento mais barato sem removê-los do catálogo de backups."
+      ]
     },
     {
-      "questionNumber": 4,
-      "question": "Uma empresa mantém ambientes separados do Amazon RDS para MySQL para produção, staging e desenvolvimento. Os três ambientes estão atualmente configurados com implantações Multi-AZ (réplica em standby síncrona em uma segunda AZ), configuradas uniformemente via um template do CloudFormation compartilhado 'por consistência'. Os ambientes de staging e desenvolvimento são usados apenas durante o horário comercial para testes e NÃO estão sujeitos aos mesmos SLAs de disponibilidade da produção — uma breve indisponibilidade durante uma janela de manutenção ou falha de instância nesses ambientes é aceitável e não impacta clientes. A equipe quer reduzir os custos do RDS para staging e desenvolvimento sem afetar a postura de disponibilidade da produção.",
+      "question": "Uma regra do Amazon EventBridge roteia eventos para uma função Lambda como target. A equipe percebe que, ocasionalmente, o EventBridge FALHA ao entregar um evento a esse target (ex.: a função Lambda retorna um erro de throttling e a política de retry do EventBridge — padrão ou customizada — eventualmente esgota suas tentativas, ou a resource-based policy da função não concede permissão de invocação ao EventBridge durante uma breve janela de um deployment). Por padrão, esses eventos que esgotam as tentativas SEM entrega bem-sucedida são DESCARTADOS SILENCIOSAMENTE, sem nenhum registro. A equipe quer que esses EVENTOS COM FALHA sejam PRESERVADOS para inspeção/reprocessamento posterior, sem modificar o código da função Lambda de destino. Qual abordagem atende a esse requisito?",
+      "hint": "Pense em qual configuração existe no nível da REGRA/TARGET do EventBridge (e não no nível da função Lambda) para capturar eventos que o próprio EventBridge não conseguiu entregar após esgotar suas tentativas.",
       "answerOptions": [
         {
-          "text": "Desabilitar o Multi-AZ para as instâncias RDS de staging e desenvolvimento, mantendo o Multi-AZ habilitado para produção.",
-          "rationale": "Correto. Implantações Multi-AZ aproximadamente dobram o custo da instância RDS (executando e replicando sincronamente para um standby em uma segunda AZ) para fornecer failover automático para requisitos de ALTA DISPONIBILIDADE; como staging e desenvolvimento explicitamente não exigem o mesmo SLA de disponibilidade da produção (indisponibilidade breve é aceitável), desabilitar o Multi-AZ nesses ambientes não-produtivos remove o custo da instância standby, enquanto a produção mantém sua proteção Multi-AZ — alinhando diretamente a configuração de infraestrutura ao requisito real de disponibilidade de cada ambiente.",
-          "isCorrect": true
+          "text": "Configurar uma DEAD-LETTER QUEUE (uma fila SQS) na configuração do TARGET DA REGRA do EventBridge (o 'DeadLetterConfig' para esse target específico) — quando o EventBridge esgota sua POLÍTICA DE RETRY configurada (MaximumRetryAttempts / MaximumEventAgeInSeconds) para esse target sem entrega bem-sucedida, ele envia o EVENTO COM FALHA para a DLQ configurada, preservando-o para inspeção ou reprocessamento posterior — tudo configurado no nível da REGRA/TARGET, sem necessidade de alterações no código da função Lambda.",
+          "isCorrect": true,
+          "rationale": "Correto. O 'DeadLetterConfig' configurado no TARGET de uma regra do EventBridge captura especificamente os eventos para os quais o EventBridge esgotou sua política de retry (MaximumRetryAttempts/MaximumEventAgeInSeconds) sem conseguir entregá-los com sucesso ao target — sejam falhas causadas por erros do target (throttling) ou por falhas de permissão/entrega do próprio EventBridge. Esses eventos são enviados à fila SQS configurada como DLQ, preservando-os para inspeção/reprocessamento, sem qualquer alteração no código da função Lambda."
         },
         {
-          "text": "Migrar os bancos de dados de staging e desenvolvimento para Amazon Aurora Serverless v2, mantendo o Multi-AZ, para reduzir custos.",
-          "rationale": "Incorreto. O Aurora Serverless v2 SUPORTA Multi-AZ, mas isso introduz uma MIGRAÇÃO DE ENGINE de banco de dados (de RDS for MySQL para Aurora MySQL) como mecanismo de redução de custo, o que é uma mudança muito maior (testes de compatibilidade, esforço de migração) do que simplesmente desabilitar o Multi-AZ na engine existente — e MANTÉM o Multi-AZ (o fator de custo identificado) em vez de removê-lo para ambientes que não precisam dele.",
-          "isCorrect": false
+          "text": "Configurar uma Dead-Letter Queue na própria função Lambda alvo (Lambda DLQ), já que toda função Lambda invocada de forma assíncrona por qualquer origem de evento envia automaticamente eventos com falha para sua DLQ configurada.",
+          "isCorrect": false,
+          "rationale": "Incorreto. A configuração legada de 'DLQ' NA FUNÇÃO Lambda aplica-se a falhas do PRÓPRIO PROCESSAMENTO ASSÍNCRONO DE INVOCAÇÃO da função (após o EventBridge já ter entregado/invocado com sucesso); ela NÃO captura casos em que o EventBridge EM SI falha ao entregar o evento ao target (ex.: por problemas de permissão que impedem a invocação, ou esgotamento de retry do lado do EventBridge) — para isso é necessário o DeadLetterConfig do próprio TARGET da regra do EventBridge."
         },
         {
-          "text": "Usar Reserved Instances do RDS para os bancos de dados de staging e desenvolvimento para reduzir o custo do Multi-AZ.",
-          "rationale": "Incorreto. As Reserved Instances oferecem um desconto na fatura sobre a configuração de instância contratada, mas não eliminam a duplicação fundamental de recursos que o Multi-AZ exige (a reserva cobriria tanto a instância primária QUANTO a standby, com desconto, mas ainda pagando por duas instâncias) — reduz o custo parcialmente, mas não resolve a ineficiência raiz de manter réplicas standby desnecessárias para ambientes que não precisam de alta disponibilidade.",
-          "isCorrect": false
+          "text": "Habilitar o Lambda Destinations 'OnFailure' apontando para uma fila SQS na configuração da função Lambda, que captura eventos que o EventBridge não conseguiu entregar.",
+          "isCorrect": false,
+          "rationale": "Incorreto. Lambda Destinations 'OnFailure' captura falhas QUE OCORREM DEPOIS de a função ser INVOCADA com sucesso, mas a INVOCAÇÃO EM SI falhar (ex.: o código da função lança uma exceção); ele não captura falhas de ENTREGA no nível do EventBridge que ocorrem ANTES de/sem uma invocação bem-sucedida (ex.: erros de permissão que impedem o EventBridge de invocar a função) — o DeadLetterConfig do target da regra do EventBridge cobre esse caso mais amplo."
         },
         {
-          "text": "Configurar as instâncias RDS de staging e desenvolvimento para parar automaticamente fora do horário comercial, mantendo o Multi-AZ habilitado durante as horas em que estão em execução.",
-          "rationale": "Incorreto. Parar as instâncias fora do horário comercial REDUZ algum custo (sem cobrança de computação enquanto paradas), mas instâncias RDS Multi-AZ continuam incorrendo no custo duplicado (primária + standby) durante as horas em que ESTÃO em execução, que é justamente quando o custo desnecessário de alta disponibilidade ocorre — é uma otimização complementar (reduzir horas de execução), mas não resolve o descompasso de configuração Multi-AZ em si.",
-          "isCorrect": false
+          "text": "Aumentar o MaximumRetryAttempts da política de retry da regra do EventBridge para um valor muito alto (ex.: 185, o máximo permitido), garantindo que eventualmente toda entrega seja bem-sucedida e nenhum evento seja perdido.",
+          "isCorrect": false,
+          "rationale": "Incorreto. Aumentar o número de tentativas pode reduzir (mas não eliminar) a chance de esgotamento de retries para falhas TRANSITÓRIAS, mas para falhas PERSISTENTES (ex.: uma má configuração de permissão que não se resolve sozinha) mesmo o número máximo de tentativas será eventualmente esgotado, e o evento ainda seria DESCARTADO SILENCIOSAMENTE sem uma DLQ configurada — retries isoladamente não fornecem PRESERVAÇÃO de eventos com falha para inspeção/reprocessamento."
         }
-      ],
-      "hint": "Pense em qual configuração do RDS dobra aproximadamente o custo da instância para fornecer um nível de disponibilidade que ambientes não-produtivos podem não precisar."
-    },
-    {
-      "questionNumber": 5,
-      "question": "Uma empresa opera uma tabela do Amazon DynamoDB em modo de capacidade Provisionada, com Read Capacity Units (RCUs) e Write Capacity Units (WCUs) configuradas com base em estimativas iniciais feitas há mais de um ano, sem Auto Scaling configurado. A equipe suspeita que a capacidade provisionada hoje está significativamente acima do necessário (superprovisionada), resultando em custo desnecessário, mas quer CONFIRMAR isso com DADOS antes de reduzir os valores provisionados, para evitar causar throttling caso a redução seja muito agressiva.",
-      "answerOptions": [
-        {
-          "text": "Analisar as métricas do Amazon CloudWatch ConsumedReadCapacityUnits e ConsumedWriteCapacityUnits da tabela ao longo de um período representativo (incluindo picos), comparar com os RCUs/WCUs provisionados atualmente, ajustar a capacidade provisionada para alinhar-se ao consumo de pico observado (mais uma margem) e/ou habilitar o DynamoDB Auto Scaling.",
-          "rationale": "Correto. Usar as métricas reais de ConsumedCapacity fornece a base orientada por dados para dimensionar corretamente a capacidade provisionada sem adivinhação, evitando diretamente tanto o superprovisionamento (custo desperdiçado) quanto o subprovisionamento (throttling) — e habilitar o Auto Scaling daqui para frente ajusta automaticamente a capacidade dentro de limites definidos com base no tráfego real.",
-          "isCorrect": true
-        },
-        {
-          "text": "Mudar a tabela imediatamente para o modo de capacidade On-Demand do DynamoDB, que cobra automaticamente apenas pelo uso real.",
-          "rationale": "Incorreto. O modo On-Demand É uma alternativa válida que remove a necessidade de gerenciar capacidade provisionada, mas para uma tabela com tráfego ESTÁVEL e PREVISÍVEL (o que a análise das métricas de Consumed revelaria), a capacidade Provisionada (especialmente com Reserved Capacity ou Auto Scaling) costuma ser SIGNIFICATIVAMENTE MAIS BARATA por requisição do que o On-Demand — mudar para On-Demand sem primeiro analisar o padrão de consumo (o cenário pede 'confirmar com dados antes') ignora a etapa de análise e pode não ser a escolha mais econômica para workloads estáveis.",
-          "isCorrect": false
-        },
-        {
-          "text": "Reduzir os RCUs e WCUs provisionados em 50% imediatamente como um primeiro passo rápido, monitorando o throttling depois.",
-          "rationale": "Incorreto. Reduzir a capacidade PRIMEIRO e monitorar o throttling DEPOIS é uma abordagem reativa e arriscada que pode causar throttling/erros em produção para usuários finais antes que a equipe perceba e corrija — o cenário pede explicitamente 'confirmar com dados ANTES de reduzir', ou seja, a análise deve preceder a mudança de capacidade, não seguir.",
-          "isCorrect": false
-        },
-        {
-          "text": "Habilitar o DynamoDB Accelerator (DAX) na frente da tabela para reduzir a capacidade de leitura necessária.",
-          "rationale": "Incorreto. O DAX é uma camada de cache em memória que pode reduzir a carga de LEITURA que chega à tabela DynamoDB para workloads de leitura intensa com itens acessados repetidamente, mas ADICIONA seu próprio custo de infraestrutura (nós do cluster DAX) e não responde diretamente à pergunta de se os valores ATUAIS de RCU/WCU provisionados já estão superprovisionados em relação à demanda real — é uma otimização diferente (cache), não o dimensionamento correto da capacidade provisionada com base em dados de consumo.",
-          "isCorrect": false
-        }
-      ],
-      "hint": "Pense em quais métricas do CloudWatch revelam o consumo REAL de capacidade de uma tabela DynamoDB, permitindo comparar com o que está provisionado antes de qualquer mudança."
-    },
-    {
-      "questionNumber": 6,
-      "question": "Uma empresa possui um data center on-premises que transfere aproximadamente 50 TB de dados POR MÊS para buckets do Amazon S3 através de uma conexão VPN baseada em internet, incorrendo em cobranças substanciais de transferência de dados SAÍDA da AWS para on-premises (e a conexão de internet ocasionalmente se torna um gargalo durante janelas de transferência de pico). Esse volume de transferência deve permanecer estável ou crescer. A equipe quer reduzir os custos por GB dessa conectividade híbrida consistente e de alto volume, melhorando também a confiabilidade/throughput da transferência.",
-      "answerOptions": [
-        {
-          "text": "Estabelecer uma conexão AWS Direct Connect entre o data center on-premises e a AWS.",
-          "rationale": "Correto. O Direct Connect fornece uma conexão de rede dedicada com taxas de transferência de dados SAÍDA significativamente MENORES por GB do que as taxas padrão de transferência via internet, além de fornecer throughput de rede mais consistente e menor latência do que uma VPN baseada em internet — para um padrão de transferência híbrida ESTÁVEL e de ALTO VOLUME (50 TB/mês), o preço reduzido de saída via Direct Connect tipicamente gera economia substancial em comparação com a saída via internet, além da melhoria de confiabilidade/throughput.",
-          "isCorrect": true
-        },
-        {
-          "text": "Habilitar o S3 Transfer Acceleration nos buckets de destino para acelerar e reduzir o custo dos uploads vindos do on-premises.",
-          "rationale": "Incorreto. O Transfer Acceleration otimiza a velocidade de UPLOAD para o S3 via localizações de borda do CloudFront (para dados entrando na AWS), mas a preocupação de custo do cenário é sobre transferência de dados SAÍDA da AWS para on-premises — o Transfer Acceleration não se aplica nem reduz custos de transferência de saída (egress), e ainda adiciona sua própria taxa para as transferências de entrada que acelera.",
-          "isCorrect": false
-        },
-        {
-          "text": "Mover os dados para o Amazon S3 Glacier Deep Archive antes de transferi-los para on-premises, já que o Glacier tem o menor custo de armazenamento.",
-          "rationale": "Incorreto. A preocupação de custo descrita é sobre custos de TRANSFERÊNCIA DE DADOS (egress) para um fluxo recorrente de 50 TB/mês, não sobre o custo de ARMAZENAMENTO de dados no S3 — mover os dados para o Glacier primeiro adicionaria tempo/taxas de recuperação antes mesmo que a transferência pudesse ocorrer, e não aborda em nada o preço de transferência de saída por GB.",
-          "isCorrect": false
-        },
-        {
-          "text": "Usar dispositivos AWS Snowball em uma base mensal recorrente para transportar fisicamente os 50 TB de/para o data center.",
-          "rationale": "Incorreto. O Snowball é projetado para transferências em massa ÚNICAS ou INFREQUENTES (ex.: migrações iniciais), nas quais o volume de dados torna a transferência via rede impraticável; usá-lo em uma base MENSAL RECORRENTE para o fluxo operacional contínuo introduz uma sobrecarga operacional significativa (logística de dispositivos, manuseio) em comparação com um link Direct Connect persistente, que é projetado exatamente para conectividade híbrida sustentada e recorrente com menor custo por GB.",
-          "isCorrect": false
-        }
-      ],
-      "hint": "Pense em qual tipo de conexão dedicada entre on-premises e AWS é projetado para reduzir o custo por GB de transferências de saída recorrentes e de alto volume."
-    },
-    {
-      "questionNumber": 7,
-      "question": "Uma empresa possui um bucket do Amazon S3 contendo 200 milhões de objetos existentes, acumulados ao longo de vários anos, todos atualmente na classe de armazenamento S3 Standard. A equipe determinou (via S3 Storage Class Analysis) que a maioria desses objetos EXISTENTES deveria ser movida para o S3 Glacier Flexible Retrieval para reduzir custos. No entanto, regras de ciclo de vida do S3 baseadas em idade do objeto se aplicam considerando a data de CRIAÇÃO de cada objeto a partir da criação da regra — para objetos que já estão acima do limiar de idade desejado, a equipe quer que a transição seja aplicada aos objetos EXISTENTES de forma controlada, rastreável e RETROATIVA, em vez de depender do tempo de avaliação de regras de ciclo de vida para objetos que já excedem o limiar.",
-      "answerOptions": [
-        {
-          "text": "Usar o Amazon S3 Batch Operations com um job de cópia/alteração de classe de armazenamento para aplicar retroativamente a transição para S3 Glacier Flexible Retrieval aos 200 milhões de objetos existentes, com base em um manifesto (gerado, por exemplo, via S3 Inventory).",
-          "rationale": "Correto. O S3 Batch Operations foi projetado especificamente para executar uma operação especificada (incluindo transições de classe de armazenamento) em uma lista grande e definida de objetos EXISTENTES, em um único job rastreável (com relatórios de conclusão), fornecendo um mecanismo controlado e auditável para transicionar retroativamente objetos existentes — separado de (e complementar a) regras de Lifecycle contínuas que tratam objetos NOVOS a partir de agora.",
-          "isCorrect": true
-        },
-        {
-          "text": "Simplesmente criar uma regra de Lifecycle do S3 que transicione objetos para Glacier Flexible Retrieval após o número de dias desejado; o S3 aplicará automaticamente de forma retroativa a todos os objetos existentes em até 48 horas.",
-          "rationale": "Incorreto. Embora regras de Lifecycle do S3 SE APLIQUEM a objetos existentes que já atendam ao critério de idade (o S3 avalia e transiciona, geralmente em torno de um dia após a criação da regra, não instantaneamente), o cenário pede especificamente um processo CONTROLADO e RASTREÁVEL para 200 milhões de objetos — a avaliação de regras de Lifecycle para um backlog massivo de objetos existentes não fornece o mesmo nível de relatório de conclusão/rastreamento/retry granular que um job dedicado do S3 Batch Operations, que é a abordagem recomendada pela AWS para operações retroativas em larga escala.",
-          "isCorrect": false
-        },
-        {
-          "text": "Usar o comando `aws s3 cp` da AWS CLI com as flags `--recursive` e `--storage-class` para copiar cada objeto sobre si mesmo com a nova classe de armazenamento.",
-          "rationale": "Incorreto. Embora tecnicamente isso PUDESSE alterar a classe de armazenamento via operação de cópia, executar isso contra 200 milhões de objetos via CLI seria extremamente lento (paralelismo sequencial/limitado), não possui os mecanismos de rastreamento de job/relatórios de conclusão/retry do S3 Batch Operations, e não é uma abordagem escalável ou recomendada pela AWS para operações nessa escala.",
-          "isCorrect": false
-        },
-        {
-          "text": "Habilitar o S3 Intelligent-Tiering no bucket, que moverá automaticamente todos os objetos existentes para o nível apropriado com base nos resultados do Storage Class Analysis.",
-          "rationale": "Incorreto. Habilitar o Intelligent-Tiering como classe de armazenamento para objetos NOVOS não altera retroativamente a classe de armazenamento de objetos EXISTENTES já armazenados como S3 Standard — o Intelligent-Tiering precisa ser explicitamente DEFINIDO como a classe de armazenamento dos objetos (objetos existentes mantêm sua classe atual a menos que sejam explicitamente transicionados), portanto isso não resolve a necessidade declarada de migrar 200 milhões de objetos Standard existentes.",
-          "isCorrect": false
-        }
-      ],
-      "hint": "Pense em qual recurso do S3 foi projetado para executar uma operação em massa, rastreável e com relatório de conclusão, sobre uma lista de objetos já existentes."
-    },
-    {
-      "questionNumber": 8,
-      "question": "Uma empresa opera um cluster Amazon Redshift para seu data warehouse de produção, usado pela equipe de análise. Além do cluster de produção, a equipe mantém um cluster Redshift separado usado exclusivamente para desenvolvimento/teste de novos pipelines de ETL e consultas — esse cluster de dev/teste é usado ativamente apenas durante o horário comercial em dias úteis (aproximadamente 50 das 168 horas da semana), mas atualmente roda continuamente, gerando cobranças de computação 24/7. A equipe quer reduzir o custo de computação desse cluster de dev/teste durante as ~118 horas semanais em que fica ocioso, sem perder a configuração do cluster, os dados carregados, ou ter que recriá-lo a cada vez.",
-      "answerOptions": [
-        {
-          "text": "Usar a funcionalidade de pause e resume do Amazon Redshift para PAUSAR o cluster de dev/teste durante as ~118 horas semanais sem uso (por exemplo, via uma ação agendada para pausar ao final do dia e retomar a cada manhã).",
-          "rationale": "Correto. Enquanto um cluster Redshift está pausado, as cobranças de computação (nós) PARAM de ser geradas (apenas as cobranças de armazenamento continuam), e a configuração, os dados e o endpoint do cluster são PRESERVADOS para quando ele for retomado — eliminando diretamente o custo de computação durante os períodos ociosos sem perder a configuração ou os dados, e isso pode ser automatizado via ações agendadas do Redshift.",
-          "isCorrect": true
-        },
-        {
-          "text": "Redimensionar o cluster de dev/teste para usar menos nós ou nós menores, reduzindo seu custo por hora enquanto continua rodando 24/7.",
-          "rationale": "Incorreto. Redimensionar para nós menores reduz a taxa POR HORA, mas não resolve o fato de que ~118 das 168 horas semanais têm ZERO uso ativo — pagar uma taxa reduzida por 168 horas ainda é mais do que pagar a taxa integral por apenas as ~50 horas realmente necessárias; é uma redução incremental, não a eliminação do custo do tempo ocioso.",
-          "isCorrect": false
-        },
-        {
-          "text": "Criar um snapshot manual do cluster, excluir o cluster completamente durante os períodos ociosos e restaurá-lo a partir do snapshot a cada manhã.",
-          "rationale": "Incorreto. Excluir e restaurar a partir de snapshot PARA as cobranças de computação durante o período 'excluído' (benefício de custo semelhante ao pause), mas restaurar um cluster a partir de um snapshot é uma operação muito MAIS LENTA (potencialmente dezenas de minutos a horas, dependendo do volume de dados) comparada a retomar um cluster pausado (tipicamente mais rápido), E o ENDPOINT do cluster muda após a restauração (exigindo atualização de strings de conexão) — pause/resume preserva o endpoint e é o mecanismo nativo de menor sobrecarga para exatamente este caso de uso.",
-          "isCorrect": false
-        },
-        {
-          "text": "Migrar o workload de dev/teste para o Amazon Redshift Serverless, que cobra apenas quando consultas estão em execução, eliminando a necessidade de agendamento de cluster.",
-          "rationale": "Incorreto. O Redshift Serverless É uma alternativa válida de pagamento por uso, mas migrar o workload de dev/teste de um cluster PROVISIONADO existente para Serverless é uma MUDANÇA mais ampla (modelo de cobrança/configuração diferente, baseado em RPUs, possíveis diferenças de característica de performance de consultas) do que simplesmente habilitar o agendamento de pause/resume no cluster EXISTENTE — pause/resume é a solução direta e de mínima mudança para o problema de custo de tempo ocioso descrito em um cluster provisionado existente.",
-          "isCorrect": false
-        }
-      ],
-      "hint": "Pense em uma funcionalidade do Redshift que interrompe a cobrança de computação preservando a configuração e os dados do cluster, sem exigir recriação ou mudança de endpoint."
+      ]
     }
   ]
 }
