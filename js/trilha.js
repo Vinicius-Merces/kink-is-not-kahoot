@@ -2,11 +2,27 @@
 // menu mobile, scroll-spy da sidebar, barra de progresso de leitura e accordions de Q&A.
 
 document.addEventListener('DOMContentLoaded', () => {
+    syncNavbarHeight();
     initMobileMenu();
     initScrollSpy();
     initReadingProgress();
     initAccordions();
 });
+
+// Mede a altura real do navbar e expõe via --navbar-height, para o
+// toggle "☰ Capítulos" (sticky) ficar colado abaixo dele em vez de
+// sobrepor (ambos usam position: sticky; top: 0)
+function syncNavbarHeight() {
+    const navbar = document.querySelector('.navbar');
+    if (!navbar) return;
+
+    const update = () => {
+        document.documentElement.style.setProperty('--navbar-height', navbar.offsetHeight + 'px');
+    };
+
+    update();
+    window.addEventListener('resize', update);
+}
 
 function initMobileMenu() {
     const toggle = document.querySelector('.trilha-menu-toggle');
@@ -14,15 +30,23 @@ function initMobileMenu() {
     const closeBtn = document.querySelector('.trilha-sidebar-close');
     if (!toggle || !sidebar) return;
 
+    const backdrop = document.createElement('div');
+    backdrop.className = 'trilha-sidebar-backdrop';
+    document.body.appendChild(backdrop);
+
     const open = () => {
         sidebar.classList.add('open');
+        backdrop.classList.add('open');
         toggle.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
         sidebar.focus();
     };
 
     const close = () => {
         sidebar.classList.remove('open');
+        backdrop.classList.remove('open');
         toggle.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
     };
 
     toggle.addEventListener('click', () => {
@@ -32,6 +56,9 @@ function initMobileMenu() {
     if (closeBtn) {
         closeBtn.addEventListener('click', close);
     }
+
+    // Fecha ao tocar fora do menu (na área escurecida)
+    backdrop.addEventListener('click', close);
 
     // Fecha o menu ao escolher um capítulo (mobile)
     sidebar.querySelectorAll('.trilha-nav-item').forEach(link => {
@@ -43,6 +70,11 @@ function initMobileMenu() {
     // Fecha com ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
+    });
+
+    // Fecha se a tela crescer para o layout desktop
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 960 && sidebar.classList.contains('open')) close();
     });
 }
 

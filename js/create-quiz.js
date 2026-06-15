@@ -266,7 +266,7 @@ class QuizEditor {
             <label class="radio-label">
                 <input type="checkbox" name="correctOption" value="${index}"> Correta
             </label>
-            <button type="button" class="remove-option" onclick="this.parentElement.remove()">🗑️</button>
+            <button type="button" class="remove-option" onclick="this.parentElement.remove()" aria-label="Remover opção ${String.fromCharCode(65 + index)}" title="Remover opção">🗑️</button>
         `;
         return div;
     }

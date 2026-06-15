@@ -19,6 +19,7 @@
     <script>document.documentElement.classList.add('js-anim');</script>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/landing-fx.css">
+    <link rel="stylesheet" href="css/components.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         /* Loading overlay */
@@ -84,6 +85,22 @@
             <p>Carregando KINK...</p>
         </div>
     </div>
+
+    <!-- Navbar simplificada da home: logo + acesso rápido ao login -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2 class="glitch-mini">KINK</h2>
+                <span>is not Kahoot</span>
+            </div>
+            <div class="user-info">
+                <button id="navLoginBtn" class="nav-login-btn" type="button">🔐 Entrar</button>
+                <span id="userName" style="display: none;"></span>
+                <div class="user-avatar" style="display: none;"></div>
+                <button id="logoutBtn" class="nav-logout-btn" type="button" style="display: none;">Sair</button>
+            </div>
+        </div>
+    </nav>
 
     <div class="container" id="main-content" style="display: none;">
         <div class="hero-section">
@@ -356,6 +373,49 @@
                     openLoginModal();
                 });
             }
+
+            // Botão de login da navbar (acesso rápido, sempre visível no topo)
+            const navLoginBtn = document.getElementById('navLoginBtn');
+            if (navLoginBtn) {
+                navLoginBtn.addEventListener('click', () => {
+                    loginRedirectTarget = 'my-quizzes.html';
+                    openLoginModal();
+                });
+            }
+
+            // Botão de logout da navbar
+            const navLogoutBtn = document.getElementById('logoutBtn');
+            if (navLogoutBtn) {
+                navLogoutBtn.addEventListener('click', async () => {
+                    await auth.signOut();
+                    window.location.reload();
+                });
+            }
+
+            // Alterna entre "Entrar" (deslogado) e avatar/nome + "Sair" (logado) na navbar
+            const navUserName = document.getElementById('userName');
+            const navUserAvatar = document.querySelector('.navbar .user-avatar');
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    if (navLoginBtn) navLoginBtn.style.display = 'none';
+                    if (navLogoutBtn) navLogoutBtn.style.display = '';
+                    if (navUserName) {
+                        navUserName.textContent = user.displayName || user.email?.split('@')[0] || 'Usuário';
+                        navUserName.style.display = 'inline';
+                    }
+                    if (navUserAvatar) {
+                        navUserAvatar.innerHTML = user.photoURL
+                            ? `<img src="${user.photoURL}" alt="avatar">`
+                            : (user.displayName || 'U').charAt(0).toUpperCase();
+                        navUserAvatar.style.display = 'flex';
+                    }
+                } else {
+                    if (navLoginBtn) navLoginBtn.style.display = '';
+                    if (navLogoutBtn) navLogoutBtn.style.display = 'none';
+                    if (navUserName) navUserName.style.display = 'none';
+                    if (navUserAvatar) navUserAvatar.style.display = 'none';
+                }
+            });
 
             if (simuladosBtn) {
                 simuladosBtn.addEventListener('click', (e) => {
