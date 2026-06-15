@@ -109,6 +109,15 @@ const simuladoActionLimiter = rateLimit({
     message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
 });
 
+// Limite maior para a verificação de respostas no Modo Estudo (1 chamada por pergunta, até MAX_SIMULADO_QUESTIONS)
+const simuladoCheckLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
+
 const adminLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutos
     max: 120,
@@ -411,6 +420,36 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         domains: pool.domains,
         totalQuestions: questions.length,
         questions: questions.map(sanitizeQuestion)
+    });
+});
+
+// Verifica a resposta de UMA pergunta (Modo Estudo: feedback imediato sem afetar a correção final)
+app.post('/api/simulado/:id/check', simuladoCheckLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para continuar' });
+    }
+
+    const simulado = activeSimulados.get(req.params.id);
+    if (!simulado) {
+        return res.status(404).json({ success: false, error: 'Simulado não encontrado ou expirado' });
+    }
+
+    if (simulado.userId !== user.uid) {
+        return res.status(403).json({ success: false, error: 'Esse simulado não pertence a este usuário' });
+    }
+
+    const { questionId, answer } = req.body || {};
+    const question = simulado.questions.find(q => q.id === questionId);
+    if (!question) {
+        return res.status(400).json({ success: false, error: 'Pergunta inválida' });
+    }
+
+    res.json({
+        success: true,
+        isCorrect: answer === question.correct,
+        correct: question.correct,
+        explanation: question.explanation || ''
     });
 });
 

@@ -18,10 +18,12 @@
     let selectedCertId = null;
     let selectedLevel = null;
     let selectedMode = 'solo'; // 'solo' ou 'live' (Modo Professor)
+    let selectedFeedbackMode = 'exam'; // 'exam' (correção só no final) ou 'study' (feedback a cada pergunta)
 
     // Estado do simulado em andamento
     let currentSimulado = null; // { simuladoId, certCode, certName, level, domains, questions, totalQuestions }
     let userAnswers = {};
+    let questionFeedback = {}; // questionId -> { isCorrect, correct, explanation } (Modo Estudo)
     let currentQuestionIndex = 0;
 
     const SCREEN_IDS = {
@@ -151,12 +153,24 @@
     // ============================================
     // Alternância de modo (Solo / Professor ao vivo)
     // ============================================
-    document.querySelectorAll('.mode-toggle-btn').forEach(btn => {
+    document.querySelectorAll('#simuladoModeToggle .mode-toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             selectedMode = btn.dataset.mode;
-            document.querySelectorAll('.mode-toggle-btn').forEach(b => b.classList.toggle('selected', b === btn));
+            document.querySelectorAll('#simuladoModeToggle .mode-toggle-btn').forEach(b => b.classList.toggle('selected', b === btn));
             document.getElementById('startSimuladoBtn').style.display = selectedMode === 'solo' ? '' : 'none';
             document.getElementById('createLiveRoomBtn').style.display = selectedMode === 'live' ? '' : 'none';
+            document.getElementById('feedbackModeToggle').style.display = selectedMode === 'solo' ? '' : 'none';
+            document.getElementById('feedbackModeHint').style.display = selectedMode === 'solo' ? '' : 'none';
+        });
+    });
+
+    // ============================================
+    // Alternância de feedback (Modo Prova / Modo Estudo)
+    // ============================================
+    document.querySelectorAll('#feedbackModeToggle .mode-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedFeedbackMode = btn.dataset.feedbackMode;
+            document.querySelectorAll('#feedbackModeToggle .mode-toggle-btn').forEach(b => b.classList.toggle('selected', b === btn));
         });
     });
 
@@ -193,6 +207,7 @@
 
             currentSimulado = data;
             userAnswers = {};
+            questionFeedback = {};
             currentQuestionIndex = 0;
 
             startExam();
@@ -269,19 +284,51 @@
 
         const optionsContainer = document.getElementById('examOptions');
         const selectedAnswer = userAnswers[question.id];
-        optionsContainer.innerHTML = question.options.map((option, i) => `
-            <button type="button" class="exam-option ${selectedAnswer === i ? 'selected' : ''}" data-option-index="${i}">
-                <span class="exam-option-letter">${String.fromCharCode(65 + i)}</span>
-                <span class="exam-option-text">${Utils.escapeHtml(option)}</span>
-            </button>
-        `).join('');
+        const feedback = selectedFeedbackMode === 'study' ? questionFeedback[question.id] : null;
+
+        optionsContainer.innerHTML = question.options.map((option, i) => {
+            let cls = 'exam-option';
+            if (feedback) {
+                cls += ' disabled';
+                if (i === feedback.correct) cls += ' correct-answer';
+                if (i === selectedAnswer && i !== feedback.correct) cls += ' your-wrong-answer';
+                if (i === selectedAnswer && i === feedback.correct) cls += ' your-correct-answer';
+            } else if (selectedAnswer === i) {
+                cls += ' selected';
+            }
+            return `
+                <button type="button" class="${cls}" data-option-index="${i}" ${feedback ? 'disabled' : ''}>
+                    <span class="exam-option-letter">${String.fromCharCode(65 + i)}</span>
+                    <span class="exam-option-text">${Utils.escapeHtml(option)}</span>
+                </button>
+            `;
+        }).join('');
 
         optionsContainer.querySelectorAll('.exam-option').forEach(optionBtn => {
-            optionBtn.addEventListener('click', () => {
-                userAnswers[question.id] = parseInt(optionBtn.dataset.optionIndex, 10);
+            optionBtn.addEventListener('click', async () => {
+                const optionIndex = parseInt(optionBtn.dataset.optionIndex, 10);
+                userAnswers[question.id] = optionIndex;
+
+                if (selectedFeedbackMode === 'study') {
+                    await checkAnswer(question.id, optionIndex);
+                }
+
                 renderQuestion(currentQuestionIndex);
             });
         });
+
+        const feedbackBox = document.getElementById('examFeedback');
+        if (feedback) {
+            feedbackBox.className = `exam-feedback ${feedback.isCorrect ? 'correct' : 'incorrect'}`;
+            feedbackBox.innerHTML = `
+                <div class="exam-feedback-title">${feedback.isCorrect ? '✅ Resposta correta!' : '❌ Resposta incorreta'}</div>
+                ${feedback.explanation ? `<p>${Utils.escapeHtml(feedback.explanation)}</p>` : ''}
+            `;
+            feedbackBox.style.display = 'block';
+        } else {
+            feedbackBox.style.display = 'none';
+            feedbackBox.innerHTML = '';
+        }
 
         document.getElementById('prevQuestionBtn').disabled = index === 0;
 
@@ -298,6 +345,32 @@
     document.getElementById('nextQuestionBtn').addEventListener('click', () => {
         if (currentQuestionIndex < currentSimulado.questions.length - 1) renderQuestion(currentQuestionIndex + 1);
     });
+
+    // Verifica a resposta de uma pergunta (Modo Estudo: feedback imediato)
+    async function checkAnswer(questionId, answerIndex) {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch(`/api/simulado/${currentSimulado.simuladoId}/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ questionId, answer: answerIndex })
+            });
+
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Erro ao verificar resposta');
+
+            questionFeedback[questionId] = data;
+        } catch (error) {
+            console.error('Erro ao verificar resposta:', error);
+            Utils.showToast(error.message || 'Erro ao verificar resposta', 'error');
+        }
+    }
 
     document.getElementById('examReportBtn').addEventListener('click', () => {
         const question = currentSimulado.questions[currentQuestionIndex];
@@ -442,6 +515,7 @@
     document.getElementById('restartSimuladoBtn').addEventListener('click', () => {
         currentSimulado = null;
         userAnswers = {};
+        questionFeedback = {};
         currentQuestionIndex = 0;
         document.getElementById('simuladoConfig').style.display = 'none';
         document.querySelectorAll('.cert-card').forEach(card => card.classList.remove('selected'));
