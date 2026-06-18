@@ -944,100 +944,190 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <span class="priority-badge badge-critical">Prioridade Alta</span>
                 </div>
 
+                <p>Rede é o domínio com mais armadilhas conceituais do exame: a diferença entre stateful/stateless, entre serviços que parecem similares (Peering vs Transit Gateway, VPN vs Direct Connect, CloudFront vs Global Accelerator) é exatamente o que o SAA-C03 testa. Entender a fundo o caminho que um pacote percorre dentro e fora da VPC resolve a maioria das questões.</p>
+
+                <h3>Anatomia de uma VPC</h3>
+                <p>Uma VPC (Virtual Private Cloud) é uma rede logicamente isolada dentro de uma região AWS, definida por um bloco CIDR (ex.: <code>10.0.0.0/16</code>). Dentro dela, sub-redes (subnets) são criadas em AZs específicas — uma subnet nunca cruza AZs.</p>
+                <ul>
+                    <li><strong>Sub-rede pública</strong>: tem rota para um Internet Gateway na tabela de rotas.</li>
+                    <li><strong>Sub-rede privada</strong>: sem rota direta para a internet; usa NAT Gateway/Instance para saída.</li>
+                    <li><strong>Route Table</strong>: define para onde o tráfego de cada CIDR de destino é enviado. Cada subnet está associada a exatamente uma route table (pode ser a "main" por padrão).</li>
+                    <li><strong>5 IPs reservados por subnet</strong>: a AWS reserva o primeiro (rede), segundo (router VPC), terceiro (DNS), quarto (reservado para uso futuro) e o último (broadcast) — um <code>/24</code> tem 256 IPs, mas só 251 utilizáveis.</li>
+                </ul>
+
                 <h3>Security Group × NACL — o mantra</h3>
-                <p>Esta é a comparação mais cobrada de redes. Memorize as quatro diferenças abaixo — qualquer questão sobre "bloquear um IP específico" ou "regras de retorno" depende disso.</p>
+                <p>Esta é a comparação mais cobrada de redes. Memorize as diferenças abaixo — qualquer questão sobre "bloquear um IP específico" ou "regras de retorno" depende disso.</p>
                 <div class="compare-grid">
                     <div class="compare-card">
                         <h4>Security Group</h4>
-                        <p>Nível de instância (ENI). <strong>Stateful</strong> — o tráfego de retorno é permitido automaticamente. Só regras de <strong>Allow</strong>. Pode referenciar outro SG (ex.: web → app → db).</p>
+                        <p>Nível de instância (ENI). <strong>Stateful</strong> — o tráfego de retorno é permitido automaticamente, mesmo sem regra de saída explícita. Só regras de <strong>Allow</strong> (não existe Deny). Pode referenciar outro SG como origem/destino (ex.: SG-web → SG-app → SG-db), o que elimina a necessidade de saber IPs.</p>
                     </div>
                     <div class="compare-card">
                         <h4>NACL</h4>
-                        <p>Nível de sub-rede. <strong>Stateless</strong> — é preciso liberar ida e volta explicitamente. Permite Allow <strong>e Deny</strong>, avaliadas por número de regra. É o único jeito de <strong>bloquear um IP</strong> específico.</p>
+                        <p>Nível de sub-rede — afeta todas as instâncias nela. <strong>Stateless</strong> — é preciso liberar ida E volta explicitamente (ex.: porta efêmera 1024-65535 de volta para respostas HTTP). Permite Allow <strong>e Deny</strong>, avaliadas em ordem numérica crescente até a primeira regra que casar. É o único mecanismo nativo de VPC que <strong>bloqueia um IP</strong> específico.</p>
                     </div>
                 </div>
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Regras efêmeras na NACL</strong> — Se um cliente externo faz uma requisição HTTP (porta 80) à sua instância, a resposta sai por uma porta efêmera aleatória (1024-65535). A NACL de saída precisa permitir essa faixa, senão a resposta é descartada mesmo que a entrada tenha sido permitida. Esse é um cenário clássico de "o SG está certo mas a NACL está bloqueando o retorno".</div>
+                </div>
 
-                <h3>Conectividade — tabela de decisão</h3>
+                <h3>Internet Gateway, NAT Gateway e Egress-Only IGW</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Componente</th><th>Direção</th><th>Para quê</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Internet Gateway (IGW)</strong></td><td>Bidirecional</td><td>Dá às sub-redes <strong>públicas</strong> acesso à internet (entrada e saída)</td></tr>
+                            <tr><td><strong>NAT Gateway</strong></td><td>Saída apenas</td><td>Instâncias em sub-rede <strong>privada</strong> iniciam conexões à internet (updates, APIs externas), mas a internet não inicia conexão com elas. Gerenciado pela AWS, redundante na AZ.</td></tr>
+                            <tr><td><strong>NAT Instance</strong></td><td>Saída apenas</td><td>Versão legada (EC2 própria fazendo NAT) — não escala automaticamente, exige gestão manual. Evite em novos designs.</td></tr>
+                            <tr><td><strong>Egress-Only Internet Gateway</strong></td><td>Saída apenas (IPv6)</td><td>Equivalente do NAT Gateway, mas para tráfego IPv6 — IPv6 não usa NAT tradicionalmente.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilha: NAT Gateway não é Internet Gateway</strong> — Confundir os dois é erro clássico. Se o enunciado descreve uma instância privada que precisa "baixar atualizações da internet, mas não pode ser acessada de fora", a resposta é NAT Gateway, não IGW. Se descreve uma instância pública acessível externamente, é IGW.</div>
+                </div>
+
+                <h3>VPC Endpoints — acesso privado a serviços AWS</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo</th><th>Tecnologia</th><th>Serviços suportados</th><th>Custo</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Gateway Endpoint</strong></td><td>Entrada na route table</td><td>Apenas S3 e DynamoDB</td><td><strong>Grátis</strong></td></tr>
+                            <tr><td><strong>Interface Endpoint (PrivateLink)</strong></td><td>ENI com IP privado na subnet</td><td>Maioria dos serviços AWS (e serviços de terceiros via PrivateLink)</td><td>Cobra por hora + por GB processado</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout tip">
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Sinal prático de custo</strong> — Se o enunciado menciona tráfego para S3/DynamoDB saindo de sub-rede privada e pede "menor custo", a resposta quase sempre é trocar o caminho NAT Gateway (cobra por GB processado) por um Gateway VPC Endpoint (gratuito) — apenas para esses dois serviços. Para qualquer outro serviço AWS, é Interface Endpoint, que ainda reduz custo de NAT mas tem seu próprio preço.</div>
+                </div>
+
+                <h3>Conectividade entre redes — tabela de decisão</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Necessidade</th><th>Solução</th><th>Detalhe crítico</th></tr></thead>
                         <tbody>
-                            <tr><td>Duas VPCs conversando</td><td><strong>VPC Peering</strong></td><td>Não é transitivo: A↔B, B↔C ≠ A↔C</td></tr>
-                            <tr><td>Muitas VPCs + on-premises (hub-and-spoke)</td><td><strong>Transit Gateway</strong></td><td>Resposta quando peering viraria uma teia</td></tr>
+                            <tr><td>Duas VPCs conversando</td><td><strong>VPC Peering</strong></td><td><strong>Não é transitivo</strong>: A↔B, B↔C ≠ A↔C. Sem CIDR sobreposto.</td></tr>
+                            <tr><td>Muitas VPCs + on-premises (hub-and-spoke)</td><td><strong>Transit Gateway</strong></td><td>Resposta quando peering viraria uma teia O(n²). Suporta milhares de VPCs/VPNs anexadas a um hub central.</td></tr>
                             <tr><td>EC2 privada → S3/DynamoDB sem internet</td><td><strong>Gateway Endpoint</strong></td><td>Grátis — apenas S3 e DynamoDB</td></tr>
                             <tr><td>EC2 privada → outros serviços AWS</td><td><strong>Interface Endpoint (PrivateLink)</strong></td><td>ENI na sub-rede; pago por hora</td></tr>
-                            <tr><td>On-premises → AWS, rápido de criar</td><td><strong>Site-to-Site VPN</strong></td><td>Internet criptografada, minutos para subir</td></tr>
-                            <tr><td>On-premises → AWS, link dedicado</td><td><strong>Direct Connect</strong></td><td>Privado, semanas para provisionar, não criptografado por padrão (combine com VPN)</td></tr>
+                            <tr><td>Expor seu serviço para outras contas/VPCs sem peering</td><td><strong>PrivateLink (Endpoint Service)</strong></td><td>O consumidor não vê sua VPC inteira — apenas o serviço específico exposto</td></tr>
+                            <tr><td>On-premises → AWS, rápido de criar</td><td><strong>Site-to-Site VPN</strong></td><td>Internet criptografada (IPSec), minutos para subir, até ~1.25 Gbps por tunnel</td></tr>
+                            <tr><td>On-premises → AWS, link dedicado de alta largura</td><td><strong>Direct Connect</strong></td><td>Privado (não passa pela internet pública), semanas para provisionar, <strong>não criptografado por padrão</strong> — combine com VPN sobre DX para criptografia</td></tr>
+                            <tr><td>Direct Connect mas sem esperar semanas de provisionamento físico</td><td><strong>Direct Connect + VPN como fallback temporário</strong></td><td>Sobe a VPN imediatamente; migra para DX quando disponível</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <h3>Route 53 — routing policies</h3>
+                <h3>VPC Peering em detalhe</h3>
+                <p>Peering cria uma conexão ponto-a-ponto entre duas VPCs (mesma conta ou contas diferentes, mesma região ou inter-região). Pontos de atenção do exame:</p>
+                <ul>
+                    <li><strong>Não transitivo</strong>: se você precisa que A converse com C através de B, precisa de um peering direto A↔C — peering não roteia através de um terceiro.</li>
+                    <li><strong>CIDR não pode sobrepor</strong>: VPCs com blocos CIDR conflitantes não podem ser peered.</li>
+                    <li>Cada lado precisa atualizar sua route table apontando para o peering connection.</li>
+                </ul>
+
+                <h3>Transit Gateway — o hub que substitui a teia de peerings</h3>
+                <p>Quando o número de VPCs cresce, o número de peerings necessários para conectar todas entre si cresce como N×(N-1)/2 — rapidamente inviável. O Transit Gateway resolve isso atuando como um roteador regional central: cada VPC/VPN/Direct Connect se conecta uma vez ao TGW, e o TGW roteia entre todos. Suporta políticas de roteamento e segmentação entre grupos de VPCs (route tables separadas no TGW).</p>
+
+                <h3>Route 53 — serviço de DNS e suas routing policies</h3>
+                <p>O Route 53 é o DNS gerenciado da AWS, e também health check + roteamento inteligente de tráfego. As routing policies definem como ele responde a consultas DNS:</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Policy</th><th>O que faz</th><th>Palavra-gatilho</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>Weighted</strong></td><td>Divide por pesos (70/30)</td><td>"A/B test", "canary deploy com 10% dos usuários"</td></tr>
-                            <tr><td><strong>Latency</strong></td><td>Menor latência para o usuário</td><td>"melhor performance global"</td></tr>
-                            <tr><td><strong>Failover</strong></td><td>Primário com health check → secundário</td><td>"site de DR", "ativo-passivo"</td></tr>
-                            <tr><td><strong>Geolocation</strong></td><td>Por país/continente</td><td>"conteúdo em português para o Brasil", "restrição legal"</td></tr>
-                            <tr><td><strong>Geoproximity</strong></td><td>Por proximidade com bias ajustável</td><td>"mover tráfego gradualmente entre regiões"</td></tr>
-                            <tr><td><strong>Multivalue</strong></td><td>Até 8 registros saudáveis aleatórios</td><td>"balanceamento DNS simples com health check"</td></tr>
+                            <tr><td><strong>Simple</strong></td><td>Um registro, sem lógica</td><td>Caso padrão sem necessidade de distribuição</td></tr>
+                            <tr><td><strong>Weighted</strong></td><td>Divide por pesos (ex.: 70/30)</td><td>"A/B test", "canary deploy com 10% dos usuários", "migração gradual de tráfego"</td></tr>
+                            <tr><td><strong>Latency</strong></td><td>Direciona para a região de menor latência medida</td><td>"melhor performance global", "usuários em múltiplos continentes"</td></tr>
+                            <tr><td><strong>Failover</strong></td><td>Primário com health check → secundário se falhar</td><td>"site de DR", "ativo-passivo", "alta disponibilidade entre regiões"</td></tr>
+                            <tr><td><strong>Geolocation</strong></td><td>Roteia por país/continente do usuário</td><td>"conteúdo em português para o Brasil", "restrição legal/regulatória por país"</td></tr>
+                            <tr><td><strong>Geoproximity</strong></td><td>Por proximidade geográfica com bias ajustável (requer Route 53 Traffic Flow)</td><td>"mover tráfego gradualmente entre regiões geográficas"</td></tr>
+                            <tr><td><strong>Multivalue Answer</strong></td><td>Até 8 registros saudáveis retornados aleatoriamente</td><td>"balanceamento DNS simples com health check", não substitui um ELB mas ajuda</td></tr>
+                            <tr><td><strong>IP-based</strong></td><td>Roteia conforme blocos de IP do cliente</td><td>"clientes de um provedor de internet específico devem ir para servidor X"</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <h3>CloudFront × Global Accelerator</h3>
+                <h3>Route 53 Health Checks</h3>
+                <p>Health checks monitoram endpoints (HTTP/HTTPS/TCP) ou outros health checks (calculados) ou alarmes do CloudWatch. São a base do Failover Routing — sem health check, o Route 53 não sabe quando trocar para o secundário.</p>
+
+                <h3>CloudFront × Global Accelerator — não cache vs cache</h3>
                 <div class="compare-grid">
                     <div class="compare-card">
                         <h4>CloudFront (CDN)</h4>
-                        <p>Faz <strong>cache</strong> de conteúdo na borda. HTTP/HTTPS. "conteúdo estático global", "vídeo", "reduzir carga na origem". OAC: protege S3 privado servindo apenas via CloudFront.</p>
+                        <p>Faz <strong>cache</strong> de conteúdo nos edge locations. HTTP/HTTPS apenas. Casos: "conteúdo estático global", "streaming de vídeo", "reduzir carga na origem", "proteção DDoS na borda" (integra com Shield/WAF). <strong>OAC</strong> (Origin Access Control) protege um S3 privado, servindo apenas via CloudFront.</p>
                     </div>
                     <div class="compare-card">
                         <h4>Global Accelerator</h4>
-                        <p><strong>Sem cache</strong> — é um atalho de rede pelo backbone AWS. Suporta TCP e <strong>UDP</strong>. "gaming", "VoIP", "IP estático global", "failover regional em segundos". 2 IPs anycast fixos.</p>
+                        <p><strong>Sem cache</strong> — é um atalho de rede que usa o backbone privado da AWS em vez da internet pública. Suporta TCP <strong>e UDP</strong>. Casos: "gaming", "VoIP", "IoT", "IP estático global (2 IPs anycast fixos)", "failover entre regiões em segundos" (muito mais rápido que TTL de DNS).</p>
                     </div>
                 </div>
-
-                <div class="callout trap">
-                    <strong>⚠️ Armadilha: NAT Gateway não é Internet Gateway</strong>
-                    NAT Gateway permite que instâncias em sub-rede <strong>privada</strong> iniciem conexões para a internet (ex.: baixar updates), mas a internet não pode iniciar conexão com elas. Internet Gateway é o que dá acesso bidirecional às sub-redes <strong>públicas</strong>. Confundir os dois é erro clássico em questões de arquitetura de VPC.
-                </div>
                 <div class="callout tip">
-                    <strong>💡 Sinal prático</strong>
-                    Se o enunciado menciona tráfego para S3/DynamoDB saindo de sub-rede privada e pede "menor custo", a resposta quase sempre é trocar o caminho via NAT Gateway por um Gateway VPC Endpoint — que é gratuito.
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Quando os dois aparecem juntos na mesma questão</strong>: se o conteúdo é cacheável (HTML, imagens, vídeo) → CloudFront. Se o protocolo é não-HTTP (jogos, voz) ou a aplicação precisa de IP fixo + menor latência de rede sem cache → Global Accelerator. Os dois não competem — atacam problemas diferentes.</div>
+                </div>
+
+                <h3>VPC Flow Logs e Network Firewall</h3>
+                <p><strong>VPC Flow Logs</strong> capturam metadados de tráfego IP (origem, destino, porta, protocolo, ACCEPT/REJECT) entrando e saindo de ENIs, subnets ou VPCs inteiras — vão para CloudWatch Logs ou S3. Use para auditoria de segurança, troubleshooting de conectividade ("por que esse tráfego está sendo bloqueado?"), e detecção de tráfego anômalo.</p>
+                <p><strong>AWS Network Firewall</strong> é um firewall stateful gerenciado para a VPC inteira — inspeciona até a camada de aplicação (deep packet inspection), suporta regras Suricata-compatible. Use quando SG/NACL não bastam (ex.: bloquear domínios específicos, inspecionar payload).</p>
+
+                <h3>Bastion Host e Session Manager — acesso administrativo seguro</h3>
+                <p>Para acessar instâncias em sub-redes privadas sem expô-las à internet:</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Abordagem</th><th>Exposição</th><th>Quando usar</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Bastion Host</strong></td><td>EC2 pública com SSH/RDP exposto (idealmente restrito por IP)</td><td>Legado — ainda aparece em ambientes que não migraram</td></tr>
+                            <tr><td><strong>SSM Session Manager</strong></td><td><strong>Nenhuma porta aberta</strong> — usa o agente SSM + IAM</td><td>Resposta preferida no exame moderno: "acesso administrativo sem abrir portas de entrada", auditável via CloudTrail</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="callout lab">
-                    <strong>🧪 Lab — Redes (3h, ~US$ 1 — deletar NAT ao final!)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Recrie a VPC manualmente (2 AZs, sub-redes públicas/privadas, IGW, NAT). Desta vez sem consultar guia — cronometre.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Adicione um <strong>Gateway Endpoint de S3</strong>. Remova a rota do NAT e prove que <code>aws s3 ls</code> ainda funciona na EC2 privada — sem internet.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Crie um <strong>CloudFront</strong> na frente do bucket com <strong>OAC</strong> e bloqueie acesso direto. Confirme que só o CloudFront consegue servir os objetos.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 4 — Redes na prática (3h, ~US$ 1 — deletar NAT ao final!)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Recrie a VPC manualmente (2 AZs, sub-redes públicas/privadas, IGW, NAT Gateway, route tables). Desta vez sem consultar guia — cronometre.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Adicione um <strong>Gateway Endpoint de S3</strong>. Remova a rota do NAT e prove que <code>aws s3 ls</code> ainda funciona na EC2 privada — sem internet.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Conecte-se à EC2 privada via <strong>SSM Session Manager</strong> sem nenhuma porta de entrada aberta no SG.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Crie um <strong>CloudFront</strong> na frente de um bucket S3 com <strong>OAC</strong> e bloqueie acesso direto. Confirme que só o CloudFront consegue servir os objetos.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">05</div><p>Habilite <strong>VPC Flow Logs</strong> para a VPC, direcionando para CloudWatch Logs. Gere tráfego e confirme os registros ACCEPT/REJECT.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
                         <button class="qa-question" type="button">Jogo multiplayer UDP que precisa de latência mínima global e IP fixo?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Global Accelerator — TCP/UDP, IPs anycast estáticos, backbone AWS.</div>
+                        <div class="qa-answer">Global Accelerator — suporta TCP/UDP, fornece IPs anycast estáticos, e usa o backbone privado da AWS em vez da internet pública para menor latência.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Como bloquear um IP atacante específico que está chegando pela internet?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">NACL com regra Deny para o IP. Security Group não tem regra de Deny explícito.</div>
+                        <div class="qa-answer">NACL com regra Deny para o IP de origem. Security Group não suporta regra de Deny explícito — só permite ou simplesmente não inclui a regra (negação implícita).</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">40 VPCs e um datacenter on-premises precisam se comunicar. Qual a solução escalável?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Transit Gateway — hub centralizado, evita N*(N-1)/2 peerings.</div>
+                        <button class="qa-question" type="button">40 VPCs e um datacenter on-premises precisam se comunicar entre si. Qual a solução escalável?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Transit Gateway — hub centralizado que evita criar N×(N-1)/2 conexões de peering. Cada VPC e a conexão on-premises (via VPN ou Direct Connect) se conectam uma vez ao TGW.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Aplicação precisa de conectividade privada e criptografada com on-premises, mas precisa estar funcionando ainda hoje?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Site-to-Site VPN. Direct Connect oferece um link dedicado e mais estável, mas leva semanas para provisionar — não é a resposta para urgência.</div>
+                        <button class="qa-question" type="button">Aplicação precisa de conectividade privada e criptografada com on-premises, e precisa estar funcionando ainda hoje?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Site-to-Site VPN — sobe em minutos, criptografado via IPSec sobre a internet. Direct Connect oferece link dedicado mais estável e largura de banda maior, mas leva semanas para provisionar — não atende urgência.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Usuários no Brasil devem ver um site diferente dos usuários nos EUA, por exigência legal de localização de conteúdo?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Route 53 com routing policy Geolocation. Diferente de Latency, que escolhe pela menor latência e não por requisito legal de país/região.</div>
+                        <button class="qa-question" type="button">Usuários no Brasil devem ver conteúdo diferente dos usuários nos EUA, por exigência legal de localização de conteúdo?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Route 53 com routing policy Geolocation. Diferente de Latency (que escolhe pela menor latência medida, sem considerar legalidade), Geolocation roteia deterministicamente por país/continente do solicitante.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Como dar acesso SSH a uma EC2 em sub-rede privada sem abrir nenhuma porta de entrada no Security Group?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Systems Manager Session Manager — usa o agente SSM instalado na instância e credenciais IAM para estabelecer a sessão, sem precisar de porta 22 aberta nem bastion host. Todo acesso é auditável via CloudTrail.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Por que duas VPCs com peering A↔B e B↔C não conseguem rotear tráfego de A para C diretamente?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">VPC Peering não é transitivo. Cada conexão de peering é estritamente ponto-a-ponto. Para A se comunicar com C, é necessário um peering direto A↔C, ou migrar para Transit Gateway, que roteia entre todas as VPCs conectadas a ele.</div>
                     </li>
                 </ul>
             </section>
@@ -1048,118 +1138,172 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
             <section class="trilha-chapter" id="cap5">
                 <div class="trilha-chapter-header">
                     <span class="trilha-chapter-num">CAP. 05</span>
-                    <h2>Bancos de dados (RDS, Aurora, DynamoDB)</h2>
+                    <h2>Bancos de dados — RDS, Aurora e DynamoDB</h2>
                     <span class="priority-badge badge-critical">Prioridade Alta</span>
                 </div>
+
+                <p>Bancos de dados são o domínio mais denso do exame, com a maior taxa de questões de cenário. A chave é entender o trade-off entre cada serviço — não existe "o melhor banco", existe o banco certo para o padrão de acesso, consistência e escala descritos no enunciado.</p>
 
                 <h3>Qual banco para qual problema</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Necessidade</th><th>Banco</th></tr></thead>
                         <tbody>
-                            <tr><td>SQL relacional, app tradicional (ERP, e-commerce)</td><td><strong>RDS</strong> (MySQL, PostgreSQL, Oracle, SQL Server)</td></tr>
-                            <tr><td>SQL com performance/disponibilidade superiores na AWS</td><td><strong>Aurora</strong></td></tr>
-                            <tr><td>SQL com carga intermitente/imprevisível</td><td><strong>Aurora Serverless v2</strong></td></tr>
+                            <tr><td>SQL relacional, app tradicional (ERP, e-commerce)</td><td><strong>RDS</strong> (MySQL, PostgreSQL, MariaDB, Oracle, SQL Server)</td></tr>
+                            <tr><td>SQL com performance/disponibilidade superiores na AWS</td><td><strong>Aurora</strong> (compatível MySQL ou PostgreSQL)</td></tr>
+                            <tr><td>SQL com carga intermitente/imprevisível, escala a zero</td><td><strong>Aurora Serverless v2</strong></td></tr>
                             <tr><td>NoSQL chave-valor, latência de milissegundos em qualquer escala</td><td><strong>DynamoDB</strong></td></tr>
                             <tr><td>Cache sub-milissegundo na frente de outro banco</td><td><strong>ElastiCache</strong> (Redis ou Memcached)</td></tr>
                             <tr><td>DynamoDB com cache de microssegundos sem mudar código</td><td><strong>DAX</strong></td></tr>
-                            <tr><td>Data warehouse, BI, queries OLAP pesadas</td><td><strong>Redshift</strong></td></tr>
+                            <tr><td>Data warehouse, BI, queries OLAP pesadas, colunar</td><td><strong>Redshift</strong></td></tr>
                             <tr><td>Grafos (recomendação, fraude por relacionamento)</td><td><strong>Neptune</strong></td></tr>
-                            <tr><td>Séries temporais (IoT, métricas)</td><td><strong>Timestream</strong></td></tr>
+                            <tr><td>Séries temporais (IoT, métricas de sensores)</td><td><strong>Timestream</strong></td></tr>
+                            <tr><td>Documentos JSON compatível com MongoDB</td><td><strong>DocumentDB</strong></td></tr>
+                            <tr><td>Ledger imutável com histórico criptograficamente verificável</td><td><strong>QLDB</strong></td></tr>
+                            <tr><td>Cache de banco gerenciado sem operação (serverless)</td><td><strong>MemoryDB for Redis</strong> (durável, Multi-AZ nativo)</td></tr>
                         </tbody>
                     </table>
                 </div>
 
+                <h3>RDS — fundamentos operacionais</h3>
+                <ul>
+                    <li><strong>Backups automatizados</strong>: snapshot diário + transaction logs, retenção 0-35 dias, suporta restauração point-in-time dentro da janela.</li>
+                    <li><strong>Snapshots manuais</strong>: retidos indefinidamente até serem deletados manualmente — independentes da retenção automática.</li>
+                    <li><strong>Parameter Groups</strong>: configuram parâmetros do motor (ex.: <code>max_connections</code>). Algumas mudanças exigem reboot.</li>
+                    <li><strong>Option Groups</strong>: habilitam recursos específicos do motor (ex.: Oracle TDE, SQL Server Mirroring).</li>
+                    <li><strong>Encryption at rest</strong>: deve ser definida na criação — <strong>não pode ser ativada depois</strong> num banco já existente sem snapshot+restore com encryption habilitada.</li>
+                    <li><strong>Maintenance Window</strong>: janela para patches obrigatórios do motor — em Multi-AZ, o patch acontece primeiro no standby, depois faz failover.</li>
+                </ul>
+
                 <h3>Multi-AZ × Read Replica — a pegadinha nº 1 do exame</h3>
                 <div class="callout mantra">
-                    <strong>★ Grave como mantra</strong>
-                    Multi-AZ = DISPONIBILIDADE (sobreviver a falha). Read Replica = PERFORMANCE de leitura (escalar).
+                    <div class="callout-icon">★</div>
+                    <div class="callout-body"><strong>Grave como mantra</strong>: Multi-AZ = DISPONIBILIDADE (sobreviver a falha). Read Replica = PERFORMANCE de leitura (escalar).</div>
                 </div>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th></th><th>Multi-AZ</th><th>Read Replica</th></tr></thead>
                         <tbody>
                             <tr><td><strong>Objetivo</strong></td><td>Alta disponibilidade</td><td>Escala de leitura / performance</td></tr>
-                            <tr><td><strong>Replicação</strong></td><td>Síncrona</td><td>Assíncrona (pode atrasar)</td></tr>
-                            <tr><td><strong>Atende tráfego?</strong></td><td>Não — standby invisível</td><td>Sim — apps leem dela</td></tr>
-                            <tr><td><strong>Failover</strong></td><td>Automático (~1-2 min), mesmo endpoint</td><td>Manual: promover a réplica</td></tr>
-                            <tr><td><strong>Cross-region?</strong></td><td>Não</td><td>Sim — base de DR</td></tr>
+                            <tr><td><strong>Replicação</strong></td><td>Síncrona</td><td>Assíncrona (pode atrasar — replica lag)</td></tr>
+                            <tr><td><strong>Atende tráfego?</strong></td><td>Não — standby invisível, sem acesso direto</td><td>Sim — apps leem dela diretamente</td></tr>
+                            <tr><td><strong>Failover</strong></td><td>Automático (~1-2 min), mesmo endpoint (DNS reaponta)</td><td>Manual: promover a réplica a standalone</td></tr>
+                            <tr><td><strong>Cross-region?</strong></td><td>Não (mesma região, AZ diferente)</td><td>Sim — base de estratégias de DR cross-region</td></tr>
                             <tr><td><strong>Resolve "banco caiu"?</strong></td><td>✅</td><td>❌ não automaticamente</td></tr>
                             <tr><td><strong>Resolve "relatórios pesados"?</strong></td><td>❌</td><td>✅</td></tr>
+                            <tr><td><strong>Pode ter as duas juntas?</strong></td><td colspan="2">Sim — Read Replica pode ter Multi-AZ próprio, e o primário pode ter Multi-AZ + múltiplas Read Replicas simultaneamente</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <h3>Aurora — diferenciais que a prova adora</h3>
-                <p>Storage distribuído em 6 cópias por 3 AZs, auto-cura, cresce até 128 TB automaticamente. Até 15 Read Replicas com reader endpoint balanceado. Failover em ~30s. <strong>Aurora Global Database</strong>: replicação cross-region com lag &lt;1s, promoção em &lt;1 min → RPO ~1s, RTO ~1 min. Resposta padrão para "banco relacional com DR agressivo multi-região".</p>
+                <p>Storage distribuído automaticamente em 6 cópias por 3 AZs (2 cópias por AZ), com auto-cura de blocos corrompidos, cresce até 128 TB sem intervenção. Até 15 Read Replicas com <strong>reader endpoint</strong> que faz balanceamento automático entre elas — uma única string de conexão, sem precisar gerenciar qual replica usar. Failover em ~30s (mais rápido que RDS tradicional).</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Recurso Aurora</th><th>O que resolve</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Aurora Global Database</strong></td><td>Replicação cross-region com lag &lt;1s, promoção da região secundária em &lt;1 min → RPO ~1s, RTO ~1 min. Resposta padrão para "banco relacional com DR agressivo multi-região"</td></tr>
+                            <tr><td><strong>Aurora Serverless v2</strong></td><td>Escala capacidade (ACUs) automaticamente em segundos conforme a carga — para workloads intermitentes ou com picos imprevisíveis. Cobra por ACU-segundo</td></tr>
+                            <tr><td><strong>Backtrack</strong> (MySQL)</td><td>"Rebobina" o banco para um ponto no tempo sem restaurar de um snapshot — recuperação rápida de erro humano (DROP TABLE acidental)</td></tr>
+                            <tr><td><strong>Aurora Parallel Query</strong></td><td>Empurra processamento analítico para a camada de storage — acelera queries analíticas pesadas sem mover dados para um data warehouse</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                <h3>DynamoDB — pontos essenciais</h3>
+                <h3>RDS Proxy — pool de conexões gerenciado</h3>
+                <p>Quando Lambda ou aplicações com muitas conexões efêmeras acessam o RDS/Aurora diretamente, cada invocação pode abrir uma nova conexão — esgotando o limite de conexões do banco rapidamente. O <strong>RDS Proxy</strong> fica entre a aplicação e o banco, fazendo pooling e multiplexação de conexões, reduzindo drasticamente o número de conexões reais no banco. Também acelera failover (mantém conexões do proxy enquanto o banco reconecta).</p>
+
+                <h3>DynamoDB — modelo de dados e capacidade</h3>
+                <p>DynamoDB é NoSQL chave-valor/documento totalmente gerenciado, com latência de milissegundos de forma consistente independente da escala. Cada item é identificado por uma <strong>Partition Key</strong> (PK) e opcionalmente uma <strong>Sort Key</strong> (SK) — juntas formam a chave primária composta.</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Recurso</th><th>Quando usar / o que saber</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>On-demand</strong></td><td>Carga imprevisível — paga por requisição. Mais caro por unidade, mas sem desperdício.</td></tr>
-                            <tr><td><strong>Provisioned</strong></td><td>Carga previsível — mais barato. Pode ter auto scaling.</td></tr>
-                            <tr><td><strong>GSI</strong></td><td>Consultar por chave diferente da PK. Criado a qualquer momento.</td></tr>
-                            <tr><td><strong>DAX</strong></td><td>Cache de microssegundos, sem mudar o código da aplicação.</td></tr>
-                            <tr><td><strong>Global Tables</strong></td><td>Réplicas multi-região ativo-ativo (leitura E escrita em todas as regiões).</td></tr>
-                            <tr><td><strong>TTL</strong></td><td>Expirar itens automaticamente — grátis. "Limpar sessões antigas" = TTL.</td></tr>
-                            <tr><td><strong>Streams</strong></td><td>Captura mudanças → dispara Lambda (event-driven).</td></tr>
+                            <tr><td><strong>On-demand</strong></td><td>Carga imprevisível — paga por requisição. Mais caro por unidade, mas sem desperdício nem necessidade de prever capacidade.</td></tr>
+                            <tr><td><strong>Provisioned</strong></td><td>Carga previsível — mais barato por unidade. Combine com Auto Scaling de capacidade para absorver picos sem pagar on-demand o tempo todo.</td></tr>
+                            <tr><td><strong>GSI (Global Secondary Index)</strong></td><td>Consultar por chave diferente da PK/SK original. Pode ser criado a qualquer momento. Tem sua própria capacidade provisionada.</td></tr>
+                            <tr><td><strong>LSI (Local Secondary Index)</strong></td><td>Mesma PK, SK alternativa. Deve ser criado <strong>na criação da tabela</strong> — não pode ser adicionado depois.</td></tr>
+                            <tr><td><strong>DAX</strong></td><td>Cache in-memory de microssegundos na frente do DynamoDB, sem mudar o código da aplicação (API-compatible).</td></tr>
+                            <tr><td><strong>Global Tables</strong></td><td>Réplicas multi-região ativo-ativo (leitura E escrita em todas as regiões), replicação assíncrona, resolução de conflito last-writer-wins.</td></tr>
+                            <tr><td><strong>TTL</strong></td><td>Expira itens automaticamente sem custo de write/delete — "limpar sessões/dados antigos" = TTL.</td></tr>
+                            <tr><td><strong>Streams</strong></td><td>Captura mudanças (insert/update/delete) → dispara Lambda — base de arquiteturas event-driven sobre dados.</td></tr>
+                            <tr><td><strong>Transactions</strong></td><td>Operações ACID multi-item/multi-tabela — "tudo ou nada" em até 100 itens/4MB por transação.</td></tr>
+                            <tr><td><strong>PITR</strong> (Point-in-Time Recovery)</td><td>Restaura a tabela para qualquer segundo nos últimos 35 dias — proteção contra exclusão/corrupção acidental.</td></tr>
                         </tbody>
                     </table>
                 </div>
+
                 <div class="callout trap">
-                    <strong>⚠️ Armadilha: Query vs Scan</strong>
-                    <code>Query</code> usa a chave de partição (e opcionalmente a de ordenação) para buscar diretamente — rápido e barato. <code>Scan</code> percorre a tabela inteira — lento e caro em tabelas grandes. Se a questão menciona performance em tabela grande, a resposta envolve modelar a chave de partição corretamente ou criar um GSI, nunca "fazer Scan com filtro".
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilha: Query vs Scan</strong> — <code>Query</code> usa a chave de partição (e opcionalmente a de ordenação) para buscar diretamente — rápido, previsível e barato. <code>Scan</code> percorre a tabela inteira item por item — lento e caro em tabelas grandes, mesmo com filtro (o filtro é aplicado <em>depois</em> de ler todos os itens). Se a questão menciona performance ruim em tabela grande, a resposta envolve modelar a chave de partição corretamente ou criar um GSI — nunca "adicionar um FilterExpression no Scan".</div>
+                </div>
+
+                <h3>Hot Partition — o problema de modelagem mais cobrado</h3>
+                <p>O DynamoDB distribui dados e capacidade entre partições físicas baseado na partition key. Se muitos itens compartilham a mesma PK (ex.: <code>status="ATIVO"</code> para milhões de registros) ou se um pequeno conjunto de chaves recebe tráfego desproporcional, essa partição fica sobrecarregada (<strong>hot partition</strong>) mesmo com capacidade total disponível na tabela.</p>
+                <div class="callout tip">
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Solução padrão</strong>: redesenhar a PK para ter alta cardinalidade (ex.: incluir um sufixo aleatório ou o ID do usuário na chave) distribuindo a carga entre mais partições. "Aumentar capacidade provisionada" não resolve hot partition — o problema é distribuição, não capacidade total.</div>
                 </div>
 
                 <h3>ElastiCache — Redis × Memcached</h3>
                 <div class="compare-grid">
                     <div class="compare-card">
                         <h4>Redis</h4>
-                        <p>Estruturas ricas (listas, sets, sorted sets). Persistência + replicação + Multi-AZ. "ranking/leaderboard" = sorted sets. Pub/sub, scripts Lua.</p>
+                        <p>Estruturas ricas (listas, sets, sorted sets, hashes). Persistência (snapshots + AOF) + replicação + Multi-AZ com failover automático. "Ranking/leaderboard" = sorted sets. Suporta Pub/sub, scripts Lua, e Cluster Mode para sharding horizontal.</p>
                     </div>
                     <div class="compare-card">
                         <h4>Memcached</h4>
-                        <p>Cache simples, multi-thread. Sem persistência nem replicação. Dado descartável. Escala horizontal simples.</p>
+                        <p>Cache simples chave-valor, multi-thread (usa múltiplos cores por nó). Sem persistência nem replicação — dado é puramente descartável/recriável. Escala horizontal simples adicionando nós (sharding automático no client).</p>
                     </div>
                 </div>
+                <p>Padrões de cache mais cobrados: <strong>Lazy Loading</strong> (busca no cache; se não tem, busca no banco e popula o cache — simples, mas a primeira leitura é sempre um cache miss) e <strong>Write-Through</strong> (toda escrita no banco também escreve no cache — cache sempre atualizado, mas escreve dados que talvez nunca sejam lidos).</p>
+
+                <h3>Redshift — data warehouse colunar</h3>
+                <p>Redshift é otimizado para OLAP — queries analíticas complexas sobre grandes volumes, não para transações OLTP de alto volume. Armazenamento colunar + compressão agressiva + distribuição entre nós. <strong>Redshift Spectrum</strong> permite consultar dados direto no S3 sem carregá-los no cluster. <strong>Redshift Serverless</strong> elimina a gestão de cluster, escalando automaticamente.</p>
 
                 <div class="callout lab">
-                    <strong>🧪 Lab — Bancos (2h30, Free Tier)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Suba RDS MySQL com <strong>Multi-AZ</strong>. Force um failover (Actions → Reboot with failover) e observe: o <strong>endpoint não muda</strong> e a conexão volta em ~1 min. Este é o "aha!" do Multi-AZ.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Crie uma <strong>Read Replica</strong>, conecte e tente um INSERT → erro de read-only. Promova e veja virar banco independente.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>DynamoDB: tabela <code>pedidos</code> (PK: cliente_id, SK: data). Faça uma <strong>Query</strong> por cliente e um <strong>Scan</strong> geral — entenda por que Scan é custoso. Crie um GSI por status.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Ative <strong>TTL</strong> num atributo e veja itens expirarem automaticamente.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 5 — Bancos na prática (2h30, Free Tier)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Suba RDS MySQL com <strong>Multi-AZ</strong>. Force um failover (Actions → Reboot with failover) e observe: o <strong>endpoint não muda</strong> e a conexão volta em ~1 min. Este é o "aha!" do Multi-AZ.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Crie uma <strong>Read Replica</strong>, conecte e tente um INSERT → erro de read-only. Promova e veja virar banco independente.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>DynamoDB: tabela <code>pedidos</code> (PK: cliente_id, SK: data). Faça uma <strong>Query</strong> por cliente e um <strong>Scan</strong> geral — compare o custo (RCU consumidas) entre os dois. Crie um GSI por status.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Ative <strong>TTL</strong> num atributo e veja itens expirarem automaticamente. Ative <strong>Streams</strong> e conecte a uma Lambda que loga cada mudança.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">05</div><p>Crie um cluster ElastiCache Redis pequeno. Compare a latência de um GET no Redis vs uma Query no DynamoDB para o mesmo dado.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Relatórios noturnos estão derrubando a performance do app — solução sem mudar a lógica de escrita?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Direcionar as queries de relatório para uma Read Replica. O app de escrita continua no primário inalterado.</div>
+                        <button class="qa-question" type="button">Relatórios noturnos estão derrubando a performance do app de produção — solução sem mudar a lógica de escrita?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Direcionar as queries de relatório para uma Read Replica. O app de escrita continua apontando para o primário, inalterado. Multi-AZ não ajudaria aqui — o standby não atende tráfego de leitura.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Banco precisa sobreviver automaticamente à queda de uma AZ?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Multi-AZ. Failover automático, mesmo endpoint, sem intervenção.</div>
+                        <button class="qa-question" type="button">Banco precisa sobreviver automaticamente à queda de uma AZ, sem mudar a string de conexão da aplicação?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Multi-AZ. Failover automático (~1-2 min), e o endpoint DNS permanece o mesmo — a AWS reaponta o DNS para o novo primário internamente.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Lambda está esgotando conexões do RDS em picos de tráfego?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">RDS Proxy — faz pool de conexões e as multiplexia, evitando que cada invocação de Lambda abra uma conexão nova.</div>
+                        <button class="qa-question" type="button">Funções Lambda estão esgotando o limite de conexões do RDS em picos de tráfego?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">RDS Proxy — faz pool de conexões reais e as multiplexa entre as invocações de Lambda, evitando que cada invocação abra uma conexão TCP nova diretamente no banco.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Ranking em tempo real de um jogo com milhões de jogadores?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">ElastiCache Redis com sorted sets — atualiza e consulta ranking em sub-milissegundo.</div>
+                        <button class="qa-question" type="button">Ranking em tempo real de um jogo com milhões de jogadores, atualizado a cada partida?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">ElastiCache Redis com sorted sets (ZADD/ZRANGE) — estrutura de dados nativa para ranking ordenado, atualiza e consulta em sub-milissegundo, sem precisar reordenar manualmente.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Carga de escrita do DynamoDB é altamente previsível, sempre o mesmo volume diário — qual o modo de capacidade mais barato?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Provisioned capacity (com auto scaling para folga). On-demand é mais caro por unidade e só se justifica quando a carga é imprevisível.</div>
+                        <button class="qa-question" type="button">Uma tabela DynamoDB usa "tenant_id" como partition key, mas um cliente gigante gera 80% do tráfego — o que acontece e como corrigir?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Hot partition — a partição física que serve aquele tenant_id fica sobrecarregada mesmo com capacidade total disponível na tabela. Correção: redesenhar a chave para maior cardinalidade, ex.: compor a PK com tenant_id + um sufixo de sharding (ex.: hash do item), distribuindo a carga entre múltiplas partições.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Aplicação precisa expirar automaticamente itens de sessão após 24h sem custo adicional de processamento?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">TTL (Time to Live) do DynamoDB — define um atributo de expiração em epoch time e o DynamoDB remove o item automaticamente, sem custo de write/delete.</div>
+                        <button class="qa-question" type="button">Aplicação precisa expirar automaticamente itens de sessão após 24h, sem custo adicional de processamento?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">TTL (Time to Live) do DynamoDB — define um atributo de expiração em epoch time; o DynamoDB remove o item automaticamente em background, sem consumir capacidade de escrita/leitura no processo.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Preciso de DR cross-region para um banco relacional com RPO de segundos e RTO de menos de 1 minuto — qual a opção?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Aurora Global Database — replicação cross-region com lag tipicamente abaixo de 1 segundo e promoção da região secundária a primária em menos de 1 minuto. RDS Read Replica cross-region tem lag maior e promoção manual mais lenta.</div>
                     </li>
                 </ul>
             </section>
@@ -1174,89 +1318,132 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <span class="priority-badge badge-critical">Prioridade Alta</span>
                 </div>
 
-                <h3>HA × Tolerância a falhas — vocabulário que muda a resposta</h3>
+                <p>EC2, ASG e ELB (Cap. 2) dão os blocos de construção. Este capítulo foca em como combiná-los em padrões de arquitetura resilientes, e na camada de mensageria que desacopla componentes — o ingrediente que separa uma arquitetura "que funciona" de uma que "aguenta picos e falhas parciais sem cair".</p>
+
+                <h3>HA × Tolerância a falhas × Resiliência — vocabulário que muda a resposta</h3>
                 <div class="callout tip">
-                    <strong>💡 Definições precisas</strong>
-                    <strong>Alta disponibilidade (HA)</strong>: minimizar downtime — N+1 em AZs diferentes atrás de um balanceador. <strong>Tolerância a falhas (FT)</strong>: operar SEM degradação durante a falha — redundância ativa duplicada. FT exige mais que HA e custa mais. A prova usa esses termos com precisão.
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Definições precisas que o exame usa</strong>:
+                    <br><strong>Alta disponibilidade (HA)</strong>: minimizar downtime — redundância N+1 em AZs diferentes atrás de um balanceador, com failover que leva segundos a minutos.
+                    <br><strong>Tolerância a falhas (FT)</strong>: operar SEM degradação perceptível durante a falha — exige redundância ativa duplicada processando em paralelo o tempo todo. Custa significativamente mais que HA.
+                    <br><strong>Resiliência</strong>: capacidade do sistema de se recuperar de falhas e continuar operando — engloba HA, FT, backups e DR como ferramentas.
+                    <br>Se o enunciado diz "sem impacto perceptível ao usuário durante a falha", é FT. Se aceita "breve interrupção até o failover", é HA.</div>
                 </div>
 
-                <h3>Elastic Load Balancing</h3>
+                <h3>Padrões arquiteturais de resiliência</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th></th><th>ALB</th><th>NLB</th><th>GWLB</th></tr></thead>
+                        <thead><tr><th>Padrão</th><th>O que faz</th><th>Quando usar</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>Camada</strong></td><td>7 (HTTP/HTTPS)</td><td>4 (TCP/UDP/TLS)</td><td>3 (appliances)</td></tr>
-                            <tr><td><strong>Gatilhos</strong></td><td>"roteamento por path/host", "WebSocket", "Lambda como target"</td><td>"milhões de req/s", "IP estático", "protocolo não-HTTP"</td><td>"firewall/IDS/IPS de terceiros em linha"</td></tr>
+                            <tr><td><strong>Multi-AZ</strong></td><td>Réplicas idênticas em AZs diferentes da mesma região</td><td>Padrão mínimo de HA para qualquer componente com estado (banco, EFS) ou sem estado (EC2 atrás de ELB)</td></tr>
+                            <tr><td><strong>Bulkhead (compartimentalização)</strong></td><td>Isola recursos por cliente/função para que a falha de um não afete os outros</td><td>"Um cliente com tráfego anormal não deve afetar os demais" — pools de conexão ou filas separadas por tenant</td></tr>
+                            <tr><td><strong>Circuit Breaker</strong></td><td>Para de chamar um serviço que está falhando repetidamente, evitando cascata de falhas</td><td>"Serviço downstream lento está derrubando todo o sistema" — implementado em código (não é serviço gerenciado da AWS)</td></tr>
+                            <tr><td><strong>Graceful Degradation</strong></td><td>Serve uma versão reduzida/cacheada quando um componente não-crítico falha</td><td>"Mostrar produto sem recomendações personalizadas se o serviço de recomendação cair", em vez de quebrar a página toda</td></tr>
+                            <tr><td><strong>Static Stability</strong></td><td>O sistema continua funcionando com a última configuração conhecida, mesmo que o plano de controle (ex.: Auto Scaling API) esteja indisponível</td><td>Princípio do Well-Architected — evitar dependências do control plane no caminho crítico durante uma falha regional</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <h3>Auto Scaling — políticas de escalabilidade</h3>
+                <h3>Retry com Exponential Backoff e Jitter</h3>
+                <p>Quando uma chamada falha (throttling, erro transitório), repetir imediatamente piora o problema — gera uma onda sincronizada de retries que sobrecarrega ainda mais o serviço (<em>retry storm</em>). A prática recomendada:</p>
+                <div class="code-block"><pre><span class="comment">Backoff exponencial com jitter (aleatoriedade):</span>
+Tentativa 1: falha → espera ~1s
+Tentativa 2: falha → espera ~2s (+ jitter aleatório)
+Tentativa 3: falha → espera ~4s (+ jitter aleatório)
+Tentativa 4: falha → espera ~8s (+ jitter aleatório)
+<span class="comment">O jitter evita que múltiplos clientes re-tentem exatamente no mesmo instante</span></pre></div>
+                <p>Os SDKs da AWS já implementam isso nativamente nas chamadas de API — é por isso que throttling ocasional do KMS/DynamoDB raramente quebra uma aplicação bem configurada.</p>
+
+                <h3>Auto Scaling — recapitulando políticas (ver também Cap. 2)</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Política</th><th>Como funciona</th><th>Quando usar</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>Target tracking</strong></td><td>Mantém uma métrica num alvo (ex.: CPU 50%)</td><td>Padrão — mais simples e eficaz para a maioria</td></tr>
-                            <tr><td><strong>Step scaling</strong></td><td>Escala em passos por intervalo de métrica</td><td>Controle mais fino de quanto escalar</td></tr>
-                            <tr><td><strong>Scheduled</strong></td><td>Escala em horário definido</td><td>"todo dia às 8h sobe para 10 instâncias" — pico previsível</td></tr>
-                            <tr><td><strong>Predictive</strong></td><td>ML prevê padrão recorrente</td><td>"padrão semanal que quer escalada proativa"</td></tr>
+                            <tr><td><strong>Target tracking</strong></td><td>Mantém uma métrica num alvo (ex.: CPU 50%)</td><td>Padrão — mais simples e eficaz para a maioria dos casos</td></tr>
+                            <tr><td><strong>Step scaling</strong></td><td>Escala em passos por intervalo de métrica</td><td>Controle mais fino de quanto escalar por nível de severidade</td></tr>
+                            <tr><td><strong>Scheduled</strong></td><td>Escala em horário definido (cron)</td><td>"todo dia às 8h sobe para 10 instâncias" — pico previsível e recorrente</td></tr>
+                            <tr><td><strong>Predictive</strong></td><td>ML aprende padrão histórico e escala proativamente antes do pico</td><td>"padrão semanal/diário recorrente que quer escalada proativa, evitando o lag do reactive scaling"</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <h3>Desacoplamento — SQS, SNS, EventBridge</h3>
-                <p>Arquiteturas resilientes não fazem componentes chamarem uns aos outros diretamente. Elas inserem uma camada de mensageria que absorve picos e isola falhas. Reconhecer qual peça de mensageria o cenário pede é tão importante quanto saber escalar.</p>
+                <h3>Desacoplamento — SQS, SNS, EventBridge, Kinesis</h3>
+                <p>Arquiteturas resilientes não fazem componentes chamarem uns aos outros diretamente (tight coupling). Elas inserem uma camada de mensageria que absorve picos de tráfego e isola falhas — se o consumidor cair, as mensagens esperam na fila em vez de serem perdidas. Reconhecer qual peça de mensageria o cenário pede é tão importante quanto saber escalar.</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Serviço</th><th>Modelo</th><th>Usar quando…</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>SQS Standard</strong></td><td>Fila pull, at-least-once</td><td>"desacoplar", "absorver picos", "velocidade do backend"</td></tr>
-                            <tr><td><strong>SQS FIFO</strong></td><td>Fila ordenada, exactly-once</td><td>"<strong>ordem é crítica</strong>", "sem duplicatas"</td></tr>
-                            <tr><td><strong>SNS</strong></td><td>Pub/sub — todos recebem</td><td>"notificar vários sistemas ao mesmo tempo"</td></tr>
-                            <tr><td><strong>SNS → N filas SQS</strong></td><td>Fan-out durável</td><td>"1 evento processado por N sistemas independentes" — padrão favorito</td></tr>
-                            <tr><td><strong>EventBridge</strong></td><td>Barramento de eventos com filtros</td><td>"reagir a eventos AWS/SaaS", "cron/agendamento"</td></tr>
-                            <tr><td><strong>Amazon MQ</strong></td><td>Broker MQTT/AMQP/JMS</td><td>"migrar app legada que usa protocolo de mensageria específico"</td></tr>
+                            <tr><td><strong>SQS Standard</strong></td><td>Fila pull, at-least-once, melhor esforço de ordem</td><td>"desacoplar produtor/consumidor", "absorver picos", "velocidade do backend independente do front"</td></tr>
+                            <tr><td><strong>SQS FIFO</strong></td><td>Fila ordenada, exactly-once dentro de um Message Group</td><td>"<strong>ordem é crítica</strong>", "sem duplicatas" — throughput menor que Standard (até 3.000 msg/s com batching)</td></tr>
+                            <tr><td><strong>SNS</strong></td><td>Pub/sub — todos os subscribers recebem a mensagem</td><td>"notificar vários sistemas ao mesmo tempo", alertas, notificações push/SMS/email</td></tr>
+                            <tr><td><strong>SNS → N filas SQS (fan-out)</strong></td><td>Fan-out durável — cada fila processa de forma independente e no seu próprio ritmo</td><td>"1 evento deve ser processado por N sistemas independentes" — padrão favorito do exame</td></tr>
+                            <tr><td><strong>EventBridge</strong></td><td>Barramento de eventos com regras de filtro por conteúdo</td><td>"reagir a eventos de serviços AWS/SaaS de terceiros", "cron/agendamento", roteamento baseado em schema do evento</td></tr>
+                            <tr><td><strong>Kinesis Data Streams</strong></td><td>Streaming de alto throughput, múltiplos consumidores leem o mesmo stream, retenção configurável</td><td>"processamento em tempo real de milhões de eventos/s", "múltiplos consumidores independentes leem os mesmos dados em paralelo" — quando SQS não escala o suficiente</td></tr>
+                            <tr><td><strong>Amazon MQ</strong></td><td>Broker gerenciado MQTT/AMQP/JMS/STOMP</td><td>"migrar app legada que já usa um protocolo de mensageria específico (ActiveMQ/RabbitMQ)" sem reescrever o código</td></tr>
                         </tbody>
                     </table>
                 </div>
 
+                <h3>SQS — pontos de prova mais cobrados</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Conceito</th><th>O que é</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Visibility Timeout</strong></td><td>A mensagem fica invisível para outros consumidores enquanto está sendo processada. Se o consumidor não a deletar a tempo (ex.: travou), ela reaparece na fila — por isso o consumidor deve ser <strong>idempotente</strong> (processar a mesma mensagem 2x não deve causar efeito colateral duplicado).</td></tr>
+                            <tr><td><strong>DLQ (Dead-Letter Queue)</strong></td><td>Após N tentativas com falha (<code>maxReceiveCount</code>), a mensagem é movida para uma fila separada — resposta padrão para "isolar mensagens venenosas sem travar o processamento das demais".</td></tr>
+                            <tr><td><strong>Long Polling</strong></td><td>Espera até 20s por uma mensagem antes de retornar vazio — reduz custo (menos chamadas vazias) e latência de detecção comparado a short polling.</td></tr>
+                            <tr><td><strong>Delay Queue</strong></td><td>Atrasa a entrega inicial da mensagem por até 15 min — útil para esperar um processo dependente terminar.</td></tr>
+                            <tr><td><strong>Message Attributes</strong></td><td>Metadados estruturados separados do corpo — usados por SNS para filtrar mensagens por subscriber sem abrir o payload.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div class="callout trap">
-                    <strong>⚠️ Armadilha: SQS — pontos de prova</strong>
-                    Visibility timeout: a mensagem some da fila enquanto está sendo processada; se não for deletada a tempo, ela reaparece → o consumidor deve ser idempotente. DLQ: após N tentativas com falha, a mensagem vai para a fila de mortos — resposta padrão para "mensagens venenosas". Long polling (20s): reduz custo e chamadas vazias.
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>SQS não é Pub/Sub</strong> — uma mensagem na fila SQS é consumida por <em>apenas um</em> consumidor (mesmo com vários workers competindo pela fila). Se a questão exige que múltiplos sistemas independentes recebam <em>a mesma</em> mensagem, SQS sozinho não resolve — é preciso SNS fazendo fan-out para múltiplas filas SQS, uma por sistema consumidor.</div>
                 </div>
 
+                <h3>SNS — filtros de mensagem</h3>
+                <p>Um tópico SNS pode ter múltiplos subscribers, mas nem todos precisam receber toda mensagem. <strong>Subscription Filter Policies</strong> permitem que cada subscriber só receba mensagens cujos atributos casem com seu filtro — evitando que cada consumidor precise filtrar no próprio código (e gastar invocações de Lambda com mensagens irrelevantes).</p>
+
                 <div class="callout lab">
-                    <strong>🧪 Lab — A arquitetura clássica completa (3h, ~US$ 0,50)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>ALB → ASG (min 2, max 4, 2 AZs) → página exibindo o instance-id. Acesse e pressione F5 — veja o ID alternar entre instâncias.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Termine uma instância manualmente. Cronometre o auto-healing — o ASG cria outra sozinho.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Crie uma <strong>target tracking policy</strong> em CPU 40%. Gere carga e assista o scale-out. Pare e veja o scale-in.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Crie SQS + Lambda consumidora + DLQ com maxReceiveCount=3. Envie mensagem "venenosa" (Lambda falha) → observe cair na DLQ após 3 tentativas.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">5</div><div>Crie SNS com fan-out para 2 filas SQS. Publique 1 mensagem — confirme que as 2 filas recebem.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 6 — A arquitetura clássica completa (3h, ~US$ 0,50)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>ALB → ASG (min 2, max 4, 2 AZs) → página exibindo o instance-id. Acesse e pressione F5 — veja o ID alternar entre instâncias.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Termine uma instância manualmente. Cronometre o auto-healing — o ASG cria outra sozinho, sem intervenção.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Crie uma <strong>target tracking policy</strong> em CPU 40%. Gere carga e assista o scale-out. Pare e veja o scale-in.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Crie SQS + Lambda consumidora + DLQ com <code>maxReceiveCount=3</code>. Envie mensagem "venenosa" (que faz a Lambda falhar) → observe cair na DLQ após 3 tentativas.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">05</div><p>Crie SNS com fan-out para 2 filas SQS, cada uma com filter policy diferente. Publique mensagens com atributos distintos — confirme que cada fila só recebe o que casa com seu filtro.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Pedidos devem ser processados na ordem exata, sem duplicatas?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">SQS FIFO. Exactly-once, ordem garantida.</div>
+                        <button class="qa-question" type="button">Pedidos de um e-commerce devem ser processados na ordem exata em que chegam, sem duplicatas?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">SQS FIFO — garante exactly-once processing e ordem dentro do mesmo Message Group ID. SQS Standard só garante "melhor esforço" de ordem e pode entregar duplicatas (at-least-once).</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Upload de imagem precisa disparar 3 sistemas independentes: thumbnail, moderação e indexação?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">SNS fan-out para 3 filas SQS, cada uma com seu consumidor (Lambda ou worker). Cada sistema processa de forma independente e assíncrona.</div>
+                        <button class="qa-question" type="button">Upload de imagem precisa disparar 3 sistemas independentes: gerar thumbnail, moderar conteúdo e indexar para busca?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">SNS fan-out para 3 filas SQS, cada uma com seu consumidor (Lambda ou worker). Cada sistema processa de forma independente, no seu próprio ritmo, sem que a falha de um afete os outros.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">App fica lenta às 9h em ponto todo dia útil?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Scheduled scaling — escala antes das 9h. Predictive se quiser automatizar a detecção do padrão.</div>
+                        <button class="qa-question" type="button">A aplicação web fica lenta às 9h em ponto, todo dia útil, de forma previsível?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Scheduled Scaling — escala antes das 9h, eliminando o lag do scaling reativo. Predictive Scaling é uma alternativa que detecta o padrão automaticamente via ML, sem precisar configurar o horário manualmente.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Por que "alta disponibilidade" e "tolerância a falhas" não são sinônimos na prova?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">HA aceita um pequeno downtime durante o failover (segundos a minutos). FT exige redundância ativa duplicada operando o tempo todo, sem qualquer degradação perceptível — custa significativamente mais e só é exigido quando o enunciado especifica "zero impacto" ou "sem degradação".</div>
+                        <div class="qa-answer">HA aceita um pequeno downtime durante o failover (segundos a minutos). FT exige redundância ativa duplicada operando o tempo todo, sem qualquer degradação perceptível — custa significativamente mais e só é exigido quando o enunciado especifica "zero impacto" ou "sem degradação perceptível".</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Aplicação precisa rotear WebSocket e fazer roteamento baseado em path (/api vs /admin)?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">ALB (Application Load Balancer) — opera na camada 7, suporta WebSocket nativamente e roteamento por path/host-based routing. NLB não entende HTTP.</div>
+                        <button class="qa-question" type="button">Um serviço downstream está lento e isso está derrubando o sistema inteiro em cascata — qual padrão de resiliência aplicar?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Circuit Breaker — para de chamar o serviço problemático após detectar falhas repetidas, retornando erro/fallback imediatamente em vez de esperar timeout a cada chamada. Depois de um período, testa novamente (half-open) antes de voltar ao normal.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Um worker chama repetidamente uma API que está sendo throttled, e cada retry imediato piora a situação — o que fazer?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Implementar exponential backoff com jitter: aumentar o tempo de espera exponencialmente entre tentativas, com um componente aleatório (jitter) para evitar que múltiplos clientes re-tentem no mesmo instante exato (retry storm). Os SDKs da AWS já fazem isso nativamente.</div>
                     </li>
                 </ul>
             </section>
@@ -1319,8 +1506,26 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     Multi-AZ protege contra falha de AZ — não de região inteira. Se "a região ficou indisponível", Multi-AZ não resolve. Snapshots/AMIs precisam ser copiados para outra região — o que ficou na região que falhou não ajuda. "Menor custo com RTO de 24h" → Backup &amp; Restore (não complique desnecessariamente).
                 </div>
 
+                <h3>AWS Backup — backups centralizados e governança</h3>
+                <p>O AWS Backup centraliza e automatiza backups de EC2, EBS, RDS, Aurora, DynamoDB, EFS, FSx, Storage Gateway e mais — em vez de configurar backup serviço por serviço.</p>
+                <ul>
+                    <li><strong>Backup Plans</strong>: definem frequência, janela, retenção e regras de transição para cold storage (mais barato após N dias).</li>
+                    <li><strong>Backup Vault Lock</strong>: modo WORM para o vault de backups — impede até o administrador de deletar backups antes do prazo, proteção contra ransomware e exclusão maliciosa/acidental.</li>
+                    <li><strong>Cross-Region Copy</strong> e <strong>Cross-Account Copy</strong>: copia backups para outra região/conta automaticamente — essencial para DR de região e isolamento contra comprometimento de conta.</li>
+                    <li><strong>Backup Audit Manager</strong>: avalia se os planos de backup atendem requisitos de compliance definidos.</li>
+                </ul>
+
+                <h3>AWS Elastic Disaster Recovery (DRS) em detalhe</h3>
+                <p>O DRS (sucessor do CloudEndure) instala um agente leve nos servidores de origem (on-premises, outra cloud, ou EC2) que replica continuamente as alterações de disco bloco a bloco para uma área de staging de baixo custo na AWS. Durante um desastre, o DRS lança instâncias EC2 completas a partir dessa réplica em minutos — diferente de um backup tradicional, que exigiria restaurar e reconfigurar do zero.</p>
+
+                <h3>AWS Resilience Hub — medindo se sua arquitetura atinge o RPO/RTO desejado</h3>
+                <p>O Resilience Hub avalia uma aplicação (definida via CloudFormation, Terraform, ou descoberta de recursos) contra metas de RPO/RTO definidas, simulando cenários de falha (AZ down, região down, falha de componente) e apontando gaps específicos — ex.: "este RDS não tem Multi-AZ, o que viola o RTO de 5 min definido". Gera recomendações de remediação concretas.</p>
+
+                <h3>Testando DR — Chaos Engineering e Game Days</h3>
+                <p>Uma estratégia de DR documentada mas nunca testada é uma suposição, não uma garantia. O <strong>AWS Fault Injection Service (FIS)</strong> permite injetar falhas controladas em produção (terminar instâncias, simular latência de rede, esgotar CPU) para validar que mecanismos de auto-healing e failover realmente funcionam como esperado — a prática conhecida como Chaos Engineering. "Game Days" são exercícios programados onde o time simula um desastre real e segue o runbook de DR para medir o RTO de verdade.</p>
+
                 <div class="callout lab">
-                    <strong>🧪 Lab — DR na prática (2h, ~US$ 0,50)</strong>
+                    <strong>🧪 Lab 7 — DR na prática (2h, ~US$ 0,50)</strong>
                     <ol class="lab-steps">
                         <li class="lab-step"><div class="lab-step-num">1</div><div>Crie um plano no <strong>AWS Backup</strong> para EC2 + RDS com cópia cross-region. Rode um backup on-demand e restaure a EC2 na outra região. Cronometre — esse tempo é seu RTO real de Backup &amp; Restore.</div></li>
                         <li class="lab-step"><div class="lab-step-num">2</div><div>Simule Pilot Light: copie sua AMI para a região B, deixe um template CloudFormation pronto lá. Suba a stack na região B e meça o tempo até o app responder.</div></li>
@@ -1351,6 +1556,14 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                         <button class="qa-question" type="button">Como o AWS Elastic Disaster Recovery (DRS) se diferencia do AWS Backup?<span class="qa-arrow">▾</span></button>
                         <div class="qa-answer">AWS Backup tira snapshots periódicos (RPO em horas). DRS replica continuamente bloco a bloco para a região de DR, permitindo RPO de segundos e RTO de minutos — é o sucessor do CloudEndure para lift-and-shift de servidores inteiros.</div>
                     </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">A empresa teme que um atacante comprometa a conta AWS e delete os backups antes de exigir resgate (ransomware) — como proteger?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Backup Vault Lock em modo Compliance — torna os backups imutáveis por um período, impedindo exclusão mesmo por um administrador ou root comprometido. Combine com Cross-Account Copy para isolar backups numa conta separada com acesso restrito.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Como validar que a estratégia de DR documentada realmente atinge o RTO prometido, sem esperar um desastre real acontecer?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Resilience Hub para avaliar a arquitetura contra as metas de RPO/RTO definidas, e AWS Fault Injection Service (FIS) para injetar falhas controladas (Chaos Engineering) e medir o comportamento real do failover em um "Game Day".</div>
+                    </li>
                 </ul>
             </section>
 
@@ -1372,13 +1585,32 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                         <thead><tr><th>Característica</th><th>Detalhe / armadilha</th></tr></thead>
                         <tbody>
                             <tr><td><strong>Timeout máximo</strong></td><td>15 min — tarefa mais longa → Fargate, Batch ou Step Functions</td></tr>
-                            <tr><td><strong>Memória</strong></td><td>128 MB-10 GB. CPU escala junto — app lenta? aumente a memória</td></tr>
-                            <tr><td><strong>Cold start</strong></td><td>1ª invocação é lenta → <strong>Provisioned Concurrency</strong> para "latência consistente"</td></tr>
-                            <tr><td><strong>Lambda em VPC</strong></td><td>Necessário para acessar RDS privado. Para internet de dentro da VPC: precisa de NAT Gateway</td></tr>
-                            <tr><td><strong>Concurrency</strong></td><td>Limite de 1.000/conta. Reserved concurrency protege o banco de excesso de invocações paralelas</td></tr>
+                            <tr><td><strong>Memória</strong></td><td>128 MB-10 GB. CPU escala junto com a memória — app lenta por CPU? aumente a memória, não só o timeout</td></tr>
+                            <tr><td><strong>Cold start</strong></td><td>1ª invocação (ou após período ocioso) é mais lenta — inicializa o runtime e o código → <strong>Provisioned Concurrency</strong> para "latência consistente"</td></tr>
+                            <tr><td><strong>Lambda em VPC</strong></td><td>Necessário para acessar RDS/ElastiCache privados. Para internet de dentro da VPC: precisa de NAT Gateway</td></tr>
+                            <tr><td><strong>Concurrency</strong></td><td>Limite de 1.000 execuções simultâneas/conta (soft limit, pode aumentar). Reserved concurrency garante (e limita) capacidade para uma função específica</td></tr>
+                            <tr><td><strong>Payload</strong></td><td>6 MB síncrono, 256 KB assíncrono (via SQS/SNS), 10 MB para Lambda Function URLs com streaming</td></tr>
+                            <tr><td><strong>/tmp efêmero</strong></td><td>512 MB a 10 GB de espaço temporário por invocação — não persiste entre invocações (exceto reuso do mesmo ambiente "quente")</td></tr>
                         </tbody>
                     </table>
                 </div>
+
+                <h3>Lambda SnapStart — eliminando cold start sem custo extra</h3>
+                <p>Para runtimes como Java (que historicamente tem cold starts lentos), o <strong>SnapStart</strong> tira um snapshot do ambiente de execução já inicializado (após o init code rodar) e o restaura em invocações subsequentes — reduzindo cold start de segundos para milissegundos, sem o custo extra do Provisioned Concurrency. Diferente do Provisioned Concurrency, que mantém ambientes "quentes" o tempo todo (e cobra por isso), o SnapStart restaura de um snapshot sob demanda.</p>
+
+                <h3>Event Source Mappings — Lambda como consumidor</h3>
+                <p>Lambda pode ser invocada de três formas, e a diferença importa para tratamento de erro:</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Modelo</th><th>Exemplos de origem</th><th>Comportamento de erro</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Síncrono</strong></td><td>API Gateway, ALB, Function URL</td><td>Erro retorna direto ao chamador — sem retry automático da Lambda</td></tr>
+                            <tr><td><strong>Assíncrono</strong></td><td>S3 Events, SNS, EventBridge</td><td>Retry automático (2x), depois vai para DLQ ou Lambda Destinations se configurado</td></tr>
+                            <tr><td><strong>Polling (Event Source Mapping)</strong></td><td>SQS, Kinesis, DynamoDB Streams, MSK</td><td>O serviço Lambda faz o polling da fonte; em caso de erro, a mensagem/registro permanece na fonte para retry (configurável: bisect on error, max retries, parallelization factor)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p><strong>Lambda Destinations</strong> permite rotear o resultado (sucesso ou falha) de uma invocação assíncrona para outro destino (SQS, SNS, EventBridge, outra Lambda) sem precisar escrever código de tratamento — útil para orquestração leve sem Step Functions.</p>
 
                 <div class="code-block"><pre><span class="comment"># Padrão de orquestração serverless típico do SAA</span>
 <span class="key">API Gateway</span> → <span class="key">Lambda</span> (validação/transformação) → <span class="key">Step Functions</span>
@@ -1386,11 +1618,14 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                                   <span class="key">DynamoDB</span> / <span class="key">SQS</span> / <span class="key">S3</span></pre></div>
 
                 <div class="callout trap">
-                    <strong>⚠️ Armadilha: Lambda dentro de VPC sem saída</strong>
-                    Colocar uma Lambda dentro da VPC dá acesso a recursos privados (ex.: RDS), mas <strong>remove</strong> o acesso direto à internet que a Lambda tinha por padrão. Se essa Lambda também precisa chamar uma API externa, é necessário um NAT Gateway na sub-rede privada — custo adicional que o enunciado pode estar tentando evitar.
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilha: Lambda dentro de VPC sem saída</strong> — Colocar uma Lambda dentro da VPC dá acesso a recursos privados (ex.: RDS), mas <strong>remove</strong> o acesso direto à internet que a Lambda tinha por padrão (via a infraestrutura gerenciada da AWS). Se essa Lambda também precisa chamar uma API externa, é necessário um NAT Gateway na sub-rede privada — custo adicional que o enunciado pode estar tentando evitar com uma resposta mais simples (ex.: VPC Endpoint se o destino for um serviço AWS).</div>
                 </div>
 
-                <h3>Decisão de containers</h3>
+                <h3>Lambda Layers e Function URLs</h3>
+                <p><strong>Layers</strong> empacotam dependências/bibliotecas compartilhadas entre múltiplas funções, separadas do código principal — reduz duplicação e acelera deploys (o código muda, a layer com dependências pesadas não). <strong>Function URLs</strong> dão a uma Lambda um endpoint HTTPS dedicado sem precisar de API Gateway — mais simples para casos de uso básicos (webhook único), mas sem os recursos de gerenciamento de API (throttling avançado, API keys, usage plans) que o API Gateway oferece.</p>
+
+                <h3>Decisão de containers — visão geral (detalhes no Cap. 14)</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
                         <thead><tr><th>Sinal na questão</th><th>Resposta</th></tr></thead>
@@ -1400,58 +1635,57 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                             <tr><td>"containers Kubernetes sem gerenciar nós"</td><td><strong>EKS + Fargate</strong></td></tr>
                             <tr><td>"só quero fazer deploy de um container web"</td><td><strong>App Runner</strong></td></tr>
                             <tr><td>"registry de imagens privado"</td><td><strong>ECR</strong></td></tr>
+                            <tr><td>"job de batch longo, containerizado, sem gerenciar fila/instância"</td><td><strong>AWS Batch sobre Fargate</strong></td></tr>
                         </tbody>
                     </table>
                 </div>
-
-                <h3>ECS — EC2 launch type × Fargate</h3>
-                <div class="compare-grid">
-                    <div class="compare-card">
-                        <h4>ECS em EC2</h4>
-                        <p>Você gerencia as instâncias do cluster (capacidade, patches, scaling do Auto Scaling Group). Mais controle e pode ser mais barato em larga escala com Reserved/Savings Plans.</p>
-                    </div>
-                    <div class="compare-card">
-                        <h4>ECS em Fargate</h4>
-                        <p>Sem servidores — você define CPU/memória da task e a AWS executa. "Least operational overhead" para containers quase sempre aponta para Fargate.</p>
-                    </div>
-                </div>
-
                 <div class="callout tip">
-                    <strong>💡 Sinal prático</strong>
-                    Job de processamento longo (ex.: 45 min) em container, sem gerenciar servidor → <strong>AWS Batch sobre Fargate</strong>. Batch gerencia filas e prioridade de jobs; Fargate executa sem provisionar instâncias. Lambda fica fora porque excede o limite de 15 min.
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Sinal prático</strong> — Job de processamento longo (ex.: 45 min) em container, sem gerenciar servidor → <strong>AWS Batch sobre Fargate</strong>. Batch gerencia filas e prioridade de jobs; Fargate executa sem provisionar instâncias. Lambda fica fora porque excede o limite de 15 min.</div>
                 </div>
+
+                <h3>Quando "serverless" não é a resposta certa</h3>
+                <p>O exame também testa se você reconhece os limites do serverless. Sinais de que EC2/containers tradicionais são mais adequados: workload de altíssimo throughput sustentado e previsível (onde Reserved Instances batem o custo por invocação do Lambda), necessidade de controle total sobre o runtime/sistema operacional, ou processos de longa duração com estado em memória entre requisições (ex.: WebSocket persistente de longa duração, cache local grande).</p>
 
                 <div class="callout lab">
-                    <strong>🧪 Lab — Serverless na prática (1h30, Free Tier)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Crie uma Lambda simples, exponha via API Gateway (HTTP API) e chame com <code>curl</code>. Observe a latência da primeira chamada (cold start) versus chamadas seguintes.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Ative <strong>Provisioned Concurrency</strong> com 1 instância e repita o teste — compare a latência da primeira chamada.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Empacote um container simples, suba no ECR e rode uma task no ECS com Fargate. Acesse pelo IP público da task.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Configure um <strong>Reserved Concurrency</strong> de 2 na Lambda e dispare 5 invocações simultâneas — observe o throttling nas excedentes.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 8 — Serverless na prática (1h30, Free Tier)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Crie uma Lambda simples, exponha via API Gateway (HTTP API) e chame com <code>curl</code>. Observe a latência da primeira chamada (cold start) versus chamadas seguintes.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Ative <strong>Provisioned Concurrency</strong> com 1 instância e repita o teste — compare a latência da primeira chamada.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Configure uma fila SQS como Event Source Mapping de uma Lambda. Envie uma mensagem que causa erro propositalmente e observe o comportamento de retry antes de cair na DLQ.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Empacote um container simples, suba no ECR e rode uma task no ECS com Fargate. Acesse pelo IP público da task.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">05</div><p>Configure um <strong>Reserved Concurrency</strong> de 2 na Lambda e dispare 5 invocações simultâneas — observe o throttling nas excedentes.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
                         <button class="qa-question" type="button">Job de processamento que leva 45 min, em container, sem gerenciar servidor?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">AWS Batch sobre Fargate — Batch gerencia filas e prioridade, Fargate executa sem gerenciar instâncias. Lambda não serve (limite 15 min).</div>
+                        <div class="qa-answer">AWS Batch sobre Fargate — Batch gerencia filas e prioridade, Fargate executa sem gerenciar instâncias. Lambda não serve (limite de 15 min de timeout).</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Latência da Lambda precisa ser consistente — sem cold start?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Provisioned Concurrency — mantém instâncias inicializadas e prontas para responder.</div>
+                        <button class="qa-question" type="button">Latência da Lambda precisa ser consistente — sem cold start perceptível pelo usuário?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Provisioned Concurrency — mantém um número definido de ambientes de execução já inicializados e prontos para responder imediatamente. Para Java especificamente, SnapStart é uma alternativa sem custo extra que restaura de um snapshot já inicializado.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Empresa migra de EC2 para containers e o time já mantém manifests Kubernetes — qual serviço minimiza retrabalho?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">EKS (Elastic Kubernetes Service). Reaproveita os manifests Kubernetes existentes; ECS exigiria reescrever para task definitions proprietárias.</div>
+                        <div class="qa-answer">EKS (Elastic Kubernetes Service). Reaproveita os manifests Kubernetes existentes; ECS exigiria reescrever para task definitions proprietárias da AWS.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Lambda precisa acessar um banco RDS dentro de uma sub-rede privada — o que muda na configuração?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">A função deve ser configurada para rodar dentro da VPC (subnets + security groups). Isso permite alcançar o RDS privado, mas remove o acesso padrão à internet pública — se necessário, requer NAT Gateway ou VPC endpoints.</div>
+                        <button class="qa-question" type="button">Lambda precisa acessar um banco RDS dentro de uma sub-rede privada — o que muda na configuração e no acesso à internet?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">A função deve ser configurada para rodar dentro da VPC (subnets + security groups). Isso permite alcançar o RDS privado, mas remove o acesso padrão à internet pública que a Lambda tinha fora da VPC — se ainda precisar de internet, requer NAT Gateway; se precisar só de outro serviço AWS, um VPC Endpoint é mais barato.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Uma fila SQS alimenta uma Lambda, mas mensagens com erro ficam sendo reprocessadas indefinidamente, consumindo capacidade — como isolar?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Configurar uma DLQ (na fila SQS de origem, via redrive policy) com maxReceiveCount definido. Após esse número de tentativas falhas, a mensagem é movida automaticamente para a DLQ, liberando a fila principal para processar mensagens saudáveis.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Como decidir rapidamente entre App Runner e ECS+Fargate para um novo serviço web?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Se o requisito é "apenas fazer deploy de um container/código e ter HTTPS, scaling e CI/CD prontos com o mínimo de configuração", App Runner é a resposta. Se há necessidade de controle fino sobre rede, sidecars, ou integração com outros serviços ECS/EKS do ecossistema, use ECS+Fargate.</div>
+                        <div class="qa-answer">Se o requisito é "apenas fazer deploy de um container/código e ter HTTPS, scaling e CI/CD prontos com o mínimo de configuração", App Runner é a resposta. Se há necessidade de controle fino sobre rede, sidecars, service mesh, ou integração profunda com outros serviços do ecossistema ECS/EKS, use ECS+Fargate.</div>
                     </li>
                 </ul>
             </section>
@@ -1467,22 +1701,52 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                 </div>
 
                 <h3>KMS — o cofre de chaves</h3>
-                <p>Chaves simétricas (default) e assimétricas. AWS-managed (grátis, sem controle) vs <strong>Customer-managed (CMK)</strong> — controle, rotação, policies, auditável via CloudTrail. Chaves são regionais. <strong>CloudHSM</strong>: hardware dedicado — só quando a questão exige "FIPS 140-2 Level 3" ou "controle exclusivo do hardware".</p>
-                <div class="callout trap">
-                    <strong>⚠️ Armadilha de snapshot criptografado</strong>
-                    Compartilhar snapshot criptografado com outra conta exige compartilhar acesso à CMK também — sem isso, a outra conta não consegue descriptografar.
+                <p>O KMS (Key Management Service) gerencia chaves criptográficas usadas para criptografar dados em praticamente todos os serviços AWS. Chaves simétricas (padrão, usadas para a maioria dos casos) e assimétricas (par público/privado, para casos específicos de assinatura ou criptografia entre sistemas externos).</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo de chave</th><th>Quem controla</th><th>Rotação</th><th>Auditável</th><th>Custo</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>AWS-owned</strong></td><td>AWS (invisível para você)</td><td>AWS decide</td><td>Não</td><td>Grátis</td></tr>
+                            <tr><td><strong>AWS-managed</strong></td><td>AWS, mas visível na sua conta (ex.: <code>aws/s3</code>)</td><td>Automática anual</td><td>Sim — uso no CloudTrail</td><td>Grátis</td></tr>
+                            <tr><td><strong>Customer-managed (CMK)</strong></td><td>Você — define key policy, grants, rotação</td><td>Automática anual (opcional) ou manual</td><td>Sim — uso e gestão no CloudTrail</td><td>$1/mês + uso</td></tr>
+                        </tbody>
+                    </table>
                 </div>
+                <p>Chaves do KMS são <strong>regionais</strong> — não saem da região onde foram criadas (exceto <strong>Multi-Region Keys</strong>, que replicam a mesma chave para outras regiões mantendo o mesmo Key ID, úteis para DR ou Aurora Global Database com criptografia).</p>
+
+                <h3>Envelope Encryption — como o KMS realmente criptografa grandes volumes</h3>
+                <p>O KMS não criptografa diretamente arquivos grandes (limite de 4 KB por chamada). Em vez disso, usa <strong>envelope encryption</strong>: o KMS gera uma Data Key, que criptografa o dado localmente (no SDK do cliente ou no serviço AWS), e a própria Data Key é então criptografada pela CMK e armazenada junto com o dado. Para descriptografar, primeiro descriptografa a Data Key via KMS, depois usa-a para descriptografar o dado. Isso é o que permite ao S3/EBS/RDS criptografar objetos de qualquer tamanho usando o KMS por trás.</p>
+
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilha de snapshot/cross-account criptografado</strong> — Compartilhar um snapshot EBS/RDS criptografado com outra conta exige compartilhar acesso à CMK também (via key policy) — sem isso, a outra conta recebe o snapshot mas não consegue descriptografá-lo, ficando inutilizável. Chaves AWS-managed não podem ser compartilhadas entre contas — só CMK.</div>
+                </div>
+
+                <h3>CloudHSM — quando KMS não é suficiente</h3>
+                <p>O CloudHSM oferece hardware de criptografia dedicado (single-tenant) dentro de uma VPC, atendendo padrões de compliance que exigem controle exclusivo do hardware (FIPS 140-2 Level 3). Diferente do KMS (multi-tenant, gerenciado), você é responsável por gerenciar o cluster HSM. Use apenas quando o enunciado exige explicitamente esse nível de isolamento — para a maioria dos casos, KMS é a resposta mais simples e suficiente.</p>
 
                 <h3>Secrets Manager × Parameter Store</h3>
                 <div class="compare-grid">
                     <div class="compare-card">
                         <h4>Secrets Manager</h4>
-                        <p><strong>Rotação automática nativa</strong> (RDS!). Pago por segredo/mês. "rotacionar senha do banco automaticamente" = Secrets Manager.</p>
+                        <p><strong>Rotação automática nativa</strong> (RDS, Redshift, DocumentDB têm integração pronta; outros via Lambda customizada). Pago por segredo/mês + por API call. "Rotacionar senha do banco automaticamente" = Secrets Manager. Suporta replicação cross-region nativa.</p>
                     </div>
                     <div class="compare-card">
-                        <h4>Parameter Store</h4>
-                        <p>Grátis (standard tier). Configs e segredos com KMS. Sem rotação nativa. "guardar configuração barato" = Parameter Store.</p>
+                        <h4>Parameter Store (SSM)</h4>
+                        <p>Tier Standard grátis (Advanced tem custo). Guarda configs e segredos com criptografia KMS opcional. Sem rotação nativa — exigiria automação própria. "Guardar configuração/segredo de forma barata, sem rotação automática" = Parameter Store.</p>
                     </div>
+                </div>
+
+                <h3>Encryption in Transit — TLS e certificados</h3>
+                <p>Encryption at rest (KMS) protege dados parados. <strong>Encryption in transit</strong> protege dados em movimento via TLS/HTTPS — igualmente cobrado no exame.</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Serviço</th><th>Função</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>ACM (AWS Certificate Manager)</strong></td><td>Certificados TLS públicos gratuitos e auto-renováveis para ALB/CloudFront/API Gateway — elimina a gestão manual de certificados expirando.</td></tr>
+                            <tr><td><strong>ACM Private CA</strong></td><td>Autoridade certificadora privada para emitir certificados internos (ex.: comunicação mTLS entre microserviços, dispositivos IoT) — quando os certificados não precisam ser publicamente confiáveis.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <h3>Zoológico de serviços de segurança</h3>
@@ -1490,54 +1754,83 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <table class="decision">
                         <thead><tr><th>Serviço</th><th>Uma linha que resolve a questão</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>WAF</strong></td><td>Firewall de aplicação (L7): SQL injection, XSS, rate limit, geo-block — em ALB/CloudFront/API GW</td></tr>
-                            <tr><td><strong>Shield Advanced</strong></td><td>Proteção DDoS avançada + equipe de resposta + proteção financeira</td></tr>
-                            <tr><td><strong>GuardDuty</strong></td><td>Detecção inteligente de ameaças com ML (CloudTrail + VPC Flow + DNS) — "atividade maliciosa"</td></tr>
-                            <tr><td><strong>Inspector</strong></td><td>Varredura de vulnerabilidades (CVEs) em EC2, ECR, Lambda</td></tr>
-                            <tr><td><strong>Macie</strong></td><td>Acha dados sensíveis/PII no S3 automaticamente com ML</td></tr>
-                            <tr><td><strong>Security Hub</strong></td><td>Painel central agregando achados de todos os serviços de segurança</td></tr>
-                            <tr><td><strong>ACM</strong></td><td>Certificados TLS grátis e auto-renováveis para ALB/CloudFront/API GW</td></tr>
-                            <tr><td><strong>Cognito</strong></td><td>Autenticação de usuários de apps: User Pools (login) + Identity Pools (credenciais AWS)</td></tr>
+                            <tr><td><strong>WAF</strong></td><td>Firewall de aplicação (L7): SQL injection, XSS, rate limiting, geo-block — protege ALB, CloudFront, API Gateway, AppSync</td></tr>
+                            <tr><td><strong>Shield Standard</strong></td><td>Proteção DDoS automática e gratuita para todo cliente AWS contra ataques de camada 3/4 mais comuns</td></tr>
+                            <tr><td><strong>Shield Advanced</strong></td><td>Proteção DDoS avançada (L3-L7) + equipe de resposta dedicada (DRT) + proteção financeira contra picos de custo por DDoS</td></tr>
+                            <tr><td><strong>GuardDuty</strong></td><td>Detecção inteligente de ameaças com ML, analisando CloudTrail + VPC Flow Logs + logs de DNS — "atividade maliciosa ou comportamento anômalo"</td></tr>
+                            <tr><td><strong>Inspector</strong></td><td>Varredura automatizada de vulnerabilidades (CVEs) em EC2, imagens de container no ECR, e código Lambda</td></tr>
+                            <tr><td><strong>Macie</strong></td><td>Encontra dados sensíveis/PII automaticamente em buckets S3 usando ML</td></tr>
+                            <tr><td><strong>Security Hub</strong></td><td>Painel central agregando findings de GuardDuty, Inspector, Macie, Config e parceiros terceiros — visão única de postura de segurança</td></tr>
+                            <tr><td><strong>Detective</strong></td><td>Investigação visual de incidentes — conecta automaticamente eventos relacionados (CloudTrail, VPC Flow, GuardDuty) para análise de causa raiz</td></tr>
+                            <tr><td><strong>AWS Config</strong></td><td>Avalia continuamente se recursos estão em conformidade com regras definidas (ex.: "todo bucket S3 deve ter encryption ativada") e registra histórico de configuração</td></tr>
+                            <tr><td><strong>Artifact</strong></td><td>Portal de relatórios de compliance da AWS (SOC, PCI-DSS, ISO) — para auditoria, não detecção</td></tr>
+                            <tr><td><strong>ACM</strong></td><td>Certificados TLS grátis e auto-renováveis para ALB/CloudFront/API Gateway</td></tr>
+                            <tr><td><strong>Cognito</strong></td><td>Autenticação de usuários de apps: User Pools (login) + Identity Pools (credenciais AWS) — ver Cap. 1</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="callout tip">
-                    <strong>💡 Sinal prático</strong>
-                    Shield Standard já protege gratuitamente todo cliente AWS contra os ataques DDoS mais comuns (camadas 3/4). Shield Advanced só entra quando o enunciado menciona "proteção financeira contra picos de custo causados por DDoS" ou "time de resposta dedicado (DRT)".
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Sinal prático</strong> — Shield Standard já protege gratuitamente todo cliente AWS contra os ataques DDoS mais comuns (camadas 3/4), sem ação necessária. Shield Advanced só entra quando o enunciado menciona "proteção financeira contra picos de custo causados por DDoS" ou "time de resposta dedicado (DRT)" — caso contrário, é distrator caro.</div>
+                </div>
+
+                <h3>WAF — tipos de regra mais cobrados</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo de regra</th><th>Bloqueia</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Managed Rule Groups</strong></td><td>Conjuntos pré-configurados pela AWS/parceiros (OWASP Top 10, SQL injection, XSS) — atualizados automaticamente conforme novas ameaças surgem</td></tr>
+                            <tr><td><strong>Rate-based rules</strong></td><td>Limita requisições por IP num intervalo — mitiga scraping e ataques de força bruta</td></tr>
+                            <tr><td><strong>Geo-match rules</strong></td><td>Bloqueia/permite por país de origem</td></tr>
+                            <tr><td><strong>IP set match</strong></td><td>Lista de IPs específicos a bloquear/permitir</td></tr>
+                            <tr><td><strong>Custom rules</strong></td><td>Lógica própria sobre headers, query strings, body — para padrões específicos da aplicação</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="callout lab">
-                    <strong>🧪 Lab — Segurança aplicada (1h30, grátis)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Crie uma CMK no KMS, criptografe um objeto S3 com SSE-KMS e veja o evento de uso da chave aparecer no CloudTrail.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Armazene uma credencial de banco no Secrets Manager e configure rotação automática (mesmo sem RDS real, explore a tela de configuração).</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Crie uma Web ACL no WAF com uma regra gerenciada de SQL injection e associe a um ALB ou distribuição CloudFront.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Ative o GuardDuty (free trial de 30 dias) e explore os tipos de findings disponíveis na documentação.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 9 — Segurança aplicada (1h30, grátis)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Crie uma CMK no KMS, criptografe um objeto S3 com SSE-KMS e veja o evento de uso da chave aparecer no CloudTrail.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Armazene uma credencial de banco no Secrets Manager e configure rotação automática (mesmo sem RDS real, explore a tela de configuração e o custo estimado).</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Crie uma Web ACL no WAF com uma regra gerenciada de SQL injection + uma rate-based rule, e associe a um ALB ou distribuição CloudFront.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Ative o GuardDuty (free trial de 30 dias) e explore os tipos de findings disponíveis. Ative o Security Hub e veja os findings agregados de múltiplas fontes.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Detectar uma EC2 comprometida fazendo mineração de criptomoeda?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">GuardDuty — analisa VPC Flow Logs e comportamento de rede com ML, detecta padrões maliciosos automaticamente.</div>
+                        <button class="qa-question" type="button">Detectar uma EC2 comprometida fazendo mineração de criptomoeda, sem configurar regras manualmente?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">GuardDuty — analisa CloudTrail, VPC Flow Logs e logs de DNS com ML, detectando padrões maliciosos conhecidos (como comunicação com pools de mineração) automaticamente, sem necessidade de escrever regras.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Bloquear SQL injection chegando pelo ALB?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">WAF com regras de SQL injection na frente do ALB.</div>
+                        <button class="qa-question" type="button">Bloquear tentativas de SQL injection chegando pelo ALB?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">WAF com um Managed Rule Group de SQL injection associado ao ALB. O WAF opera na camada de aplicação (L7), inspecionando o conteúdo das requisições — o ALB sozinho não faz esse tipo de inspeção.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Rotação automática da senha do banco RDS a cada 30 dias?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Secrets Manager — tem integração nativa com RDS para rotação automática.</div>
+                        <button class="qa-question" type="button">Rotação automática da senha do banco RDS a cada 30 dias, sem escrever código customizado?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Secrets Manager — tem integração nativa pronta para RDS, Aurora, Redshift e DocumentDB para rotação automática agendada. Parameter Store não tem rotação nativa.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">A empresa precisa descobrir automaticamente se há números de cartão de crédito armazenados em buckets S3?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Macie — usa ML para identificar dados sensíveis (PII, dados financeiros) em buckets S3 e gera findings.</div>
+                        <button class="qa-question" type="button">A empresa precisa descobrir automaticamente se há números de cartão de crédito armazenados indevidamente em buckets S3?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Macie — usa ML para identificar dados sensíveis (PII, dados financeiros, credenciais) em objetos S3 e gera findings com a localização exata.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">A questão pede "FIPS 140-2 Level 3" e controle exclusivo do hardware de chaves?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">CloudHSM — hardware dedicado de criptografia. KMS padrão não atende esse nível de exigência de compliance porque é multi-tenant.</div>
+                        <button class="qa-question" type="button">A questão pede "FIPS 140-2 Level 3" e controle exclusivo do hardware de chaves criptográficas?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">CloudHSM — hardware dedicado single-tenant de criptografia. O KMS padrão não atende esse nível de exigência de compliance porque o hardware subjacente é compartilhado (multi-tenant) entre clientes.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Um snapshot de EBS criptografado com uma CMK é compartilhado com outra conta AWS, mas a conta destino não consegue usá-lo. Por quê?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Compartilhar o snapshot não basta — é preciso também atualizar a key policy da CMK para conceder permissão de uso (kms:Decrypt e relacionados) à conta de destino. Sem isso, a conta recebe o snapshot mas não consegue descriptografá-lo.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Preciso investigar a causa raiz de um incidente de segurança, conectando eventos de CloudTrail, VPC Flow Logs e findings do GuardDuty automaticamente?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Amazon Detective — constrói automaticamente um gráfico de comportamento conectando eventos relacionados de múltiplas fontes, facilitando a análise visual da cadeia de eventos sem correlacionar logs manualmente.</div>
                     </li>
                 </ul>
             </section>
@@ -1567,9 +1860,10 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
 
                 <h3>X-Ray — rastreando requisições distribuídas</h3>
                 <p>Quando o enunciado descreve uma arquitetura com <strong>múltiplos microsserviços</strong> (API Gateway → Lambda → DynamoDB → SNS, por exemplo) e pede para identificar onde está o gargalo de latência ou um erro em cadeia, a resposta é <strong>AWS X-Ray</strong> — ele traça o caminho completo de uma requisição (trace) através dos serviços e mostra um mapa de serviço com tempos de cada salto.</p>
+                <p>Para reduzir custo/volume, o X-Ray usa <strong>sampling rules</strong> — não traceia 100% das requisições por padrão (ex.: 1 req/s + 5% das demais). <strong>Annotations</strong> (indexáveis, usadas em filtros) e <strong>Metadata</strong> (não indexável, só para contexto) são as duas formas de anexar dados extras a um trace.</p>
                 <div class="callout tip">
-                    <strong>💡 Sinal prático</strong>
-                    "Identificar qual componente está causando latência numa cadeia de microsserviços" → X-Ray. "O que aconteceu com a CPU/memória/disco?" → CloudWatch. São perguntas diferentes — não confunda observabilidade de uma requisição (X-Ray) com métricas de infraestrutura (CloudWatch).
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Sinal prático</strong> — "Identificar qual componente está causando latência numa cadeia de microsserviços" → X-Ray. "O que aconteceu com a CPU/memória/disco?" → CloudWatch. São perguntas diferentes — não confunda observabilidade de uma requisição (X-Ray, tracing) com métricas de infraestrutura (CloudWatch, métricas agregadas).</div>
                 </div>
 
                 <h3>CloudWatch — componentes essenciais</h3>
@@ -1577,51 +1871,80 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <table class="decision">
                         <thead><tr><th>Componente</th><th>Para quê</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>Metrics</strong></td><td>Séries temporais numéricas (CPU, requests, latência). Métricas custom via <code>PutMetricData</code></td></tr>
-                            <tr><td><strong>Alarms</strong></td><td>Disparam ação (SNS, Auto Scaling, EC2 actions) quando métrica cruza limiar</td></tr>
-                            <tr><td><strong>Logs / Logs Insights</strong></td><td>Centraliza logs de Lambda, ECS, EC2 (via agent). Insights permite consultas tipo SQL nos logs</td></tr>
-                            <tr><td><strong>Dashboards</strong></td><td>Visualização consolidada de métricas de múltiplos serviços/regiões</td></tr>
-                            <tr><td><strong>Synthetics / Contributor Insights</strong></td><td>Canários simulam usuários reais; Contributor Insights identifica top-N contribuintes para um problema</td></tr>
+                            <tr><td><strong>Metrics</strong></td><td>Séries temporais numéricas (CPU, requests, latência). Métricas custom via <code>PutMetricData</code>, ou extraídas de logs via <strong>Metric Filters</strong> e <strong>EMF (Embedded Metric Format)</strong></td></tr>
+                            <tr><td><strong>Alarms</strong></td><td>Disparam ação (SNS, Auto Scaling, EC2 actions) quando métrica cruza limiar. <strong>Composite Alarms</strong> combinam múltiplos alarmes com lógica AND/OR, reduzindo ruído de alertas correlacionados</td></tr>
+                            <tr><td><strong>Anomaly Detection</strong></td><td>Usa ML para aprender o padrão normal da métrica (considerando sazonalidade) e alarma em desvios — melhor que limiar fixo para métricas com padrão cíclico (ex.: tráfego que varia por hora do dia)</td></tr>
+                            <tr><td><strong>Logs / Logs Insights</strong></td><td>Centraliza logs de Lambda, ECS, EC2 (via agent). Insights permite consultas com sintaxe própria (<code>fields, filter, stats, parse</code>) nos logs, sem precisar exportar para outra ferramenta</td></tr>
+                            <tr><td><strong>Dashboards</strong></td><td>Visualização consolidada de métricas de múltiplos serviços/regiões/contas</td></tr>
+                            <tr><td><strong>Synthetics</strong></td><td>Canários — scripts que simulam usuários reais acessando endpoints periodicamente, alertando antes que usuários reais notem o problema</td></tr>
+                            <tr><td><strong>Contributor Insights</strong></td><td>Identifica os top-N contribuintes para um problema (ex.: qual IP gera mais erros 500) a partir de logs, sem escrever query manual</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="callout trap">
-                    <strong>⚠️ Armadilha: CloudWatch não vê dentro da instância por padrão</strong>
-                    Métricas básicas de EC2 (CPU, rede, status checks) vêm de fora do hypervisor. Métricas de <strong>memória RAM e uso de disco</strong> exigem o <strong>CloudWatch Agent</strong> instalado dentro da instância — sem ele, "alertar quando a memória passar de 80%" é impossível.
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilha: CloudWatch não vê dentro da instância por padrão</strong> — Métricas básicas de EC2 (CPU, rede, status checks) vêm de fora do hypervisor, sem precisar de nada instalado. Métricas de <strong>memória RAM e uso de disco</strong> exigem o <strong>CloudWatch Agent</strong> instalado dentro da instância — sem ele, "alertar quando a memória passar de 80%" é impossível, porque a AWS não tem visibilidade do processo guest por padrão.</div>
                 </div>
 
+                <h3>CloudTrail — Management Events × Data Events</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo</th><th>O que registra</th><th>Custo/ativação</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Management Events</strong></td><td>Operações de controle (criar/deletar recursos, mudar configuração — ex.: CreateBucket, TerminateInstances)</td><td>Gravados por padrão, grátis para os últimos 90 dias no console</td></tr>
+                            <tr><td><strong>Data Events</strong></td><td>Operações em nível de dado dentro do recurso (ex.: GetObject/PutObject no S3, invocação de Lambda) — volume muito maior</td><td>Desativado por padrão (custo extra) — ativar quando precisa auditar "quem leu este objeto específico"</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p><strong>CloudTrail Lake</strong> permite consultas SQL diretamente sobre os eventos do trail sem precisar exportar para Athena/S3 manualmente — útil para investigações ad-hoc de segurança.</p>
+
+                <h3>AWS Config — conformidade contínua</h3>
+                <p>O Config grava um histórico de configuração de cada recurso ao longo do tempo (ConfigurationItem) e avalia continuamente contra <strong>Config Rules</strong> (gerenciadas pela AWS ou customizadas via Lambda). <strong>Conformance Packs</strong> agrupam múltiplas regras relacionadas a um framework de compliance específico, aplicáveis em múltiplas contas via Organizations.</p>
+
                 <div class="callout lab">
-                    <strong>🧪 Lab — Observabilidade (1h, grátis)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Instale o CloudWatch Agent numa EC2 e crie um alarme de uso de memória &gt; 80%.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Crie um trail no CloudTrail apontando para um bucket S3. Delete um objeto de teste e localize o evento de exclusão no trail.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Habilite o Config com uma regra gerenciada que verifica se security groups têm a porta 22 aberta para 0.0.0.0/0.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Instrumente uma Lambda simples com X-Ray ativo e observe o trace no console.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 10 — Observabilidade na prática (1h, grátis)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Instale o CloudWatch Agent numa EC2 e crie um alarme de uso de memória &gt; 80%.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Crie um trail no CloudTrail apontando para um bucket S3. Delete um objeto de teste e localize o evento de exclusão no trail.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Habilite o Config com uma regra gerenciada que verifica se security groups têm a porta 22 aberta para 0.0.0.0/0.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Instrumente uma Lambda simples com X-Ray ativo e observe o trace no console — identifique o tempo gasto em cada chamada downstream.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">05</div><p>Escreva uma query no CloudWatch Logs Insights filtrando erros 5xx dos últimos 30 minutos de um log group.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
                         <button class="qa-question" type="button">Descobrir quem terminou uma instância EC2 ontem?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">CloudTrail — registra toda chamada de API com usuário, horário e IP de origem.</div>
+                        <div class="qa-answer">CloudTrail — registra toda chamada de API (Management Event) com usuário/role, horário e IP de origem.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Impedir que qualquer conta da organização use regiões fora da América do Sul?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">SCP (Service Control Policy) no Organizations com condição de região. SCP define o teto — mesmo admins das contas-membro não conseguem ultrapassar.</div>
+                        <div class="qa-answer">SCP (Service Control Policy) no Organizations com condição <code>aws:RequestedRegion</code>. SCP define o teto — mesmo admins das contas-membro não conseguem ultrapassar.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Uma aplicação com vários microsserviços está lenta, mas não se sabe qual serviço é o gargalo?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">AWS X-Ray — gera um mapa de serviço com a latência de cada salto da requisição, identificando exatamente onde o tempo está sendo gasto.</div>
+                        <div class="qa-answer">AWS X-Ray — gera um mapa de serviço com a latência de cada salto da requisição, identificando exatamente onde o tempo está sendo gasto na cadeia de chamadas.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">A equipe quer ser avisada automaticamente se alguém abrir a porta 22 para o mundo num security group?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">AWS Config com uma regra gerenciada (ex.: <code>restricted-ssh</code>) que avalia continuamente a configuração dos security groups e pode até remediar automaticamente com SSM Automation.</div>
+                        <button class="qa-question" type="button">A equipe quer ser avisada automaticamente se alguém abrir a porta 22 para o mundo num security group, e corrigir sozinho se possível?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Config com uma regra gerenciada (ex.: <code>restricted-ssh</code>) que avalia continuamente a configuração dos security groups e pode remediar automaticamente via SSM Automation Document associado à regra.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Os logs do CloudTrail precisam ser retidos por 5 anos para auditoria de compliance — qual a configuração correta?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Configurar o trail para entregar os logs a um bucket S3 (com lifecycle para Glacier, se necessário) — o console do CloudTrail por padrão só mostra 90 dias de eventos, mas o trail em S3 retém indefinidamente conforme a política do bucket.</div>
+                        <div class="qa-answer">Configurar o trail para entregar os logs a um bucket S3 (com lifecycle para Glacier, se necessário) — o console do CloudTrail por padrão só mostra 90 dias de eventos (Event History), mas um trail configurado para S3 retém indefinidamente conforme a política do bucket.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">É preciso auditar quem leu um objeto S3 específico contendo dados sensíveis — Management Events do CloudTrail são suficientes?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Não. GetObject é um Data Event, desativado por padrão no CloudTrail por questão de custo e volume. É preciso ativar explicitamente Data Events para o bucket/prefixo desejado para capturar esse nível de granularidade.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Uma métrica de tráfego tem padrão sazonal previsível (mais alto às 9h, mais baixo de madrugada) e alarmes de limiar fixo geram falsos positivos constantes?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">CloudWatch Anomaly Detection — usa ML para aprender o padrão normal considerando a sazonalidade, criando uma "banda" esperada que se ajusta por horário, em vez de um limiar fixo único que gera ruído.</div>
                     </li>
                 </ul>
             </section>
@@ -1637,6 +1960,25 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                 </div>
 
                 <p>Questões de migração descrevem um cenário on-premises (volume de dados, link de rede, tolerância a downtime) e pedem o serviço/estratégia certa. O ponto de partida é sempre: <strong>o que está sendo movido</strong> (dados, banco, servidor inteiro, arquivos) e <strong>quanto tempo/largura de banda há disponível</strong>.</p>
+
+                <h3>Os 7 Rs — estratégias de migração</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Estratégia</th><th>O que significa</th><th>Quando usar</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Rehost</strong> (lift-and-shift)</td><td>Move a aplicação como está, sem mudanças</td><td>Migração rápida, prazo curto, app não otimizada para cloud ainda — MGN é a ferramenta típica</td></tr>
+                            <tr><td><strong>Replatform</strong> (lift-tinker-and-shift)</td><td>Pequenas otimizações sem mudar arquitetura core</td><td>Ex.: trocar banco self-managed por RDS, sem reescrever a aplicação</td></tr>
+                            <tr><td><strong>Repurchase</strong></td><td>Substitui por um produto SaaS</td><td>Ex.: trocar CRM on-prem por Salesforce — abandona o código legado</td></tr>
+                            <tr><td><strong>Refactor / Re-architect</strong></td><td>Reconstrói a aplicação aproveitando recursos cloud-native</td><td>Maior investimento, mas maior ganho — ex.: monólito → microserviços/serverless</td></tr>
+                            <tr><td><strong>Retire</strong></td><td>Desliga o que não é mais necessário</td><td>Parte comum de qualquer portfolio assessment — 10-20% dos sistemas legados tipicamente não precisam migrar</td></tr>
+                            <tr><td><strong>Retain</strong></td><td>Mantém on-premises por ora</td><td>Dependências complexas, compliance, ou ROI de migração não justificado ainda</td></tr>
+                            <tr><td><strong>Relocate</strong></td><td>Move VMs inteiras (hypervisor) para a AWS sem modificação, ex.: VMware Cloud on AWS</td><td>Quando a infraestrutura de virtualização em si deve ser preservada</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Fases de uma migração em larga escala</h3>
+                <p>O framework da AWS para migrações organiza o trabalho em 3 fases: <strong>Assess</strong> (avaliar portfólio, calcular TCO, usar o <strong>AWS Application Discovery Service</strong> para descobrir dependências e padrões de uso automaticamente), <strong>Mobilize</strong> (construir a landing zone, treinar equipes, definir o plano de migração por onda), e <strong>Migrate &amp; Modernize</strong> (executar e otimizar). O <strong>AWS Migration Hub</strong> centraliza o acompanhamento do progresso de todas as migrações (DMS, MGN, SMS) num único painel.</p>
 
                 <div class="decision-table-wrap">
                     <table class="decision">
@@ -1713,6 +2055,14 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                         <button class="qa-question" type="button">Parceiros externos precisam enviar arquivos via SFTP que devem cair direto num bucket S3?<span class="qa-arrow">▾</span></button>
                         <div class="qa-answer">AWS Transfer Family — fornece endpoints SFTP/FTPS/FTP gerenciados que armazenam os arquivos recebidos diretamente no S3 (ou EFS), sem precisar manter um servidor FTP.</div>
                     </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Antes de migrar, a empresa precisa entender as dependências entre 300 servidores on-premises (quem conversa com quem) sem instalar nada manualmente em cada um?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Application Discovery Service — coleta dados de configuração, uso e dependências de rede automaticamente (via agente leve ou modo agentless), alimentando o planejamento de ondas de migração.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Uma aplicação legada será substituída por um produto SaaS de mercado em vez de migrada — qual dos 7 Rs é esse?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Repurchase — abandona o código/infraestrutura legada e adota um produto SaaS equivalente (ex.: trocar um CRM customizado por Salesforce), eliminando a necessidade de migrar ou manter a aplicação original.</div>
+                    </li>
                 </ul>
             </section>
 
@@ -1768,6 +2118,18 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                 <h3>Quando escolher EMR em vez de Glue</h3>
                 <p>Glue é a resposta padrão para ETL serverless simples. EMR entra quando o enunciado menciona <strong>frameworks específicos</strong> (Spark, Hive, Presto, HBase) com necessidade de configuração detalhada do cluster, jobs de longa duração com estado complexo, ou quando o time já tem expertise em Hadoop/Spark e precisa de controle total sobre o cluster — incluindo o uso de instâncias Spot para os nós de tarefa, reduzindo custo de processamento em até 90%.</p>
 
+                <h3>Lake Formation — governança sobre o data lake</h3>
+                <p>Construir um data lake no S3 com Glue Catalog resolve o armazenamento, mas não o controle de acesso granular. <strong>Lake Formation</strong> adiciona permissões em nível de tabela, coluna e até linha (row-level security) sobre os dados catalogados, com um único lugar para conceder acesso a múltiplos serviços (Athena, Redshift Spectrum, EMR) — em vez de replicar políticas de bucket S3 individualmente para cada consumidor.</p>
+
+                <h3>QuickSight — visualização e BI</h3>
+                <p>QuickSight é o serviço de BI serverless da AWS — conecta a Athena, Redshift, RDS, S3 e outras fontes para criar dashboards interativos. Usa o motor <strong>SPICE</strong> (in-memory) para acelerar consultas repetidas sem golpear a fonte de dados a cada visualização.</p>
+
+                <h3>Redshift Spectrum — consultando o S3 sem carregar dados</h3>
+                <p>O Redshift Spectrum estende as queries SQL do Redshift para consultar dados direto no S3 (via Glue Catalog), sem precisar fazer ETL para carregar tudo no cluster primeiro. Útil para juntar dados "quentes" (já no Redshift) com dados "frios" históricos (que ficam mais baratos no S3) numa única query.</p>
+
+                <h3>OpenSearch — busca e análise de logs</h3>
+                <p>OpenSearch (fork open-source do Elasticsearch mantido pela AWS) é a resposta quando o enunciado pede busca full-text, análise de logs em tempo quase real, ou dashboards de observabilidade (via OpenSearch Dashboards). Diferente do Athena (SQL sobre arquivos estáticos no S3), OpenSearch é um motor de busca/indexação com ingestão contínua — mais adequado para "buscar por palavra-chave em milhões de logs" do que Athena.</p>
+
                 <div class="callout lab">
                     <strong>🧪 Lab — Analytics serverless (1h30, centavos)</strong>
                     <ol class="lab-steps">
@@ -1799,6 +2161,14 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Time de dados já tem jobs Spark complexos e precisa de controle fino sobre o cluster, incluindo uso de Spot para nós de tarefa?<span class="qa-arrow">▾</span></button>
                         <div class="qa-answer">EMR (Elastic MapReduce) — Hadoop/Spark gerenciado com controle total da configuração do cluster, suportando instâncias Spot nos task nodes para reduzir custo.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">A empresa precisa que analistas de diferentes departamentos vejam apenas as colunas/linhas do data lake relevantes ao seu time, sem replicar dados?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Lake Formation — define permissões granulares em nível de tabela, coluna e linha sobre os dados catalogados no Glue Data Catalog, aplicadas de forma centralizada a qualquer serviço que consulte o data lake (Athena, Redshift Spectrum, EMR).</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">É preciso buscar por palavras-chave em milhões de linhas de log de aplicação, com resultados quase em tempo real?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">OpenSearch — motor de busca e indexação otimizado para full-text search e análise de logs com ingestão contínua, diferente do Athena que é melhor para queries SQL analíticas sobre arquivos estáticos no S3.</div>
                     </li>
                 </ul>
             </section>
@@ -1843,6 +2213,24 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                             <tr><td><strong>Budgets</strong></td><td>Alertas e ações quando estourar limite — pode até parar instâncias</td></tr>
                             <tr><td><strong>Cost &amp; Usage Report (CUR)</strong></td><td>Dados brutos detalhados → S3 (analise com Athena/QuickSight)</td></tr>
                             <tr><td><strong>Compute Optimizer</strong></td><td>Right-sizing com ML — identifica over-provisioned</td></tr>
+                            <tr><td><strong>Trusted Advisor</strong></td><td>Checagens automáticas de custo, segurança, performance e limites de serviço — recursos ociosos, RIs subutilizados, buckets públicos</td></tr>
+                            <tr><td><strong>S3 Storage Lens</strong></td><td>Visibilidade organização-wide de métricas de uso e atividade do S3 — identifica buckets candidatos a lifecycle/classe mais barata</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Custo de transferência de dados — a tabela que ninguém memoriza (mas devia)</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo de tráfego</th><th>Custo</th></tr></thead>
+                        <tbody>
+                            <tr><td>Entrada de dados (internet → AWS)</td><td><strong>Grátis</strong>, em qualquer direção/serviço</td></tr>
+                            <tr><td>Saída para a internet (AWS → internet)</td><td>Cobrado por GB, com tier decrescente conforme o volume</td></tr>
+                            <tr><td>Entre AZs na mesma região</td><td>Cobrado (~$0,01/GB em cada direção) — mesmo dentro da mesma VPC</td></tr>
+                            <tr><td>Entre regiões diferentes</td><td>Cobrado, tipicamente mais caro que inter-AZ</td></tr>
+                            <tr><td>Dentro da mesma AZ (mesma instância ou via IP privado)</td><td>Grátis</td></tr>
+                            <tr><td>S3 → CloudFront</td><td>Grátis (tráfego entre serviços AWS na mesma região via essa integração)</td></tr>
+                            <tr><td>Via Gateway VPC Endpoint (S3/DynamoDB)</td><td>Grátis — sem custo de processamento</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1888,6 +2276,14 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Ambientes de desenvolvimento ficam ligados 24/7 mas só são usados em horário comercial — qual a forma mais simples de cortar custo?<span class="qa-arrow">▾</span></button>
                         <div class="qa-answer">Automação de start/stop agendado (ex.: EventBridge Scheduler + Lambda, ou AWS Instance Scheduler) que liga as instâncias no início do expediente e desliga ao final — corta o custo de compute em ~65% (16h ociosas/dia) sem afetar storage.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Duas instâncias EC2 na mesma VPC, em AZs diferentes, trocam grandes volumes de dados continuamente — isso gera custo?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Sim. Tráfego entre AZs é cobrado por GB em cada direção, mesmo dentro da mesma VPC/região. Se a latência entre AZs não for um problema e o requisito de HA permitir, colocar os dois componentes na mesma AZ elimina esse custo — mas avalie o trade-off de resiliência antes.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Como obter rapidamente uma lista de problemas de custo, segurança e limite de serviço sem configurar nenhuma ferramenta nova?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">AWS Trusted Advisor — roda checagens automáticas pré-configuradas nas categorias de custo, segurança, performance, tolerância a falhas e limites de serviço, sem necessidade de setup adicional (o plano de suporte determina quantas checagens estão disponíveis).</div>
                     </li>
                 </ul>
             </section>
@@ -1961,6 +2357,10 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     </table>
                 </div>
 
+                <h3>Service Discovery e padrão Sidecar</h3>
+                <p>Quando microserviços em containers precisam se encontrar dinamicamente (sem IPs fixos), o <strong>ECS Service Connect</strong> (ou App Mesh / AWS Cloud Map para casos mais customizados) fornece nomes DNS internos estáveis que resolvem para as tasks saudáveis atuais, com métricas de tráfego e retry automático entre serviços.</p>
+                <p>O padrão <strong>Sidecar</strong> roda um container auxiliar na mesma task que o container principal, compartilhando rede/storage — usado para proxies (Envoy no App Mesh), agentes de log (Fluent Bit enviando para CloudWatch Logs) ou coleta de métricas (ADOT collector), sem acoplar essa responsabilidade ao código da aplicação.</p>
+
                 <h3>Decisão final: ECS vs EKS vs Fargate vs App Runner</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
@@ -2012,6 +2412,14 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                         <button class="qa-question" type="button">Vulnerabilidades conhecidas (CVEs) em imagens Docker — como detectar antes do deploy?<span class="qa-arrow">▾</span></button>
                         <div class="qa-answer">Habilitar image scanning no ECR (basic ou enhanced via Inspector) — escaneia as camadas da imagem no push e reporta CVEs antes que a imagem seja usada em produção.</div>
                     </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Microserviços em containers precisam se descobrir dinamicamente sem hardcodar IPs, à medida que tasks são substituídas pelo Auto Scaling?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">ECS Service Connect (ou AWS Cloud Map) — fornece nomes DNS internos estáveis que sempre resolvem para as tasks saudáveis atuais, eliminando a necessidade de configuração manual de endpoints a cada deploy/scaling.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Como coletar logs e métricas de uma aplicação em container sem modificar o código da aplicação?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Padrão Sidecar — um container auxiliar (ex.: Fluent Bit para logs, ADOT collector para métricas/traces) roda na mesma task, compartilhando rede e volumes com o container principal, capturando dados sem nenhuma mudança no código da aplicação.</div>
+                    </li>
                 </ul>
             </section>
 
@@ -2062,6 +2470,9 @@ Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
                     <strong>⚠️ Armadilha: 29 segundos vs 15 minutos</strong>
                     O API Gateway tem um <strong>timeout fixo de 29 segundos</strong> — não configurável — para qualquer integração, mesmo que a Lambda por trás permita até 15 minutos. Se o processamento pode demorar mais que isso, a API Gateway não pode chamar a Lambda de forma síncrona e esperar o resultado. Padrão correto: a API retorna 202 imediatamente (ex.: enfileira em SQS ou inicia uma Step Functions), e o cliente consulta o resultado depois (polling) ou recebe via WebSocket/SNS.
                 </div>
+
+                <h3>Stages, Caching e Canary no API Gateway</h3>
+                <p>Cada <strong>Stage</strong> (dev, staging, prod) é uma versão deployada independente da API, com suas próprias variáveis de configuração e logs. <strong>Caching</strong> nativo do REST API armazena respostas por TTL configurável, reduzindo chamadas ao backend para dados que não mudam a cada requisição. <strong>Canary Release</strong> permite direcionar uma % do tráfego para uma nova versão da API antes de promovê-la 100% — reduzindo o risco de um deploy ruim afetar todos os usuários de uma vez.</p>
 
                 <h3>Step Functions: Standard vs Express</h3>
                 <div class="compare-grid">
