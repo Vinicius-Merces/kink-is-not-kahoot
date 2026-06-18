@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="css/trilha.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/music-player.css">
+    <link rel="stylesheet" href="css/tts-reader.css">
 
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -240,73 +241,202 @@
             <section class="trilha-chapter" id="cap1">
                 <div class="trilha-chapter-header">
                     <span class="trilha-chapter-num">CAP. 01</span>
-                    <h2>IAM e modelo de identidade</h2>
+                    <h2>IAM — Identidade, Acesso e Federação</h2>
                     <span class="priority-badge badge-high">Consolidar</span>
                 </div>
 
+                <p>O IAM (Identity and Access Management) é o sistema nervoso de segurança de toda conta AWS. Cada chamada de API que você faz passa pelo IAM antes de chegar ao serviço destino. Entender IAM profundamente é pré-requisito para todos os outros capítulos — especialmente os de segurança, rede e arquitetura multi-conta.</p>
+
                 <h3>A lógica de avaliação de permissões</h3>
-                <p>Toda requisição passa por um "juiz" que avalia todas as policies aplicáveis. A sentença segue esta ordem — sem exceções:</p>
+                <p>Toda requisição passa por um "juiz" que avalia todas as policies aplicáveis. A ordem de avaliação é determinística e não tem exceções:</p>
                 <div class="code-block"><pre><span class="comment">Requisição chega</span>
-  → existe <span class="keyword">Deny explícito</span>?   → SIM → ❌ NEGADO (fim — Deny sempre ganha)
+  → 1. existe <span class="keyword">Deny explícito</span> em QUALQUER policy?  → SIM → ❌ NEGADO (fim)
               ↓ não
-  → existe <span class="keyword">Allow explícito</span>?  → SIM → ✅ PERMITIDO
+  → 2. existe <span class="keyword">Allow explícito</span> em alguma policy?   → SIM → ✅ PERMITIDO
               ↓ não
-  → <span class="keyword">Negação implícita</span>         → ❌ NEGADO (padrão)</pre></div>
+  → 3. <span class="keyword">Negação implícita</span>                          → ❌ NEGADO (padrão)</pre></div>
+
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Acesso cross-account é diferente</strong> — na mesma conta, um Allow em qualquer policy é suficiente. Em acesso cross-account, <strong>AMBAS</strong> as contas precisam permitir: a identity policy da conta de origem E a resource-based policy (ou role trust policy) da conta de destino. Um único Allow não basta.</div>
+                </div>
 
                 <h3>Anatomia de uma policy IAM</h3>
+                <p>Uma policy é um documento JSON com um ou mais Statements. Cada statement tem cinco campos principais:</p>
                 <div class="code-block"><pre><span class="key">"Statement"</span>: [{
-  <span class="key">"Effect"</span>:    <span class="string">"Allow"</span>,
+  <span class="key">"Sid"</span>:       <span class="string">"PermitirLeituraS3"</span>,        <span class="comment">← identificador opcional (bom para documentação)</span>
+  <span class="key">"Effect"</span>:    <span class="string">"Allow"</span>,                    <span class="comment">← Allow ou Deny</span>
+  <span class="key">"Principal"</span>: <span class="string">"*"</span>,                       <span class="comment">← quem? Só em resource-based policies</span>
   <span class="key">"Action"</span>:    [<span class="string">"s3:GetObject"</span>, <span class="string">"s3:ListBucket"</span>],
-  <span class="key">"Resource"</span>:  [<span class="string">"arn:aws:s3:::meu-bucket"</span>,     <span class="comment">← o BUCKET</span>
-               <span class="string">"arn:aws:s3:::meu-bucket/*"</span>],  <span class="comment">← os OBJETOS</span>
-  <span class="key">"Condition"</span>: { <span class="string">"IpAddress"</span>: { <span class="string">"aws:SourceIp"</span>: <span class="string">"203.0.113.0/24"</span> }}
+  <span class="key">"Resource"</span>:  [<span class="string">"arn:aws:s3:::meu-bucket"</span>,     <span class="comment">← o BUCKET (para ListBucket)</span>
+               <span class="string">"arn:aws:s3:::meu-bucket/*"</span>],  <span class="comment">← os OBJETOS (para GetObject)</span>
+  <span class="key">"Condition"</span>: {
+    <span class="string">"IpAddress"</span>:       { <span class="string">"aws:SourceIp"</span>: <span class="string">"203.0.113.0/24"</span> },
+    <span class="string">"StringEquals"</span>:    { <span class="string">"aws:RequestedRegion"</span>: <span class="string">"us-east-1"</span> },
+    <span class="string">"Bool"</span>:            { <span class="string">"aws:MultiFactorAuthPresent"</span>: <span class="string">"true"</span> }
+  }
 }]</pre></div>
                 <div class="callout trap">
                     <div class="callout-icon">⚠</div>
-                    <div class="callout-body"><strong>Armadilha</strong><code>arn:aws:s3:::bucket</code> ≠ <code>arn:aws:s3:::bucket/*</code>. O primeiro é o bucket (ListBucket); o segundo são os objetos (GetObject/PutObject). Esquecer o <code>/*</code> é erro clássico.</div>
+                    <div class="callout-body"><strong>Armadilha clássica de ARN</strong>: <code>arn:aws:s3:::bucket</code> identifica o <em>bucket em si</em> (necessário para <code>ListBucket</code>). <code>arn:aws:s3:::bucket/*</code> identifica os <em>objetos dentro do bucket</em> (necessário para <code>GetObject/PutObject</code>). Esquecer qualquer um dos dois gera AccessDenied — e essa distinção cai muito no exame.</div>
                 </div>
 
-                <h3>Tipos de policy — tabela de decisão</h3>
+                <h3>Tipos de policy — tabela de decisão completa</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Tipo</th><th>Anexada a</th><th>Caso de uso típico</th></tr></thead>
+                        <thead><tr><th>Tipo</th><th>Anexada a</th><th>Caso de uso principal</th><th>Obs. chave</th></tr></thead>
                         <tbody>
-                            <tr><td>Identity-based</td><td>User, Group, Role</td><td>"O que esta identidade pode fazer?"</td></tr>
-                            <tr><td>Resource-based</td><td>S3 bucket, SQS, KMS…</td><td>"Quem pode acessar este recurso?" — único que permite cross-account sem role</td></tr>
-                            <tr><td>SCP</td><td>Conta/OU (Organizations)</td><td>Define o teto máximo; <strong>não dá permissão — só limita</strong></td></tr>
-                            <tr><td>Permission boundary</td><td>User ou Role</td><td>Impede escalada de privilégio: devs criam roles mas nunca além do boundary</td></tr>
+                            <tr><td><strong>Identity-based</strong></td><td>User, Group, Role</td><td>"O que esta identidade pode fazer?"</td><td>Managed (AWS ou customer) ou inline</td></tr>
+                            <tr><td><strong>Resource-based</strong></td><td>S3 bucket, SQS, KMS, Lambda…</td><td>"Quem pode acessar este recurso?"</td><td>Único tipo que permite cross-account <em>sem role</em>; tem campo Principal</td></tr>
+                            <tr><td><strong>SCP</strong></td><td>Conta/OU (Organizations)</td><td>Teto máximo de permissões — não concede nada, só limita</td><td>Não afeta root da conta; nunca aparece sozinha no IAM console</td></tr>
+                            <tr><td><strong>Permission boundary</strong></td><td>User ou Role (não Group)</td><td>Impede que devs escalem privilégio ao criar roles</td><td>Deve ter Allow na boundary E na identity policy — interseção</td></tr>
+                            <tr><td><strong>Session policy</strong></td><td>Sessão STS temporária</td><td>Limitar o que a sessão assumida pode fazer além da role</td><td>Só reduz — nunca amplia permissões da role assumida</td></tr>
                         </tbody>
                     </table>
                 </div>
+
+                <h3>STS — o motor das credenciais temporárias</h3>
+                <p>O AWS Security Token Service (STS) é o serviço que emite credenciais temporárias (Access Key + Secret Key + Session Token + Expiration). Toda vez que algo "assume" uma role, está chamando o STS. As credenciais expiram entre 15 minutos e 12 horas, dependendo da configuração.</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>API do STS</th><th>Quem chama</th><th>Uso típico</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>AssumeRole</code></td><td>Identidade IAM, serviço AWS</td><td>Cross-account, EC2 assumindo role, CI/CD</td></tr>
+                            <tr><td><code>AssumeRoleWithSAML</code></td><td>IdP corporativo (SAML 2.0)</td><td>Federação com Active Directory via ADFS/Okta</td></tr>
+                            <tr><td><code>AssumeRoleWithWebIdentity</code></td><td>App com token OIDC (Google, Facebook, Cognito)</td><td>Apps mobile com identidade web</td></tr>
+                            <tr><td><code>GetSessionToken</code></td><td>User IAM com MFA</td><td>Forçar MFA para obter credenciais temporárias</td></tr>
+                            <tr><td><code>GetFederationToken</code></td><td>Proxy app corporativo</td><td>Delegar acesso temporário a usuários externos (legado)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Cross-account access — como funciona na prática</h3>
+                <p>Cenário: Conta A (onde está o desenvolvedor) quer acessar recursos na Conta B (onde está o bucket S3).</p>
+                <div class="code-block"><pre><span class="comment">1. Na Conta B: crie uma Role com trust policy confiando na Conta A</span>
+{
+  <span class="key">"Principal"</span>: { <span class="key">"AWS"</span>: <span class="string">"arn:aws:iam::111111111111:root"</span> },  <span class="comment">← Conta A</span>
+  <span class="key">"Action"</span>: <span class="string">"sts:AssumeRole"</span>,
+  <span class="key">"Condition"</span>: { <span class="key">"StringEquals"</span>: { <span class="key">"sts:ExternalId"</span>: <span class="string">"segredo-compartilhado"</span> }}
+}
+
+<span class="comment">2. Na Conta A: permita que o usuário/role assuma a role da Conta B</span>
+{ <span class="key">"Action"</span>: <span class="string">"sts:AssumeRole"</span>, <span class="key">"Resource"</span>: <span class="string">"arn:aws:iam::222222222222:role/RoleNaContaB"</span> }
+
+<span class="comment">3. O usuário na Conta A chama:</span>
+aws sts assume-role --role-arn arn:aws:iam::222222222222:role/RoleNaContaB \
+                   --external-id segredo-compartilhado \
+                   --role-session-name minha-sessao</pre></div>
+
+                <div class="callout tip">
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>External ID evita o "confused deputy problem"</strong> — se uma ferramenta de terceiro (ex.: empresa de auditoria) usa a sua role, um atacante que comprometesse outra conta cliente dessa ferramenta poderia fingir ser a sua empresa. Com External ID (segredo exclusivo do par fornecedor+cliente), isso não é possível.</div>
+                </div>
+
+                <h3>Permission Boundary — entendendo a interseção</h3>
+                <p>Um Permission Boundary define o <em>teto máximo</em> do que uma identity pode fazer, independente de qualquer policy concedida. O acesso efetivo é a <strong>interseção</strong> entre a identity policy e o boundary — não a soma.</p>
+                <div class="code-block"><pre><span class="comment">Identity policy permite: s3:*, ec2:*, iam:*</span>
+<span class="comment">Permission boundary permite: s3:*, ec2:*</span>
+<span class="comment">Resultado: s3:*, ec2:* — iam:* é cortado pelo boundary</span></pre></div>
+                <p>Uso principal: permitir que desenvolvedores criem roles para suas aplicações, mas impedir que criem roles com mais permissão do que eles mesmos têm. O dev tem um boundary que inclui apenas os serviços que usa — qualquer role que ele criar herda esse teto.</p>
 
                 <h3>Quando usar Role — os cenários clássicos</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Cenário</th><th>Solução correta</th></tr></thead>
+                        <thead><tr><th>Cenário</th><th>Solução correta</th><th>Por quê</th></tr></thead>
                         <tbody>
-                            <tr><td>App na EC2 precisa acessar S3</td><td><strong>Instance profile (Role na EC2)</strong> — nunca access keys no código</td></tr>
-                            <tr><td>Lambda precisa acessar DynamoDB</td><td><strong>Execution role da Lambda</strong></td></tr>
-                            <tr><td>Conta A acessa recurso na conta B</td><td><strong>Cross-account role</strong> (B cria a role confiando em A)</td></tr>
-                            <tr><td>Login corporativo (AD/Okta/SAML)</td><td><strong>IAM Identity Center</strong> ou federação SAML → assume role</td></tr>
-                            <tr><td>App mobile com milhões de usuários</td><td><strong>Cognito Identity Pools</strong></td></tr>
-                            <tr><td>Auditoria externa na sua conta</td><td>Cross-account role com <strong>External ID</strong></td></tr>
+                            <tr><td>App na EC2 precisa acessar S3</td><td><strong>Instance Profile (Role anexada à EC2)</strong></td><td>Credenciais temporárias via IMDS — sem access keys hardcoded</td></tr>
+                            <tr><td>Lambda precisa acessar DynamoDB</td><td><strong>Execution Role da Lambda</strong></td><td>Lambda assume a role automaticamente na invocação</td></tr>
+                            <tr><td>Conta A acessa recurso na Conta B</td><td><strong>Cross-account role + AssumeRole</strong></td><td>Conta B controla quem pode assumir; sem compartilhar credenciais</td></tr>
+                            <tr><td>Login corporativo (AD/Okta/SAML)</td><td><strong>IAM Identity Center</strong> ou federação SAML direto</td><td>Usuários não existem no IAM da AWS — federação → role temporária</td></tr>
+                            <tr><td>App mobile com usuários finais</td><td><strong>Cognito User Pool + Identity Pool</strong></td><td>Cognito autentica → emite token OIDC → STS AssumeRoleWithWebIdentity</td></tr>
+                            <tr><td>Auditoria externa na sua conta</td><td>Cross-account role com <strong>External ID obrigatório</strong></td><td>Evita confused deputy; o auditor usa a role sem ter credenciais permanentes</td></tr>
+                            <tr><td>Pipeline CI/CD (GitHub Actions)</td><td><strong>OIDC Provider + AssumeRoleWithWebIdentity</strong></td><td>Sem access keys armazenadas nos secrets do repositório</td></tr>
                         </tbody>
                     </table>
                 </div>
 
+                <h3>IAM Identity Center (SSO) — para ambientes multi-conta</h3>
+                <p>O IAM Identity Center (antigo AWS SSO) é a solução recomendada para organizações com múltiplas contas AWS. Centraliza o login e provisiona acesso via Permission Sets (coleções de policies aplicadas a pares conta+grupo).</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Característica</th><th>Identity Center</th><th>Federação SAML direta (legado)</th></tr></thead>
+                        <tbody>
+                            <tr><td>Onde o usuário existe</td><td>IdP externo (AD, Okta) ou Identity Center interno</td><td>IdP externo — ADFS ou similar</td></tr>
+                            <tr><td>Granularidade</td><td>Permission Sets por conta/grupo — muito flexível</td><td>Roles mapeadas 1:1 com grupos SAML</td></tr>
+                            <tr><td>Duração da sessão</td><td>Configurável por Permission Set (1-12h)</td><td>Configurável na role (duração máxima 12h)</td></tr>
+                            <tr><td>Quando usar</td><td>Cenário novo, multi-conta, melhor UX</td><td>Já existe infraestrutura ADFS, migração custosa</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Amazon Cognito — autenticação para seus usuários finais</h3>
+                <p>Cognito gerencia usuários <em>das suas aplicações</em> — não usuários IAM da AWS. É a resposta quando o enunciado diz "milhões de usuários" ou "app mobile/web com login próprio".</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th></th><th>User Pool</th><th>Identity Pool</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>O que faz</strong></td><td>Autentica usuários (registro, login, MFA, recuperação de senha)</td><td>Troca token de autenticação por credenciais AWS temporárias</td></tr>
+                            <tr><td><strong>Saída</strong></td><td>JWT (ID token, Access token, Refresh token)</td><td>Credenciais STS (Access Key + Secret + Token)</td></tr>
+                            <tr><td><strong>Analogia</strong></td><td>"O porteiro que verifica o convite"</td><td>"O crachá temporário para entrar na AWS"</td></tr>
+                            <tr><td><strong>Combinação comum</strong></td><td colspan="2">User Pool autentica → token JWT → Identity Pool troca por credentials AWS → app chama S3/DynamoDB diretamente</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>ABAC — controle baseado em atributos (tags)</h3>
+                <p>ABAC (Attribute-Based Access Control) usa tags como condições nas policies, eliminando a necessidade de criar uma policy por recurso. Em vez de "developer-joao pode acessar o bucket-joao", você escreve: "qualquer desenvolvedor pode acessar qualquer recurso com a mesma tag de equipe".</p>
+                <div class="code-block"><pre><span class="comment">Policy ABAC: "Acesse recursos com a mesma tag de equipe que a sua identidade"</span>
+{
+  <span class="key">"Condition"</span>: {
+    <span class="key">"StringEquals"</span>: {
+      <span class="key">"aws:ResourceTag/Equipe"</span>: <span class="string">"${aws:PrincipalTag/Equipe}"</span>
+    }
+  }
+}</pre></div>
+                <p>Vantagem: escala automaticamente — ao adicionar um novo membro à equipe, basta dar a tag correta. Sem ABAC, seria necessário atualizar a policy.</p>
+
+                <h3>IAM Access Analyzer — descubra o que está exposto</h3>
+                <p>O IAM Access Analyzer analisa políticas e identifica recursos que estão acessíveis a entidades externas à sua zona de confiança (conta ou organização). Emite findings para:</p>
+                <ul>
+                    <li>Buckets S3 com acesso público ou cross-account</li>
+                    <li>Roles com trust policies que permitem acesso de contas externas</li>
+                    <li>KMS keys, Lambda functions, SQS queues, Secrets Manager secrets</li>
+                    <li>Policies excessivamente permissivas (geração de policies com princípio de menor privilégio)</li>
+                </ul>
+
+                <h3>Conditions mais cobradas no exame</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Condition Key</th><th>O que verifica</th><th>Exemplo de uso</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>aws:SourceIp</code></td><td>IP de origem da requisição</td><td>Permitir acesso ao S3 só de IPs corporativos</td></tr>
+                            <tr><td><code>aws:RequestedRegion</code></td><td>Região destino da requisição</td><td>SCP que impede criação de recursos fora de us-east-1/sa-east-1</td></tr>
+                            <tr><td><code>aws:MultiFactorAuthPresent</code></td><td>Se MFA foi usado na sessão</td><td>Exigir MFA para ações destruidoras (s3:DeleteObject)</td></tr>
+                            <tr><td><code>aws:PrincipalTag/...</code></td><td>Tags da identidade que faz a requisição</td><td>ABAC — comparar tag da identidade com tag do recurso</td></tr>
+                            <tr><td><code>aws:ResourceTag/...</code></td><td>Tags do recurso sendo acessado</td><td>ABAC — restringir acesso a recursos com tag específica</td></tr>
+                            <tr><td><code>sts:ExternalId</code></td><td>External ID na trust policy</td><td>Evitar confused deputy em cross-account para terceiros</td></tr>
+                            <tr><td><code>aws:SourceVpc</code></td><td>VPC de origem (via VPC Endpoint)</td><td>Restringir acesso ao S3 só para dentro da VPC</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Políticas de senha e MFA</h3>
+                <p>O IAM permite configurar uma <strong>Account Password Policy</strong> que se aplica a todos os usuários IAM da conta: comprimento mínimo, complexidade, histórico de senhas, expiração. Para o root e usuários privilegiados, MFA é obrigatório como prática de segurança — e o exame frequentemente exige que você saiba que o root não pode ter policies IAM aplicadas a ele (ele tem acesso total por definição).</p>
+
                 <div class="callout tip">
                     <div class="callout-icon">💡</div>
-                    <div class="callout-body"><strong>Sinal prático</strong>Quando o enunciado pede resposta elástica com pouca operação manual, privilegie serviços gerenciados (roles, Identity Center, Secrets Manager) em vez de credenciais fixas geridas manualmente.</div>
+                    <div class="callout-body"><strong>Sinal prático para o exame</strong>: Quando o enunciado fala em "milhões de usuários" ou "app mobile" → Cognito. "Funcionários da empresa com AD" → Identity Center ou SAML. "Serviço AWS acessando outro" → Role. "Chave de acesso no código" → nunca — sempre role ou Secrets Manager.</div>
                 </div>
 
                 <div class="callout lab">
                     <div class="callout-icon">🧪</div>
                     <div class="callout-body">
-                        <strong>Lab 1 — IAM na prática (1h, grátis)</strong>
+                        <strong>Lab 1 — IAM na prática (1h30, grátis)</strong>
                         <ol class="lab-steps">
                             <li class="lab-step"><div class="lab-step-num">01</div><p>Crie a role <code>LeitorS3</code> para EC2 com <code>AmazonS3ReadOnlyAccess</code>, suba uma EC2 com ela e rode <code>aws s3 ls</code> sem credenciais. Depois tente <code>aws s3 cp</code> → observe o AccessDenied.</p></li>
-                            <li class="lab-step"><div class="lab-step-num">02</div><p>Adicione uma <strong>permission boundary</strong> que só permite <code>s3:*</code>. Tente anexar <code>AdministratorAccess</code> — confirme que mesmo com a policy de admin, nada além de S3 funciona.</p></li>
-                            <li class="lab-step"><div class="lab-step-num">03</div><p>Use o <strong>IAM Policy Simulator</strong> para testar 3 ações contra a role sem precisar executar nada.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Adicione uma <strong>permission boundary</strong> que só permite <code>s3:*</code>. Tente anexar <code>AdministratorAccess</code> à role — confirme que mesmo com a policy de admin, nada além de S3 funciona (interseção).</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Use o <strong>IAM Policy Simulator</strong> para testar 3 ações contra a role. Adicione uma condição <code>aws:MultiFactorAuthPresent: true</code> e veja o resultado mudar para Denied.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Crie um <strong>IAM Access Analyzer</strong> na conta. Veja quais recursos geram findings imediatamente. Corrija um finding e confirme que ele é resolvido automaticamente.</p></li>
                         </ol>
                     </div>
                 </div>
@@ -315,19 +445,27 @@
                 <ul class="qa-list">
                     <li class="qa-item">
                         <button class="qa-question" type="button">Uma identity policy permite s3:*, mas a bucket policy tem Deny explícito. Qual o resultado?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Negado. Deny explícito sempre vence qualquer Allow, independente de onde vem.</div>
+                        <div class="qa-answer">Negado. Deny explícito sempre vence qualquer Allow, independente de onde vem — seja em identity policy, resource policy, SCP, ou qualquer outro tipo.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Qual a diferença prática entre Role e User IAM?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">User tem credenciais permanentes e identidade própria. Role é assumida temporariamente via STS — ninguém "é" uma role, apenas a veste por tempo limitado.</div>
+                        <div class="qa-answer">User tem credenciais permanentes (access key / senha) e identidade própria. Role é assumida temporariamente via STS — ninguém "é" uma role, apenas a veste por tempo limitado. Credenciais da role expiram (15 min a 12h). Roles não têm senhas nem access keys estáticas.</div>
                     </li>
                     <li class="qa-item">
                         <button class="qa-question" type="button">Para que serve o External ID numa cross-account role?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Evita o "confused deputy problem": garante que apenas o parceiro correto pode assumir a role usando o External ID como segredo compartilhado.</div>
+                        <div class="qa-answer">Evita o "confused deputy problem": quando um fornecedor gerencia múltiplos clientes, sem External ID uma conta cliente comprometida poderia usar o fornecedor para acessar a sua conta. Com External ID (segredo exclusivo do par fornecedor+você), o fornecedor só assume a sua role se apresentar o ID correto.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Por que escolher recurso premium "porque é mais seguro" pode ser a resposta errada?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">No SAA-C03 o desempate costuma ser custo/operação: se o cenário não exige a capacidade extra, a resposta "correta" é a solução mais simples que atende ao requisito — não a mais cara.</div>
+                        <button class="qa-question" type="button">Qual é a diferença entre Cognito User Pool e Identity Pool?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">User Pool autentica usuários e emite JWTs (quem você é). Identity Pool troca um token de autenticação (JWT do User Pool, Google, Facebook, SAML) por credenciais AWS temporárias via STS (o que você pode fazer na AWS). User Pool = porteiro. Identity Pool = crachá temporário de acesso à AWS.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Um desenvolvedor tem AdministratorAccess mas um permission boundary que permite apenas s3:GetObject. O que ele pode fazer?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Apenas s3:GetObject. Permission boundary define o teto — o acesso efetivo é a INTERSEÇÃO entre a identity policy e o boundary. Mesmo com AdministratorAccess na policy, o boundary limita a apenas o que ambos permitem simultaneamente.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Como garantir que uma EC2 em sub-rede privada acesse a AWS sem access keys e sem sair para a internet?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Instance Profile (IAM Role na EC2) para autenticação + VPC Endpoint para que o tráfego não saia para a internet. A EC2 obtém credenciais temporárias via IMDS na rede local, e o VPC Endpoint roteia chamadas ao serviço AWS (ex.: S3, STS) pela rede privada da AWS.</div>
                     </li>
                 </ul>
             </section>
@@ -338,119 +476,235 @@
             <section class="trilha-chapter" id="cap2">
                 <div class="trilha-chapter-header">
                     <span class="trilha-chapter-num">CAP. 02</span>
-                    <h2>Computação (EC2, Auto Scaling, ELB)</h2>
+                    <h2>Computação — EC2, Auto Scaling e ELB</h2>
                     <span class="priority-badge badge-critical">Prioridade Alta</span>
                 </div>
 
+                <p>EC2 é o serviço de computação base da AWS e aparece em quase toda arquitetura. O SAA-C03 vai muito além de "suba uma instância" — ele testa sua capacidade de escolher o modelo de compra certo, dimensionar corretamente com Auto Scaling, e distribuir carga com o tipo de Load Balancer adequado para cada protocolo.</p>
+
                 <h3>Famílias de instância — decore a letra, não o número</h3>
-                <p>O exame raramente pergunta o número exato da instância. Ele descreve um cenário e espera que você reconheça qual <strong>família de letra</strong> resolve. Memorize o padrão: T/M para uso geral, C para CPU, R/X para memória, I/D para storage local, P/G para GPU.</p>
+                <p>O exame raramente pergunta o tipo exato da instância. Ele descreve um cenário e espera que você reconheça qual <strong>família</strong> resolve. Memorize o padrão abaixo:</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Família</th><th>Otimizada para</th><th>Palavra-gatilho na questão</th></tr></thead>
+                        <thead><tr><th>Família</th><th>Otimizada para</th><th>Palavra-gatilho no enunciado</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>T / M</strong></td><td>Uso geral (T = burstable)</td><td>"web server comum", "carga variável", "desenvolvimento"</td></tr>
-                            <tr><td><strong>C</strong></td><td>CPU (Compute)</td><td>"processamento intenso", "batch", "encoding", "HPC"</td></tr>
-                            <tr><td><strong>R / X</strong></td><td>Memória (RAM)</td><td>"banco em memória", "SAP", "análise em memória", "muita RAM"</td></tr>
-                            <tr><td><strong>I / D</strong></td><td>Storage local NVMe</td><td>"altíssimo IOPS local", "NoSQL auto-gerenciado"</td></tr>
-                            <tr><td><strong>P / G</strong></td><td>GPU (acelerado)</td><td>"treinamento de ML", "renderização", "deep learning"</td></tr>
+                            <tr><td><strong>T</strong> (burstable)</td><td>Uso geral com créditos de CPU</td><td>"desenvolvimento", "carga variável", "baixo custo com picos ocasionais"</td></tr>
+                            <tr><td><strong>M</strong> (geral)</td><td>Uso geral balanceado</td><td>"web server de produção", "microserviço", sem requisito extremo</td></tr>
+                            <tr><td><strong>C</strong> (compute)</td><td>CPU intenso</td><td>"processamento intenso", "encoding de vídeo", "HPC", "análise científica"</td></tr>
+                            <tr><td><strong>R / X</strong></td><td>Memória (RAM)</td><td>"banco em memória", "SAP HANA", "Redis", "enorme conjunto de dados em RAM"</td></tr>
+                            <tr><td><strong>I / D</strong></td><td>Storage local NVMe</td><td>"altíssimo IOPS local", "NoSQL auto-gerenciado", "Cassandra sem EBS"</td></tr>
+                            <tr><td><strong>P / G / Trn / Inf</strong></td><td>GPU / Aceleradores</td><td>"treinamento de ML", "inferência", "renderização", "deep learning"</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="callout trap">
-                    <strong>⚠️ Armadilha: instâncias burstable (T)</strong>
-                    Instâncias da família T acumulam <code>CPUCreditBalance</code> quando ociosas e gastam esses créditos em picos de uso. Se a carga é <strong>constante e alta</strong>, os créditos se esgotam e a CPU é estrangulada (throttled). Se o enunciado descreve "carga contínua elevada", T é resposta errada — a menos que cite explicitamente o modo <em>unlimited</em>.
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilha: instâncias burstable (T)</strong> — A família T acumula <code>CPUCreditBalance</code> quando ociosa e gasta créditos em picos. Se a carga é <strong>constante e alta</strong>, os créditos se esgotam e a CPU fica throttled. Se o enunciado diz "carga contínua elevada" e você ver T3/T3a como opção, é distrator. A correção é migrar para M (balanceado) ou C (CPU), ou ativar o modo <em>unlimited</em> da família T (que cobra o excedente por hora).</div>
                 </div>
 
-                <h3>Modelos de compra — a tabela mais cobrada do Domínio 4</h3>
+                <h3>User Data e Instance Metadata Service (IMDS)</h3>
+                <p>O <strong>User Data</strong> é um script executado uma única vez durante o primeiro boot da instância (como root). É o mecanismo padrão para instalar pacotes, puxar código do S3, configurar serviços, etc. Para depurar, veja os logs em <code>/var/log/cloud-init-output.log</code>.</p>
+                <p>O <strong>IMDS</strong> (Instance Metadata Service) é acessível <em>de dentro</em> da instância pelo endpoint <code>169.254.169.254</code>. Ele fornece metadados da instância (ID, tipo, AZ, IP), e mais importante: as <strong>credenciais temporárias da Instance Profile (Role)</strong>. O SDK da AWS busca credenciais aí automaticamente — por isso a EC2 não precisa de access keys no código.</p>
+                <div class="callout tip">
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>IMDSv2 vs IMDSv1</strong> — A versão v2 do IMDS exige um token temporário antes de aceitar requisições, protegendo contra ataques SSRF que tentam roubar credenciais via vulnerabilidades na aplicação. No exame, se a questão falar em "proteção contra SSRF para roubo de credenciais EC2", a resposta é habilitar <strong>IMDSv2 obrigatório</strong>.</div>
+                </div>
+
+                <h3>Modelos de compra EC2 — a tabela mais cobrada do Domínio 4</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Modelo</th><th>Desconto</th><th>Compromisso</th><th>Quando usar</th></tr></thead>
+                        <thead><tr><th>Modelo</th><th>Desconto vs On-Demand</th><th>Compromisso</th><th>Quando usar</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>On-Demand</strong></td><td>0%</td><td>Nenhum</td><td>Carga imprevisível ou curta; não pode ser interrompida</td></tr>
-                            <tr><td><strong>Reserved (RI)</strong></td><td>até 72%</td><td>1 ou 3 anos</td><td>Carga <strong>estável e previsível</strong> — "roda 24/7 há anos"</td></tr>
-                            <tr><td><strong>Savings Plans</strong></td><td>até 72%</td><td>$/hora por 1-3 anos</td><td>Igual ao RI, mas com <strong>flexibilidade</strong> de família/região — cobre também Fargate e Lambda</td></tr>
-                            <tr><td><strong>Spot</strong></td><td>até 90%</td><td>Nenhum (interrupção com 2 min de aviso)</td><td>Workloads <strong>tolerantes a interrupção</strong>: batch, CI/CD, big data, render. Nunca para banco/app crítico</td></tr>
-                            <tr><td><strong>Dedicated Host</strong></td><td>caro</td><td>variável</td><td>Licenças por socket/core (BYOL), compliance que exige servidor físico dedicado</td></tr>
+                            <tr><td><strong>On-Demand</strong></td><td>0%</td><td>Nenhum</td><td>Carga imprevisível, curta, ou que não pode ser interrompida</td></tr>
+                            <tr><td><strong>Reserved (RI)</strong></td><td>até 72%</td><td>1 ou 3 anos — Standard ou Convertible</td><td>Carga <strong>estável e previsível</strong> — "roda 24/7 há 2 anos"</td></tr>
+                            <tr><td><strong>Savings Plans</strong></td><td>até 72%</td><td>$/hora por 1-3 anos</td><td>Igual ao RI mas flexível: troca família, região, tamanho; cobre Lambda e Fargate também</td></tr>
+                            <tr><td><strong>Spot</strong></td><td>até 90%</td><td>Nenhum (interrupção com 2 min de aviso)</td><td>Workloads <strong>tolerantes a interrupção</strong>: batch, CI/CD, big data, renderização</td></tr>
+                            <tr><td><strong>Dedicated Instance</strong></td><td>~10% acima</td><td>Por hora</td><td>Compliance que exige isolamento físico sem se importar com qual hardware</td></tr>
+                            <tr><td><strong>Dedicated Host</strong></td><td>pode ser mais barato com BYOL</td><td>On-demand ou Reserved</td><td>Licenças BYOL por socket/core (Oracle, Windows Server), visibilidade do hardware físico</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="callout tip">
-                    <strong>💡 Sinal prático</strong>
-                    Combinação favorita da prova: base estável em Reserved/Savings Plans + picos em Spot (se tolerante a interrupção) ou On-Demand (se crítico), tudo dentro de um Auto Scaling Group com <em>mixed instances policy</em>.
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>RI Standard vs Convertible</strong> — Standard não pode mudar a família de instância, oferece maior desconto. Convertible pode trocar família (ex.: M para C), mas desconto menor. Quando a questão diz "pode precisar de uma família diferente no futuro", escolha Convertible.</div>
+                </div>
+                <div class="callout tip">
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Combinação favorita do exame</strong>: base estável em Reserved/Savings Plans + picos em On-Demand (se crítico) ou Spot (se tolerante a falha), dentro de um ASG com <em>mixed instances policy</em>. Isso aparece em questões de custo + disponibilidade.</div>
                 </div>
 
-                <h3>Tipos de volume EBS</h3>
+                <h3>EBS — volumes de armazenamento em bloco</h3>
+                <p>O EBS (Elastic Block Store) é o disco padrão da EC2. Persiste independente da instância (ao contrário do Instance Store que some quando a EC2 para). <strong>Um volume EBS só pode ser anexado a uma instância por vez</strong> — exceto io1/io2 com Multi-Attach. O EBS fica na mesma AZ que a instância.</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Tipo</th><th>Tecnologia</th><th>Caso de uso</th></tr></thead>
+                        <thead><tr><th>Tipo</th><th>Tecnologia</th><th>IOPS / Throughput máx.</th><th>Caso de uso</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>gp3</strong></td><td>SSD geral</td><td>Padrão moderno. IOPS independente do tamanho → substitui gp2 com menor custo</td></tr>
-                            <tr><td><strong>io1 / io2</strong></td><td>SSD provisionado</td><td>"banco de dados crítico", "IOPS garantido", único tipo com <strong>Multi-Attach</strong></td></tr>
-                            <tr><td><strong>st1</strong></td><td>HDD throughput</td><td>"big data sequencial", "logs", "baixo custo com throughput"</td></tr>
-                            <tr><td><strong>sc1</strong></td><td>HDD frio</td><td>"menor custo possível em bloco", acesso muito raro</td></tr>
+                            <tr><td><strong>gp3</strong></td><td>SSD geral</td><td>16.000 IOPS / 1.000 MB/s</td><td>Padrão moderno. IOPS e throughput configuráveis independente do tamanho → substitui gp2 com menor custo</td></tr>
+                            <tr><td><strong>gp2</strong></td><td>SSD geral (legado)</td><td>3 IOPS/GB (máx. 16.000)</td><td>Evitar em novos designs — IOPS atrelado ao tamanho é desvantagem</td></tr>
+                            <tr><td><strong>io1 / io2</strong></td><td>SSD provisionado</td><td>64.000–256.000 IOPS</td><td>"Banco crítico com IOPS garantido"; único tipo com <strong>Multi-Attach</strong> (múltiplas EC2 no mesmo volume)</td></tr>
+                            <tr><td><strong>st1</strong></td><td>HDD throughput</td><td>500 MB/s</td><td>"Big data sequencial", "logs", "EMR" — não pode ser volume de boot</td></tr>
+                            <tr><td><strong>sc1</strong></td><td>HDD frio</td><td>250 MB/s</td><td>"Menor custo possível em bloco", acesso muito raro — não pode ser volume de boot</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p><strong>Snapshots EBS</strong> são backups incrementais armazenados em S3 (mas você não os vê no console do S3). Podem ser copiados entre regiões — operação básica em qualquer estratégia de DR. O <strong>Data Lifecycle Manager</strong> automatiza criação, retenção e exclusão de snapshots.</p>
+
+                <h3>Instance Store — armazenamento efêmero de alta performance</h3>
+                <p>O Instance Store é armazenamento físico <em>diretamente acoplado ao servidor</em> (NVMe). Desaparece se a instância parar, falhar ou for terminada. Não pode ser detachado nem movido. Fornece o maior IOPS possível na AWS (milhões de IOPS em instâncias i4i/i3en).</p>
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Não persiste dados</strong> — Use Instance Store apenas para dados temporários que podem ser recriados: buffers, caches, scratch space, dados que replicam do cluster (ex.: Cassandra). Nunca para dados únicos ou que precisam sobreviver a uma falha de instância.</div>
+                </div>
+
+                <h3>Placement Groups — topologia para performance e disponibilidade</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo</th><th>Topologia</th><th>Trade-off</th><th>Quando usar</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Cluster</strong></td><td>Mesmo rack, mesma AZ</td><td>Alta performance, mas falha de rack = tudo cai junto</td><td>"Menor latência possível entre instâncias", HPC, aplicações tight-coupled</td></tr>
+                            <tr><td><strong>Spread</strong></td><td>Hardware distinto por instância (máx. 7/AZ)</td><td>Máxima isolação de falha, limite de 7 por AZ</td><td>"Instâncias críticas que NÃO podem falhar juntas", pequeno número de VMs de alto valor</td></tr>
+                            <tr><td><strong>Partition</strong></td><td>Grupos em racks separados, muitas instâncias</td><td>Sem limite prático de instâncias, visibilidade de qual partição</td><td>"Hadoop, Cassandra, Kafka" — sistemas distribuídos que sabem gerenciar replicação por partição</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <h3>Placement Groups</h3>
+                <h3>Auto Scaling Group (ASG) — o componente mais testado do exame</h3>
+                <p>O ASG gerencia um grupo de instâncias EC2 idênticas, garantindo que o número certo de instâncias esteja rodando em todo momento. Usa um <strong>Launch Template</strong> (ou Legacy: Launch Configuration) para definir o tipo, AMI, security group, e instance profile de cada nova instância.</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Tipo</th><th>Topologia</th><th>Usar quando a questão diz…</th></tr></thead>
+                        <thead><tr><th>Parâmetro</th><th>O que define</th><th>Exemplo</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>Cluster</strong></td><td>Mesmo rack/AZ</td><td>"menor latência possível entre instâncias", "HPC" — aceita o risco de falha concentrada</td></tr>
-                            <tr><td><strong>Spread</strong></td><td>Hardware distinto (máx. 7/AZ)</td><td>"instâncias críticas que NÃO podem falhar juntas"</td></tr>
-                            <tr><td><strong>Partition</strong></td><td>Grupos em racks separados</td><td>"Hadoop/Cassandra/Kafka", grandes sistemas distribuídos</td></tr>
+                            <tr><td><strong>Minimum</strong></td><td>Mínimo de instâncias — nunca cai abaixo</td><td>2 (para HA em pelo menos 2 AZs)</td></tr>
+                            <tr><td><strong>Desired</strong></td><td>Contagem atual desejada pelo ASG</td><td>4 (estado operacional normal)</td></tr>
+                            <tr><td><strong>Maximum</strong></td><td>Máximo que o ASG pode subir</td><td>10 (teto de custo)</td></tr>
                         </tbody>
                     </table>
                 </div>
+
+                <h3>Políticas de Scaling</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Política</th><th>Como funciona</th><th>Melhor para</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Target Tracking</strong></td><td>Mantém uma métrica em um valor alvo (ex.: CPU = 60%). ASG ajusta automaticamente.</td><td>Maioria dos casos — simples e auto-gerenciada. "Configure uma vez e esqueça."</td></tr>
+                            <tr><td><strong>Step Scaling</strong></td><td>Define incrementos diferentes para alarmes de severidade variada (ex.: +1 instância se CPU &gt; 60%, +3 se CPU &gt; 80%).</td><td>Quando a resposta precisa ser proporcional à gravidade do alarme.</td></tr>
+                            <tr><td><strong>Simple Scaling</strong></td><td>Uma ação por alarme. Tem <em>cooldown</em> obrigatório antes de nova ação.</td><td>Legado — prefira Target Tracking ou Step.</td></tr>
+                            <tr><td><strong>Scheduled Scaling</strong></td><td>Altera min/max/desired em horários predefinidos (cron).</td><td>Padrões de carga previsíveis: "toda segunda às 8h aumenta para 10 instâncias".</td></tr>
+                            <tr><td><strong>Predictive Scaling</strong></td><td>ML que aprende padrões históricos e pré-escala antes do pico.</td><td>Cargas cíclicas previsíveis onde o lag do reactive scaling é problema.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Scale-in protection e Lifecycle Hooks</strong> — O ASG pode terminar instâncias no scale-in. Se a aplicação precisa de tempo para encerrar graciosamente (drenar conexões, fazer flush de dados), use <strong>Lifecycle Hooks</strong>: colocam a instância em estado <code>Terminating:Wait</code> por até 1 hora antes de encerrar. Sem isso, dados em processamento podem ser perdidos.</div>
+                </div>
+
+                <h3>Health Checks do ASG</h3>
+                <p>Por padrão, o ASG usa apenas o status do EC2 (EC2 health check). Para substituir instâncias que estão de pé mas servindo erros HTTP, configure o ASG para usar o <strong>ELB health check</strong> — o load balancer determina se a instância está saudável. Se não estiver, o ASG termina a instância e sobe uma nova.</p>
+
+                <h3>Elastic Load Balancer (ELB) — tipos e quando usar cada um</h3>
+                <p>O ELB distribui tráfego entre múltiplas instâncias, containers ou IPs. Existem 4 tipos — a escolha certa no exame depende do protocolo e dos requisitos do cenário:</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo</th><th>Camada OSI</th><th>Protocolos</th><th>Casos de uso típicos</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>ALB</strong> (Application)</td><td>L7</td><td>HTTP, HTTPS, WebSocket, gRPC</td><td>Web apps, microserviços, roteamento por path/header/query/host, autenticação Cognito/OIDC</td></tr>
+                            <tr><td><strong>NLB</strong> (Network)</td><td>L4</td><td>TCP, UDP, TLS</td><td>Ultra-baixa latência, IP estático, tráfego não-HTTP (jogos, IoT), necessita IP fixo por AZ</td></tr>
+                            <tr><td><strong>GLB</strong> (Gateway)</td><td>L3 (IP)</td><td>IP (qualquer protocolo)</td><td>Transparência de tráfego para appliances de segurança (firewalls, IDS/IPS)</td></tr>
+                            <tr><td><strong>CLB</strong> (Classic)</td><td>L4/L7</td><td>HTTP, HTTPS, TCP</td><td>Legado — não criar mais; migrar para ALB/NLB</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>ALB — roteamento avançado e recursos de L7</h3>
+                <p>O ALB é o mais cobrado no exame. Recursos que aparecem frequentemente:</p>
+                <ul>
+                    <li><strong>Roteamento baseado em path</strong>: <code>/api/*</code> → Target Group A (API), <code>/static/*</code> → Target Group B (servidores de conteúdo).</li>
+                    <li><strong>Roteamento baseado em host</strong>: <code>api.exemplo.com</code> → TG diferente de <code>www.exemplo.com</code>.</li>
+                    <li><strong>Roteamento baseado em cabeçalhos/query strings</strong>: direcionar usuários beta para versão canary.</li>
+                    <li><strong>Autenticação integrada</strong>: suporta Cognito User Pool e provedores OIDC — elimina código de auth na aplicação.</li>
+                    <li><strong>Target Groups heterogêneos</strong>: pode incluir EC2, ECS tasks, Lambda, IPs privados, e até outro ALB.</li>
+                    <li><strong>Sticky Sessions</strong>: cookies de afinidade para manter usuário na mesma instância — útil para sessões com estado local (mas evite em favor de sessões centralizadas em Redis/DynamoDB).</li>
+                </ul>
+
+                <h3>NLB — quando IP estático e latência mínima importam</h3>
+                <p>O NLB opera na camada 4 — ele não lê HTTP, apenas encaminha pacotes TCP/UDP. Como consequência:</p>
+                <ul>
+                    <li>Latência muito menor (microssegundos vs milissegundos do ALB).</li>
+                    <li><strong>IP estático por AZ</strong> — essencial quando clientes precisam colocar IPs em whitelist.</li>
+                    <li>Preserva o IP de origem do cliente (o ALB substitui pelo IP do load balancer; para recuperar o IP original no ALB, use o header <code>X-Forwarded-For</code>).</li>
+                    <li>Suporta integração com <strong>AWS PrivateLink</strong> para expor serviços internos a outras VPCs de forma privada.</li>
+                </ul>
+
+                <h3>Cross-Zone Load Balancing</h3>
+                <p>Por padrão, um ELB distribui tráfego igualmente entre os <em>nós do load balancer</em> em cada AZ — não entre as instâncias. Se você tem 1 instância na AZ-A e 9 na AZ-B, a AZ-A pode receber 50% do tráfego (1 instância sobrecarregada). Com <strong>Cross-Zone Load Balancing</strong> ativado, o tráfego é distribuído uniformemente por todas as instâncias de todas as AZs.</p>
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Cross-Zone: diferença por tipo</strong> — ALB tem cross-zone ativado por padrão (sem custo extra). NLB e GLB têm desativado por padrão, e <em>cobram por tráfego inter-AZ</em> quando ativado. No exame, questões de custo de dados podem testar essa diferença.</div>
+                </div>
+
+                <h3>Connection Draining / Deregistration Delay</h3>
+                <p>Quando o ASG decide terminar uma instância (scale-in, deploy, falha), o ELB para de enviar novas conexões para ela mas aguarda as conexões <em>existentes</em> terminarem — padrão 300 segundos. Esse período é o <strong>Deregistration Delay</strong> (ALB/NLB) ou <strong>Connection Draining</strong> (CLB). Ajuste para menos (ex.: 30s) em aplicações stateless, e para mais em aplicações com sessões longas.</p>
 
                 <h3>A escada do compute — quando não usar EC2</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Sinal na questão</th><th>Resposta</th></tr></thead>
+                        <thead><tr><th>Sinal no enunciado</th><th>Resposta correta</th><th>Por quê não EC2</th></tr></thead>
                         <tbody>
-                            <tr><td>"menos de 15 min, orientado a evento, sem servidor"</td><td><strong>Lambda</strong></td></tr>
-                            <tr><td>"containers, sem gerenciar servidores"</td><td><strong>Fargate</strong></td></tr>
-                            <tr><td>"containers, time já usa Kubernetes"</td><td><strong>EKS</strong></td></tr>
-                            <tr><td>"containers, simples, integrado à AWS"</td><td><strong>ECS</strong></td></tr>
-                            <tr><td>"job de batch, duração variável, sem servidor"</td><td><strong>AWS Batch + Fargate</strong></td></tr>
-                            <tr><td>"deploy simples de app web, dev quer só subir código"</td><td><strong>Elastic Beanstalk / App Runner</strong></td></tr>
+                            <tr><td>"orientado a evento, sem servidor, &lt;15 min"</td><td><strong>Lambda</strong></td><td>Sem instâncias ociosas; escala a zero</td></tr>
+                            <tr><td>"containers, sem gerenciar servidores"</td><td><strong>Fargate (ECS ou EKS)</strong></td><td>Sem EC2 workers para gerenciar</td></tr>
+                            <tr><td>"containers, time já usa Kubernetes"</td><td><strong>EKS</strong></td><td>Kubernetes gerenciado; preserva ferramental existente</td></tr>
+                            <tr><td>"containers, simples, integrado à AWS"</td><td><strong>ECS</strong></td><td>API proprietária, mais simples que K8s para times sem experiência K8s</td></tr>
+                            <tr><td>"job de batch de longa duração, sem servidor"</td><td><strong>AWS Batch + Fargate</strong></td><td>Provisiona/desprovisiona automaticamente para cada job</td></tr>
+                            <tr><td>"dev quer apenas subir código, sem infra"</td><td><strong>Elastic Beanstalk / App Runner</strong></td><td>PaaS gerenciado; EC2 existe mas é abstraída</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="callout lab">
-                    <strong>🧪 Lab — Compute e custo na prática (1h30, ~US$ 0)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Suba uma <code>t3.micro</code> e rode <code>stress --cpu 2</code> por 10 min. Acompanhe no CloudWatch a métrica <code>CPUCreditBalance</code> caindo — você está vendo o conceito burstable ao vivo.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Crie um volume <strong>gp3</strong>, anexe, formate e monte. Depois modifique o volume ao vivo (Elastic Volumes) para mais GB e mais IOPS — sem desmontar.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Tire um <strong>snapshot</strong>, copie para outra região e restaure lá. Você acaba de executar a operação base de qualquer estratégia de DR.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Em EC2 → Spot Requests → Pricing History: compare o preço Spot vs On-Demand e internalize o desconto real de 70-90%.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 2 — EC2, ASG e ALB na prática (2h, ~US$ 0.50)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Suba uma <code>t3.micro</code> com User Data que instala nginx e escreve o hostname no index.html. Confirme que a página serve o hostname correto.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Crie um Launch Template a partir da AMI da instância. Crie um ASG com min=2, desired=2, max=4 em 2 AZs. Crie um ALB na frente. Verifique que os hostnames alternam ao recarregar a página (round-robin).</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Adicione uma política de Target Tracking (CPU target 50%). Rode <code>stress --cpu 2</code> em uma instância via SSM Session Manager — observe o ASG subir novas instâncias em ~3 minutos.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Mude o ALB para ter 2 Target Groups: <code>/app1*</code> e <code>/app2*</code>. Adicione uma regra de roteamento por path. Confirme que os caminhos chegam em instâncias diferentes.</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Workload de renderização que pode reiniciar do zero — menor custo?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Spot Instances. Tolerante a interrupção + desconto de até 90%.</div>
+                        <button class="qa-question" type="button">Workload de renderização tolerante a interrupção — modelo de compra mais barato?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Spot Instances — desconto de até 90%. Tolerante a interrupção é o sinal-chave. Se interrompida, o job reinicia do zero (ou usa checkpointing). Para garantir progresso, combine ASG Spot com checkpointing em S3.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Banco Oracle com licença por core físico dedicado?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Dedicated Host — único modelo com visibilidade e controle do hardware físico para licenciamento por socket/core.</div>
+                        <button class="qa-question" type="button">Banco Oracle com licença por core físico (BYOL) — qual modelo de compra EC2?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Dedicated Host — único modelo com visibilidade e controle do hardware físico subjacente (sockets, cores), necessário para licenciamento BYOL por socket/core. Dedicated Instance isola mas não dá visibilidade do hardware.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">2 instâncias EC2 precisam escrever no mesmo volume EBS simultaneamente?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Somente io1/io2 com Multi-Attach — ou reestruturar para EFS se for armazenamento de arquivo.</div>
+                        <button class="qa-question" type="button">2 instâncias EC2 precisam escrever no mesmo volume de bloco simultaneamente — o que usar?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">io1/io2 com Multi-Attach ativado — único tipo EBS que suporta anexar a múltiplas instâncias na mesma AZ. Se for para armazenamento de arquivos compartilhados, reavalie usar EFS (que escala para milhares de instâncias em qualquer AZ).</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Aplicação em t3.medium fica lenta após algumas horas de uso pesado contínuo. O que está acontecendo e qual a correção?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Os créditos de CPU se esgotaram e a instância está sendo limitada (throttled). Correção: trocar para uma família M/C de uso geral/CPU sem burst, ou ativar o modo "unlimited" da T (cobra excedente por hora).</div>
+                        <button class="qa-question" type="button">Aplicação em t3.medium fica lenta após horas de uso intenso contínuo — causa e solução?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Os créditos de CPU se esgotaram e a instância está sendo throttled para uma fração da CPU nominal. Solução: trocar para família M (uso geral sem burst) ou C (CPU dedicado). Ou habilitar modo "unlimited" na T3 (cobra o excedente de crédito por hora — pode ser mais caro que o M equivalente em uso constante).</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Migrar de gp2 para gp3 — por que isso quase sempre aparece como "otimização de custo correta"?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">gp3 desacopla IOPS e throughput do tamanho do volume (3.000 IOPS / 125 MB/s de baseline incluídos independente do tamanho) e custa menos por GB que gp2 — sem perda de performance na maioria dos casos.</div>
+                        <button class="qa-question" type="button">Uma aplicação precisa que o IP do load balancer seja estático para ser colocado em whitelist no firewall do cliente — qual ELB?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">NLB — fornece um IP estático (ou Elastic IP) por AZ. O ALB tem IPs dinâmicos (não garantidos). Se o requisito for "IP fixo" + "qualquer protocolo TCP/UDP", a resposta é NLB.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Qual a diferença entre Launch Template e Launch Configuration no ASG?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Launch Configuration é legado (sem suporte a versioning, sem spot mixing no ASG, não recomendado). Launch Template suporta versioning, múltiplas instâncias e tipos (mixed instances policy com spot + on-demand), e é obrigatório para features mais novas como instance refresh e capacity reservations.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">O ALB precisa recuperar o IP do cliente original — como?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">O ALB substitui o IP de origem pelo seu próprio IP ao encaminhar ao backend. O IP original do cliente fica no header HTTP <code>X-Forwarded-For</code>. O NLB preserva o IP original sem precisar de header.</div>
                     </li>
                 </ul>
             </section>
@@ -461,93 +715,221 @@
             <section class="trilha-chapter" id="cap3">
                 <div class="trilha-chapter-header">
                     <span class="trilha-chapter-num">CAP. 03</span>
-                    <h2>Armazenamento (S3, EBS, EFS, Storage Gateway)</h2>
+                    <h2>Armazenamento — S3, EFS, FSx e Storage Gateway</h2>
                     <span class="priority-badge badge-critical">Prioridade Alta</span>
                 </div>
 
+                <p>O SAA-C03 testa profundamente a diferença entre tipos de armazenamento (objeto, bloco, arquivo), as nuances das classes do S3, segurança e controle de acesso a buckets, e quando usar cada serviço de sistema de arquivos. Este capítulo cobre o S3 em profundidade — a maioria das questões de armazenamento envolve o S3.</p>
+
+                <h3>S3 — conceitos fundamentais</h3>
+                <p>O S3 (Simple Storage Service) é um armazenamento de <strong>objetos</strong>: arquivos imutáveis endereçados por bucket + chave. Um objeto pode ter até 5 TB; para fazer upload de arquivos maiores que 100 MB, a prática recomendada é o <strong>Multipart Upload</strong> (paralelo, retomável, obrigatório acima de 5 GB).</p>
+                <ul>
+                    <li><strong>Durabilidade</strong>: 99.999999999% (11 noves) — projetada para sobreviver perda de 2 AZs simultâneas (exceto One Zone-IA)</li>
+                    <li><strong>Disponibilidade</strong>: varia por classe (Standard = 99.99% SLA)</li>
+                    <li><strong>Consistência</strong>: strong read-after-write consistency para todos os objetos (desde 2020) — sem "eventual consistency" no S3</li>
+                    <li><strong>Namespace global</strong>: nomes de bucket são únicos globalmente na AWS; o bucket em si reside numa região específica</li>
+                </ul>
+
                 <h3>Classes de armazenamento S3</h3>
-                <p>A escolha da classe certa é puramente sobre <strong>padrão de acesso</strong> e <strong>tolerância à latência de recuperação</strong>. O exame adora descrever um padrão de acesso e esperar que você escolha a classe — não confunda "raro" com "lento".</p>
+                <p>A escolha da classe certa é puramente sobre <strong>padrão de acesso</strong> e <strong>tolerância à latência de recuperação</strong>. O exame descreve um cenário e espera que você escolha a classe sem confundir "raro" com "lento".</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Classe</th><th>Custo</th><th>Recuperação</th><th>Quando usar</th></tr></thead>
+                        <thead><tr><th>Classe</th><th>Custo armazenamento</th><th>Latência de acesso</th><th>Mínimo armazenamento</th><th>Quando usar</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>Standard</strong></td><td>$$$</td><td>Imediata / grátis</td><td>Acesso frequente</td></tr>
-                            <tr><td><strong>Intelligent-Tiering</strong></td><td>$$$ + taxa monit.</td><td>Imediata / grátis</td><td>Padrão de acesso <strong>desconhecido ou imprevisível</strong></td></tr>
-                            <tr><td><strong>Standard-IA</strong></td><td>$$</td><td>Imediata / paga por GB</td><td>Acesso raro, mas imediato quando necessário. Mínimo 30 dias</td></tr>
-                            <tr><td><strong>One Zone-IA</strong></td><td>$</td><td>Imediata / paga</td><td>Acesso raro + dado <strong>recriável</strong> — apenas 1 AZ</td></tr>
-                            <tr><td><strong>Glacier Instant</strong></td><td>$</td><td><strong>Milissegundos</strong></td><td>Arquivo ~1x/trimestre que precisa de recuperação instantânea</td></tr>
-                            <tr><td><strong>Glacier Flexible</strong></td><td>¢</td><td>Minutos a 12h</td><td>Arquivo morto, aceitável esperar horas</td></tr>
-                            <tr><td><strong>Glacier Deep Archive</strong></td><td>¢¢</td><td><strong>12 a 48h</strong></td><td>Compliance de 7-10 anos, menor custo possível, recuperação pode esperar</td></tr>
+                            <tr><td><strong>Standard</strong></td><td>$$$</td><td>Milissegundos</td><td>—</td><td>Acesso frequente (diário/semanal)</td></tr>
+                            <tr><td><strong>Intelligent-Tiering</strong></td><td>$$$ + taxa monit./obj</td><td>Milissegundos</td><td>—</td><td>Padrão de acesso <strong>desconhecido ou imprevisível</strong> — move entre tiers automaticamente</td></tr>
+                            <tr><td><strong>Standard-IA</strong></td><td>$$</td><td>Milissegundos</td><td>30 dias</td><td>Acesso infrequente mas imediato quando necessário; cobrança extra por GB recuperado</td></tr>
+                            <tr><td><strong>One Zone-IA</strong></td><td>$</td><td>Milissegundos</td><td>30 dias</td><td>Acesso infrequente + dado <strong>recriável</strong> — apenas 1 AZ (20% mais barato que Standard-IA)</td></tr>
+                            <tr><td><strong>Glacier Instant Retrieval</strong></td><td>¢¢¢</td><td><strong>Milissegundos</strong></td><td>90 dias</td><td>Arquivo com acesso ~1x/trimestre que exige recuperação instantânea</td></tr>
+                            <tr><td><strong>Glacier Flexible Retrieval</strong></td><td>¢¢</td><td>Expedited: 1-5 min; Standard: 3-5h; Bulk: 5-12h</td><td>90 dias</td><td>Arquivo morto, tolerante a horas de espera</td></tr>
+                            <tr><td><strong>Glacier Deep Archive</strong></td><td>¢</td><td><strong>12–48h</strong></td><td>180 dias</td><td>Compliance de 7-10 anos, menor custo possível, recuperação pode esperar dias</td></tr>
                         </tbody>
                     </table>
                 </div>
+
                 <div class="callout trap">
-                    <strong>⚠️ Armadilhas de classe S3</strong>
-                    "Padrão de acesso desconhecido" → Intelligent-Tiering, não IA. "Arquivo instantâneo" → Glacier <em>Instant</em> (não todo Glacier é lento!). IA tem cobrança mínima de 30 dias — milhões de arquivos pequenos podem sair mais caros que Standard.
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Armadilhas de classe S3</strong>: (1) "Padrão desconhecido" → Intelligent-Tiering, não IA. (2) "Arquivo instantâneo" → Glacier <em>Instant</em> — não todo Glacier é lento! (3) IA cobra mínimo de 30 dias — arquivos de vida curta saem mais caros que Standard. (4) Glacier Deep Archive tem mínimo de 180 dias — deletar antes cobra a diferença.</div>
                 </div>
 
-                <h3>A grande decisão: S3 × EBS × EFS × FSx</h3>
+                <h3>S3 Lifecycle Policies — automação de tiering</h3>
+                <p>Uma Lifecycle Policy define regras para mover objetos entre classes ou exclui-los automaticamente. É a resposta padrão para "reduzir custo de armazenamento de logs ao longo do tempo":</p>
+                <div class="code-block"><pre><span class="comment">Exemplo de lifecycle típico para logs:</span>
+Dias 0-30:   S3 Standard          (acesso frequente para análise)
+Dias 30-90:  S3 Standard-IA       (acesso infrequente, análise pontual)
+Dias 90-365: S3 Glacier Flexible  (arquivo, auditoria raramente)
+Após 365:    Expirar (deletar)    (além do prazo legal)</pre></div>
+
+                <div class="callout trap">
+                    <div class="callout-icon">⚠</div>
+                    <div class="callout-body"><strong>Transições mínimas</strong>: Não é possível transitar de Standard para Standard-IA antes de 30 dias de armazenamento. Transições entre classes Glacier também têm restrições. O lifecycle não muda objetos que já estavam em uma classe antes da regra ser criada retroativamente (exceto com S3 Batch Operations).</div>
+                </div>
+
+                <h3>S3 Replicação — CRR e SRR</h3>
+                <p>O S3 suporta replicação assíncrona de objetos entre buckets. Requer que o <strong>Versionamento</strong> esteja ativo nos dois buckets (origem e destino).</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Serviço</th><th>Tipo</th><th>Acesso</th><th>Palavra-gatilho</th></tr></thead>
+                        <thead><tr><th></th><th>CRR (Cross-Region)</th><th>SRR (Same-Region)</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>S3</strong></td><td>Objeto</td><td>Ilimitado via API</td><td>"data lake", "backup", "estático", "qualquer escala"</td></tr>
-                            <tr><td><strong>EBS</strong></td><td>Bloco</td><td>1 instância (exceto io2 Multi-Attach)</td><td>"disco do EC2", "banco na EC2"</td></tr>
-                            <tr><td><strong>EFS</strong></td><td>Arquivo NFS (Linux)</td><td>Centenas de EC2 simultâneas, multi-AZ</td><td>"compartilhado entre instâncias Linux", "escala automática"</td></tr>
-                            <tr><td><strong>FSx for Windows</strong></td><td>Arquivo SMB (Windows)</td><td>Múltiplos clientes</td><td>"Active Directory", "SMB", "Windows File Server"</td></tr>
-                            <tr><td><strong>FSx for Lustre</strong></td><td>Arquivo HPC</td><td>Múltiplos, alta performance</td><td>"HPC", "ML com throughput alto", "integra com S3"</td></tr>
+                            <tr><td><strong>Quando usar</strong></td><td>DR em outra região, compliance de dados em múltiplas regiões, reduzir latência global</td><td>Consolidar logs de vários buckets, conformidade de dados dentro da mesma região, testes</td></tr>
+                            <tr><td><strong>Custo de transferência</strong></td><td>Cobra data transfer entre regiões</td><td>Sem custo de transferência inter-região</td></tr>
+                            <tr><td><strong>Objetos existentes</strong></td><td>Replicação começa nos novos — objetos antigos precisam de S3 Batch Replication</td><td>Idem</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <h3>Storage Gateway — a ponte híbrida</h3>
-                <p>Quando o cenário descreve um datacenter on-premises que precisa <strong>continuar acessando dados localmente</strong> enquanto eles vivem na nuvem, a resposta é Storage Gateway — não DataSync (que é para migração pontual).</p>
+                <h3>S3 Versionamento e proteção contra exclusão</h3>
+                <p>Com o <strong>Versionamento</strong> ativo, cada versão de um objeto coexiste no bucket. Deletar um objeto insere um "delete marker" em vez de remover permanentemente — para recuperar, delete o delete marker. Para deletar permanentemente uma versão, você precisa especificar o Version ID.</p>
+                <ul>
+                    <li><strong>MFA Delete</strong>: exige MFA para deletar versões ou desativar o versionamento — proteção contra exclusão acidental/maliciosa</li>
+                    <li><strong>Object Lock (WORM)</strong>: impede deleção/modificação por um período. Modos:
+                        <ul>
+                            <li><em>Governance</em>: usuários com permissão especial podem remover</li>
+                            <li><em>Compliance</em>: ninguém (nem root) pode remover durante o período — para requisitos regulatórios rígidos (SEC, CFTC)</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h3>S3 Segurança — controle de acesso em camadas</h3>
+                <p>O S3 tem múltiplas camadas de controle de acesso que precisam estar alinhadas. Uma requisição ao S3 precisa passar por todos os controles aplicáveis:</p>
                 <div class="decision-table-wrap">
                     <table class="decision">
-                        <thead><tr><th>Tipo de gateway</th><th>Protocolo</th><th>Quando usar</th></tr></thead>
+                        <thead><tr><th>Mecanismo</th><th>Nível</th><th>Quando usar</th></tr></thead>
                         <tbody>
-                            <tr><td><strong>File Gateway</strong></td><td>NFS / SMB → S3</td><td>Aplicações on-prem que leem/escrevem arquivos, com cache local dos mais usados</td></tr>
-                            <tr><td><strong>Volume Gateway</strong></td><td>iSCSI</td><td>Volumes de bloco on-prem com backup automático para S3 (snapshots EBS)</td></tr>
-                            <tr><td><strong>Tape Gateway</strong></td><td>iSCSI-VTL</td><td>Substitui fitas físicas de backup — armazena em S3/Glacier mantendo o software de backup legado</td></tr>
+                            <tr><td><strong>Bucket Policy</strong></td><td>Bucket + objetos</td><td>Regras para qualquer entidade (IAM, outras contas, público) — resource-based policy</td></tr>
+                            <tr><td><strong>IAM Policy</strong></td><td>Identidade (user/role)</td><td>O que esse usuário/role pode fazer nos buckets</td></tr>
+                            <tr><td><strong>ACL (Access Control List)</strong></td><td>Objeto ou bucket</td><td>Legado — evite; mantenha desabilitado com "Object Ownership: Bucket Owner Enforced"</td></tr>
+                            <tr><td><strong>Block Public Access</strong></td><td>Conta ou bucket</td><td>Sobreposição de segurança — bloqueia qualquer configuração que tornaria o bucket público, mesmo que a policy permita</td></tr>
+                            <tr><td><strong>Presigned URLs</strong></td><td>Objeto</td><td>Acesso temporário a objetos privados sem expor credenciais — URL expira</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>S3 Encryption — criptografia em repouso</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo</th><th>Quem gerencia a chave</th><th>Auditabilidade</th><th>Quando usar</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>SSE-S3</strong></td><td>AWS (transparente)</td><td>Não auditável por chave</td><td>Padrão — criptografia sem custo extra, sem overhead operacional</td></tr>
+                            <tr><td><strong>SSE-KMS</strong></td><td>AWS KMS (gerenciada ou CMK)</td><td><strong>Sim — CloudTrail</strong></td><td>"Auditar quem acessou/usou a chave", BYOK (Customer Managed Key)</td></tr>
+                            <tr><td><strong>SSE-C</strong></td><td>Cliente (chave fora da AWS)</td><td>Depende do cliente</td><td>Regulação que proíbe chave fora do controle do cliente — raro</td></tr>
+                            <tr><td><strong>Client-Side</strong></td><td>Cliente (criptografa antes de enviar)</td><td>Totalmente controlado</td><td>Compliance máximo — dados chegam na AWS já criptografados</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="callout tip">
-                    <strong>💡 Sinal prático</strong>
-                    DataSync = transferência/migração de A para B (pontual ou agendada). Storage Gateway = integração híbrida permanente (continuar acessando localmente, com os dados vivendo na nuvem).
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>SSE-KMS e performance</strong>: Cada operação SSE-KMS chama o KMS API (que tem limites de taxa). Em workloads de alto throughput no S3, pode gerar throttling do KMS. Considere SSE-S3 (sem chamada ao KMS) ou aumente o limite do KMS.</div>
+                </div>
+
+                <h3>S3 Event Notifications e S3 Batch Operations</h3>
+                <p><strong>S3 Event Notifications</strong> disparam ações em resposta a eventos de objetos (PutObject, DeleteObject, etc.) para: Lambda, SQS, SNS ou EventBridge. Caso de uso clássico: processar imagens ao fazer upload → Lambda redimensiona e salva em outro bucket.</p>
+                <p><strong>S3 Batch Operations</strong> executam ações em massa em objetos existentes: copiar, invocar Lambda, restaurar do Glacier, replicar retroativamente. Usa um manifest (lista de objetos ou resultado de S3 Inventory).</p>
+
+                <h3>S3 Performance — dicas para escala</h3>
+                <ul>
+                    <li><strong>Prefixos paralelos</strong>: S3 suporta 3.500 PUT/COPY/POST/DELETE e 5.500 GET/HEAD por prefixo por segundo. Distribuir objetos em prefixos diferentes aumenta o throughput proporcionalmente.</li>
+                    <li><strong>S3 Transfer Acceleration</strong>: usa os edge locations do CloudFront para upload via backbone da AWS — melhora uploads de clientes geographicamente distantes do bucket.</li>
+                    <li><strong>Multipart Upload</strong>: obrigatório para objetos acima de 5 GB, recomendado acima de 100 MB. Paralelo, retomável.</li>
+                    <li><strong>S3 Select / Glacier Select</strong>: executa SQL simples no servidor para buscar apenas parte de um objeto (ex.: filtrar colunas de um CSV de 10 GB) — reduz dados transferidos.</li>
+                </ul>
+
+                <h3>S3 Website Hosting e OAC com CloudFront</h3>
+                <p>O S3 pode hospedar sites estáticos diretamente, mas o padrão arquitetural recomendado é: bucket privado (Block Public Access ativado) + <strong>CloudFront com OAC</strong> (Origin Access Control). O OAC permite que apenas o CloudFront acesse o bucket via uma política especial, sem tornar o bucket público. Isso adiciona CDN, HTTPS e proteção DDoS automaticamente.</p>
+
+                <h3>A grande decisão: S3 × EBS × EFS × FSx</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Serviço</th><th>Tipo</th><th>Acesso simultâneo</th><th>Escopo</th><th>Palavra-gatilho</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>S3</strong></td><td>Objeto (API)</td><td>Ilimitado</td><td>Global/Regional</td><td>"data lake", "backup", "site estático", "qualquer escala de objetos"</td></tr>
+                            <tr><td><strong>EBS</strong></td><td>Bloco (disco)</td><td>1 instância (io2 Multi-Attach: múltiplas na mesma AZ)</td><td>1 AZ</td><td>"disco da EC2", "banco rodando na EC2", "IOPS alto"</td></tr>
+                            <tr><td><strong>EFS</strong></td><td>Arquivo (NFS)</td><td>Milhares de EC2 simultâneas</td><td>Multi-AZ (regional)</td><td>"compartilhado entre instâncias Linux", "NFS", "escala automática de capacidade"</td></tr>
+                            <tr><td><strong>FSx for Windows</strong></td><td>Arquivo (SMB)</td><td>Múltiplos clientes Windows</td><td>Multi-AZ</td><td>"Active Directory", "SMB", "DFS", "Windows File Server gerenciado"</td></tr>
+                            <tr><td><strong>FSx for Lustre</strong></td><td>Arquivo (HPC)</td><td>Milhares, alto throughput</td><td>1 AZ ou Multi-AZ</td><td>"HPC", "ML com throughput intenso", "integra com S3 como backing store"</td></tr>
+                            <tr><td><strong>FSx for NetApp ONTAP</strong></td><td>Arquivo multi-protocolo</td><td>NFS, SMB, iSCSI</td><td>Multi-AZ</td><td>"migração de NetApp on-premises", "NFS + SMB no mesmo sistema"</td></tr>
+                            <tr><td><strong>FSx for OpenZFS</strong></td><td>Arquivo ZFS</td><td>NFS, alto IOPS</td><td>1 AZ</td><td>"migração de workloads ZFS", "latência sub-milissegundo em arquivo"</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>EFS — sistema de arquivos elástico para Linux</h3>
+                <p>O EFS (Elastic File System) é um NFS gerenciado que escala automaticamente sem pré-provisionar capacidade. Cobra por GB armazenado. Performance modes:</p>
+                <ul>
+                    <li><strong>General Purpose</strong>: padrão, menor latência — para apps web, CMS, homes</li>
+                    <li><strong>Max I/O</strong>: maior throughput para acesso paralelo intenso — para big data, media processing (legacy; recomendado usar Elastic throughput mode agora)</li>
+                </ul>
+                <p>Throughput modes: <strong>Bursting</strong> (escala com tamanho do filesystem) ou <strong>Enhanced/Elastic</strong> (escala independente do tamanho — recomendado). Classes EFS: Standard (multi-AZ) e One Zone (menor custo, 1 AZ). Suporta lifecycle policies para mover arquivos não acessados para classes IA.</p>
+
+                <h3>Storage Gateway — a ponte híbrida</h3>
+                <p>Quando o cenário descreve um datacenter on-premises que precisa <strong>continuar acessando dados localmente</strong> enquanto eles vivem na nuvem, a resposta é Storage Gateway — não DataSync (que é para migração pontual one-time ou recorrente sem acesso local).</p>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Tipo</th><th>Protocolo on-prem</th><th>Armazenamento</th><th>Quando usar</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>S3 File Gateway</strong></td><td>NFS / SMB</td><td>S3 (qualquer classe)</td><td>Apps on-prem que precisam de acesso NFS/SMB, com cache local dos mais usados</td></tr>
+                            <tr><td><strong>FSx File Gateway</strong></td><td>SMB + AD</td><td>FSx for Windows</td><td>Acesso Windows com integração AD, cache local com latência baixa</td></tr>
+                            <tr><td><strong>Volume Gateway</strong></td><td>iSCSI</td><td>S3 (snapshots → EBS)</td><td>Volumes de bloco on-prem com backup automático para S3; dois modos: cached (dados no S3, cache local) ou stored (dados locais, backup no S3)</td></tr>
+                            <tr><td><strong>Tape Gateway</strong></td><td>iSCSI-VTL</td><td>S3 / Glacier</td><td>Substituir fitas físicas — o software de backup legado não sabe que a fita é virtual</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>DataSync × Storage Gateway × Transfer Family</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Serviço</th><th>Modelo</th><th>Quando usar</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>DataSync</strong></td><td>Transferência agendada ou única</td><td>Migrar dados de NFS/SMB/HDFS/S3/Azure Blob para AWS de forma automatizada e verificada. Não é acesso permanente — é movimento de dados.</td></tr>
+                            <tr><td><strong>Storage Gateway</strong></td><td>Integração híbrida permanente</td><td>Acesso local contínuo aos dados que residem na AWS — o gateway aparece como NFS/SMB/iSCSI para o servidor on-prem</td></tr>
+                            <tr><td><strong>Transfer Family</strong></td><td>Protocolo SFTP/FTP/FTPS → S3 ou EFS</td><td>"parceiros externos que transferem arquivos via SFTP" — substitui servidores SFTP gerenciados</td></tr>
+                            <tr><td><strong>Snow Family</strong></td><td>Dispositivo físico</td><td>Migração offline quando a conexão de internet é lenta demais (Snowball, Snowcone, Snowmobile)</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="callout lab">
-                    <strong>🧪 Lab — Storage completo (2h, centavos)</strong>
-                    <ol class="lab-steps">
-                        <li class="lab-step"><div class="lab-step-num">1</div><div>Crie um site estático no S3 + lifecycle rule (Standard → IA aos 30d → Glacier aos 90d → expirar aos 365d). Adicione <strong>CRR para outra região</strong> e veja a replicação.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">2</div><div>Crie um <strong>EFS</strong> e monte simultaneamente em 2 EC2 em AZs diferentes. Crie um arquivo numa instância e leia na outra.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">3</div><div>Gere uma <strong>presigned URL</strong> com expiração de 5 min. Teste antes e depois de expirar — confirme o comportamento.</div></li>
-                        <li class="lab-step"><div class="lab-step-num">4</div><div>Configure <strong>S3 Event Notification</strong> disparando uma Lambda que loga o nome de cada objeto novo no CloudWatch Logs.</div></li>
-                    </ol>
+                    <div class="callout-icon">🧪</div>
+                    <div class="callout-body">
+                        <strong>Lab 3 — Storage completo (2h, centavos)</strong>
+                        <ol class="lab-steps">
+                            <li class="lab-step"><div class="lab-step-num">01</div><p>Crie um bucket com versionamento ativo. Faça upload de um arquivo, sobrescreva com conteúdo diferente, e depois use "delete marker" para ocultar sem remover. Restaure a versão anterior.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">02</div><p>Adicione uma lifecycle rule: Standard → Standard-IA (30d) → Glacier Flexible (90d) → Expirar (365d). Valide que a regra aparece corretamente sem executar (não é necessário aguardar os dias).</p></li>
+                            <li class="lab-step"><div class="lab-step-num">03</div><p>Gere uma <strong>presigned URL</strong> para um objeto privado (expiração 5 min). Teste antes e depois de expirar — observe a diferença de resposta.</p></li>
+                            <li class="lab-step"><div class="lab-step-num">04</div><p>Crie um <strong>EFS</strong> e monte em 2 EC2 em AZs diferentes. Crie um arquivo em uma instância e leia na outra. Confirme latência (EFS vs EBS).</p></li>
+                        </ol>
+                    </div>
                 </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Logs que devem ficar 7 anos por regulação, acesso praticamente nunca, menor custo possível?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Glacier Deep Archive com lifecycle rule automática. Menor custo de armazenamento do S3.</div>
+                        <button class="qa-question" type="button">Logs de auditoria que devem ser retidos 7 anos, acessados praticamente nunca, menor custo possível?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">S3 Glacier Deep Archive com lifecycle rule automática — menor custo de armazenamento da AWS ($0.00099/GB/mês). Não precisa de acesso imediato, então a latência de 12-48h é aceitável para auditoria rara.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">50 instâncias EC2 Linux precisam ler e escrever os mesmos arquivos?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">EFS — sistema de arquivos NFS gerenciado, multi-AZ, montado simultaneamente em quantas instâncias precisar.</div>
+                        <button class="qa-question" type="button">50 instâncias EC2 Linux precisam ler e escrever os mesmos arquivos de configuração simultaneamente?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">EFS — sistema de arquivos NFS gerenciado, multi-AZ, montado simultaneamente em quantas instâncias precisar, escala de capacidade automaticamente. EBS seria impossível (1 instância por volume). S3 não tem semântica de arquivo (não tem locks, não é POSIX).</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">A questão exige auditar quem usou a chave de criptografia do bucket?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">SSE-KMS com Customer Managed Key + CloudTrail. Cada uso da chave gera um evento auditável.</div>
+                        <button class="qa-question" type="button">A questão exige auditar quem acessou a chave de criptografia de um bucket?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">SSE-KMS com Customer Managed Key (CMK) + CloudTrail. Cada uso da chave KMS gera um evento no CloudTrail com: quem fez, quando, de qual IP. SSE-S3 não tem essa auditabilidade granular.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Datacenter on-premises precisa continuar usando NFS localmente, mas os dados devem residir no S3 com cache local dos arquivos mais acessados?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Storage Gateway — File Gateway. Mantém o protocolo NFS local com cache, sincronizando os dados de fato com o S3.</div>
+                        <button class="qa-question" type="button">Datacenter on-premises precisa continuar acessando arquivos via NFS localmente, mas os dados devem residir no S3?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Storage Gateway — S3 File Gateway. Apresenta interface NFS/SMB para o servidor on-prem (com cache local dos arquivos mais recentes) enquanto sincroniza os dados de fato para o S3. DataSync não serve porque é migração — não acesso permanente.</div>
                     </li>
                     <li class="qa-item">
-                        <button class="qa-question" type="button">Por que "One Zone-IA" pode ser uma resposta certa mesmo sendo menos resiliente que "Standard-IA"?<span class="qa-arrow">▾</span></button>
-                        <div class="qa-answer">Quando o enunciado deixa claro que o dado é facilmente recriável (ex.: cópia derivada de outro dado, thumbnail gerado), a resiliência extra de múltiplas AZs é desperdício de custo — One Zone-IA é a opção mais barata que ainda atende ao requisito.</div>
+                        <button class="qa-question" type="button">Por que "One Zone-IA" pode ser resposta certa mesmo sendo menos resiliente que "Standard-IA"?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Quando o dado é facilmente recriável (thumbnail derivado de um original no Standard, cópia de backup de outro backup, logs que existem no primário). A resiliência de múltiplas AZs é desperdício para algo que pode ser regenerado — One Zone-IA custa 20% menos por GB que Standard-IA.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Um sistema legado on-premises usa backup em fita. Como mover para cloud sem trocar o software de backup?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">Storage Gateway — Tape Gateway. Apresenta uma Virtual Tape Library (VTL) via iSCSI para o software de backup existente. O software acha que está gravando em fitas físicas, mas os dados vão para S3/Glacier. Zero mudança no software de backup.</div>
+                    </li>
+                    <li class="qa-item">
+                        <button class="qa-question" type="button">Como servir um site estático do S3 sem tornar o bucket público, usando HTTPS e cache global?<span class="qa-arrow">▾</span></button>
+                        <div class="qa-answer">CloudFront com OAC (Origin Access Control) + bucket com Block Public Access ativado. O OAC permite que apenas o CloudFront acesse o bucket através de uma bucket policy específica. O CloudFront fornece HTTPS e cache nos edge locations — o bucket nunca fica exposto diretamente.</div>
                     </li>
                 </ul>
             </section>
@@ -2369,6 +2751,9 @@ resposta fundamentada nos <span class="string">SEUS dados</span>, sem precisar r
     <script src="js/utils.js"></script>
     <script src="js/music-player.js"></script>
     <script src="js/version-check.js"></script>
+
+    <!-- TTS Narrator -->
+    <script src="js/tts-reader.js" defer></script>
 
     <!-- Visual FX (fundo animado cloud/data + scroll reveal) -->
     <script src="js/landing-fx.js" defer></script>
