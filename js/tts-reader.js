@@ -8,7 +8,11 @@
 
     const AUDIO_MANIFEST = {
         cap1: 'assets/narracao/saa-c03/cap01.mp3',
-        // cap2..cap20: adicionar aqui conforme forem gerados
+        cap2: 'assets/narracai/saa-c03/cap02.mp3',
+        cap3: 'assets/narracao/saa-c03/cap03.mp3',
+        cap4: 'assets/narracai/saa-c03/cap04.mp3',
+        cap5: 'assets/narracao/saa-c03/cap05.mp3',
+        cap6: 'assets/narracai/saa-c03/cap06.mp3',
     };
 
     const state = {
