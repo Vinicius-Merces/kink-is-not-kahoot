@@ -13,6 +13,20 @@
         cap4: 'assets/narracao/saa-c03/cap04.mp3',
         cap5: 'assets/narracao/saa-c03/cap05.mp3',
         cap6: 'assets/narracao/saa-c03/cap06.mp3',
+        cap7: 'assets/narracao/saa-c03/cap07.mp3',
+        cap8: 'assets/narracao/saa-c03/cap08.mp3',
+        cap9: 'assets/narracao/saa-c03/cap09.mp3',
+        cap10: 'assets/narracao/saa-c03/cap10.mp3',
+        cap11: 'assets/narracao/saa-c03/cap11.mp3',
+        cap12: 'assets/narracao/saa-c03/cap12.mp3',
+        cap13: 'assets/narracao/saa-c03/cap13.mp3',
+        cap14: 'assets/narracao/saa-c03/cap14.mp3',
+        cap15: 'assets/narracao/saa-c03/cap15.mp3',
+        cap16: 'assets/narracao/saa-c03/cap16.mp3',
+        cap17: 'assets/narracao/saa-c03/cap17.mp3',
+        cap18: 'assets/narracao/saa-c03/cap18.mp3',
+        cap19: 'assets/narracao/saa-c03/cap19.mp3',
+        cap20: 'assets/narracao/saa-c03/cap20.mp3',
     };
 
     const state = {

@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import time
 import tempfile
 import requests
 from dotenv import load_dotenv
@@ -17,12 +18,30 @@ TTS_URL = f"https://{REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
 
 MAX_SSML_CHARS = 950  # margem abaixo do limite de 1000 da camada F0
 MAX_VOICE_TAGS = 40   # margem abaixo do limite de 50 tags <voice>/<audio>
+REQUEST_TIMEOUT = 30  # segundos
+MAX_RETRIES = 5
 
 
 def get_token():
-    resp = requests.post(TOKEN_URL, headers={"Ocp-Apim-Subscription-Key": KEY})
+    resp = requests.post(
+        TOKEN_URL, headers={"Ocp-Apim-Subscription-Key": KEY}, timeout=REQUEST_TIMEOUT
+    )
     resp.raise_for_status()
     return resp.text
+
+
+def with_retries(fn, *args, **kwargs):
+    last_err = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return fn(*args, **kwargs)
+        except requests.exceptions.RequestException as e:
+            last_err = e
+            wait = min(30, 2 ** attempt)
+            print(f"    rede instavel ({e.__class__.__name__}), tentativa "
+                  f"{attempt}/{MAX_RETRIES}, esperando {wait}s...")
+            time.sleep(wait)
+    raise last_err
 
 
 def chunk_blocks(blocks: list[dict]) -> list[list[dict]]:
@@ -49,7 +68,9 @@ def synthesize_chunk(token: str, ssml: str) -> bytes:
         "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3",
         "User-Agent": "kink-is-not-kahoot-tts",
     }
-    resp = requests.post(TTS_URL, headers=headers, data=ssml.encode("utf-8"))
+    resp = requests.post(
+        TTS_URL, headers=headers, data=ssml.encode("utf-8"), timeout=REQUEST_TIMEOUT
+    )
     if resp.status_code != 200:
         print("ERRO", resp.status_code, resp.text[:500])
         resp.raise_for_status()
@@ -80,19 +101,28 @@ def generate_chapter(blocks: list[dict], out_path: str):
     chunks = chunk_blocks(blocks)
     print(f"{len(blocks)} blocos -> {len(chunks)} chamadas de API")
 
+    # Cache estavel por capitulo (nao um tempdir aleatorio): se a geracao cair
+    # no meio por instabilidade de rede, rodar de novo retoma do ponto onde parou.
+    cache_dir = os.path.join(".chunks_cache", os.path.splitext(out_path)[0])
+    os.makedirs(cache_dir, exist_ok=True)
+
     token = get_token()
-    tmp_dir = tempfile.mkdtemp(prefix="tts_chunks_")
     chunk_paths = []
     for i, chunk in enumerate(chunks):
+        chunk_path = os.path.join(cache_dir, f"chunk_{i:03d}.mp3")
+        if os.path.exists(chunk_path) and os.path.getsize(chunk_path) > 0:
+            chunk_paths.append(chunk_path)
+            print(f"  chunk {i+1}/{len(chunks)} (cache)")
+            continue
+
         ssml = build_ssml(chunk)
         if len(ssml) > MAX_SSML_CHARS:
             print(f"  AVISO chunk {i}: {len(ssml)} chars (acima do limite, pode falhar)")
         try:
-            audio = synthesize_chunk(token, ssml)
+            audio = with_retries(synthesize_chunk, token, ssml)
         except requests.exceptions.HTTPError:
             token = get_token()  # token pode ter expirado (10 min)
-            audio = synthesize_chunk(token, ssml)
-        chunk_path = os.path.join(tmp_dir, f"chunk_{i:03d}.mp3")
+            audio = with_retries(synthesize_chunk, token, ssml)
         with open(chunk_path, "wb") as f:
             f.write(audio)
         chunk_paths.append(chunk_path)
@@ -100,6 +130,10 @@ def generate_chapter(blocks: list[dict], out_path: str):
 
     concat_mp3s(chunk_paths, out_path)
     print(f"Salvo: {out_path}")
+
+    for p in chunk_paths:
+        os.unlink(p)
+    os.rmdir(cache_dir)
 
 
 if __name__ == "__main__":
