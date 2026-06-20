@@ -6,6 +6,11 @@
 (function () {
     'use strict';
 
+    // Os .mp3 ficam com cache publico de 7 dias no servidor (server.js) —
+    // essa versao entra como query string pra forcar download de novo sempre
+    // que o conteudo narrado for re-gerado, sem precisar esperar o cache expirar.
+    const AUDIO_VERSION = '20260619';
+
     const AUDIO_MANIFEST = {
         cap1: 'assets/narracao/saa-c03/cap01.mp3',
         cap2: 'assets/narracao/saa-c03/cap02.mp3',
@@ -184,7 +189,7 @@
 
         const src = AUDIO_MANIFEST[state.chapterId];
         if (src) {
-            audioEl.src = src;
+            audioEl.src = `${src}?v=${AUDIO_VERSION}`;
             audioEl.playbackRate = state.rate;
             playBtn.disabled = false;
             triggerBtn.classList.remove('tts-unavailable');
