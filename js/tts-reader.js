@@ -41,6 +41,34 @@
         chapterTitle: '',
     };
 
+    // ── Posição de áudio salva por capítulo (retomar de onde parou) ─────────
+    const POSITIONS_KEY = 'tts_positions';
+    let lastSavedSecond = -1;
+
+    function loadPositions() {
+        try {
+            return JSON.parse(localStorage.getItem(POSITIONS_KEY)) || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function savePosition(chapterId, time) {
+        const positions = loadPositions();
+        positions[chapterId] = time;
+        try {
+            localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
+        } catch (e) { /* localStorage indisponível - ignora */ }
+    }
+
+    function clearPosition(chapterId) {
+        const positions = loadPositions();
+        delete positions[chapterId];
+        try {
+            localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
+        } catch (e) { /* ignora */ }
+    }
+
     let audioEl, bar, triggerBtn, playBtn, progressBarEl,
         progressFill, progressInfo, chapterLabel, speedLabel;
 
@@ -107,6 +135,7 @@
         audioEl.addEventListener('pause', onPause);
         audioEl.addEventListener('ended', onEnded);
         audioEl.addEventListener('timeupdate', updateProgress);
+        audioEl.addEventListener('timeupdate', trackPositionForSaving);
         audioEl.addEventListener('loadedmetadata', updateProgress);
     }
 
@@ -142,16 +171,31 @@
         triggerBtn.classList.add('tts-active');
         updateMediaSessionMetadata();
         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+        if (window.StudyProgress) window.StudyProgress.recordStudyActivity();
     }
 
     function onPause() {
         playBtn.textContent = '▶';
         playBtn.setAttribute('aria-label', 'Play');
         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+        if (state.chapterId && audioEl.currentTime > 0) {
+            savePosition(state.chapterId, audioEl.currentTime);
+        }
     }
 
     function onEnded() {
         triggerBtn.classList.remove('tts-active');
+        if (state.chapterId) clearPosition(state.chapterId);
+    }
+
+    // Salva a posição a cada ~5s enquanto toca, sem sobrecarregar o localStorage
+    function trackPositionForSaving() {
+        if (!state.chapterId) return;
+        const second = Math.floor(audioEl.currentTime);
+        if (second !== lastSavedSecond && second % 5 === 0) {
+            lastSavedSecond = second;
+            savePosition(state.chapterId, audioEl.currentTime);
+        }
     }
 
     function togglePlay() {
@@ -189,11 +233,22 @@
 
         const src = AUDIO_MANIFEST[state.chapterId];
         if (src) {
+            lastSavedSecond = -1;
             audioEl.src = `${src}?v=${AUDIO_VERSION}`;
             audioEl.playbackRate = state.rate;
             playBtn.disabled = false;
             triggerBtn.classList.remove('tts-unavailable');
             chapterLabel.textContent = state.chapterTitle.substring(0, 30);
+
+            const savedTime = loadPositions()[state.chapterId];
+            if (savedTime > 5) {
+                audioEl.addEventListener('loadedmetadata', () => {
+                    if (savedTime < audioEl.duration - 3) {
+                        audioEl.currentTime = savedTime;
+                    }
+                }, { once: true });
+            }
+
             if (wasPlaying) audioEl.play();
         } else {
             audioEl.removeAttribute('src');

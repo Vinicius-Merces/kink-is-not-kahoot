@@ -1,5 +1,6 @@
 // Comportamento compartilhado pelas páginas da Trilha de Estudos:
-// menu mobile, scroll-spy da sidebar, barra de progresso de leitura e accordions de Q&A.
+// menu mobile, scroll-spy da sidebar, barra de progresso de leitura,
+// accordions de Q&A, conclusão de capítulos, streak/badge e busca.
 
 document.addEventListener('DOMContentLoaded', () => {
     syncNavbarHeight();
@@ -7,6 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollSpy();
     initReadingProgress();
     initAccordions();
+
+    if (window.StudyProgress) {
+        window.StudyProgress.recordStudyActivity();
+        initChapterCompletion();
+        initSidebarSearch();
+    }
 });
 
 // Mede a altura real do navbar e expõe via --navbar-height, para o
@@ -137,5 +144,152 @@ function initAccordions() {
             const isOpen = item.classList.toggle('open');
             btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
+    });
+}
+
+// ── Conclusão de capítulos: checkbox na sidebar + resumo (badge/streak) ─────
+function initChapterCompletion() {
+    const sidebar = document.querySelector('.trilha-sidebar');
+    const trilhaId = sidebar && sidebar.dataset.trilhaId;
+    if (!trilhaId) return;
+
+    const chapterLinks = Array.from(document.querySelectorAll('.trilha-nav-item[href^="#cap"]'));
+    if (!chapterLinks.length) return;
+
+    const totalChapters = chapterLinks.length;
+
+    function renderSummary() {
+        const completed = window.StudyProgress.getCompletedSet(trilhaId);
+        const percent = totalChapters ? Math.round((completed.size / totalChapters) * 100) : 0;
+        const badge = window.StudyProgress.getBadge(percent);
+        const streak = window.StudyProgress.getStreak();
+
+        let summary = document.querySelector('.trilha-completion-summary');
+        if (!summary) {
+            summary = document.createElement('div');
+            summary.className = 'trilha-completion-summary';
+            const progressEl = document.querySelector('.trilha-progress');
+            if (progressEl) {
+                progressEl.insertAdjacentElement('afterend', summary);
+            } else {
+                sidebar.querySelector('.trilha-sidebar-header').insertAdjacentElement('afterend', summary);
+            }
+        }
+
+        summary.innerHTML = `
+            <div class="trilha-completion-badge">
+                <span class="badge-emoji">${badge.emoji}</span>
+                <span>${badge.label}</span>
+            </div>
+            <div>
+                <div class="trilha-completion-count">${completed.size}/${totalChapters} capítulos</div>
+                <div class="trilha-streak ${streak.current > 0 ? 'active' : ''}" title="Dias seguidos estudando">
+                    🔥 ${streak.current} ${streak.current === 1 ? 'dia' : 'dias'}
+                </div>
+            </div>
+        `;
+
+        chapterLinks.forEach(link => {
+            const capId = link.getAttribute('href').slice(1);
+            link.classList.toggle('chapter-done', completed.has(capId));
+            const check = link.querySelector('.chapter-check');
+            if (check) check.classList.toggle('done', completed.has(capId));
+        });
+    }
+
+    chapterLinks.forEach(link => {
+        const capId = link.getAttribute('href').slice(1);
+        const check = document.createElement('button');
+        check.type = 'button';
+        check.className = 'chapter-check';
+        check.setAttribute('aria-label', 'Marcar capítulo como concluído');
+        check.textContent = '✓';
+        check.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.StudyProgress.toggleChapter(trilhaId, capId);
+            renderSummary();
+        });
+        link.appendChild(check);
+    });
+
+    renderSummary();
+}
+
+// ── Busca dentro da apostila (sobre os títulos de seção) ────────────────────
+function initSidebarSearch() {
+    const sidebar = document.querySelector('.trilha-sidebar');
+    if (!sidebar) return;
+
+    const index = Array.from(document.querySelectorAll('.trilha-chapter')).flatMap(chapter => {
+        const capLabel = chapter.querySelector('.trilha-chapter-num');
+        const chapterTitle = chapter.querySelector('.trilha-chapter-header h2');
+        const headings = Array.from(chapter.querySelectorAll('h2, h3'));
+        return headings.map(h => ({
+            text: h.textContent.trim(),
+            chapterLabel: capLabel ? capLabel.textContent.trim() : '',
+            chapterTitle: chapterTitle ? chapterTitle.textContent.trim() : '',
+            id: chapter.id,
+            targetEl: h,
+        }));
+    });
+
+    if (!index.length) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'trilha-search-wrap';
+    wrap.innerHTML = `
+        <input type="search" class="trilha-search-input" placeholder="🔎 Buscar na apostila..." aria-label="Buscar na apostila">
+        <div class="trilha-search-results"></div>
+    `;
+    const header = sidebar.querySelector('.trilha-sidebar-header');
+    if (header) header.insertAdjacentElement('afterend', wrap);
+
+    const input = wrap.querySelector('.trilha-search-input');
+    const results = wrap.querySelector('.trilha-search-results');
+
+    function closeResults() {
+        results.classList.remove('open');
+        results.innerHTML = '';
+    }
+
+    input.addEventListener('input', () => {
+        const term = input.value.trim().toLowerCase();
+        if (term.length < 2) {
+            closeResults();
+            return;
+        }
+
+        const matches = index.filter(item => item.text.toLowerCase().includes(term)).slice(0, 12);
+        if (!matches.length) {
+            results.innerHTML = '<div class="trilha-search-empty">Nenhum resultado.</div>';
+            results.classList.add('open');
+            return;
+        }
+
+        results.innerHTML = matches.map((item, i) => `
+            <button type="button" class="trilha-search-result-item" data-index="${i}">
+                <span class="result-chapter">${item.chapterLabel} · ${item.chapterTitle}</span>
+                ${item.text}
+            </button>
+        `).join('');
+        results.classList.add('open');
+
+        results.querySelectorAll('.trilha-search-result-item').forEach((btn, i) => {
+            btn.addEventListener('click', () => {
+                matches[i].targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                history.replaceState(null, '', `#${matches[i].id}`);
+                closeResults();
+                input.value = '';
+                if (window.innerWidth <= 960) {
+                    document.querySelector('.trilha-sidebar')?.classList.remove('open');
+                    document.querySelector('.trilha-sidebar-backdrop')?.classList.remove('open');
+                }
+            });
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!wrap.contains(e.target)) closeResults();
     });
 }

@@ -238,6 +238,7 @@
         renderQuestionDots();
         renderQuestion(0);
         showScreen('exam');
+        if (window.StudyProgress) window.StudyProgress.recordStudyActivity();
     }
 
     function renderQuestionDots() {
@@ -468,17 +469,32 @@
             `(${LEVEL_LABELS[result.level] || result.level}). Pontuação mínima de referência: ${PASS_SCORE}%.`;
 
         const breakdown = document.getElementById('domainBreakdown');
-        breakdown.innerHTML = result.domainBreakdown.map(domain => `
-            <div class="domain-result-row">
-                <div class="domain-result-header">
-                    <span>${Utils.escapeHtml(domain.name)} <small>(peso ${Math.round(domain.weight * 100)}%)</small></span>
-                    <span>${domain.correct}/${domain.total} — ${domain.score}%</span>
+        breakdown.innerHTML = result.domainBreakdown.map(domain => {
+            const needsReview = domain.score < PASS_SCORE;
+            const review = needsReview && window.StudyProgress
+                ? window.StudyProgress.getReviewChapters(result.certCode, domain.id)
+                : null;
+
+            const reviewLinksHtml = review
+                ? `<div class="domain-review-links">
+                        📖 Revisar:
+                        ${review.chapters.map(capNum => `<a href="${review.trilhaUrl}#cap${capNum}" class="domain-review-link">Cap. ${capNum}</a>`).join('')}
+                   </div>`
+                : '';
+
+            return `
+                <div class="domain-result-row">
+                    <div class="domain-result-header">
+                        <span>${Utils.escapeHtml(domain.name)} <small>(peso ${Math.round(domain.weight * 100)}%)</small></span>
+                        <span>${domain.correct}/${domain.total} — ${domain.score}%</span>
+                    </div>
+                    <div class="domain-bar-track">
+                        <div class="domain-bar-fill ${domain.score >= PASS_SCORE ? 'good' : 'bad'}" style="width: ${domain.score}%"></div>
+                    </div>
+                    ${reviewLinksHtml}
                 </div>
-                <div class="domain-bar-track">
-                    <div class="domain-bar-fill ${domain.score >= PASS_SCORE ? 'good' : 'bad'}" style="width: ${domain.score}%"></div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         const reviewList = document.getElementById('reviewList');
         reviewList.innerHTML = result.review.map((item, i) => {
