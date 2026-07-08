@@ -213,6 +213,9 @@ function initChapterCompletion() {
         link.appendChild(check);
     });
 
+    // Re-renderiza quando o progresso é mesclado com o da conta (login em outro dispositivo)
+    window.addEventListener('studyprogress:synced', renderSummary);
+
     renderSummary();
 }
 
@@ -225,13 +228,34 @@ function initSidebarSearch() {
         const capLabel = chapter.querySelector('.trilha-chapter-num');
         const chapterTitle = chapter.querySelector('.trilha-chapter-header h2');
         const headings = Array.from(chapter.querySelectorAll('h2, h3'));
-        return headings.map(h => ({
+        const entries = headings.map(h => ({
             text: h.textContent.trim(),
             chapterLabel: capLabel ? capLabel.textContent.trim() : '',
             chapterTitle: chapterTitle ? chapterTitle.textContent.trim() : '',
             id: chapter.id,
             targetEl: h,
         }));
+
+        // Termos das tabelas de decisão (nomes de serviços/recursos em <td><strong>)
+        // para que buscas como "DAX", "Snowball" ou "GuardDuty" encontrem resultado
+        // mesmo quando o termo não é um título de seção.
+        const seen = new Set(entries.map(e => e.text.toLowerCase()));
+        Array.from(chapter.querySelectorAll('td strong')).forEach(el => {
+            const text = el.textContent.trim();
+            if (!text || text.length > 70) return;
+            const key = text.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            entries.push({
+                text,
+                chapterLabel: capLabel ? capLabel.textContent.trim() : '',
+                chapterTitle: chapterTitle ? chapterTitle.textContent.trim() : '',
+                id: chapter.id,
+                targetEl: el.closest('tr') || el,
+            });
+        });
+
+        return entries;
     });
 
     if (!index.length) return;

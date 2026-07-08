@@ -32,8 +32,8 @@
       "options": [
         "Invocação assíncrona com DLQ obrigatória",
         "Invocação por polling (event source mapping), processando registros em lote por shard, na ordem em que chegam",
-        "Invocação síncrona via API Gateway apenas",
-        "Invocação manual via console a cada novo registro"
+        "Invocação manual via console a cada novo registro",
+        "Invocação síncrona via API Gateway apenas"
       ],
       "correct": 1,
       "explanation": "Para fontes como Kinesis e DynamoDB Streams, o Lambda usa um event source mapping que faz polling dos registros e os processa em lotes, mantendo a ordem dentro de cada shard."
@@ -43,12 +43,12 @@
       "domain": "development-aws-services",
       "text": "Uma aplicação usa o DynamoDB e precisa executar uma operação que leia o valor atual de um item e o atualize apenas se ele não tiver sido alterado por outro processo, evitando condições de corrida. Qual recurso deve ser usado?",
       "options": [
-        "Scan completo da tabela antes de cada escrita",
-        "Operações condicionais de escrita (Conditional Writes / ConditionExpression)",
         "Aumentar a capacidade provisionada da tabela",
-        "Usar apenas o DynamoDB Streams"
+        "Usar apenas o DynamoDB Streams",
+        "Operações condicionais de escrita (Conditional Writes / ConditionExpression)",
+        "Scan completo da tabela antes de cada escrita"
       ],
-      "correct": 1,
+      "correct": 2,
       "explanation": "As operações condicionais (ConditionExpression) do DynamoDB permitem que uma escrita só ocorra se uma condição sobre o estado atual do item for satisfeita, evitando condições de corrida (optimistic locking)."
     },
     {
@@ -56,12 +56,12 @@
       "domain": "development-aws-services",
       "text": "Uma API criada com o Amazon API Gateway precisa armazenar em cache as respostas de determinados endpoints para reduzir a carga no backend e a latência. Qual recurso nativo do API Gateway permite isso?",
       "options": [
-        "API Gateway Caching, configurável por estágio (stage)",
+        "Amazon CloudFront apenas, sem suporte nativo do API Gateway",
         "Amazon ElastiCache obrigatoriamente integrado manualmente",
         "AWS X-Ray",
-        "Amazon CloudFront apenas, sem suporte nativo do API Gateway"
+        "API Gateway Caching, configurável por estágio (stage)"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O API Gateway possui um recurso nativo de cache por estágio, que armazena respostas de endpoints por um TTL configurável, reduzindo chamadas ao backend."
     },
     {
@@ -69,12 +69,12 @@
       "domain": "development-aws-services",
       "text": "Uma aplicação precisa processar mensagens do SQS em paralelo, mas garantir que mensagens com o mesmo 'MessageGroupId' sejam processadas em ordem e sem duplicação. Qual tipo de fila deve ser usado?",
       "options": [
-        "Fila SQS Standard",
         "Fila SQS FIFO (First-In-First-Out)",
         "Amazon SNS Topic",
-        "Amazon Kinesis Data Firehose"
+        "Amazon Kinesis Data Firehose",
+        "Fila SQS Standard"
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Filas SQS FIFO garantem ordenação estrita dentro de cada MessageGroupId e oferecem deduplicação de mensagens, ao contrário das filas Standard."
     },
     {
@@ -82,9 +82,9 @@
       "domain": "security",
       "text": "Uma aplicação web usa o Amazon Cognito User Pools para autenticação. Após o login, como a aplicação deve validar que um token JWT recebido do cliente é autêntico e não expirou?",
       "options": [
-        "Confiar no token sem validação, pois o Cognito já validou no login",
-        "Verificar a assinatura do token usando as chaves públicas (JWKS) do User Pool e validar os claims (exp, iss, aud)",
         "Armazenar o token em um cookie sem atributo HttpOnly",
+        "Verificar a assinatura do token usando as chaves públicas (JWKS) do User Pool e validar os claims (exp, iss, aud)",
+        "Confiar no token sem validação, pois o Cognito já validou no login",
         "Decodificar o token em Base64 e considerar válido se o JSON estiver bem formado"
       ],
       "correct": 1,
@@ -95,12 +95,12 @@
       "domain": "security",
       "text": "Uma função Lambda precisa acessar um banco de dados RDS dentro de uma VPC privada, e também precisa chamar a API pública do DynamoDB. Qual configuração permite ambos os acessos?",
       "options": [
-        "Configurar a Lambda em sub-redes privadas da VPC com um NAT Gateway, ou usar um VPC Endpoint para o DynamoDB",
-        "Configurar a Lambda fora da VPC apenas",
         "Não é possível uma Lambda em VPC acessar serviços AWS fora da VPC",
-        "Usar apenas Security Groups, sem rotas de saída"
+        "Usar apenas Security Groups, sem rotas de saída",
+        "Configurar a Lambda em sub-redes privadas da VPC com um NAT Gateway, ou usar um VPC Endpoint para o DynamoDB",
+        "Configurar a Lambda fora da VPC apenas"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Uma Lambda associada a uma VPC pode acessar recursos privados (como RDS); para acessar serviços AWS públicos como o DynamoDB, é necessário um NAT Gateway nas sub-redes privadas ou, preferencialmente, um VPC Endpoint (Gateway Endpoint) para o DynamoDB."
     },
     {
@@ -108,12 +108,12 @@
       "domain": "security",
       "text": "Uma aplicação precisa armazenar a string de conexão de um banco de dados, incluindo usuário e senha, e essa senha deve poder ser rotacionada automaticamente sem alterar o código da aplicação. Qual serviço é mais adequado?",
       "options": [
-        "AWS Systems Manager Parameter Store (Standard, sem rotação automática nativa)",
-        "AWS Secrets Manager, com rotação automática configurada via Lambda",
         "Variáveis de ambiente fixas no código-fonte",
-        "Arquivo de configuração versionado no repositório Git"
+        "Arquivo de configuração versionado no repositório Git",
+        "AWS Secrets Manager, com rotação automática configurada via Lambda",
+        "AWS Systems Manager Parameter Store (Standard, sem rotação automática nativa)"
       ],
-      "correct": 1,
+      "correct": 2,
       "explanation": "O AWS Secrets Manager suporta rotação automática de credenciais (incluindo bancos de dados RDS) por meio de funções Lambda integradas, sem exigir alterações no código da aplicação."
     },
     {
@@ -121,12 +121,12 @@
       "domain": "deployment",
       "text": "Uma equipe usa o AWS Elastic Beanstalk e quer atualizar a aplicação para uma nova versão minimizando o tempo de inatividade, mantendo a versão antiga disponível para rollback rápido. Qual política de deployment é mais adequada?",
       "options": [
-        "All at once",
         "Blue/Green (ambiente separado com troca de URL/CNAME)",
         "Rolling com 100% do batch size de uma vez",
-        "Recriar (Recreate) o ambiente do zero a cada deploy"
+        "Recriar (Recreate) o ambiente do zero a cada deploy",
+        "All at once"
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "A estratégia Blue/Green cria um novo ambiente (verde) com a nova versão, testa-o, e então troca o CNAME para apontar para ele, permitindo rollback rápido revertendo o CNAME se necessário."
     },
     {
@@ -134,12 +134,12 @@
       "domain": "deployment",
       "text": "Em um pipeline de CI/CD com AWS CodePipeline, qual serviço é tipicamente usado para compilar o código-fonte, executar testes e gerar artefatos (como pacotes ou imagens de contêiner)?",
       "options": [
+        "AWS Direct Connect",
         "AWS CodeBuild",
-        "AWS CodeCommit",
         "Amazon CloudFront",
-        "AWS Direct Connect"
+        "AWS CodeCommit"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O AWS CodeBuild é o serviço de build gerenciado que compila código-fonte, executa testes e produz artefatos prontos para deploy, geralmente como uma etapa do CodePipeline."
     },
     {
@@ -147,12 +147,12 @@
       "domain": "deployment",
       "text": "Uma aplicação serverless é definida usando o AWS SAM (Serverless Application Model). O que o comando 'sam deploy' faz, em termos gerais?",
       "options": [
-        "Executa testes unitários localmente apenas",
-        "Empacota o template SAM, faz upload dos artefatos e cria/atualiza uma stack do CloudFormation com os recursos definidos",
         "Apenas compila o código sem criar recursos",
-        "Remove todos os recursos da aplicação"
+        "Executa testes unitários localmente apenas",
+        "Remove todos os recursos da aplicação",
+        "Empacota o template SAM, faz upload dos artefatos e cria/atualiza uma stack do CloudFormation com os recursos definidos"
       ],
-      "correct": 1,
+      "correct": 3,
       "explanation": "O AWS SAM é uma extensão do CloudFormation; 'sam deploy' empacota o código, faz upload para o S3 e cria/atualiza uma stack do CloudFormation com os recursos (Lambdas, APIs, tabelas) definidos no template."
     },
     {
@@ -160,12 +160,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma função Lambda está apresentando 'cold starts' frequentes que impactam a latência percebida pelos usuários em uma API crítica. Qual recurso ajuda a mitigar esse problema mantendo instâncias 'aquecidas'?",
       "options": [
-        "Provisioned Concurrency",
-        "Aumentar o tempo de timeout da função para 15 minutos",
         "Reduzir a memória alocada da função ao mínimo",
-        "Desativar o versionamento da função"
+        "Desativar o versionamento da função",
+        "Aumentar o tempo de timeout da função para 15 minutos",
+        "Provisioned Concurrency"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O Provisioned Concurrency mantém um número definido de ambientes de execução do Lambda inicializados e prontos para responder imediatamente, reduzindo o impacto dos cold starts."
     },
     {
@@ -173,12 +173,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma aplicação registra logs no Amazon CloudWatch Logs, mas o volume de logs está gerando custos elevados de armazenamento. Qual configuração ajuda a controlar esse custo sem perder logs recentes importantes?",
       "options": [
-        "Definir uma política de retenção (retention policy) no log group para expirar logs antigos automaticamente",
+        "Usar apenas o AWS X-Ray em vez de logs",
         "Desativar completamente o CloudWatch Logs",
         "Aumentar a memória da função Lambda",
-        "Usar apenas o AWS X-Ray em vez de logs"
+        "Definir uma política de retenção (retention policy) no log group para expirar logs antigos automaticamente"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Definir uma política de retenção no log group do CloudWatch (por exemplo, 30 ou 90 dias) faz com que logs mais antigos sejam excluídos automaticamente, controlando custos de armazenamento."
     },
     {
@@ -187,9 +187,9 @@
       "text": "Uma tabela do DynamoDB armazena sessões de usuários que devem ser removidas automaticamente 24 horas após a criação, sem custo de operações de exclusão nem código de limpeza. Qual recurso do DynamoDB atende a isso?",
       "options": [
         "TTL (Time to Live): um atributo com o timestamp de expiração faz o DynamoDB excluir os itens vencidos automaticamente, sem consumir capacidade de escrita",
-        "Um job diário que faz Scan e Delete de itens antigos",
+        "Habilitar versionamento e expirar versões antigas",
         "Reduzir o retention period da tabela",
-        "Habilitar versionamento e expirar versões antigas"
+        "Um job diário que faz Scan e Delete de itens antigos"
       ],
       "correct": 0,
       "explanation": "O TTL marca um atributo numérico (epoch) como prazo de validade: itens expirados são removidos em segundo plano sem custo de WCU — o padrão para sessões, caches e dados efêmeros.",
@@ -206,12 +206,12 @@
       "domain": "development-aws-services",
       "text": "Sempre que um item de uma tabela do DynamoDB for criado ou modificado, uma função Lambda deve reagir ao evento recebendo a imagem nova (e opcionalmente a antiga) do item. Qual recurso habilita esse fluxo orientado a eventos?",
       "options": [
-        "DynamoDB Streams com event source mapping para a função Lambda",
         "Fazer a função consultar a tabela inteira a cada minuto comparando os itens",
-        "Configurar um trigger SQL na tabela",
-        "Habilitar o PITR e ler os backups contínuos"
+        "Habilitar o PITR e ler os backups contínuos",
+        "DynamoDB Streams com event source mapping para a função Lambda",
+        "Configurar um trigger SQL na tabela"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O Streams captura as mudanças da tabela em ordem (com imagens new/old configuráveis), e o mapeamento de origem de eventos entrega os registros em lotes à função — o padrão CDC do DynamoDB.",
       "hint": "A 'esteira de mudanças' da tabela alimenta a função com cada alteração, na ordem.",
       "optionRationales": [
@@ -226,12 +226,12 @@
       "domain": "development-aws-services",
       "text": "Um desenvolvedor usa BatchWriteItem para gravar 25 itens por chamada no DynamoDB. Em momentos de pico, a resposta retorna com a chave UnprocessedItems preenchida. O que isso significa e como o código deve tratar?",
       "options": [
-        "Parte do lote não foi gravada (ex: por throttling); o código deve reenviar os itens não processados com backoff exponencial até esvaziar a lista",
-        "Todos os itens foram gravados e a lista é apenas informativa",
+        "O DynamoDB reenviará os itens automaticamente depois",
         "A tabela foi corrompida e precisa ser restaurada",
-        "O DynamoDB reenviará os itens automaticamente depois"
+        "Parte do lote não foi gravada (ex: por throttling); o código deve reenviar os itens não processados com backoff exponencial até esvaziar a lista",
+        "Todos os itens foram gravados e a lista é apenas informativa"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O BatchWriteItem é parcialmente bem-sucedido por design: UnprocessedItems lista o que falhou e o cliente é responsável por retentar esses itens com espera crescente — comportamento que os SDKs ajudam a automatizar.",
       "hint": "Lote no DynamoDB pode voltar 'pela metade': o troco da resposta diz o que você mesmo deve reenviar.",
       "optionRationales": [
@@ -246,12 +246,12 @@
       "domain": "development-aws-services",
       "text": "Um fluxo de pagamento precisa debitar o saldo em um item e registrar a transação em outro item — e as duas escritas devem acontecer juntas ou nenhuma delas (tudo-ou-nada), mesmo entre tabelas diferentes do DynamoDB. Qual recurso garante essa atomicidade?",
       "options": [
-        "Transações do DynamoDB (TransactWriteItems), agrupando até 100 ações com efeito atômico",
         "BatchWriteItem, que já é atômico por padrão",
         "Duas chamadas PutItem em sequência rápida",
+        "Transações do DynamoDB (TransactWriteItems), agrupando até 100 ações com efeito atômico",
         "Habilitar Global Tables para sincronizar as escritas"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O TransactWriteItems aplica o conjunto de escritas de forma atômica (com condições opcionais): qualquer falha cancela tudo — a garantia ACID para operações multi-item/multi-tabela.",
       "hint": "Para 'ou tudo, ou nada' entre itens e tabelas, o DynamoDB tem operações 'Transact'.",
       "optionRationales": [
@@ -266,12 +266,12 @@
       "domain": "development-aws-services",
       "text": "Ao modelar uma tabela do DynamoDB, o desenvolvedor compara índices secundários locais (LSI) e globais (GSI). Qual diferença está correta?",
       "options": [
+        "LSI e GSI são sinônimos com nomes regionais diferentes",
         "O LSI mantém a mesma partition key da tabela variando apenas a sort key e só pode ser criado junto com a tabela; o GSI pode ter chaves totalmente diferentes e ser criado a qualquer momento",
         "O GSI só pode ser criado na criação da tabela; o LSI pode ser adicionado depois",
-        "LSI e GSI são sinônimos com nomes regionais diferentes",
         "O LSI replica a tabela para outra Região"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Essas são as restrições clássicas: LSI compartilha a partição (e o limite de 10 GB por valor de chave) e nasce com a tabela; GSI é flexível em chaves e ciclo de vida, com capacidade própria.",
       "hint": "O 'local' nasce preso à partição e à criação da tabela; o 'global' é livre nas chaves e no tempo.",
       "optionRationales": [
@@ -286,12 +286,12 @@
       "domain": "development-aws-services",
       "text": "Uma Query no DynamoDB retorna a resposta com o campo LastEvaluatedKey preenchido. O que isso indica e o que o código deve fazer para obter o restante dos dados?",
       "options": [
+        "O item retornado é o último da tabela inteira",
         "O resultado foi paginado (limite de 1 MB por chamada); o código deve repetir a Query passando o valor em ExclusiveStartKey até LastEvaluatedKey vir vazio",
         "A consulta falhou e deve ser refeita do zero",
-        "A tabela atingiu o tamanho máximo permitido",
-        "O item retornado é o último da tabela inteira"
+        "A tabela atingiu o tamanho máximo permitido"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O DynamoDB pagina resultados grandes: o LastEvaluatedKey é o marcador da próxima página, repassado como ExclusiveStartKey no laço até o fim — os paginators dos SDKs automatizam esse padrão.",
       "hint": "É o 'marcador de página' da leitura: devolva-o na próxima chamada para continuar de onde parou.",
       "optionRationales": [
@@ -306,12 +306,12 @@
       "domain": "development-aws-services",
       "text": "Uma função Lambda processa arquivos baixando-os temporariamente para o disco local antes de transformá-los. Qual característica do armazenamento /tmp das funções o desenvolvedor deve considerar?",
       "options": [
+        "É compartilhado entre todas as funções da conta",
         "É um armazenamento efêmero por ambiente de execução (512 MB a 10 GB configuráveis), que pode persistir entre invocações no mesmo ambiente quente, mas nunca deve ser tratado como durável",
         "É replicado automaticamente para o S3 ao fim de cada execução",
-        "É compartilhado entre todas as funções da conta",
         "É ilimitado em tamanho"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O /tmp pertence ao ambiente de execução: útil para staging e cache oportunista entre invocações reaproveitadas, mas desaparece quando o ambiente é reciclado — dados duráveis vão para S3/EFS.",
       "hint": "A 'bancada de trabalho' local da função: útil na sessão, mas a faxina pode passar a qualquer momento.",
       "optionRationales": [
@@ -327,9 +327,9 @@
       "text": "Uma função Lambda cria uma conexão com o banco e inicializa um cliente HTTP a cada invocação, dentro do handler, elevando a latência. Qual prática aproveita a reutilização do ambiente de execução para otimizar isso?",
       "options": [
         "Mover inicializações caras (conexões, clientes SDK) para fora do handler, no escopo global, para que invocações no mesmo ambiente quente as reutilizem",
+        "Armazenar a conexão em uma variável de ambiente",
         "Criar e fechar a conexão dentro do handler a cada invocação, por segurança",
-        "Aumentar o timeout para dar tempo às inicializações",
-        "Armazenar a conexão em uma variável de ambiente"
+        "Aumentar o timeout para dar tempo às inicializações"
       ],
       "correct": 0,
       "explanation": "O código fora do handler roda uma vez por ambiente (na inicialização): conexões e clientes criados ali sobrevivem entre invocações reaproveitadas — reduzindo latência e pressão sobre o banco.",
@@ -348,8 +348,8 @@
       "options": [
         "RequestResponse é síncrono (o chamador espera e recebe a resposta/erros); Event é assíncrono (o Lambda enfileira o evento, responde 202 imediatamente e gerencia retentativas)",
         "Event é mais rápido porque executa a função com mais CPU",
-        "RequestResponse só funciona dentro de VPCs",
-        "Os dois modos são idênticos desde 2020"
+        "Os dois modos são idênticos desde 2020",
+        "RequestResponse só funciona dentro de VPCs"
       ],
       "correct": 0,
       "explanation": "Na invocação síncrona o cliente trata erros e recebe o retorno; na assíncrona o serviço assume a fila interna, com até duas retentativas e destinos/DLQ para falhas — a escolha define quem é dono do erro.",
@@ -366,12 +366,12 @@
       "domain": "development-aws-services",
       "text": "Uma função Lambda integrada ao API Gateway via proxy integration retorna um objeto qualquer, e o cliente recebe erro 502 (Bad Gateway). Qual é a causa típica desse erro nessa integração?",
       "options": [
-        "A resposta da função não segue o formato exigido pelo proxy: um JSON com statusCode, headers e body (string)",
-        "O API Gateway está fora do ar na Região",
         "Faltou habilitar CORS na API",
-        "A função excedeu a memória configurada"
+        "A função excedeu a memória configurada",
+        "A resposta da função não segue o formato exigido pelo proxy: um JSON com statusCode, headers e body (string)",
+        "O API Gateway está fora do ar na Região"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Na integração proxy, o API Gateway espera o envelope específico; respostas fora do contrato (body não serializado, statusCode ausente) geram 502 — a correção é montar o objeto de resposta corretamente.",
       "hint": "No modo proxy, o gateway exige o 'envelope' certo: status, cabeçalhos e corpo como string.",
       "optionRationales": [
@@ -406,12 +406,12 @@
       "domain": "development-aws-services",
       "text": "Uma mensagem precisa ficar invisível por 15 minutos APÓS ser enviada a uma fila SQS, só então podendo ser consumida (ex: dar tempo de cancelamento do pedido). Qual recurso implementa esse atraso na entrega, e como difere do visibility timeout?",
       "options": [
+        "Long polling com espera de 15 minutos",
         "Delay queue (ou DelaySeconds por mensagem): atrasa a PRIMEIRA disponibilização da mensagem; o visibility timeout esconde a mensagem APÓS ser recebida por um consumidor",
-        "Visibility timeout de 15 minutos resolve, pois atua na entrada da fila",
         "Retention period de 15 minutos",
-        "Long polling com espera de 15 minutos"
+        "Visibility timeout de 15 minutos resolve, pois atua na entrada da fila"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "São momentos diferentes do ciclo: o delay atua na entrada (mensagem nova fica oculta pelo período), enquanto o visibility timeout protege o processamento em andamento contra consumo duplicado.",
       "hint": "Um adia a estreia da mensagem; o outro protege a mensagem que já está no palco.",
       "optionRationales": [
@@ -427,9 +427,9 @@
       "text": "Uma função Lambda processa lotes de 10 mensagens do SQS. Quando UMA mensagem do lote falha, o lote inteiro retorna à fila e as 9 bem-sucedidas são reprocessadas. Qual configuração evita esse reprocessamento desnecessário?",
       "options": [
         "Habilitar partial batch response (ReportBatchItemFailures) e retornar na resposta apenas os IDs das mensagens que falharam",
+        "Aumentar o visibility timeout do lote",
         "Reduzir o batch size para 1 mensagem",
-        "Capturar todas as exceções e fingir sucesso sempre",
-        "Aumentar o visibility timeout do lote"
+        "Capturar todas as exceções e fingir sucesso sempre"
       ],
       "correct": 0,
       "explanation": "Com o relatório de falhas parciais ativado no event source mapping, só as mensagens listadas como falhas voltam à fila — as demais são confirmadas, eliminando reprocessamento e efeitos duplicados.",
@@ -447,9 +447,9 @@
       "text": "Um tópico SNS recebe eventos de pedidos de todos os tipos, mas a fila de 'reembolsos' só deve receber mensagens cujo atributo 'tipo' seja 'reembolso', sem que o consumidor descarte o resto. Qual recurso do SNS implementa essa seleção na própria assinatura?",
       "options": [
         "Filter policies (políticas de filtro) na assinatura, entregando apenas mensagens cujos atributos casem com o filtro",
-        "Criar um tópico para cada tipo de evento possível",
         "Fazer a fila rejeitar mensagens com base no conteúdo",
-        "Configurar o consumidor para deletar o que não interessa"
+        "Configurar o consumidor para deletar o que não interessa",
+        "Criar um tópico para cada tipo de evento possível"
       ],
       "correct": 0,
       "explanation": "A filter policy avalia os atributos (ou o corpo) da mensagem na entrega: cada assinante recebe só o que lhe interessa — eliminando tráfego e lógica de descarte nos consumidores.",
@@ -467,9 +467,9 @@
       "text": "Um relatório deve ser gerado automaticamente toda segunda-feira às 7h, invocando uma função Lambda. Qual serviço agenda essa execução recorrente com expressões cron, sem servidores?",
       "options": [
         "Amazon EventBridge Scheduler (ou regras agendadas do EventBridge) com expressão cron invocando a função",
-        "Um loop com sleep dentro da própria função Lambda",
+        "Configurar o agendamento no console do S3",
         "Uma instância EC2 com crontab chamando a função",
-        "Configurar o agendamento no console do S3"
+        "Um loop com sleep dentro da própria função Lambda"
       ],
       "correct": 0,
       "explanation": "O EventBridge Scheduler dispara alvos em agendas cron/rate totalmente gerenciadas — o 'crontab serverless' padrão para tarefas recorrentes.",
@@ -486,12 +486,12 @@
       "domain": "development-aws-services",
       "text": "Um time avalia Step Functions para dois fluxos: (A) um processo de aprovação que pode durar dias, com auditoria completa de cada etapa; (B) um pipeline de ingestão de eventos de alto volume e curta duração (menos de 5 minutos) onde o custo por execução importa. Qual tipo de workflow atende melhor cada caso?",
       "options": [
-        "Standard para o fluxo A (longa duração, execução exatamente-uma-vez, histórico completo) e Express para o fluxo B (alto volume, curta duração, custo por uso menor)",
-        "Express para o fluxo A, pois aprovações exigem velocidade expressa",
+        "Nenhum dos dois; Step Functions só executa fluxos de até 15 minutos",
         "Standard para ambos, pois Express foi descontinuado",
-        "Nenhum dos dois; Step Functions só executa fluxos de até 15 minutos"
+        "Express para o fluxo A, pois aprovações exigem velocidade expressa",
+        "Standard para o fluxo A (longa duração, execução exatamente-uma-vez, histórico completo) e Express para o fluxo B (alto volume, curta duração, custo por uso menor)"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Workflows Standard suportam até 1 ano com histórico auditável; Express são otimizados para volume e custo em execuções de até 5 minutos com semântica pelo-menos-uma-vez — a escolha clássica por perfil.",
       "hint": "Maratona auditável vs. sprint barato em massa: cada tipo de workflow tem sua pista.",
       "optionRationales": [
@@ -506,12 +506,12 @@
       "domain": "development-aws-services",
       "text": "Um fluxo do Step Functions recebe um array com número variável de pedidos e precisa executar o MESMO conjunto de etapas para cada pedido, com paralelismo controlado. Qual estado da máquina é projetado para essa iteração dinâmica?",
       "options": [
-        "O estado Map, que itera sobre os itens do array aplicando o sub-fluxo a cada um, com concorrência configurável",
-        "O estado Parallel, criando um branch por pedido manualmente",
         "O estado Choice avaliando cada pedido",
-        "O estado Wait entre os pedidos"
+        "O estado Wait entre os pedidos",
+        "O estado Map, que itera sobre os itens do array aplicando o sub-fluxo a cada um, com concorrência configurável",
+        "O estado Parallel, criando um branch por pedido manualmente"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O Map é o 'for-each' do Step Functions: processa coleções de tamanho dinâmico com limite de paralelismo — diferente do Parallel, que executa ramos FIXOS e distintos.",
       "hint": "O 'for-each' da máquina de estados: um estado que mapeia o sub-fluxo sobre cada item do array.",
       "optionRationales": [
@@ -526,12 +526,12 @@
       "domain": "development-aws-services",
       "text": "Uma plataforma precisa escolher entre Kinesis Data Streams e SQS para ingestão de eventos. O requisito decisivo: múltiplas aplicações consumidoras independentes devem ler o MESMO fluxo, e deve ser possível REPROCESSAR eventos das últimas 24 horas ao corrigir um bug. Qual serviço atende e por quê?",
       "options": [
-        "Kinesis Data Streams: os registros ficam retidos no stream (24h a 365 dias) e vários consumidores leem o mesmo fluxo de posições independentes, permitindo replay",
-        "SQS Standard, pois mensagens podem ser relidas a qualquer momento após o consumo",
+        "Os dois são equivalentes nesse requisito",
         "SQS FIFO, pois a ordenação permite reprocessamento",
-        "Os dois são equivalentes nesse requisito"
+        "SQS Standard, pois mensagens podem ser relidas a qualquer momento após o consumo",
+        "Kinesis Data Streams: os registros ficam retidos no stream (24h a 365 dias) e vários consumidores leem o mesmo fluxo de posições independentes, permitindo replay"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O stream é um log durável e re-legível: consumidores mantêm seus próprios ponteiros e podem rebobinar — no SQS, a mensagem consumida e excluída desaparece para sempre e cada mensagem atende um só consumidor.",
       "hint": "Fila entrega e queima a carta; stream é a fita gravada que vários podem ouvir — e rebobinar.",
       "optionRationales": [
@@ -546,12 +546,12 @@
       "domain": "development-aws-services",
       "text": "Os eventos de criação de objetos de um bucket S3 precisam disparar VÁRIOS alvos com filtragem avançada por metadados do evento (prefixo, tamanho, etc.), indo além dos destinos limitados das notificações tradicionais do S3. Qual abordagem moderna a AWS recomenda?",
       "options": [
-        "Habilitar a integração do S3 com o Amazon EventBridge e criar regras com padrões de evento para rotear aos múltiplos alvos",
         "Configurar dezenas de notificações sobrepostas no próprio bucket",
+        "Habilitar a integração do S3 com o Amazon EventBridge e criar regras com padrões de evento para rotear aos múltiplos alvos",
         "Fazer cada aplicação varrer o bucket de hora em hora",
         "Usar replicação entre Regiões como mecanismo de notificação"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Com o EventBridge habilitado no bucket, os eventos ganham filtragem rica por conteúdo e dezenas de tipos de alvo (múltiplas regras simultâneas) — superando os destinos diretos (Lambda/SQS/SNS) das notificações clássicas.",
       "hint": "Ligue o bucket ao 'barramento': regras ricas, muitos alvos, sem as amarras da notificação clássica.",
       "optionRationales": [
@@ -566,12 +566,12 @@
       "domain": "development-aws-services",
       "text": "Em uma API REST do API Gateway, o time quer que o MESMO deployment sirva dev e produção, com cada stage invocando um alias diferente da função Lambda (dev → alias 'dev'; prod → alias 'prod'). Qual recurso do API Gateway parametriza a integração por stage?",
       "options": [
-        "Stage variables, referenciadas na integração (ex: ${stageVariables.lambdaAlias}) para apontar o alias correto em cada stage",
-        "Criar uma API totalmente separada para cada ambiente, sempre",
         "Mapping templates convertendo o nome do stage",
-        "Usage plans diferentes por ambiente"
+        "Criar uma API totalmente separada para cada ambiente, sempre",
+        "Usage plans diferentes por ambiente",
+        "Stage variables, referenciadas na integração (ex: ${stageVariables.lambdaAlias}) para apontar o alias correto em cada stage"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Stage variables funcionam como variáveis de ambiente por stage: a mesma definição de integração resolve destinos diferentes conforme o estágio — eliminando duplicação de configuração.",
       "hint": "Cada 'palco' tem suas variáveis — e a integração as lê para escolher o alias do espetáculo.",
       "optionRationales": [
@@ -586,12 +586,12 @@
       "domain": "development-aws-services",
       "text": "Um fluxo do Step Functions precisa PAUSAR até que um humano aprove a etapa em um sistema externo, que pode demorar horas — sem manter nenhuma função em execução durante a espera. Qual padrão do Step Functions implementa essa espera por confirmação externa?",
       "options": [
-        "Callback com task token (.waitForTaskToken): o fluxo entrega um token ao sistema externo e fica pausado até receber SendTaskSuccess/SendTaskFailure com esse token",
         "Uma função Lambda em loop verificando a aprovação a cada segundo",
-        "Um estado Wait de duração fixa de 24 horas",
-        "Encerrar o fluxo e criar outro manualmente após a aprovação"
+        "Callback com task token (.waitForTaskToken): o fluxo entrega um token ao sistema externo e fica pausado até receber SendTaskSuccess/SendTaskFailure com esse token",
+        "Encerrar o fluxo e criar outro manualmente após a aprovação",
+        "Um estado Wait de duração fixa de 24 horas"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O padrão de callback suspende a execução sem consumir computação: o token viaja ao sistema de aprovação e a resposta (sucesso/falha) retoma o fluxo — ideal para integrações humanas e sistemas externos lentos.",
       "hint": "O fluxo entrega uma 'senha de retorno' e dorme de graça — só acorda quando alguém devolve a senha com o veredito.",
       "optionRationales": [
@@ -606,12 +606,12 @@
       "domain": "development-aws-services",
       "text": "Uma função Lambda de processamento de ML precisa de bibliotecas e modelos que somam 4 GB — muito além do limite de 250 MB do pacote ZIP. Qual opção de empacotamento do Lambda viabiliza essa função?",
       "options": [
-        "Empacotar a função como imagem de contêiner (até 10 GB) publicada no ECR",
         "Dividir o ZIP em 16 layers de 250 MB",
+        "Solicitar aumento do limite de ZIP via suporte",
         "Comprimir as bibliotecas com ZIP duplo",
-        "Solicitar aumento do limite de ZIP via suporte"
+        "Empacotar a função como imagem de contêiner (até 10 GB) publicada no ECR"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O Lambda suporta container images de até 10 GB: dependências pesadas, modelos e runtimes customizados entram na imagem, mantendo o modelo serverless de execução.",
       "hint": "Quando o ZIP não cabe, a função vira 'navio contêiner': até 10 GB via registro de imagens.",
       "optionRationales": [
@@ -627,8 +627,8 @@
       "text": "Ao rodar a aplicação localmente, o SDK da AWS encontra credenciais sem nenhuma configuração explícita no código. Qual é a ordem geral da cadeia de provedores de credenciais que os SDKs seguem?",
       "options": [
         "Parâmetros explícitos no código → variáveis de ambiente → arquivo de credenciais/perfil → credenciais de container/role da instância (IMDS)",
-        "O SDK pergunta a senha ao usuário no terminal",
         "O SDK gera chaves novas na primeira execução",
+        "O SDK pergunta a senha ao usuário no terminal",
         "Apenas variáveis de ambiente são suportadas"
       ],
       "correct": 0,
@@ -646,12 +646,12 @@
       "domain": "development-aws-services",
       "text": "Um aplicativo de chat precisa de comunicação bidirecional persistente: o servidor deve EMPURRAR mensagens aos clientes conectados em tempo real, sem polling. Qual tipo de API do Amazon API Gateway suporta esse modelo?",
       "options": [
-        "WebSocket API, mantendo conexões persistentes com rotas como $connect, $disconnect e ações customizadas",
-        "REST API com polling agressivo dos clientes",
         "HTTP API com cache habilitado",
+        "REST API com polling agressivo dos clientes",
+        "WebSocket API, mantendo conexões persistentes com rotas como $connect, $disconnect e ações customizadas",
         "API Gateway não suporta tempo real; é preciso um servidor dedicado"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "A WebSocket API do API Gateway gerencia conexões bidirecionais de longa duração: o backend envia mensagens aos clientes via connection IDs — o modelo para chats, jogos e dashboards em tempo real.",
       "hint": "Para o servidor 'ligar' para o cliente a qualquer momento, a API precisa do protocolo de mão dupla.",
       "optionRationales": [
@@ -666,12 +666,12 @@
       "domain": "development-aws-services",
       "text": "Um desenvolvedor leu que o Amazon S3 oferece consistência forte (strong read-after-write) para todas as operações. O que isso garante na prática para a aplicação?",
       "options": [
-        "Após um PUT bem-sucedido (novo ou sobrescrita), qualquer leitura subsequente retorna a versão mais recente do objeto — sem janela de dados antigos",
-        "Que dois clientes nunca conseguem escrever no mesmo objeto",
         "Que os objetos são replicados para todas as Regiões instantaneamente",
+        "Que dois clientes nunca conseguem escrever no mesmo objeto",
+        "Após um PUT bem-sucedido (novo ou sobrescrita), qualquer leitura subsequente retorna a versão mais recente do objeto — sem janela de dados antigos",
         "Que o S3 passou a suportar transações multi-objeto"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Desde 2020 o S3 é fortemente consistente: GET/LIST após escrita refletem imediatamente o estado atual, eliminando as antigas janelas de consistência eventual em sobrescritas e listagens.",
       "hint": "Escreveu, leu: o que volta é sempre a última versão — sem 'eco' do passado.",
       "optionRationales": [
@@ -687,8 +687,8 @@
       "text": "Uma aplicação serverless usa várias funções Lambda que precisam de lógica comum de logging estruturado, métricas e tracing com pouco código repetido. Além de layers, qual biblioteca oficial da AWS acelera essas boas práticas em funções Lambda?",
       "options": [
         "AWS Lambda Powertools (Python/TypeScript/Java/.NET), com utilitários prontos de logging estruturado, métricas EMF e tracing",
-        "AWS Amplify CLI",
         "Amazon WorkDocs SDK",
+        "AWS Amplify CLI",
         "AWS IoT Greengrass"
       ],
       "correct": 0,
@@ -707,9 +707,9 @@
       "text": "Um endpoint precisa servir um placar (leaderboard) em tempo real com os 10 maiores pontuadores de um jogo, atualizado a cada pontuação. Qual estrutura de dados do Redis (ElastiCache) resolve esse ranking com operações nativas de ordenação?",
       "options": [
         "Sorted set (ZADD/ZRANGE), que mantém membros ordenados por score automaticamente",
-        "Uma string JSON com o array completo reordenado a cada escrita",
+        "Um set comum (SADD)",
         "Uma lista (LPUSH) com os scores",
-        "Um set comum (SADD)"
+        "Uma string JSON com o array completo reordenado a cada escrita"
       ],
       "correct": 0,
       "explanation": "O sorted set é a estrutura clássica de leaderboard: inserções/atualizações com ZADD mantêm a ordenação por pontuação, e ZRANGE/ZREVRANGE retorna o topo em O(log N) — sem reordenação manual.",
@@ -726,12 +726,12 @@
       "domain": "development-aws-services",
       "text": "Uma aplicação grava no DynamoDB e precisa decidir entre leituras eventualmente consistentes e fortemente consistentes. Qual é o trade-off entre as duas opções em uma Query/GetItem?",
       "options": [
-        "Leituras fortemente consistentes garantem o dado mais recente, mas custam o dobro em capacidade de leitura e têm latência ligeiramente maior; as eventualmente consistentes (padrão) custam metade e podem refletir dados defasados por instantes",
         "Leituras fortemente consistentes são gratuitas para incentivar seu uso",
         "Leituras eventualmente consistentes podem retornar dados de outra tabela",
+        "Leituras fortemente consistentes garantem o dado mais recente, mas custam o dobro em capacidade de leitura e têm latência ligeiramente maior; as eventualmente consistentes (padrão) custam metade e podem refletir dados defasados por instantes",
         "Não há diferença prática; os termos são apenas históricos"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O DynamoDB cobra 1 RCU por leitura fortemente consistente de até 4 KB contra 0,5 RCU na eventual: a escolha equilibra frescor do dado contra custo e latência — leituras eventuais bastam para a maioria dos casos.",
       "hint": "Frescor garantido custa o dobro de RCU; a leitura 'relaxada' é meia tarifa com possível atraso de instantes.",
       "optionRationales": [
@@ -746,12 +746,12 @@
       "domain": "security",
       "text": "Uma aplicação precisa criptografar arquivos de 100 MB antes de gravá-los, mas a API Encrypt do KMS aceita no máximo 4 KB de dados por chamada. Qual padrão resolve a criptografia de dados grandes com chaves do KMS?",
       "options": [
+        "Solicitar aumento do limite de 4 KB via suporte",
         "Envelope encryption: usar GenerateDataKey para obter uma chave de dados, criptografar o arquivo localmente com ela e armazenar a versão criptografada da data key junto do arquivo",
         "Dividir o arquivo em 25.600 blocos de 4 KB e chamar Encrypt para cada um",
-        "Solicitar aumento do limite de 4 KB via suporte",
         "Armazenar o arquivo sem criptografia, pois o KMS não suporta dados grandes"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O envelope encryption é o padrão do KMS para dados grandes: a data key cifra o arquivo localmente (rápido), e apenas a própria data key — pequena — é protegida pela chave KMS; na leitura, o Decrypt da data key destrava o arquivo.",
       "hint": "A chave grande protege uma chave pequena; a chave pequena protege o arquivo grande — tudo dentro de um 'envelope'.",
       "optionRationales": [
@@ -767,9 +767,9 @@
       "text": "Por política de conformidade, TODO objeto gravado em um bucket S3 deve usar criptografia SSE-KMS com uma chave específica — uploads que não atendam a isso devem ser rejeitados na hora. Como impor essa regra no próprio bucket?",
       "options": [
         "Bucket policy com condição que nega PutObject quando os cabeçalhos de criptografia não especificam aws:kms (e a chave esperada)",
+        "Habilitar versionamento para criptografar versões antigas",
         "Confiar que os desenvolvedores sempre passarão os cabeçalhos corretos",
-        "Rodar um job noturno que exclui objetos sem criptografia",
-        "Habilitar versionamento para criptografar versões antigas"
+        "Rodar um job noturno que exclui objetos sem criptografia"
       ],
       "correct": 0,
       "explanation": "Uma política de bucket com Deny condicionado aos cabeçalhos s3:x-amz-server-side-encryption rejeita uploads fora do padrão na própria API — a imposição acontece no recurso, independentemente do cliente.",
@@ -786,12 +786,12 @@
       "domain": "security",
       "text": "Um aplicativo permite navegação como convidado (sem login) com acesso de leitura a um bucket público de catálogo, e acesso ampliado após o login. Qual recurso do Amazon Cognito suporta credenciais AWS distintas para usuários autenticados e não autenticados?",
       "options": [
-        "Identity Pools com identidades não autenticadas habilitadas, mapeando roles IAM diferentes para convidados e autenticados",
-        "User Pools com usuários fictícios chamados 'convidado'",
         "Distribuir access keys de um usuário IAM 'guest' no app",
-        "Cognito não suporta acesso sem login"
+        "Identity Pools com identidades não autenticadas habilitadas, mapeando roles IAM diferentes para convidados e autenticados",
+        "Cognito não suporta acesso sem login",
+        "User Pools com usuários fictícios chamados 'convidado'"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O Identity Pool emite credenciais temporárias em dois trilhos: a role de convidado (permissões mínimas) e a role autenticada (permissões ampliadas) — o padrão para experiência guest + login.",
       "hint": "A 'piscina de identidades' tem duas raias: uma role para visitantes, outra para quem fez check-in.",
       "optionRationales": [
@@ -826,12 +826,12 @@
       "domain": "security",
       "text": "Uma API no API Gateway precisa de autorização customizada: validar um token proprietário (não JWT de Cognito) consultando regras de negócio antes de liberar cada chamada. Qual mecanismo do API Gateway executa essa lógica personalizada?",
       "options": [
-        "Um Lambda authorizer, que recebe o token, executa a validação customizada e retorna a política IAM permitindo ou negando a chamada",
-        "API keys com usage plans",
         "Authorizer nativo do Cognito User Pool",
-        "Validação dentro de cada função de backend"
+        "Um Lambda authorizer, que recebe o token, executa a validação customizada e retorna a política IAM permitindo ou negando a chamada",
+        "Validação dentro de cada função de backend",
+        "API keys com usage plans"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O Lambda authorizer injeta lógica própria na autorização: valida o token contra qualquer regra/serviço e devolve Allow/Deny (com contexto), com cache opcional do resultado — o caminho para esquemas fora do padrão Cognito/IAM.",
       "hint": "Quando o crachá é 'fora do padrão', uma função sua vira o segurança da porta — devolvendo a política de acesso.",
       "optionRationales": [
@@ -846,12 +846,12 @@
       "domain": "security",
       "text": "Uma fintech contrata uma consultoria que precisará assumir uma role na conta da fintech. Para evitar o problema do 'confused deputy' — em que um terceiro é induzido a usar seu acesso em benefício de outro cliente — qual elemento deve ser exigido na trust policy da role?",
       "options": [
+        "Uma chave KMS compartilhada entre as contas",
         "Um External ID acordado entre as partes, validado na condição sts:ExternalId do AssumeRole",
         "Uma senha compartilhada por e-mail mensalmente",
-        "Acesso root temporário para a consultoria",
-        "Uma chave KMS compartilhada entre as contas"
+        "Acesso root temporário para a consultoria"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O External ID é o identificador secreto que o terceiro deve apresentar ao assumir a role: impede que outro cliente da consultoria a induza a usar o acesso indevidamente — a mitigação clássica do confused deputy.",
       "hint": "O 'código secreto do contrato' que o terceiro precisa apresentar ao bater na porta da role.",
       "optionRationales": [
@@ -866,12 +866,12 @@
       "domain": "security",
       "text": "O time de segurança quer que cada imagem Docker enviada ao Amazon ECR seja automaticamente verificada contra vulnerabilidades conhecidas (CVEs) nas suas camadas e pacotes. Qual recurso atende a isso?",
       "options": [
+        "Confiar que as imagens base oficiais nunca têm vulnerabilidades",
         "Image scanning do ECR (basic ou enhanced via Amazon Inspector), com varredura no push e contínua",
-        "Amazon Macie analisando o repositório de imagens",
         "AWS Shield Advanced no registro",
-        "Confiar que as imagens base oficiais nunca têm vulnerabilidades"
+        "Amazon Macie analisando o repositório de imagens"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O ECR oferece scan on push e, no modo enhanced com Inspector, varredura contínua das imagens contra bases de CVEs — os achados aparecem por imagem com severidade para bloquear promoções inseguras.",
       "hint": "O porto inspeciona cada contêiner que atraca — e pode reinspecionar a frota quando surgem novas ameaças.",
       "optionRationales": [
@@ -886,12 +886,12 @@
       "domain": "security",
       "text": "Um site distribui vídeos privados via CloudFront e precisa autorizar o acesso de assinantes: às vezes a um ÚNICO arquivo (link individual), às vezes a TODO o catálogo (centenas de URLs) sem gerar um link por arquivo. Quais mecanismos do CloudFront atendem, respectivamente, a cada caso?",
       "options": [
-        "Signed URLs para autorizar um arquivo individual e signed cookies para liberar múltiplos conteúdos sem alterar as URLs",
         "Signed cookies para um arquivo e signed URLs para o catálogo inteiro",
+        "Signed URLs para autorizar um arquivo individual e signed cookies para liberar múltiplos conteúdos sem alterar as URLs",
         "Tornar o bucket de origem público com nomes aleatórios",
         "Bloquear por país com geo restriction"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "A signed URL embute a autorização para um recurso específico; os signed cookies enviam a autorização no navegador e valem para um conjunto de conteúdos — a dupla clássica de conteúdo privado no CloudFront.",
       "hint": "Um ingresso por filme (URL assinada) ou a pulseira do festival inteiro (cookies assinados).",
       "optionRationales": [
@@ -906,12 +906,12 @@
       "domain": "security",
       "text": "Um certificado público solicitado no AWS Certificate Manager está preso no estado 'Pending validation'. O domínio é gerenciado no Route 53. Qual método de validação resolve de forma mais automatizável — inclusive para as renovações futuras?",
       "options": [
-        "Validação por DNS, criando o registro CNAME de prova no Route 53 (com botão de criação automática), que também habilita renovações automáticas contínuas",
+        "Aguardar 72 horas pela aprovação automática",
         "Validação por e-mail, respondendo manualmente a cada renovação",
         "Enviar documentos da empresa ao suporte AWS",
-        "Aguardar 72 horas pela aprovação automática"
+        "Validação por DNS, criando o registro CNAME de prova no Route 53 (com botão de criação automática), que também habilita renovações automáticas contínuas"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "A validação DNS prova o controle do domínio com um CNAME que o ACM verifica — e, mantido o registro, as renovações ocorrem sozinhas; com Route 53, a criação é um clique ou uma chamada de API.",
       "hint": "Plante o CNAME de prova no DNS e esqueça: emissão e renovações ficam no piloto automático.",
       "optionRationales": [
@@ -926,12 +926,12 @@
       "domain": "security",
       "text": "Uma API REST interna no API Gateway deve aceitar chamadas APENAS vindas de uma VPC específica (via VPC endpoint), rejeitando qualquer acesso pela internet. Qual configuração impõe essa restrição?",
       "options": [
-        "Criar a API como private e usar resource policy permitindo somente o VPC endpoint específico",
         "Distribuir a URL apenas internamente e contar com o sigilo",
+        "Criar a API como private e usar resource policy permitindo somente o VPC endpoint específico",
         "Usar API keys como bloqueio de rede",
         "Colocar a API atrás do CloudFront com TTL zero"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "APIs privadas só são alcançáveis via interface VPC endpoint, e a resource policy amarra o acesso ao endpoint/VPC autorizado — o tráfego nunca passa pela internet pública.",
       "hint": "API 'privada' + política do recurso apontando o endpoint da VPC = porta fechada para a internet.",
       "optionRationales": [
@@ -946,12 +946,12 @@
       "domain": "security",
       "text": "Em um aplicativo multiusuário, cada usuário autenticado via Cognito deve ler e gravar SOMENTE os próprios itens em uma tabela do DynamoDB cuja partition key é o ID do usuário. Como conceder esse acesso granular sem backend intermediário?",
       "options": [
-        "Na role do Identity Pool, usar uma política IAM com a condição dynamodb:LeadingKeys igual à variável da identidade Cognito (${cognito-identity.amazonaws.com:sub})",
-        "Conceder acesso total à tabela e filtrar no código do aplicativo",
         "Criar uma tabela separada por usuário",
-        "Criptografar os itens com a senha do usuário"
+        "Conceder acesso total à tabela e filtrar no código do aplicativo",
+        "Criptografar os itens com a senha do usuário",
+        "Na role do Identity Pool, usar uma política IAM com a condição dynamodb:LeadingKeys igual à variável da identidade Cognito (${cognito-identity.amazonaws.com:sub})"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O fine-grained access control do DynamoDB com LeadingKeys restringe as operações às partições cuja chave coincide com a identidade do chamador — cada usuário enxerga apenas os próprios itens, direto do cliente.",
       "hint": "A política pode amarrar a 'primeira chave' da partição à identidade de quem chama — cada um na sua gaveta.",
       "optionRationales": [
@@ -966,12 +966,12 @@
       "domain": "security",
       "text": "Uma aplicação Node.js conecta-se a um RDS PostgreSQL e o time de segurança exige que TODAS as conexões usem TLS, rejeitando tentativas sem criptografia. Como impor isso no lado do banco?",
       "options": [
-        "Definir o parâmetro rds.force_ssl=1 no parameter group do RDS (e usar o certificado CA da AWS no cliente)",
-        "Pedir aos desenvolvedores que usem TLS sempre que lembrarem",
+        "Ativar criptografia em repouso, que cobre as conexões",
         "Colocar o RDS em sub-rede pública para usar HTTPS",
-        "Ativar criptografia em repouso, que cobre as conexões"
+        "Pedir aos desenvolvedores que usem TLS sempre que lembrarem",
+        "Definir o parâmetro rds.force_ssl=1 no parameter group do RDS (e usar o certificado CA da AWS no cliente)"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Com force_ssl ativado, o PostgreSQL recusa conexões sem TLS; o cliente valida o certificado com o bundle CA do RDS — criptografia em trânsito garantida por configuração, não por convenção.",
       "hint": "O próprio banco pode 'desligar a porta sem cadeado': um parâmetro que força SSL em toda conexão.",
       "optionRationales": [
@@ -986,12 +986,12 @@
       "domain": "security",
       "text": "Uma função Lambda busca um segredo no Secrets Manager A CADA invocação, adicionando latência e custo de API em milhões de execuções. Qual otimização mantém a segurança reduzindo essas chamadas?",
       "options": [
-        "Buscar o segredo na inicialização (fora do handler) e cachear em memória com TTL — ou usar a AWS Parameters and Secrets Lambda Extension, que faz esse cache localmente",
         "Copiar o segredo para uma variável de ambiente em texto claro no deploy",
+        "Desligar a rotação do segredo para a busca ficar mais rápida",
         "Gravar o segredo no código-fonte para eliminar a chamada",
-        "Desligar a rotação do segredo para a busca ficar mais rápida"
+        "Buscar o segredo na inicialização (fora do handler) e cachear em memória com TTL — ou usar a AWS Parameters and Secrets Lambda Extension, que faz esse cache localmente"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O cache no ambiente de execução (ou via extensão oficial) reduz as chamadas ao cofre a uma por ambiente/TTL, mantendo rotação suportada (expiração do cache) — economia e latência sem expor o segredo em texto persistente.",
       "hint": "Busque no cofre de vez em quando (com prazo de validade na memória) — não a cada visita.",
       "optionRationales": [
@@ -1006,12 +1006,12 @@
       "domain": "security",
       "text": "Os parâmetros de configuração no Systems Manager Parameter Store foram organizados em hierarquias como /app/dev/* e /app/prod/*. Qual benefício de segurança essa organização habilita nas políticas IAM?",
       "options": [
+        "A hierarquia replica os parâmetros entre Regiões",
         "Conceder permissões por caminho: a role de dev acessa apenas arn:...parameter/app/dev/*, sem enxergar os parâmetros de produção",
-        "Hierarquias criptografam automaticamente os parâmetros",
         "Caminhos longos tornam os parâmetros mais difíceis de adivinhar",
-        "A hierarquia replica os parâmetros entre Regiões"
+        "Hierarquias criptografam automaticamente os parâmetros"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Hierarquias permitem políticas IAM por prefixo de caminho — o isolamento dev/prod nasce da estrutura de nomes combinada ao menor privilégio nos ARNs.",
       "hint": "Pastas bem nomeadas viram fronteiras de permissão: cada role só abre o seu corredor.",
       "optionRationales": [
@@ -1027,8 +1027,8 @@
       "text": "Em uma task do Amazon ECS, qual é a diferença entre a task role e a task execution role?",
       "options": [
         "A task role dá permissões ao CÓDIGO da aplicação nos contêineres (ex: acessar S3/DynamoDB); a execution role é usada pelo AGENTE do ECS para puxar a imagem do ECR e enviar logs ao CloudWatch",
-        "São a mesma role com nomes diferentes nas versões do console",
         "A execution role é a role dos desenvolvedores que fazem deploy",
+        "São a mesma role com nomes diferentes nas versões do console",
         "A task role só existe no EC2 launch type"
       ],
       "correct": 0,
@@ -1046,12 +1046,12 @@
       "domain": "security",
       "text": "Mensagens com dados pessoais trafegam por uma fila SQS, e a política de segurança exige criptografia em repouso com chave gerenciada pelo cliente e auditoria de uso da chave. Qual configuração atende?",
       "options": [
+        "Restringir a fila por Security Group",
         "Habilitar SSE-KMS na fila com uma customer managed key, cujo uso fica registrado no CloudTrail",
         "Criptografar manualmente cada mensagem com Base64",
-        "Usar fila FIFO, que é criptografada por padrão com chave do cliente",
-        "Restringir a fila por Security Group"
+        "Usar fila FIFO, que é criptografada por padrão com chave do cliente"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O SQS suporta criptografia em repouso via KMS: com chave do cliente, o controle de política/rotação é seu e cada uso da chave é auditável — atendendo conformidade (o SSE-SQS usa chave do serviço, sem esse controle).",
       "hint": "Cofre da fila com a SUA chave KMS — e o extrato de uso no CloudTrail.",
       "optionRationales": [
@@ -1067,9 +1067,9 @@
       "text": "A conta A precisa permitir que uma aplicação da conta B grave objetos em um bucket S3 da conta A, mantendo a conta A como dona do controle. Qual combinação de permissões viabiliza esse acesso entre contas?",
       "options": [
         "Bucket policy na conta A autorizando o principal (role) da conta B, e política IAM na conta B permitindo as ações S3 no ARN do bucket",
+        "Apenas a política IAM na conta B, sem mexer no bucket",
         "Tornar o bucket público durante as gravações",
-        "Compartilhar as access keys da conta A com a conta B",
-        "Apenas a política IAM na conta B, sem mexer no bucket"
+        "Compartilhar as access keys da conta A com a conta B"
       ],
       "correct": 0,
       "explanation": "Acesso cross-account no S3 exige as duas pontas: o recurso (bucket policy) autoriza o principal externo e a identidade na outra conta possui as permissões correspondentes — sem ambas, a chamada falha.",
@@ -1086,12 +1086,12 @@
       "domain": "security",
       "text": "Uma aplicação precisa chamar uma API da AWS diretamente via HTTPS (sem SDK). Para a requisição ser aceita, ela precisa ser assinada. Qual processo de assinatura as APIs da AWS exigem e o que ele envolve?",
       "options": [
-        "Signature Version 4 (SigV4): derivar uma chave de assinatura das credenciais e assinar o hash canônico da requisição (método, caminho, cabeçalhos, payload) com data/hora",
-        "Enviar a Secret Access Key em texto claro num cabeçalho",
         "Basic Auth com usuário e senha do console",
-        "Nenhuma autenticação; o HTTPS já basta"
+        "Nenhuma autenticação; o HTTPS já basta",
+        "Enviar a Secret Access Key em texto claro num cabeçalho",
+        "Signature Version 4 (SigV4): derivar uma chave de assinatura das credenciais e assinar o hash canônico da requisição (método, caminho, cabeçalhos, payload) com data/hora"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O SigV4 autentica e protege a integridade de cada chamada: a assinatura embute credencial, escopo (data/Região/serviço) e o digest da requisição — os SDKs fazem isso automaticamente, mas chamadas manuais devem implementá-lo.",
       "hint": "Cada chamada leva um 'lacre criptográfico' derivado das credenciais — versão 4 da assinatura.",
       "optionRationales": [
@@ -1106,12 +1106,12 @@
       "domain": "security",
       "text": "Uma aplicação usa grupos do Cognito User Pool ('admin', 'editor', 'leitor') e a API precisa autorizar cada chamada conforme o papel do usuário. Onde a aplicação encontra os grupos do usuário após o login para aplicar esse RBAC?",
       "options": [
-        "Na claim cognito:groups dos tokens JWT emitidos, que a API valida e usa para decidir as permissões",
-        "Em um arquivo CSV exportado manualmente do Cognito por dia",
         "No cabeçalho User-Agent da requisição",
-        "Nas tags da função Lambda"
+        "Em um arquivo CSV exportado manualmente do Cognito por dia",
+        "Nas tags da função Lambda",
+        "Na claim cognito:groups dos tokens JWT emitidos, que a API valida e usa para decidir as permissões"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Os grupos do usuário viajam na claim cognito:groups do ID/access token: a API (ou o authorizer) lê a claim do token validado e aplica as regras por papel — sem consultas adicionais ao pool.",
       "hint": "O papel do usuário viaja DENTRO do crachá assinado (JWT) — procure a claim dos grupos.",
       "optionRationales": [
@@ -1127,9 +1127,9 @@
       "text": "A equipe de segurança quer que a chave KMS gerenciada pelo cliente usada pela aplicação tenha seu material criptográfico trocado periodicamente sem que os dados precisem ser recriptografados nem o código alterado. Qual recurso do KMS atende?",
       "options": [
         "Rotação automática da chave, que gera novo material anualmente mantendo o mesmo ARN/keyId e a capacidade de decifrar com os materiais antigos",
-        "Criar uma chave nova por mês e recriptografar tudo manualmente",
+        "Excluir a chave antiga imediatamente após cada troca",
         "Exportar a chave e guardá-la em papel a cada troca",
-        "Excluir a chave antiga imediatamente após cada troca"
+        "Criar uma chave nova por mês e recriptografar tudo manualmente"
       ],
       "correct": 0,
       "explanation": "A rotação automática troca o material por trás do mesmo identificador: novas cifragens usam o material novo e as antigas continuam decifráveis — transparente para aplicações e dados.",
@@ -1146,12 +1146,12 @@
       "domain": "security",
       "text": "Durante o build no CodeBuild, o time quer impedir que segredos (tokens, senhas) apareçam nos LOGS do build, além de buscá-los de forma segura. Quais práticas combinadas atendem a esse objetivo?",
       "options": [
-        "Injetar segredos via Secrets Manager/Parameter Store no buildspec e evitar comandos que os ecoem (set +x, sem echo), confiando no mascaramento parcial mas não exclusivamente nele",
-        "Imprimir os segredos no início do build para conferência",
         "Gravar os segredos no Dockerfile da imagem de build",
-        "Desativar todos os logs do CodeBuild"
+        "Imprimir os segredos no início do build para conferência",
+        "Desativar todos os logs do CodeBuild",
+        "Injetar segredos via Secrets Manager/Parameter Store no buildspec e evitar comandos que os ecoem (set +x, sem echo), confiando no mascaramento parcial mas não exclusivamente nele"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "A injeção gerenciada evita segredos no repositório, e a disciplina de não imprimi-los nos comandos impede o vazamento em logs — o mascaramento automático ajuda, mas não cobre transformações do valor.",
       "hint": "Buscar do cofre na hora + nunca 'ecoar' o valor = log limpo sem perder o build visível.",
       "optionRationales": [
@@ -1167,8 +1167,8 @@
       "text": "Uma aplicação frontend descobriu que estava enviando o ID token do Cognito para autorizar chamadas em uma API de terceiros, que exigia o access token. Qual é a distinção correta de uso entre esses dois tokens?",
       "options": [
         "O ID token destina-se ao próprio cliente, carregando claims de identidade do usuário; o access token é o que autoriza chamadas a APIs e recursos protegidos (escopos)",
-        "Os dois tokens são intercambiáveis em qualquer API",
         "O ID token nunca expira, por isso é melhor para APIs",
+        "Os dois tokens são intercambiáveis em qualquer API",
         "O access token contém a senha criptografada do usuário"
       ],
       "correct": 0,
@@ -1187,9 +1187,9 @@
       "text": "Uma função Lambda armazena valores sensíveis em variáveis de ambiente. Sobre a proteção dessas variáveis, qual afirmação está correta e qual reforço é possível?",
       "options": [
         "As variáveis são criptografadas em repouso pelo KMS por padrão, e é possível usar uma customer managed key e helpers de criptografia em trânsito para protegê-las também de quem tem acesso de leitura à configuração",
-        "Variáveis de ambiente são públicas para qualquer usuário da AWS",
         "O Lambda não suporta nenhuma criptografia de variáveis",
-        "Basta nomear a variável com prefixo SECRET_ para o Lambda protegê-la"
+        "Basta nomear a variável com prefixo SECRET_ para o Lambda protegê-la",
+        "Variáveis de ambiente são públicas para qualquer usuário da AWS"
       ],
       "correct": 0,
       "explanation": "O Lambda cifra env vars em repouso com chave gerenciada (ou CMK escolhida); para valores realmente sensíveis, a criptografia adicional client-side (encryption helpers) ou o uso de Secrets Manager protege contra leitura na configuração.",
@@ -1207,9 +1207,9 @@
       "text": "Um time configura o CodeDeploy para implantar uma nova versão de função Lambda com a configuração 'Canary10Percent5Minutes'. O que acontece exatamente durante esse deployment?",
       "options": [
         "10% do tráfego do alias muda para a nova versão; após 5 minutos sem alarmes disparados, os 90% restantes são promovidos de uma vez",
+        "O tráfego cresce 10% a cada 5 minutos até 100%",
         "10 instâncias EC2 são atualizadas a cada 5 minutos",
-        "A nova versão roda em paralelo por 5 minutos sem receber tráfego real",
-        "O tráfego cresce 10% a cada 5 minutos até 100%"
+        "A nova versão roda em paralelo por 5 minutos sem receber tráfego real"
       ],
       "correct": 0,
       "explanation": "As configurações Canary do CodeDeploy para Lambda deslocam uma fração inicial do tráfego pelo período de observação e, se os alarmes do CloudWatch ficarem saudáveis, completam a promoção — caso contrário, ocorre rollback automático.",
@@ -1226,12 +1226,12 @@
       "domain": "deployment",
       "text": "No CodeDeploy para EC2, qual é a diferença entre os tipos de implantação in-place e blue/green?",
       "options": [
+        "In-place não permite hooks de ciclo de vida",
         "In-place atualiza a aplicação nas MESMAS instâncias (parando e religando o serviço nelas); blue/green provisiona um conjunto NOVO de instâncias e redireciona o tráfego do balanceador para ele",
-        "In-place cria novas instâncias e blue/green reutiliza as antigas",
         "Blue/green só funciona para funções Lambda",
-        "In-place não permite hooks de ciclo de vida"
+        "In-place cria novas instâncias e blue/green reutiliza as antigas"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "No in-place, cada instância existente é atualizada no lugar (com indisponibilidade parcial); no blue/green, a frota substituta recebe a versão nova e o tráfego comuta — com rollback rápido reapontando para a frota antiga.",
       "hint": "Reformar o prédio com os moradores dentro × construir o prédio novo ao lado e mudar todo mundo.",
       "optionRationales": [
@@ -1246,12 +1246,12 @@
       "domain": "deployment",
       "text": "Em um deployment do CodeDeploy em EC2, o time quer executar testes de smoke automatizados DEPOIS que a nova versão começou a rodar, fazendo o deploy falhar (e reverter) se os testes não passarem. Em qual hook do ciclo de vida do appspec esses testes devem ser executados?",
       "options": [
-        "ValidateService, o hook final que confirma a saúde do serviço implantado",
         "BeforeInstall, antes de copiar os arquivos",
         "DownloadBundle, durante o download do pacote",
-        "ApplicationStop, ao parar a versão anterior"
+        "ApplicationStop, ao parar a versão anterior",
+        "ValidateService, o hook final que confirma a saúde do serviço implantado"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O ValidateService roda após a aplicação iniciar e é o ponto previsto para validações funcionais: scripts com código de saída diferente de zero falham o deploy, acionando o rollback configurado.",
       "hint": "O último portão do ciclo: 'validar o serviço' que acabou de subir — reprovou, reverteu.",
       "optionRationales": [
@@ -1266,12 +1266,12 @@
       "domain": "deployment",
       "text": "Um template do CloudFormation cresceu além do limite de tamanho e mistura redes, banco e aplicação, dificultando a manutenção. Qual recurso do CloudFormation permite dividi-lo em componentes reutilizáveis orquestrados por um template pai?",
       "options": [
-        "Nested stacks: o template pai instancia stacks filhas (AWS::CloudFormation::Stack) para cada componente",
         "Compactar o template em ZIP para caber no limite",
-        "Converter o template inteiro para Bash",
-        "Criar todos os recursos manualmente no console"
+        "Criar todos os recursos manualmente no console",
+        "Nested stacks: o template pai instancia stacks filhas (AWS::CloudFormation::Stack) para cada componente",
+        "Converter o template inteiro para Bash"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Stacks aninhadas modularizam a infraestrutura: cada parte vive em seu template (reutilizável e testável) e o pai coordena os parâmetros e as dependências entre elas.",
       "hint": "Um template 'pai' que monta o quebra-cabeça chamando stacks 'filhas' — aninhadas.",
       "optionRationales": [
@@ -1286,12 +1286,12 @@
       "domain": "deployment",
       "text": "Um único template do CloudFormation deve servir dev e produção: instâncias pequenas em dev, grandes em produção, sem duplicar o template. Quais seções do template implementam essa parametrização?",
       "options": [
-        "Parameters para receber o ambiente na criação da stack e Mappings (com FindInMap) para resolver valores por ambiente",
         "Outputs e Metadata",
+        "Parameters para receber o ambiente na criação da stack e Mappings (com FindInMap) para resolver valores por ambiente",
         "Copiar o template e editar os valores em cada cópia",
         "Tags de ambiente nos recursos"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Parameters tornam o template configurável por stack, e Mappings centralizam tabelas de valores (ex: tipo de instância por ambiente) resolvidas com Fn::FindInMap — um template, N ambientes.",
       "hint": "Pergunte o ambiente na entrada (Parameters) e consulte a 'tabela de tamanhos' (Mappings) para cada um.",
       "optionRationales": [
@@ -1306,12 +1306,12 @@
       "domain": "deployment",
       "text": "Em um template do CloudFormation, qual é a diferença entre as funções intrínsecas !Ref e !GetAtt ao referenciar um recurso como uma instância EC2?",
       "options": [
-        "!Ref retorna o identificador padrão do recurso (ex: o ID da instância); !GetAtt acessa atributos específicos (ex: PrivateIp, PublicDnsName)",
         "!GetAtt cria o recurso e !Ref o exclui",
-        "São idênticas e intercambiáveis",
-        "!Ref só funciona com parâmetros, nunca com recursos"
+        "!Ref só funciona com parâmetros, nunca com recursos",
+        "!Ref retorna o identificador padrão do recurso (ex: o ID da instância); !GetAtt acessa atributos específicos (ex: PrivateIp, PublicDnsName)",
+        "São idênticas e intercambiáveis"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Cada tipo de recurso define o que o Ref devolve (geralmente o ID/nome) e quais atributos o GetAtt expõe — saber a dupla é essencial para conectar recursos no template.",
       "hint": "Um devolve 'o nome de batismo' do recurso; o outro abre a ficha e lê o atributo pedido.",
       "optionRationales": [
@@ -1326,12 +1326,12 @@
       "domain": "deployment",
       "text": "A stack de rede de uma empresa cria a VPC e as sub-redes; a stack da aplicação, mantida por outro time, precisa referenciar os IDs dessas sub-redes sem copiar valores manualmente. Qual mecanismo do CloudFormation compartilha valores entre stacks independentes?",
       "options": [
-        "Outputs com Export na stack de rede e Fn::ImportValue na stack da aplicação",
+        "Unificar tudo em uma única stack gigante obrigatoriamente",
         "Colar os IDs das sub-redes fixos no template da aplicação",
         "Dar nomes idênticos às duas stacks",
-        "Unificar tudo em uma única stack gigante obrigatoriamente"
+        "Outputs com Export na stack de rede e Fn::ImportValue na stack da aplicação"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Exports publicam valores com nome único na Região e o ImportValue os consome em outras stacks — criando inclusive proteção: a stack exportadora não pode excluir valores em uso.",
       "hint": "Uma stack 'exporta' o valor com etiqueta; a outra 'importa' pela etiqueta — com trava contra remoção em uso.",
       "optionRationales": [
@@ -1346,12 +1346,12 @@
       "domain": "deployment",
       "text": "Um template do CloudFormation precisa executar uma lógica que o CloudFormation não suporta nativamente durante o deploy (ex: registrar a stack em um sistema interno e devolver um valor ao template). Qual mecanismo estende o CloudFormation com código próprio?",
       "options": [
-        "Custom resources baseados em Lambda, que recebem os eventos Create/Update/Delete da stack e respondem com sucesso/falha e dados",
+        "O CloudFormation não pode ser estendido",
         "Comentários especiais no YAML interpretados em runtime",
         "Editar os recursos à mão depois que a stack sobe",
-        "O CloudFormation não pode ser estendido"
+        "Custom resources baseados em Lambda, que recebem os eventos Create/Update/Delete da stack e respondem com sucesso/falha e dados"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O custom resource delega a uma função Lambda a lógica fora do vocabulário nativo: o CloudFormation a invoca no ciclo de vida e aguarda a resposta assinada — integrando qualquer sistema ao deploy declarativo.",
       "hint": "Quando o vocabulário declarativo acaba, uma Lambda 'sob medida' entra no ciclo da stack como recurso customizado.",
       "optionRationales": [
@@ -1367,9 +1367,9 @@
       "text": "Todo template do AWS SAM começa com a linha 'Transform: AWS::Serverless-2016-10-31'. Qual é a função dessa declaração?",
       "options": [
         "Instruir o CloudFormation a expandir os tipos abreviados do SAM (ex: AWS::Serverless::Function) nos recursos CloudFormation completos correspondentes durante o processamento",
-        "Converter o template de YAML para JSON",
+        "Bloquear alterações manuais nos recursos criados",
         "Ativar o tier gratuito para os recursos da stack",
-        "Bloquear alterações manuais nos recursos criados"
+        "Converter o template de YAML para JSON"
       ],
       "correct": 0,
       "explanation": "O Transform aplica a macro do SAM: cada recurso serverless enxuto vira o conjunto detalhado de recursos nativos (função, roles, permissões, API) — açúcar sintático processado pelo motor padrão.",
@@ -1387,8 +1387,8 @@
       "text": "No AWS SAM, em vez de escrever políticas IAM completas para cada função, o desenvolvedor usou 'Policies: - DynamoDBCrudPolicy: TableName: !Ref MinhaTabela'. Que recurso do SAM é esse e qual a vantagem?",
       "options": [
         "Policy templates do SAM: modelos pré-definidos de permissões com escopo mínimo, parametrizados pelo recurso-alvo",
-        "Uma política de Allow * temporária para desenvolvimento",
         "Um recurso exclusivo do CDK não suportado no SAM",
+        "Uma política de Allow * temporária para desenvolvimento",
         "Permissões aplicadas só em ambiente local"
       ],
       "correct": 0,
@@ -1406,12 +1406,12 @@
       "domain": "deployment",
       "text": "Antes de aplicar mudanças de CDK em produção, o desenvolvedor quer ver localmente o CloudFormation gerado e comparar com o que está implantado, listando as diferenças. Quais comandos do CDK fazem, respectivamente, essas duas tarefas?",
       "options": [
-        "cdk synth para sintetizar o template e cdk diff para comparar com a stack implantada",
         "cdk build e cdk push",
         "cdk destroy e cdk init",
+        "cdk synth para sintetizar o template e cdk diff para comparar com a stack implantada",
         "cdk bootstrap duas vezes seguidas"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O synth materializa o template resultante do código (inspecionável e versionável), e o diff confronta o estado proposto com o implantado — a revisão de impacto antes do cdk deploy.",
       "hint": "Primeiro 'sintetize' a planta; depois peça o 'diff' contra o prédio existente.",
       "optionRationales": [
@@ -1426,12 +1426,12 @@
       "domain": "deployment",
       "text": "Um ambiente do Elastic Beanstalk precisa de personalizações na criação: instalar pacotes do sistema, criar arquivos de configuração e definir opções do ambiente — tudo versionado junto com o código da aplicação. Qual mecanismo do Beanstalk suporta isso?",
       "options": [
-        "Arquivos .ebextensions (YAML/JSON) na raiz do pacote da aplicação, com seções como packages, files, commands e option_settings",
-        "Acessar cada instância via SSH e configurar manualmente",
+        "Um arquivo make.config no S3 lido pelo Beanstalk",
         "Editar a AMI base do Beanstalk diretamente em produção",
-        "Um arquivo make.config no S3 lido pelo Beanstalk"
+        "Arquivos .ebextensions (YAML/JSON) na raiz do pacote da aplicação, com seções como packages, files, commands e option_settings",
+        "Acessar cada instância via SSH e configurar manualmente"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Os .ebextensions customizam o provisionamento do ambiente de forma declarativa e versionada com o código — o mecanismo oficial de configuração avançada do Beanstalk.",
       "hint": "A pasta de 'extensões do EB' dentro do pacote: receitas declarativas que viajam com cada versão.",
       "optionRationales": [
@@ -1447,9 +1447,9 @@
       "text": "No Elastic Beanstalk, o time quer a política de deployment MAIS segura para produção: as novas instâncias sobem em um Auto Scaling Group temporário, são validadas e só então substituem as antigas — nunca misturando versões em uma mesma instância e com rollback simples. Qual política corresponde a isso?",
       "options": [
         "Immutable: cada deploy cria instâncias novas com a nova versão e descarta as antigas somente após a validação",
-        "All at once, por ser a mais rápida",
+        "Desligar o ambiente e religar com a nova versão",
         "Rolling sem lote adicional",
-        "Desligar o ambiente e religar com a nova versão"
+        "All at once, por ser a mais rápida"
       ],
       "correct": 0,
       "explanation": "O immutable garante que instâncias nunca recebem atualização in-place: a frota nova provada saudável assume e a antiga é encerrada — falhas descartam apenas as instâncias novas, sem tocar produção.",
@@ -1466,12 +1466,12 @@
       "domain": "deployment",
       "text": "Um serviço do Amazon ECS precisa de implantações blue/green com validação antes da troca: o conjunto novo de tasks sobe atrás de um target group de teste, passa por verificação e então o listener de produção comuta para ele. Qual integração habilita esse fluxo no ECS?",
       "options": [
-        "ECS com CodeDeploy (deployment controller CODE_DEPLOY), usando dois target groups e o deslocamento de tráfego gerenciado",
+        "Usar o S3 para versionar os contêineres",
         "Atualizar a task definition e aguardar o rolling update padrão",
-        "Criar manualmente um segundo cluster e trocar o DNS",
-        "Usar o S3 para versionar os contêineres"
+        "ECS com CodeDeploy (deployment controller CODE_DEPLOY), usando dois target groups e o deslocamento de tráfego gerenciado",
+        "Criar manualmente um segundo cluster e trocar o DNS"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O controlador de deployment CodeDeploy no ECS orquestra o blue/green: provisiona o task set verde, permite testes pelo listener de validação e comuta o tráfego com rollback automático por alarmes.",
       "hint": "ECS entrega as tasks; o 'implantador' assume a regência: dois target groups, validação e comutação.",
       "optionRationales": [
@@ -1486,12 +1486,12 @@
       "domain": "deployment",
       "text": "Durante o rolling update padrão de um serviço ECS com 10 tasks, o time quer garantir que nunca haja menos de 8 tasks atendendo e nunca mais de 15 em execução simultânea (custo). Quais parâmetros do deployment configuration controlam esses limites?",
       "options": [
-        "minimumHealthyPercent (80%) e maximumPercent (150%)",
         "desiredCount e launchType",
+        "minimumHealthyPercent (80%) e maximumPercent (150%)",
         "cpu e memory da task definition",
         "healthCheckGracePeriodSeconds isolado"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Os dois percentuais regem o rolling do ECS: o mínimo saudável impede degradar abaixo do piso (8 de 10) e o máximo limita a frota temporária inflada durante a substituição (15 de 10).",
       "hint": "Dois percentuais sobre o desired: o 'piso de saúde' e o 'teto de inchaço' durante a troca.",
       "optionRationales": [
@@ -1506,12 +1506,12 @@
       "domain": "deployment",
       "text": "Builds do CodeBuild estão lentos porque cada execução baixa novamente todas as dependências (node_modules) e reconstrói camadas Docker do zero. Qual recurso do CodeBuild reduz esse tempo?",
       "options": [
-        "Cache do CodeBuild: cache de dependências no S3 (paths do buildspec) ou cache local (incluindo camadas Docker) entre builds",
         "Aumentar o timeout do build",
+        "Cache do CodeBuild: cache de dependências no S3 (paths do buildspec) ou cache local (incluindo camadas Docker) entre builds",
         "Rodar os builds com menos memória para forçar eficiência",
         "Remover os testes do build"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O caching declarado no buildspec/projeto reaproveita dependências e camadas entre execuções — cortando minutos de download e rebuild a cada build.",
       "hint": "Não baixe o mundo a cada build: guarde as dependências e as camadas 'no armário' entre execuções.",
       "optionRationales": [
@@ -1526,12 +1526,12 @@
       "domain": "deployment",
       "text": "Um time quer ativar uma nova funcionalidade gradualmente em produção SEM novo deploy: ligar a feature para 10% dos usuários, monitorar e expandir — com validação da configuração e reversão automática se alarmes dispararem. Qual serviço da AWS é especializado nesse gerenciamento de configuração e feature flags?",
       "options": [
-        "AWS AppConfig, com deployment strategies graduais, validators e rollback automático por alarmes do CloudWatch",
         "Editar variáveis de ambiente da produção manualmente",
         "Manter a flag em uma constante no código",
-        "AWS Config com regras de conformidade"
+        "AWS Config com regras de conformidade",
+        "AWS AppConfig, com deployment strategies graduais, validators e rollback automático por alarmes do CloudWatch"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O AppConfig implanta configurações e flags de forma gradual e validada (JSON Schema/Lambda validators), revertendo sozinho se os alarmes monitorados dispararem — separando release de configuração de deploy de código.",
       "hint": "O 'distribuidor de configuração' que solta a flag aos poucos, valida o conteúdo e puxa o freio sozinho.",
       "optionRationales": [
@@ -1546,12 +1546,12 @@
       "domain": "deployment",
       "text": "Uma stack do CloudFormation contém um banco RDS de produção. O time quer impedir que updates acidentais da stack substituam ou excluam esse recurso específico, exigindo uma liberação explícita para mudanças nele. Qual recurso do CloudFormation aplica essa proteção?",
       "options": [
-        "Stack policy negando Update:Replace e Update:Delete para o recurso lógico do banco",
         "Comentário de aviso no template",
-        "Renomear o recurso para PROTEGIDO_NaoExcluir",
-        "Remover o banco do template e gerenciá-lo à mão"
+        "Stack policy negando Update:Replace e Update:Delete para o recurso lógico do banco",
+        "Remover o banco do template e gerenciá-lo à mão",
+        "Renomear o recurso para PROTEGIDO_NaoExcluir"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "A stack policy é o documento que rege o que updates podem tocar: protegendo o recurso crítico, qualquer operação destrutiva nele falha até que a política seja temporariamente liberada — guard-rail contra acidentes.",
       "hint": "A 'política da stack' diz o que o update pode tocar — e o banco de produção fica atrás do vidro.",
       "optionRationales": [
@@ -1566,12 +1566,12 @@
       "domain": "deployment",
       "text": "Além da stack policy, o time quer garantir que, se a stack do CloudFormation for EXCLUÍDA, o banco de dados e seus dados sobrevivam à exclusão. Qual atributo de recurso do CloudFormation implementa essa salvaguarda?",
       "options": [
-        "DeletionPolicy: Retain (ou Snapshot) no recurso do banco, preservando-o (ou um snapshot final) quando a stack é apagada",
         "UpdateReplacePolicy: Delete",
-        "Condition: Never no recurso",
-        "DependsOn apontando para si mesmo"
+        "DeletionPolicy: Retain (ou Snapshot) no recurso do banco, preservando-o (ou um snapshot final) quando a stack é apagada",
+        "DependsOn apontando para si mesmo",
+        "Condition: Never no recurso"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "O DeletionPolicy controla o destino do recurso na exclusão da stack: Retain o mantém vivo fora do gerenciamento e Snapshot captura a cópia final — proteção essencial para recursos com estado.",
       "hint": "O atributo que decide o testamento do recurso quando a stack morre: reter, fotografar ou apagar.",
       "optionRationales": [
@@ -1588,8 +1588,8 @@
       "options": [
         "AWS CodeArtifact, com domínios e repositórios que servem pacotes privados e fazem cache de upstreams públicos",
         "Amazon ECR",
-        "Bucket S3 com os tarballs dos pacotes",
-        "AWS CodeDeploy"
+        "AWS CodeDeploy",
+        "Bucket S3 com os tarballs dos pacotes"
       ],
       "correct": 0,
       "explanation": "O CodeArtifact é o gerenciador de artefatos da AWS: publica pacotes internos, faz proxy/cache dos registries públicos e controla o acesso via IAM — plugando npm/pip/maven dos builds e devs.",
@@ -1606,12 +1606,12 @@
       "domain": "deployment",
       "text": "Após migrar para trunk-based development, o time quer que cada pull request execute automaticamente uma suíte de testes em um ambiente isolado ANTES do merge, reportando o resultado no próprio PR. Como o CodeBuild se integra a esse fluxo com repositórios GitHub?",
       "options": [
-        "Webhooks do CodeBuild para eventos de pull request, disparando builds de validação que reportam o status de volta ao PR",
         "Rodar os testes apenas após o merge em produção",
         "Pedir que cada desenvolvedor rode os testes localmente e prometa que passou",
-        "CodeBuild não integra com repositórios externos"
+        "CodeBuild não integra com repositórios externos",
+        "Webhooks do CodeBuild para eventos de pull request, disparando builds de validação que reportam o status de volta ao PR"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Projetos CodeBuild conectados ao GitHub podem reagir a eventos de PR via webhook: cada PR roda o buildspec de testes em ambiente limpo e o status (sucesso/falha) aparece no check do PR, bloqueando merges quebrados.",
       "hint": "O 'fiscal de PR': webhook dispara o build de teste e carimba o resultado no próprio pull request.",
       "optionRationales": [
@@ -1626,12 +1626,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Um desenvolvedor instrumentou a aplicação com o AWS X-Ray e quer FILTRAR traces por valores de negócio (ex: encontrar todos os traces do cliente 'cliente-123' ou de pedidos acima de R$ 500). Qual recurso do X-Ray torna esses valores pesquisáveis nas filter expressions?",
       "options": [
-        "Annotations: pares chave-valor indexados, pesquisáveis nas filter expressions (diferentemente de metadata, que não é indexado)",
         "Metadata, que é o campo indexado para buscas",
-        "Aumentar a taxa de amostragem para 100%",
-        "Colocar os valores no nome do segmento"
+        "Annotations: pares chave-valor indexados, pesquisáveis nas filter expressions (diferentemente de metadata, que não é indexado)",
+        "Colocar os valores no nome do segmento",
+        "Aumentar a taxa de amostragem para 100%"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Annotations são indexadas para busca e agrupamento de traces; metadata guarda dados adicionais ricos porém não pesquisáveis — gravar IDs de negócio como annotation é a prática para investigações dirigidas.",
       "hint": "No X-Ray, um par chave-valor entra no índice de busca; o outro é só 'anexo' — qual é qual?",
       "optionRationales": [
@@ -1646,12 +1646,12 @@
       "domain": "troubleshooting-optimization",
       "text": "O custo do X-Ray cresceu com o volume de tráfego, e o time quer continuar rastreando 100% das requisições de um endpoint crítico de pagamentos, mas amostrar apenas uma fração pequena das demais rotas. Qual recurso do X-Ray implementa esse controle?",
       "options": [
-        "Sampling rules customizadas, definindo reservoir/taxas por serviço, rota e método",
         "Desligar o X-Ray nos horários de pico",
         "Filtrar os traces depois de coletados e pagar por todos",
-        "Gravar os traces manualmente em arquivos de log"
+        "Gravar os traces manualmente em arquivos de log",
+        "Sampling rules customizadas, definindo reservoir/taxas por serviço, rota e método"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "As regras de amostragem permitem granularidade por atributos da requisição: 100% no endpoint crítico e percentual reduzido no restante — equilibrando visibilidade e custo, com atualização central sem redeploy.",
       "hint": "As 'regras de amostragem' escolhem quem entra na pesquisa: o VIP sempre, a multidão por amostra.",
       "optionRationales": [
@@ -1666,12 +1666,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma aplicação grava logs estruturados no CloudWatch Logs e o time quer um ALARME quando a palavra 'ERROR' aparecer mais de 50 vezes em 5 minutos em um log group. Qual mecanismo converte ocorrências de log em uma métrica alarmável?",
       "options": [
-        "Metric filter no log group, extraindo as ocorrências do padrão para uma métrica customizada usada pelo alarme",
         "Alarme diretamente sobre o texto do log, sem métrica",
-        "Exportar os logs para o S3 e contar com Athena de hora em hora",
-        "Aumentar a retenção do log group"
+        "Aumentar a retenção do log group",
+        "Metric filter no log group, extraindo as ocorrências do padrão para uma métrica customizada usada pelo alarme",
+        "Exportar os logs para o S3 e contar com Athena de hora em hora"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O metric filter varre os eventos de log em tempo real e publica a contagem (ou valor extraído) como métrica do CloudWatch — sobre a qual o alarme com limiar e período é configurado.",
       "hint": "Texto não dispara alarme — primeiro o 'filtro' transforma o padrão em métrica contável.",
       "optionRationales": [
@@ -1706,12 +1706,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Usuários relatam erros esporádicos em uma API serverless e a métrica 'Throttles' da função Lambda mostra valores acima de zero nos picos. O que essa métrica indica e qual é a primeira linha de investigação?",
       "options": [
-        "Invocações rejeitadas por falta de concorrência disponível; investigar o consumo de concorrência da conta/função e avaliar reserved concurrency ou aumento de cota",
         "Erros de sintaxe no código da função",
-        "Lentidão na rede da Região",
-        "Expiração dos logs da função"
+        "Invocações rejeitadas por falta de concorrência disponível; investigar o consumo de concorrência da conta/função e avaliar reserved concurrency ou aumento de cota",
+        "Expiração dos logs da função",
+        "Lentidão na rede da Região"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Throttles contam rejeições por limite de execuções concorrentes: o diagnóstico passa por ConcurrentExecutions versus as cotas, e a correção combina reservas para funções críticas, aumento de limite ou suavização do tráfego.",
       "hint": "A métrica conta as portas fechadas na cara das invocações — o porteiro é o limite de concorrência.",
       "optionRationales": [
@@ -1726,12 +1726,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma tabela do DynamoDB em modo provisionado mostra picos na métrica ThrottledRequests, mas a ConsumedCapacity agregada está bem abaixo do provisionado. Qual hipótese o desenvolvedor deve investigar primeiro?",
       "options": [
-        "Concentração de acesso em poucas chaves (hot partition): o limite é por partição, então uma chave quente sofre throttle mesmo com capacidade agregada sobrando",
         "A tabela está corrompida e precisa ser restaurada",
+        "Concentração de acesso em poucas chaves (hot partition): o limite é por partição, então uma chave quente sofre throttle mesmo com capacidade agregada sobrando",
         "O IAM está bloqueando as requisições",
         "Os índices GSI expiraram"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Throttling com capacidade total livre é a assinatura clássica da partição quente — a investigação passa por CloudWatch Contributor Insights e pelo redesenho da chave de partição.",
       "hint": "Capacidade sobrando + throttle acontecendo = alguém está batendo sempre na mesma 'gaveta'.",
       "optionRationales": [
@@ -1746,12 +1746,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Um time adicionou o DAX na frente do DynamoDB para acelerar leituras, mas percebeu que parte das chamadas continua indo direto ao banco sem ganho de cache. A análise mostrou que essas chamadas usam ConsistentRead=true. Qual é a explicação?",
       "options": [
-        "O DAX atende do cache apenas leituras eventualmente consistentes; leituras fortemente consistentes são repassadas diretamente ao DynamoDB",
+        "O DAX só cacheia tabelas com menos de 1 GB",
         "O DAX precisa ser reiniciado diariamente para cachear tudo",
-        "O cluster DAX está em outra conta",
-        "O DAX só cacheia tabelas com menos de 1 GB"
+        "O DAX atende do cache apenas leituras eventualmente consistentes; leituras fortemente consistentes são repassadas diretamente ao DynamoDB",
+        "O cluster DAX está em outra conta"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "Por design, o DAX não serve strongly consistent reads do cache (passa-as ao banco) — aplicações que exigem consistência forte não se beneficiam do DAX nessas chamadas.",
       "hint": "O acelerador serve a leitura 'relaxada' do cache; quem exige o dado certificado na hora fura a fila do cache.",
       "optionRationales": [
@@ -1766,12 +1766,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Os consumidores de uma fila SQS não estão acompanhando a produção de mensagens, e o atraso de processamento cresce. Qual métrica do SQS é o melhor indicador desse backlog e como ela pode guiar a correção automática?",
       "options": [
-        "ApproximateNumberOfMessagesVisible: o tamanho da fila pode alimentar um alarme/target tracking que escala os consumidores (ex: ASG ou concorrência) conforme o backlog cresce",
+        "O tamanho médio do corpo das mensagens",
         "NumberOfMessagesDeleted, que mostra o atraso futuro",
         "A cor do ícone da fila no console",
-        "O tamanho médio do corpo das mensagens"
+        "ApproximateNumberOfMessagesVisible: o tamanho da fila pode alimentar um alarme/target tracking que escala os consumidores (ex: ASG ou concorrência) conforme o backlog cresce"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "A profundidade da fila é o termômetro do desequilíbrio produção×consumo — usá-la (ou o backlog por instância) como métrica de scaling dos consumidores fecha o ciclo de correção automática.",
       "hint": "Conte quantas mensagens estão 'na sala de espera' — e use esse número para contratar mais atendentes sozinho.",
       "optionRationales": [
@@ -1786,12 +1786,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma função Lambda consome um stream do Kinesis e o dashboard mostra a métrica IteratorAge crescendo continuamente. O que isso significa e quais são as alavancas típicas de correção?",
       "options": [
-        "O processamento está atrasado em relação à chegada dos registros (risco de expirar dados da retenção); corrigir acelerando a função, aumentando o paralelismo (parallelization factor/shards) ou o batch size",
-        "Os registros estão chegando do futuro com timestamps errados",
         "O stream está vazio há muito tempo",
-        "A função está com permissões excessivas"
+        "A função está com permissões excessivas",
+        "O processamento está atrasado em relação à chegada dos registros (risco de expirar dados da retenção); corrigir acelerando a função, aumentando o paralelismo (parallelization factor/shards) ou o batch size",
+        "Os registros estão chegando do futuro com timestamps errados"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "IteratorAge mede a idade do último registro processado: crescimento constante indica consumo mais lento que a produção — as correções atacam o throughput do consumidor antes que registros expirem da janela de retenção.",
       "hint": "É o 'atraso do leitor' em relação à esteira: se só cresce, a leitura precisa de mais velocidade ou mais leitores.",
       "optionRationales": [
@@ -1806,12 +1806,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma rota do API Gateway chama um processamento que leva ~50 segundos, e TODAS as chamadas retornam erro 504 do gateway. Qual limite explica o erro e qual padrão de arquitetura o contorna?",
       "options": [
-        "O timeout de integração do API Gateway (~29 segundos no padrão) é excedido; a correção é o padrão assíncrono: a API enfileira/inicia o trabalho e retorna 202 com um ID para o cliente consultar o status",
-        "Falta de memória no API Gateway, que deve ser redimensionado",
         "Erro de CORS nas chamadas longas",
-        "O certificado TLS expirou"
+        "Falta de memória no API Gateway, que deve ser redimensionado",
+        "O certificado TLS expirou",
+        "O timeout de integração do API Gateway (~29 segundos no padrão) é excedido; a correção é o padrão assíncrono: a API enfileira/inicia o trabalho e retorna 202 com um ID para o cliente consultar o status"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "O gateway não espera indefinidamente o backend: trabalhos longos devem ser desacoplados (SQS/Step Functions) com resposta imediata e polling/webhook de conclusão — eliminando o 504 estrutural.",
       "hint": "O gateway desliga a chamada perto dos 29s — trabalho demorado recebe um 'protocolo de atendimento' e roda nos bastidores.",
       "optionRationales": [
@@ -1826,12 +1826,12 @@
       "domain": "troubleshooting-optimization",
       "text": "O alarme de latência de uma API usa a MÉDIA do tempo de resposta e nunca dispara, mas usuários reclamam de lentidão esporádica severa. Qual mudança no monitoramento captura melhor essa experiência real?",
       "options": [
+        "Remover o alarme, já que a média está saudável",
         "Alarmar sobre percentis altos (p95/p99) da latência, que expõem a cauda lenta diluída pela média",
-        "Trocar a média pela latência mínima",
         "Aumentar o período do alarme para 24 horas",
-        "Remover o alarme, já que a média está saudável"
+        "Trocar a média pela latência mínima"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "A média esconde extremos: com 1% das chamadas levando 10s, o p99 grita enquanto a média dorme — percentis altos refletem a experiência dos usuários mais afetados e são o padrão para SLOs.",
       "hint": "A média esconde os 1% azarados; os 'p-noventa-e-tantos' os colocam no holofote.",
       "optionRationales": [
@@ -1846,12 +1846,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Em picos de tráfego, funções Lambda que acessam um RDS PostgreSQL começam a falhar com 'FATAL: too many connections'. Cada execução concorrente abre sua própria conexão. Qual serviço resolve estruturalmente esse esgotamento?",
       "options": [
-        "Amazon RDS Proxy entre as funções e o banco, multiplexando milhares de execuções em um pool de conexões controlado",
-        "Aumentar max_connections indefinidamente no parameter group",
         "Criar uma read replica para receber as escritas excedentes",
-        "Reduzir o timeout das funções para liberar conexões"
+        "Reduzir o timeout das funções para liberar conexões",
+        "Amazon RDS Proxy entre as funções e o banco, multiplexando milhares de execuções em um pool de conexões controlado",
+        "Aumentar max_connections indefinidamente no parameter group"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O RDS Proxy compartilha e reutiliza conexões, absorvendo a natureza explosiva do serverless sem estourar o max_connections — além de acelerar failovers e integrar com Secrets Manager.",
       "hint": "Entre o enxame de funções e o banco, falta o 'porteiro de conexões' que recicla em vez de abrir novas.",
       "optionRationales": [
@@ -1866,12 +1866,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Buscando reduzir custos de computação do Lambda sem perder desempenho, um time avalia migrar funções compatíveis para a arquitetura arm64 (Graviton). Qual é o ganho esperado e qual cuidado é necessário?",
       "options": [
+        "Funções arm64 não geram logs no CloudWatch",
         "Custo por milissegundo cerca de 20% menor com desempenho igual ou melhor; é preciso validar que dependências com binários nativos sejam compatíveis com ARM",
-        "O arm64 é gratuito para funções de até 1 GB",
         "A migração exige reescrever o código em Rust",
-        "Funções arm64 não geram logs no CloudWatch"
+        "O arm64 é gratuito para funções de até 1 GB"
       ],
-      "correct": 0,
+      "correct": 1,
       "explanation": "Funções em Graviton2 custam ~20% menos por duração com performance competitiva; código puro (Python/Node/Java) costuma migrar direto, mas bibliotecas com binários compilados exigem build para arm64.",
       "hint": "O chip da casa cobra ~20% menos por milissegundo — só confira se seus binários nativos falam ARM.",
       "optionRationales": [
@@ -1886,12 +1886,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma aplicação de alto volume precisa publicar métricas customizadas de negócio em cada requisição, mas as chamadas síncronas PutMetricData adicionam latência e custo de API. Qual alternativa o CloudWatch oferece para emitir métricas em escala sem chamadas extras?",
       "options": [
-        "Embedded Metric Format (EMF): gravar logs estruturados no formato EMF e o CloudWatch extrai as métricas automaticamente de forma assíncrona",
-        "Chamar PutMetricData duas vezes para garantir",
         "Gravar as métricas em uma planilha no S3",
-        "Métricas customizadas não funcionam em alto volume"
+        "Chamar PutMetricData duas vezes para garantir",
+        "Métricas customizadas não funcionam em alto volume",
+        "Embedded Metric Format (EMF): gravar logs estruturados no formato EMF e o CloudWatch extrai as métricas automaticamente de forma assíncrona"
       ],
-      "correct": 0,
+      "correct": 3,
       "explanation": "Com EMF, a métrica viaja dentro do log já emitido (stdout/CloudWatch Logs): sem chamadas síncronas adicionais, com alta cardinalidade disponível e os eventos brutos preservados para análise.",
       "hint": "A métrica pega carona no LOG já escrito — o CloudWatch a 'pesca' do formato embutido, sem chamada extra.",
       "optionRationales": [
@@ -1906,12 +1906,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Tasks de um serviço ECS estão sendo encerradas repetidamente logo após subir, e o serviço nunca estabiliza. Quais são os primeiros lugares para investigar a causa das interrupções?",
       "options": [
-        "A 'stopped reason' das tasks encerradas (console/describe-tasks), os logs dos contêineres no CloudWatch e o histórico de eventos do serviço (falha de health check, falta de memória, erro de pull de imagem)",
-        "Apagar o cluster e recriar do zero imediatamente",
         "A fatura da conta, pois tasks param por falta de pagamento",
+        "Apagar o cluster e recriar do zero imediatamente",
+        "A 'stopped reason' das tasks encerradas (console/describe-tasks), os logs dos contêineres no CloudWatch e o histórico de eventos do serviço (falha de health check, falta de memória, erro de pull de imagem)",
         "O número de tags da task definition"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O ECS registra o motivo de parada de cada task (OutOfMemory, falha de ELB health check, CannotPullContainer) e os eventos do serviço narram o ciclo — combinados aos logs do contêiner, fecham o diagnóstico.",
       "hint": "Cada task encerrada deixa um 'atestado de óbito' (stopped reason) — leia-o junto dos logs e eventos do serviço.",
       "optionRationales": [
@@ -1926,12 +1926,12 @@
       "domain": "troubleshooting-optimization",
       "text": "Uma função Lambda crítica precisa de visibilidade além das métricas padrão: uso de memória real, CPU, rede e cold starts por execução, com dashboards prontos. Qual recurso fornece essa telemetria aprofundada de funções?",
       "options": [
-        "CloudWatch Lambda Insights, habilitado por layer/extensão, coletando métricas de sistema e desempenho por invocação",
         "As métricas padrão já mostram uso de memória por execução",
         "Instalar um agente de monitoramento via SSH na função",
+        "CloudWatch Lambda Insights, habilitado por layer/extensão, coletando métricas de sistema e desempenho por invocação",
         "AWS Trusted Advisor por função"
       ],
-      "correct": 0,
+      "correct": 2,
       "explanation": "O Lambda Insights adiciona telemetria de nível de sistema (memória real, CPU, rede, init duration) com dashboards dedicados — revelando, por exemplo, superalocação de memória e custos de cold start.",
       "hint": "O 'raio-X interno' das funções: memória de verdade, CPU e cold starts, via camada de observabilidade.",
       "optionRationales": [

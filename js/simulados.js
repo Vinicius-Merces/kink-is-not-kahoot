@@ -18,6 +18,7 @@
     let selectedCertId = null;
     let selectedLevel = null;
     let selectedMode = 'solo'; // 'solo' ou 'live' (Modo Professor)
+    let focusDomainId = null; // prática focada em um domínio (deep-link vindo da trilha)
     let selectedFeedbackMode = 'exam'; // 'exam' (correção só no final) ou 'study' (feedback a cada pergunta)
 
     // Estado do simulado em andamento
@@ -51,6 +52,7 @@
             if (!data.success) throw new Error('Falha ao carregar certificações');
             certifications = data.certifications;
             renderCertGrid();
+            applyDeepLink();
         } catch (error) {
             console.error('Erro ao carregar certificações:', error);
             document.getElementById('certGrid').innerHTML = `
@@ -146,6 +148,69 @@
         `;
     }
 
+    // ============================================
+    // Deep-link da trilha: ?cert=saa-c03&domain=<id>&n=10
+    // ============================================
+    function applyDeepLink() {
+        const params = new URLSearchParams(window.location.search);
+        const certParam = params.get('cert');
+        const domainParam = params.get('domain');
+        const nParam = parseInt(params.get('n'), 10);
+
+        if (!certParam) return;
+        const cert = certifications.find(c => c.id === certParam);
+        if (!cert) return;
+
+        selectCertification(cert.id);
+
+        if (domainParam) {
+            const levelWithDomains = cert.levels.find(l => (l.domains || []).some(d => d.id === domainParam));
+            if (levelWithDomains) {
+                focusDomainId = domainParam;
+                renderFocusBanner(cert, domainParam);
+            }
+        }
+
+        if (Number.isInteger(nParam) && nParam > 0) {
+            const range = document.getElementById('numQuestionsRange');
+            range.value = Math.min(nParam, parseInt(range.max, 10) || nParam);
+            document.getElementById('numQuestionsValue').textContent = range.value;
+        }
+    }
+
+    function getDomainName(domainId) {
+        for (const cert of certifications) {
+            for (const level of cert.levels) {
+                const found = (level.domains || []).find(d => d.id === domainId);
+                if (found) return found.name;
+            }
+        }
+        return domainId;
+    }
+
+    function renderFocusBanner(cert, domainId) {
+        let banner = document.getElementById('domainFocusBanner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'domainFocusBanner';
+            banner.className = 'domain-focus-banner';
+            const config = document.getElementById('simuladoConfig');
+            config.insertBefore(banner, config.firstChild);
+        }
+        banner.innerHTML = `
+            <span class="domain-focus-text">🎯 Prática focada: <strong>${Utils.escapeHtml(getDomainName(domainId))}</strong></span>
+            <button type="button" class="domain-focus-clear" id="clearDomainFocus" title="Remover foco e praticar todos os domínios">✕</button>
+        `;
+        banner.style.display = 'flex';
+        document.getElementById('clearDomainFocus').addEventListener('click', () => {
+            focusDomainId = null;
+            banner.style.display = 'none';
+            const url = new URL(window.location.href);
+            url.searchParams.delete('domain');
+            window.history.replaceState({}, '', url);
+        });
+    }
+
     document.getElementById('numQuestionsRange').addEventListener('input', (e) => {
         document.getElementById('numQuestionsValue').textContent = e.target.value;
     });
@@ -199,7 +264,7 @@
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ certId: selectedCertId, level: selectedLevel, numQuestions })
+                body: JSON.stringify({ certId: selectedCertId, level: selectedLevel, numQuestions, domain: focusDomainId || undefined })
             });
 
             const data = await res.json();
@@ -284,17 +349,37 @@
         document.getElementById('examProgressLabel').textContent = `Pergunta ${index + 1} de ${total}`;
 
         const optionsContainer = document.getElementById('examOptions');
+        const selectCount = question.selectCount || 1;
+        const isMulti = selectCount > 1;
         const selectedAnswer = userAnswers[question.id];
+        const selectedArr = isMulti ? (Array.isArray(selectedAnswer) ? selectedAnswer : []) : null;
         const feedback = selectedFeedbackMode === 'study' ? questionFeedback[question.id] : null;
+        const correctHas = (fb, i) => Array.isArray(fb.correct) ? fb.correct.includes(i) : i === fb.correct;
+        const isSelected = (i) => isMulti ? selectedArr.includes(i) : selectedAnswer === i;
+
+        // Aviso de questão multi-resposta com contador de seleções
+        let multiHint = document.getElementById('examMultiHint');
+        if (!multiHint) {
+            multiHint = document.createElement('div');
+            multiHint.id = 'examMultiHint';
+            multiHint.style.cssText = 'margin:8px 0 4px;padding:8px 12px;border-radius:8px;font-size:0.85rem;font-weight:600;background:rgba(255,153,0,0.12);border:1px solid rgba(255,153,0,0.35);color:#ffb84d;';
+            document.getElementById('examQuestionText').insertAdjacentElement('afterend', multiHint);
+        }
+        if (isMulti) {
+            multiHint.style.display = 'block';
+            multiHint.textContent = `Questão de múltiplas respostas: selecione ${selectCount} alternativas (${selectedArr.length}/${selectCount} selecionadas)`;
+        } else {
+            multiHint.style.display = 'none';
+        }
 
         optionsContainer.innerHTML = question.options.map((option, i) => {
             let cls = 'exam-option';
             if (feedback) {
                 cls += ' disabled';
-                if (i === feedback.correct) cls += ' correct-answer';
-                if (i === selectedAnswer && i !== feedback.correct) cls += ' your-wrong-answer';
-                if (i === selectedAnswer && i === feedback.correct) cls += ' your-correct-answer';
-            } else if (selectedAnswer === i) {
+                if (correctHas(feedback, i)) cls += ' correct-answer';
+                if (isSelected(i) && !correctHas(feedback, i)) cls += ' your-wrong-answer';
+                if (isSelected(i) && correctHas(feedback, i)) cls += ' your-correct-answer';
+            } else if (isSelected(i)) {
                 cls += ' selected';
             }
             return `
@@ -308,10 +393,33 @@
         optionsContainer.querySelectorAll('.exam-option').forEach(optionBtn => {
             optionBtn.addEventListener('click', async () => {
                 const optionIndex = parseInt(optionBtn.dataset.optionIndex, 10);
-                userAnswers[question.id] = optionIndex;
 
-                if (selectedFeedbackMode === 'study') {
-                    await checkAnswer(question.id, optionIndex);
+                if (isMulti) {
+                    const current = Array.isArray(userAnswers[question.id]) ? [...userAnswers[question.id]] : [];
+                    const pos = current.indexOf(optionIndex);
+                    if (pos >= 0) {
+                        current.splice(pos, 1); // desmarca a alternativa
+                    } else {
+                        if (current.length >= selectCount) {
+                            Utils.showToast(`Esta questão pede apenas ${selectCount} alternativas. Desmarque uma para trocar.`, 'error');
+                            return;
+                        }
+                        current.push(optionIndex);
+                    }
+                    if (current.length === 0) {
+                        delete userAnswers[question.id];
+                    } else {
+                        userAnswers[question.id] = current.sort((a, b) => a - b);
+                    }
+                    // No modo estudo, corrige automaticamente ao completar as seleções
+                    if (selectedFeedbackMode === 'study' && current.length === selectCount) {
+                        await checkAnswer(question.id, userAnswers[question.id]);
+                    }
+                } else {
+                    userAnswers[question.id] = optionIndex;
+                    if (selectedFeedbackMode === 'study') {
+                        await checkAnswer(question.id, optionIndex);
+                    }
                 }
 
                 renderQuestion(currentQuestionIndex);
@@ -498,11 +606,13 @@
 
         const reviewList = document.getElementById('reviewList');
         reviewList.innerHTML = result.review.map((item, i) => {
+            const revCorrectHas = (idx) => Array.isArray(item.correct) ? item.correct.includes(idx) : idx === item.correct;
+            const revAnswerHas = (idx) => Array.isArray(item.yourAnswer) ? item.yourAnswer.includes(idx) : idx === item.yourAnswer;
             const optionsHtml = item.options.map((opt, optIndex) => {
                 let cls = 'review-option';
-                if (optIndex === item.correct) cls += ' correct-answer';
-                if (optIndex === item.yourAnswer && optIndex !== item.correct) cls += ' your-wrong-answer';
-                if (optIndex === item.yourAnswer && optIndex === item.correct) cls += ' your-correct-answer';
+                if (revCorrectHas(optIndex)) cls += ' correct-answer';
+                if (revAnswerHas(optIndex) && !revCorrectHas(optIndex)) cls += ' your-wrong-answer';
+                if (revAnswerHas(optIndex) && revCorrectHas(optIndex)) cls += ' your-correct-answer';
                 return `
                     <div class="${cls}">
                         <span class="exam-option-letter">${String.fromCharCode(65 + optIndex)}</span>

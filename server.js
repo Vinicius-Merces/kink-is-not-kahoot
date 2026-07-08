@@ -118,6 +118,14 @@ const simuladoCheckLimiter = rateLimit({
     message: { success: false, error: 'Muitas requisições. Tente novamente em alguns minutos.' }
 });
 
+const progressLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minuto
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Muitas sincronizações. Aguarde um instante.' }
+});
+
 const adminLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutos
     max: 120,
@@ -258,13 +266,27 @@ function sampleQuestionsByDomain(pool, numQuestions) {
     return shuffleArray(selected);
 }
 
-// Remove resposta correta e explicação antes de enviar ao cliente
+// Compara a resposta do usuário com o gabarito.
+// Suporta resposta única (número) e multi-resposta (array de índices, ex.: "Selecione DUAS").
+function isAnswerCorrect(userAnswer, correct) {
+    if (Array.isArray(correct)) {
+        if (!Array.isArray(userAnswer) || userAnswer.length !== correct.length) return false;
+        const a = [...userAnswer].sort((x, y) => x - y);
+        const b = [...correct].sort((x, y) => x - y);
+        return a.every((v, i) => v === b[i]);
+    }
+    return userAnswer === correct;
+}
+
+// Remove resposta correta e explicação antes de enviar ao cliente.
+// selectCount informa quantas alternativas o usuário deve selecionar, sem revelar quais.
 function sanitizeQuestion(question) {
     return {
         id: question.id,
         domain: question.domain,
         text: question.text,
-        options: question.options
+        options: question.options,
+        selectCount: Array.isArray(question.correct) ? question.correct.length : 1
     };
 }
 
@@ -377,7 +399,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         return res.status(401).json({ success: false, error: 'Faça login para iniciar um simulado' });
     }
 
-    const { certId, level, numQuestions } = req.body || {};
+    const { certId, level, numQuestions, domain } = req.body || {};
 
     const cert = CERTIFICATIONS[certId];
     if (!cert || !cert.levels.includes(level)) {
@@ -394,8 +416,26 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Número de perguntas inválido' });
     }
 
-    const total = Math.min(requested, MAX_SIMULADO_QUESTIONS, pool.questions.length);
-    const questions = sampleQuestionsByDomain(pool, total);
+    // Prática focada em um único domínio (deep-link vindo da trilha)
+    let focusDomain = null;
+    let sourceQuestions = pool.questions;
+    if (domain) {
+        const domainInfo = (pool.domains || []).find(d => d.id === domain);
+        if (!domainInfo) {
+            return res.status(400).json({ success: false, error: 'Domínio inválido para essa certificação' });
+        }
+        const filtered = pool.questions.filter(q => q.domain === domain);
+        if (filtered.length === 0) {
+            return res.status(404).json({ success: false, error: 'Sem perguntas disponíveis para esse domínio nesse nível' });
+        }
+        focusDomain = { id: domainInfo.id, name: domainInfo.name };
+        sourceQuestions = filtered;
+    }
+
+    const total = Math.min(requested, MAX_SIMULADO_QUESTIONS, sourceQuestions.length);
+    const questions = focusDomain
+        ? shuffleArray([...sourceQuestions]).slice(0, total)
+        : sampleQuestionsByDomain(pool, total);
 
     const simuladoId = generateSimuladoId();
     activeSimulados.set(simuladoId, {
@@ -405,6 +445,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         certCode: pool.certCode,
         certName: pool.certName,
         domains: pool.domains,
+        focusDomain,
         questions,
         startedAt: Date.now()
     });
@@ -418,9 +459,63 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         certName: pool.certName,
         level,
         domains: pool.domains,
+        focusDomain,
         totalQuestions: questions.length,
         questions: questions.map(sanitizeQuestion)
     });
+});
+
+
+// ============================================
+// Progresso de estudo das trilhas (sincronizado com a conta)
+// ============================================
+const devStudyProgress = new Map(); // uid -> state (fallback sem Firebase Admin)
+
+app.get('/api/study-progress', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    try {
+        if (db) {
+            const doc = await db.collection('users').doc(user.uid).collection('meta').doc('studyProgress').get();
+            return res.json({ success: true, state: doc.exists ? (doc.data().state || null) : null });
+        }
+        return res.json({ success: true, state: devStudyProgress.get(user.uid) || null });
+    } catch (error) {
+        console.error('Erro ao carregar progresso de estudo:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao carregar progresso' });
+    }
+});
+
+app.post('/api/study-progress', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    const state = req.body && req.body.state;
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+        return res.status(400).json({ success: false, error: 'Estado inválido' });
+    }
+    let raw;
+    try { raw = JSON.stringify(state); } catch (e) { raw = null; }
+    if (!raw || raw.length > 100000) {
+        return res.status(413).json({ success: false, error: 'Estado de progresso inválido ou grande demais' });
+    }
+    try {
+        if (db) {
+            await db.collection('users').doc(user.uid).collection('meta').doc('studyProgress').set({
+                state,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+        } else {
+            devStudyProgress.set(user.uid, state);
+        }
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Erro ao salvar progresso de estudo:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao salvar progresso' });
+    }
 });
 
 // Verifica a resposta de UMA pergunta (Modo Estudo: feedback imediato sem afetar a correção final)
@@ -447,7 +542,7 @@ app.post('/api/simulado/:id/check', simuladoCheckLimiter, async (req, res) => {
 
     res.json({
         success: true,
-        isCorrect: answer === question.correct,
+        isCorrect: isAnswerCorrect(answer, question.correct),
         correct: question.correct,
         explanation: question.explanation || ''
     });
@@ -479,7 +574,7 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
 
     const review = simulado.questions.map(question => {
         const userAnswer = Object.prototype.hasOwnProperty.call(answers, question.id) ? answers[question.id] : null;
-        const isCorrect = userAnswer === question.correct;
+        const isCorrect = isAnswerCorrect(userAnswer, question.correct);
         if (isCorrect) correctCount++;
 
         const stats = domainStats.get(question.domain);
@@ -523,6 +618,7 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
         certCode: simulado.certCode,
         certName: simulado.certName,
         level: simulado.level,
+        focusDomain: simulado.focusDomain || null,
         totalQuestions,
         correctCount,
         score,

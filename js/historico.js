@@ -165,10 +165,12 @@
         const reviewList = document.getElementById('detailReviewList');
         reviewList.innerHTML = attempt.review.map((item, i) => {
             const optionsHtml = item.options.map((opt, optIndex) => {
+                const histCorrectHas = Array.isArray(item.correct) ? item.correct.includes(optIndex) : optIndex === item.correct;
+                const histAnswerHas = Array.isArray(item.yourAnswer) ? item.yourAnswer.includes(optIndex) : optIndex === item.yourAnswer;
                 let cls = 'review-option';
-                if (optIndex === item.correct) cls += ' correct-answer';
-                if (optIndex === item.yourAnswer && optIndex !== item.correct) cls += ' your-wrong-answer';
-                if (optIndex === item.yourAnswer && optIndex === item.correct) cls += ' your-correct-answer';
+                if (histCorrectHas) cls += ' correct-answer';
+                if (histAnswerHas && !histCorrectHas) cls += ' your-wrong-answer';
+                if (histAnswerHas && histCorrectHas) cls += ' your-correct-answer';
 
                 const percentBadge = (isLive && item.totalVotes > 0)
                     ? `<span class="live-option-percent">${item.percentages[optIndex]}%</span>`
