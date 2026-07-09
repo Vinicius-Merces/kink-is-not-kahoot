@@ -19,6 +19,7 @@
     let selectedLevel = null;
     let selectedMode = 'solo'; // 'solo' ou 'live' (Modo Professor)
     let focusDomainId = null; // prática focada em um domínio (deep-link vindo da trilha)
+    let focusTopicId = null;  // prática focada em um tema/tópico específico do capítulo
     let selectedFeedbackMode = 'exam'; // 'exam' (correção só no final) ou 'study' (feedback a cada pergunta)
 
     // Estado do simulado em andamento
@@ -155,6 +156,7 @@
         const params = new URLSearchParams(window.location.search);
         const certParam = params.get('cert');
         const domainParam = params.get('domain');
+        const topicParam = params.get('topic');
         const nParam = parseInt(params.get('n'), 10);
 
         if (!certParam) return;
@@ -163,11 +165,19 @@
 
         selectCertification(cert.id);
 
-        if (domainParam) {
+        if (topicParam) {
+            const hasTopic = cert.levels.some(l => (l.topics || []).some(t => t.id === topicParam));
+            if (hasTopic) {
+                focusTopicId = topicParam;
+                // domain acompanha como complemento quando o tema tem poucas questões
+                focusDomainId = domainParam || null;
+                renderFocusBanner(getTopicName(topicParam));
+            }
+        } else if (domainParam) {
             const levelWithDomains = cert.levels.find(l => (l.domains || []).some(d => d.id === domainParam));
             if (levelWithDomains) {
                 focusDomainId = domainParam;
-                renderFocusBanner(cert, domainParam);
+                renderFocusBanner(getDomainName(domainParam));
             }
         }
 
@@ -176,6 +186,16 @@
             range.value = Math.min(nParam, parseInt(range.max, 10) || nParam);
             document.getElementById('numQuestionsValue').textContent = range.value;
         }
+    }
+
+    function getTopicName(topicId) {
+        for (const cert of certifications) {
+            for (const level of cert.levels) {
+                const found = (level.topics || []).find(t => t.id === topicId);
+                if (found) return found.name;
+            }
+        }
+        return topicId;
     }
 
     function getDomainName(domainId) {
@@ -188,7 +208,7 @@
         return domainId;
     }
 
-    function renderFocusBanner(cert, domainId) {
+    function renderFocusBanner(focusName) {
         let banner = document.getElementById('domainFocusBanner');
         if (!banner) {
             banner = document.createElement('div');
@@ -198,15 +218,17 @@
             config.insertBefore(banner, config.firstChild);
         }
         banner.innerHTML = `
-            <span class="domain-focus-text">🎯 Prática focada: <strong>${Utils.escapeHtml(getDomainName(domainId))}</strong></span>
-            <button type="button" class="domain-focus-clear" id="clearDomainFocus" title="Remover foco e praticar todos os domínios">✕</button>
+            <span class="domain-focus-text">🎯 Prática focada: <strong>${Utils.escapeHtml(focusName)}</strong></span>
+            <button type="button" class="domain-focus-clear" id="clearDomainFocus" title="Remover foco e praticar todos os temas">✕</button>
         `;
         banner.style.display = 'flex';
         document.getElementById('clearDomainFocus').addEventListener('click', () => {
             focusDomainId = null;
+            focusTopicId = null;
             banner.style.display = 'none';
             const url = new URL(window.location.href);
             url.searchParams.delete('domain');
+            url.searchParams.delete('topic');
             window.history.replaceState({}, '', url);
         });
     }
@@ -264,7 +286,7 @@
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ certId: selectedCertId, level: selectedLevel, numQuestions, domain: focusDomainId || undefined })
+                body: JSON.stringify({ certId: selectedCertId, level: selectedLevel, numQuestions, domain: focusDomainId || undefined, topic: focusTopicId || undefined })
             });
 
             const data = await res.json();

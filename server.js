@@ -182,6 +182,47 @@ const CERTIFICATIONS = {
 
 const MAX_SIMULADO_QUESTIONS = 80;
 
+// Nomes de exibição dos tópicos (campo `topics` das questões)
+const TOPIC_LABELS = {
+    // SAA-C03
+    'iam': 'IAM e identidades',
+    'ec2-compute': 'EC2 e computação',
+    's3-storage': 'S3 e armazenamento',
+    'vpc': 'VPC e redes',
+    'databases': 'Bancos de dados',
+    'high-availability': 'Alta disponibilidade e escalabilidade',
+    'dr-backup': 'DR e backup',
+    'serverless': 'Serverless e mensageria',
+    'security-services': 'Serviços de segurança',
+    'monitoring': 'Monitoramento e observabilidade',
+    'migration': 'Migração e transferência',
+    'analytics': 'Analytics e Big Data',
+    'cost': 'Otimização de custos',
+    'containers': 'Containers',
+    'app-integration': 'APIs e integração',
+    'edge-dns': 'Route 53, CloudFront e borda',
+    'hybrid-networking': 'Redes híbridas e edge computing',
+    'ml-ai': 'Machine Learning e IA',
+    'governance': 'Organizations e governança',
+    // DVA-C02
+    'sdk-cli': 'SDK, CLI e credenciais',
+    'lambda': 'AWS Lambda',
+    'api-gateway': 'API Gateway',
+    'dynamodb': 'DynamoDB',
+    's3-dev': 'S3 para desenvolvedores',
+    'messaging': 'Mensageria e Step Functions',
+    'security-dev': 'IAM, KMS e segredos',
+    'cognito': 'Cognito',
+    'cicd': 'CI/CD (CodeSuite)',
+    'cloudformation-sam': 'CloudFormation e SAM',
+    'beanstalk': 'Elastic Beanstalk',
+    'troubleshooting': 'Troubleshooting e otimização'
+};
+
+function topicLabel(id) {
+    return TOPIC_LABELS[id] || id;
+}
+
 // Carrega as pools de perguntas (cert x nível) em memória
 const examPools = new Map(); // chave: "certId:level" -> { certCode, certName, level, domains, questions }
 
@@ -192,6 +233,13 @@ function loadExamPools() {
             try {
                 const raw = fs.readFileSync(filePath, 'utf-8');
                 const pool = JSON.parse(raw);
+                // Índice de tópicos (campo `topics` das questões) para prática focada
+                pool.topicCounts = {};
+                for (const q of pool.questions) {
+                    for (const t of (q.topics || [])) {
+                        pool.topicCounts[t] = (pool.topicCounts[t] || 0) + 1;
+                    }
+                }
                 examPools.set(`${certId}:${level}`, pool);
             } catch (error) {
                 console.log(`⚠️ Pool de simulado não encontrada: ${certId}/${level} (${error.message})`);
@@ -384,7 +432,12 @@ app.get('/api/simulado/certifications', (req, res) => {
             return {
                 id: level,
                 totalQuestions: pool ? pool.questions.length : 0,
-                domains: pool ? pool.domains : []
+                domains: pool ? pool.domains : [],
+                topics: pool
+                    ? Object.entries(pool.topicCounts || {})
+                        .map(([tid, count]) => ({ id: tid, name: topicLabel(tid), count }))
+                        .sort((a, b) => b.count - a.count)
+                    : []
             };
         })
     }));
@@ -416,10 +469,29 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Número de perguntas inválido' });
     }
 
-    // Prática focada em um único domínio (deep-link vindo da trilha)
+    // Prática focada (deep-link vindo da trilha):
+    // - topic: filtra pelo assunto do capítulo (campo `topics` das questões)
+    // - domain: sozinho filtra pelo domínio; junto com topic, serve de
+    //   complemento quando o tópico tem menos questões que o pedido.
+    const { topic } = req.body || {};
     let focusDomain = null;
+    let focusTopic = null;
     let sourceQuestions = pool.questions;
-    if (domain) {
+
+    if (topic) {
+        if (!pool.topicCounts || !pool.topicCounts[topic]) {
+            return res.status(404).json({ success: false, error: 'Sem perguntas disponíveis para esse tema nesse nível' });
+        }
+        focusTopic = { id: topic, name: topicLabel(topic) };
+        let filtered = shuffleArray(pool.questions.filter(q => (q.topics || []).includes(topic)));
+        const want = Math.min(requested, MAX_SIMULADO_QUESTIONS);
+        if (filtered.length < want && domain) {
+            const chosen = new Set(filtered.map(q => q.id));
+            const topUp = shuffleArray(pool.questions.filter(q => q.domain === domain && !chosen.has(q.id)));
+            filtered = filtered.concat(topUp.slice(0, want - filtered.length));
+        }
+        sourceQuestions = filtered;
+    } else if (domain) {
         const domainInfo = (pool.domains || []).find(d => d.id === domain);
         if (!domainInfo) {
             return res.status(400).json({ success: false, error: 'Domínio inválido para essa certificação' });
@@ -433,7 +505,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
     }
 
     const total = Math.min(requested, MAX_SIMULADO_QUESTIONS, sourceQuestions.length);
-    const questions = focusDomain
+    const questions = (focusTopic || focusDomain)
         ? shuffleArray([...sourceQuestions]).slice(0, total)
         : sampleQuestionsByDomain(pool, total);
 
@@ -446,6 +518,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         certName: pool.certName,
         domains: pool.domains,
         focusDomain,
+        focusTopic,
         questions,
         startedAt: Date.now()
     });
@@ -460,6 +533,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         level,
         domains: pool.domains,
         focusDomain,
+        focusTopic,
         totalQuestions: questions.length,
         questions: questions.map(sanitizeQuestion)
     });
@@ -619,6 +693,7 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
         certName: simulado.certName,
         level: simulado.level,
         focusDomain: simulado.focusDomain || null,
+        focusTopic: simulado.focusTopic || null,
         totalQuestions,
         correctCount,
         score,
