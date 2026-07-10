@@ -1,0 +1,574 @@
+{
+  "certCode": "DEA-C01",
+  "certName": "AWS Certified Data Engineer - Associate",
+  "level": "avancado",
+  "domains": [
+    {
+      "id": "data-ingestion-transformation",
+      "name": "Ingestão e Transformação de Dados",
+      "weight": 0.34
+    },
+    {
+      "id": "data-store-management",
+      "name": "Gerenciamento de Data Stores",
+      "weight": 0.26
+    },
+    {
+      "id": "data-operations-support",
+      "name": "Operações e Suporte de Dados",
+      "weight": 0.22
+    },
+    {
+      "id": "data-security-governance",
+      "name": "Segurança e Governança de Dados",
+      "weight": 0.18
+    }
+  ],
+  "questions": [
+    {
+      "id": "dea-avc-001",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming"
+      ],
+      "text": "Cinco aplicações consomem o mesmo Kinesis Data Stream no modo compartilhado e competem pelos 2 MB/s de leitura por shard, elevando a latência de entrega. O requisito é throughput de leitura DEDICADO por consumidor e latência de ~70 ms, sem aumentar shards. Qual recurso atende?",
+      "options": [
+        "Reduzir o batch size",
+        "Enhanced Fan-Out: cada consumidor registrado recebe 2 MB/s dedicados por shard com entrega push via HTTP/2",
+        "Long polling nos consumidores",
+        "Aumentar a retenção do stream"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorreta: batch menor aumenta overhead e não cria throughput dedicado. B) Correta: o EFO cria uma via dedicada de 2 MB/s por shard para CADA consumidor registrado, com push em ~70 ms — elimina a competição sem resharding. C) Incorreta: long polling é conceito de SQS. D) Incorreta: retenção afeta replay, não vazão de leitura."
+    },
+    {
+      "id": "dea-avc-002",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming"
+      ],
+      "text": "Um stream provisionado tem 10 shards, mas UM shard recebe 80% do tráfego e sofre throttling, enquanto os demais ficam ociosos. A partition key atual é o código da loja, e a loja matriz domina os eventos. Quais DUAS ações corrigem o hot shard? (Selecione DUAS alternativas)",
+      "options": [
+        "Aumentar a retenção para 7 dias",
+        "Reduzir o número total de shards",
+        "Aplicar salting/sufixo aleatório à chave da loja dominante, espalhando seus eventos entre shards",
+        "Trocar a partition key por uma de ALTA cardinalidade e distribuição uniforme (ex.: ID do evento/cliente)",
+        "Migrar para SQS FIFO"
+      ],
+      "correct": [
+        2,
+        3
+      ],
+      "explanation": "A) Incorreta: retenção não muda a distribuição de escrita. B) Incorreta: menos shards concentram AINDA mais o tráfego. C) Correta: quando a chave de negócio precisa ser mantida, o salting (loja#1..N) divide o tráfego da chave quente, reagregando no consumo. D) Correta: chave de alta cardinalidade distribui o hash uniformemente entre shards — a correção estrutural. E) Incorreta: trocar de tecnologia não resolve o desenho da chave e perde as características de stream."
+    },
+    {
+      "id": "dea-avc-003",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming",
+        "datalake-s3"
+      ],
+      "text": "Um Firehose entrega no S3 com buffer de 1 MB/60s, gerando dezenas de milhares de arquivos minúsculos por dia e degradando o Athena. O consumo tolera atraso de até 10 minutos. Qual ajuste melhora diretamente o layout dos arquivos?",
+      "options": [
+        "Diminuir o buffer para 1 segundo",
+        "Ativar o versionamento do bucket",
+        "Aumentar o buffer do Firehose (ex.: 128 MB / até 900 s), produzindo arquivos maiores e menos numerosos",
+        "Trocar o destino para DynamoDB"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: agrava o problema dos small files. B) Incorreta: versionamento não muda o tamanho dos arquivos. C) Correta: buffers maiores agregam mais registros por objeto — arquivos na casa de centenas de MB são o alvo para leitura analítica eficiente; o atraso extra cabe no SLA de 10 min. D) Incorreta: DynamoDB não é destino analítico do caso."
+    },
+    {
+      "id": "dea-avc-004",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "glue-etl"
+      ],
+      "text": "Um job Spark do AWS Glue falha com erros de OutOfMemory ao processar um dataset com transformações que embaralham (shuffle) muitos dados. Qual ajuste do PRÓPRIO Glue ataca o problema sem reescrever o job?",
+      "options": [
+        "Converter o job para Python shell",
+        "Desativar os Job Bookmarks",
+        "Trocar o worker type para um de maior memória (ex.: G.1X → G.2X) e ajustar o número de workers",
+        "Reduzir o número de workers para economizar"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: Python shell é single-node para scripts leves, não Spark distribuído. B) Incorreta: bookmarks controlam incrementalidade, não memória. C) Correta: os worker types do Glue definem memória/CPU por executor — G.2X dobra a memória do G.1X; mais memória por worker e paralelismo adequado resolvem OOM de shuffle. D) Incorreta: menos workers concentram mais dados por executor — piora o OOM."
+    },
+    {
+      "id": "dea-avc-005",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "de-fundamentals",
+        "datalake-s3"
+      ],
+      "text": "Um data lake em Parquet no S3 precisa agora de UPDATEs e DELETEs em nível de linha (correções e LGPD), transações ACID e viagem no tempo (time travel), mantendo consultas via Athena e Spark. Qual abordagem moderna atende?",
+      "options": [
+        "Migrar todo o lake para RDS",
+        "Usar apenas versionamento do S3 como 'transação'",
+        "Reescrever manualmente os arquivos Parquet afetados a cada correção",
+        "Adotar um formato de tabela aberto como Apache Iceberg sobre o S3, que suporta ACID, upserts/deletes e time travel nos engines integrados"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: mover o lake inteiro para OLTP inverte a arquitetura. B) Incorreta: versionamento de objetos não dá semântica de transação em nível de linha. C) Incorreta: reescrita manual de Parquet é frágil, cara e sem atomicidade. D) Correta: table formats como Iceberg adicionam camada transacional ao lake: MERGE/DELETE, snapshots, time travel e evolução de schema — suportados por Athena, Glue, EMR/Spark."
+    },
+    {
+      "id": "dea-avc-006",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "emr"
+      ],
+      "text": "Um cluster EMR processa lotes noturnos com prazo flexível. O time quer cortar drasticamente o custo de computação aceitando interrupções ocasionais, SEM arriscar os dados do HDFS nem a estabilidade do cluster. Quais DUAS práticas implementam isso? (Selecione DUAS alternativas)",
+      "options": [
+        "Desativar a replicação do HDFS",
+        "Clusters transientes com dados no S3 (EMRFS), encerrados ao fim do job",
+        "Spot em TODOS os nós, incluindo o primary",
+        "Cluster permanente com o dobro de nós core",
+        "Instâncias Spot nos nós TASK (que não armazenam HDFS), mantendo primary e core em On-Demand"
+      ],
+      "correct": [
+        1,
+        4
+      ],
+      "explanation": "A) Incorreta: reduzir a replicação do HDFS troca custo por risco de perda. B) Correta: com EMRFS, o cluster vira descartável — paga-se somente a janela do job. C) Incorreta: perder o primary derruba o cluster; core em Spot arrisca blocos do HDFS. D) Incorreta: dobrar core aumenta o custo. E) Correta: nós task só computam — se o Spot é recuperado, o YARN reexecuta as tasks; primary/core protegidos garantem HDFS e coordenação."
+    },
+    {
+      "id": "dea-avc-007",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "batch-ingestion",
+        "dataops"
+      ],
+      "text": "Uma replicação contínua (CDC) do DMS para o S3 é crítica, e o negócio exige detectar rapidamente quando a latência da replicação passa de 5 minutos. Como monitorar corretamente?",
+      "options": [
+        "Alarmes do CloudWatch sobre as métricas de latência da task do DMS (CDCLatencySource/CDCLatencyTarget)",
+        "Conferir manualmente a contagem de linhas uma vez por dia",
+        "Ler os logs do bucket de destino",
+        "Ativar o Trusted Advisor"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: o DMS publica métricas de latência de origem e destino por task — alarmes > 300s notificam o time em tempo real. B) Incorreta: verificação diária descobre o atraso horas depois. C) Incorreta: logs do destino não medem o atraso da replicação. D) Incorreta: Trusted Advisor faz recomendações gerais, não monitora tasks do DMS."
+    },
+    {
+      "id": "dea-avc-008",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming"
+      ],
+      "text": "Ao decidir entre Amazon Kinesis Data Streams e Amazon MSK para uma nova plataforma de streaming, quais DOIS critérios apontam corretamente para o MSK? (Selecione DUAS alternativas)",
+      "options": [
+        "Latência obrigatoriamente menor que 1 ms",
+        "Necessidade de compatibilidade com o ecossistema Kafka (Kafka Connect, clientes e ferramentas existentes)",
+        "Cobrança exclusivamente por uso sem infraestrutura provisionada",
+        "Requisitos finos de configuração do broker/tópicos (retenção por tópico, particionamento e parâmetros do Kafka)",
+        "Desejo de gerenciamento mínimo e integração serverless mais direta com Firehose/Lambda"
+      ],
+      "correct": [
+        1,
+        3
+      ],
+      "explanation": "A) Incorreta: nenhum dos dois garante sub-milissegundo. B) Correta: quem já tem código, conectores e operação Kafka migra para MSK sem reescrever. C) Incorreta: MSK provisiona brokers (mesmo o Serverless tem modelo próprio); 'só por uso' descreve melhor Kinesis on-demand. D) Correta: o MSK expõe o Kafka de verdade — controle fino de tópicos e parâmetros do broker. E) Incorreta: esse critério aponta para o KINESIS (mais gerenciado/serverless e integrações nativas)."
+    },
+    {
+      "id": "dea-avc-009",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "datalake-s3",
+        "glue-etl"
+      ],
+      "text": "Um lake recebe micro-arquivos continuamente na camada raw. A equipe quer manter a camada CURADA com arquivos Parquet de ~256 MB, particionados, sem parar a ingestão. Qual padrão de arquitetura resolve?",
+      "options": [
+        "Ativar Transfer Acceleration",
+        "Job periódico de COMPACTION (Glue/Spark ou OPTIMIZE em tabelas Iceberg) reescrevendo os micro-arquivos da janela em arquivos grandes na camada curada",
+        "Bloquear a ingestão até acumular arquivos grandes",
+        "Aumentar a classe de armazenamento para Glacier"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorreta: aceleração de upload não reorganiza arquivos. B) Correta: o padrão raw→curated com compaction agendada preserva a ingestão contínua e entrega leitura eficiente; em Iceberg, o OPTIMIZE/rewrite faz isso de forma gerenciada. C) Incorreta: travar a ingestão cria atraso e acoplamento. D) Incorreta: Glacier é arquivamento — piora a consulta."
+    },
+    {
+      "id": "dea-avc-010",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "emr"
+      ],
+      "text": "Em um job Spark no EMR, o JOIN entre uma tabela fato de 2 TB e uma dimensão de 40 MB está causando shuffle massivo. Qual técnica clássica elimina o shuffle desse JOIN?",
+      "options": [
+        "Trocar o formato do fato para CSV",
+        "Aumentar o número de partições do fato",
+        "Broadcast join: enviar a dimensão pequena para todos os executores, fazendo o join local (o Spark faz automaticamente abaixo do limiar, ou via hint/broadcast explícito)",
+        "Repartir a dimensão em mil partições"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: CSV piora tudo (mais bytes, sem projeção de colunas). B) Incorreta: mais partições não evita a redistribuição do join comum. C) Correta: com a dimensão em broadcast, cada executor faz o join localmente contra sua fatia do fato — zero shuffle da tabela grande. D) Incorreta: fatiar 40 MB em mil partições só cria overhead."
+    },
+    {
+      "id": "dea-avc-011",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming",
+        "dataops"
+      ],
+      "text": "Uma função Lambda consome um Kinesis Stream via event source mapping. Um registro 'venenoso' faz o lote falhar e o processamento do shard TRAVA em retries infinitos, atrasando tudo. Quais configurações do event source mapping destravam o pipeline com segurança?",
+      "options": [
+        "Reduzir o paralelismo para 1",
+        "Aumentar o timeout da função",
+        "Excluir e recriar o stream",
+        "Configurar maximumRetryAttempts, bisectBatchOnFunctionError (divide o lote para isolar o registro ruim) e um destino de falha (on-failure) para os registros descartados"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: menos paralelismo só deixa o atraso pior. B) Incorreta: mais timeout não resolve um registro que sempre falha. C) Incorreta: recriar o stream perde dados e não evita a recorrência. D) Correta: limitar retries + bisect isola o registro venenoso, e o destino de falha (SQS/SNS) preserva os descartados para análise — o shard volta a fluir."
+    },
+    {
+      "id": "dea-avc-012",
+      "domain": "data-store-management",
+      "topics": [
+        "athena"
+      ],
+      "text": "Uma tabela do Athena tem partições por ano/mes/dia e o metastore acumulou centenas de milhares de partições — o planejamento das consultas ficou lento e o MSCK REPAIR demora. Qual recurso elimina a dependência de registrar cada partição no catálogo?",
+      "options": [
+        "Rodar mais crawlers em paralelo",
+        "Aumentar o limite de partições",
+        "Partition Projection: o Athena CALCULA as partições a partir de regras configuradas (intervalos/formatos), sem consultá-las no metastore",
+        "Remover o particionamento"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: crawlers continuam alimentando um metastore gigante. B) Incorreta: o gargalo é a enumeração, não o limite. C) Correta: com projection, as partições viram função de configuração (ex.: datas de 2020-01-01 até NOW) — planejamento instantâneo e fim do MSCK/crawler para novas partições. D) Incorreta: sem partições, cada consulta escaneia tudo."
+    },
+    {
+      "id": "dea-avc-013",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift"
+      ],
+      "text": "O time de BI (consultas curtas) e o time de ETL (cargas pesadas) compartilham um cluster Redshift provisionado e disputam recursos nos horários de carga. Qual mecanismo do Redshift isola essas cargas com prioridades e limites?",
+      "options": [
+        "Workload Management (WLM), com filas separadas (ou Auto WLM com query priorities) para BI e ETL",
+        "VACUUM diário",
+        "Criar dois usuários com senhas diferentes",
+        "Sort keys em todas as tabelas"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: o WLM define filas com memória/concorrência (ou prioridades no Auto WLM), garantindo que o ETL não sufoque o BI (e regras de QMR para matar consultas fora do padrão). B) Incorreta: VACUUM é manutenção de tabelas. C) Incorreta: usuários distintos não isolam recursos. D) Incorreta: sort keys otimizam I/O, não arbitram concorrência entre cargas."
+    },
+    {
+      "id": "dea-avc-014",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift"
+      ],
+      "text": "A área de analytics precisa disponibilizar dados AO VIVO do warehouse de produção para outro cluster Redshift de outra unidade de negócio, SEM copiar dados nem montar pipelines de exportação. Qual recurso atende?",
+      "options": [
+        "UNLOAD diário para o S3",
+        "Redshift Data Sharing: compartilhar schemas/tabelas entre clusters (datashare), com leitura ao vivo e sem movimentação de dados",
+        "DMS entre os clusters",
+        "Snapshot restaurado semanalmente"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorreta: UNLOAD cria cópias defasadas e pipeline para manter. B) Correta: o data sharing expõe objetos de um cluster produtor a consumidores (mesma conta, cross-account ou cross-region) com leitura transacionalmente consistente e zero cópia. C) Incorreta: DMS entre warehouses é gambiarra cara. D) Incorreta: snapshots semanais dão dados velhos e trabalho recorrente."
+    },
+    {
+      "id": "dea-avc-015",
+      "domain": "data-store-management",
+      "topics": [
+        "athena"
+      ],
+      "text": "Analistas precisam cruzar, em UMA consulta SQL, dados do data lake no S3 com uma tabela de referência que vive em um RDS PostgreSQL, sem replicar o banco para o lake. Qual recurso do Athena permite isso?",
+      "options": [
+        "Partition Projection",
+        "CTAS",
+        "Athena Federated Query, usando um conector (Lambda) para a fonte externa",
+        "Workgroups"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: projection resolve enumeração de partições. B) Incorreta: CTAS materializa resultados, não conecta fontes externas. C) Correta: o Federated Query usa conectores baseados em Lambda para consultar fontes externas (RDS, DynamoDB, Redshift, etc.) e fazer JOIN com as tabelas do lake na mesma consulta. D) Incorreta: workgroups governam uso/custo."
+    },
+    {
+      "id": "dea-avc-016",
+      "domain": "data-store-management",
+      "topics": [
+        "datalake-s3"
+      ],
+      "text": "Um data lake tem padrões de acesso IMPREVISÍVEIS: alguns datasets ficam meses parados e voltam a ser consultados intensamente. O time quer otimizar custo SEM risco de taxas de recuperação nem degradação de latência, e sem gerenciar transições manualmente. Qual classe do S3 atende?",
+      "options": [
+        "S3 Intelligent-Tiering, que move os objetos automaticamente entre camadas conforme o padrão de acesso",
+        "S3 One Zone-IA",
+        "S3 Standard com lifecycle fixo para Glacier em 30 dias",
+        "S3 Glacier Deep Archive"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: o Intelligent-Tiering monitora o acesso por objeto e transiciona automaticamente (frequente↔infrequente↔archive opcional) sem taxas de recuperação nas camadas padrão — feito para padrões imprevisíveis. B) Incorreta: One Zone-IA reduz resiliência e cobra recuperação. C) Incorreta: lifecycle fixo erra quando o padrão é imprevisível (dataset 'frio' pode voltar amanhã). D) Incorreta: Deep Archive tem recuperação de horas — inviável para volta repentina de acesso."
+    },
+    {
+      "id": "dea-avc-017",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift",
+        "datalake-s3"
+      ],
+      "text": "O time quer exportar o resultado de consultas do Redshift para a camada curada do data lake, em Parquet particionado, para consumo por Athena e Spark. Qual comando nativo faz isso de forma paralela e eficiente?",
+      "options": [
+        "INSERT INTO EXTERNAL",
+        "pg_dump",
+        "COPY",
+        "UNLOAD ... FORMAT AS PARQUET PARTITION BY, escrevendo em paralelo no S3"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: a escrita em tabelas externas existe (Spectrum), mas o comando canônico de exportação em massa é o UNLOAD. B) Incorreta: pg_dump não se aplica ao Redshift para exportar dados analíticos ao lake. C) Incorreta: COPY é o caminho INVERSO (S3 → Redshift). D) Correta: o UNLOAD grava o resultado direto no S3 em Parquet, com particionamento e paralelismo pelos slices — a ponte warehouse→lake."
+    },
+    {
+      "id": "dea-avc-018",
+      "domain": "data-store-management",
+      "topics": [
+        "nosql-stores"
+      ],
+      "text": "Uma tabela DynamoDB de eventos tem tráfego 20x maior em datas promocionais imprevisíveis, sofrendo throttling no modo provisionado mesmo com auto scaling (que reage com atraso). A prioridade é NUNCA throttlear, aceitando custo variável. Qual configuração atende?",
+      "options": [
+        "Reduzir o tamanho dos itens",
+        "Dobrar o provisionamento fixo",
+        "Adicionar um GSI",
+        "Modo de capacidade ON-DEMAND, que absorve picos súbitos sem provisionamento"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: itens menores ajudam, mas não eliminam o descompasso de provisionamento. B) Incorreta: dimensionar para 20x o normal desperdiça o ano inteiro — e o próximo pico pode ser 30x. C) Incorreta: GSI cria mais consumo, não mais capacidade da tabela. D) Correta: o on-demand precifica por requisição e acomoda picos instantâneos (inclusive 2x o pico anterior imediatamente) — o trade-off é custo unitário maior, aceito pelo requisito."
+    },
+    {
+      "id": "dea-avc-019",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift"
+      ],
+      "text": "Após semanas de cargas e exclusões intensas, as consultas de um cluster Redshift provisionado degradaram e o storage não foi liberado. Quais operações de manutenção recuperam a performance e o espaço?",
+      "options": [
+        "VACUUM (reordenar/recuperar espaço de linhas deletadas) e ANALYZE (atualizar estatísticas do otimizador)",
+        "DROP e recriação de todos os schemas",
+        "Reiniciar o cluster",
+        "Trocar a senha do admin"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: VACUUM reordena conforme a sort key e remove linhas marcadas como deletadas; ANALYZE atualiza as estatísticas que o planejador usa — a dupla clássica de manutenção (em boa parte automática hoje, mas cobrada em prova). B) Incorreta: recriar tudo é destrutivo e desnecessário. C) Incorreta: reiniciar não reorganiza dados. D) Incorreta: senha não tem relação com performance."
+    },
+    {
+      "id": "dea-avc-020",
+      "domain": "data-operations-support",
+      "topics": [
+        "orchestration"
+      ],
+      "text": "Um pipeline precisa reprocessar 300 partições diárias históricas executando o MESMO job Glue para cada partição, com paralelismo controlado (máx. 10 simultâneos) e tolerância a falhas por item. Qual recurso do Step Functions implementa isso elegantemente?",
+      "options": [
+        "O estado MAP (ou Distributed Map para grande escala), iterando sobre a lista de partições com MaxConcurrency=10 e Retry/Catch por iteração",
+        "300 estados Task encadeados manualmente",
+        "Uma única execução com timeout de 1 ano",
+        "Um Wait de 24 horas"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: o Map executa a mesma sub-máquina para cada item da lista com concorrência limitada; o Distributed Map escala a milhões de itens (ex.: objetos do S3) com controle de falhas por item. B) Incorreta: 300 estados fixos são inviáveis de manter. C) Incorreta: timeout não cria paralelismo controlado. D) Incorreta: Wait não itera nada."
+    },
+    {
+      "id": "dea-avc-021",
+      "domain": "data-operations-support",
+      "topics": [
+        "dataops",
+        "de-fundamentals"
+      ],
+      "text": "Um job de carga às vezes é reexecutado após falhas parciais e passou a gerar REGISTROS DUPLICADOS no destino. Qual princípio de design de pipeline previne isso e como aplicá-lo?",
+      "options": [
+        "Aceitar duplicatas e tratá-las no dashboard",
+        "Executar os jobs somente uma vez por semana",
+        "Idempotência: reexecuções produzem o mesmo estado final — ex.: sobrescrever a partição-alvo inteira (INSERT OVERWRITE), usar MERGE/upsert por chave, ou chaves de deduplicação",
+        "Desativar retries em tudo"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: empurrar o problema ao consumo corrompe métricas e confiança. B) Incorreta: frequência menor não impede duplicação em re-runs. C) Correta: pipeline idempotente pode ser reexecutado com segurança — overwrite de partição, MERGE por chave natural ou dedup por ID de evento são os padrões. D) Incorreta: sem retries, qualquer falha transitória vira incidente manual."
+    },
+    {
+      "id": "dea-avc-022",
+      "domain": "data-operations-support",
+      "topics": [
+        "athena",
+        "dataops"
+      ],
+      "text": "Dashboards disparam a MESMA consulta Athena dezenas de vezes por hora sobre dados que só mudam 1x por dia, pagando o escaneamento completo em cada execução. Qual recurso do Athena corta esse desperdício sem mudar a consulta?",
+      "options": [
+        "Trocar para SELECT *",
+        "Habilitar o Query Result Reuse (reutilização de resultados) com idade máxima adequada, servindo o resultado em cache",
+        "Partition projection",
+        "Aumentar o workgroup"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorreta: SELECT * escaneia MAIS. B) Correta: o result reuse devolve o resultado recente da MESMA consulta sem reescanear (você define a idade máxima aceitável, ex.: 60 min) — custo de varredura zero nas repetições. C) Incorreta: projection otimiza enumeração de partições, não repetição de consultas. D) Incorreta: 'aumentar workgroup' não existe como capacidade."
+    },
+    {
+      "id": "dea-avc-023",
+      "domain": "data-operations-support",
+      "topics": [
+        "dataops"
+      ],
+      "text": "O time quer um alerta ÚNICO de 'pipeline degradado' que dispare apenas quando (falha de job do Glue) E (atraso de entrega do Firehose) ocorrerem juntos, evitando o ruído de alarmes isolados. Qual recurso do CloudWatch implementa essa lógica?",
+      "options": [
+        "Dois alarmes separados por e-mail",
+        "Logs Insights agendado",
+        "Composite Alarm, combinando alarmes-filho com operadores lógicos (AND/OR) e uma única ação",
+        "Um dashboard colorido"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorreta: dois alarmes isolados são exatamente o ruído a evitar. B) Incorreta: consultas agendadas de log não substituem a álgebra de alarmes. C) Correta: o composite alarm avalia uma expressão lógica sobre outros alarmes e só aciona a ação (SNS/on-call) quando a combinação é verdadeira — redução de ruído por desenho. D) Incorreta: dashboard não notifica sozinho."
+    },
+    {
+      "id": "dea-avc-024",
+      "domain": "data-operations-support",
+      "topics": [
+        "orchestration",
+        "dataops"
+      ],
+      "text": "Após um bug corrigido no job de transformação, é preciso REPROCESSAR 90 dias de dados históricos (backfill) sem interromper o processamento diário corrente. Quais DUAS práticas estruturam esse backfill com segurança? (Selecione DUAS alternativas)",
+      "options": [
+        "Executar o backfill como fluxo SEPARADO e parametrizado por intervalo de datas (ex.: Step Functions Map sobre as partições), isolado do pipeline diário",
+        "Pausar o pipeline diário por 90 dias",
+        "Fazer o backfill manualmente partição por partição no console",
+        "Apagar o data lake e recomeçar",
+        "Garantir que o job seja idempotente por partição (overwrite/merge), para reexecuções não duplicarem dados"
+      ],
+      "correct": [
+        0,
+        4
+      ],
+      "explanation": "A) Correta: backfill parametrizado e paralelizado convive com o diário e é retomável. B) Incorreta: parar a operação por causa do histórico é inaceitável. C) Incorreta: 90 dias manuais = erro humano garantido. D) Incorreta: destruir o lake é desproporcional. E) Correta: idempotência por partição é o que torna o reprocesso seguro (sem duplicatas nas janelas já corrigidas)."
+    },
+    {
+      "id": "dea-avc-025",
+      "domain": "data-operations-support",
+      "topics": [
+        "glue-etl",
+        "dataops"
+      ],
+      "text": "Um job Glue com 20 workers termina, mas as métricas mostram 1 executor trabalhando por horas enquanto os demais ficam ociosos ao final. Qual é o diagnóstico clássico e a direção da correção?",
+      "options": [
+        "Falta de espaço no S3",
+        "DATA SKEW: uma chave/partição concentra os dados; corrigir com re-particionamento, salting da chave ou tratamento separado da chave dominante",
+        "O bucket está em outra Região",
+        "Os bookmarks estão ativados"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorreta: S3 não 'enche'. B) Correta: o sintoma 'um executor trabalha, o resto espera' é assimetria de dados por chave (skew) — redistribuir (repartition), salgar a chave quente ou processá-la à parte equilibra a carga. C) Incorreta: cross-region adiciona latência uniforme, não skew. D) Incorreta: bookmarks limitam o ESCOPO dos dados, não criam desequilíbrio entre executores."
+    },
+    {
+      "id": "dea-avc-026",
+      "domain": "data-operations-support",
+      "topics": [
+        "dataops",
+        "datalake-s3"
+      ],
+      "text": "A equipe precisa de VISIBILIDADE de linhagem: dado um dashboard errado, descobrir de quais tabelas, jobs e fontes o dado veio. No ecossistema Glue/Athena, quais mecanismos contribuem para essa rastreabilidade?",
+      "options": [
+        "Confiança na memória do time",
+        "Um canal de chat para perguntar quem mexeu",
+        "Apenas backups frequentes",
+        "Catálogo central (Glue Data Catalog) como fonte de verdade de tabelas + rastreamento de jobs/execuções (Glue/Step Functions) + convenção de camadas raw→curated→serving com nomenclatura padronizada"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: memória institucional não é linhagem. B) Incorreta: 'perguntar no chat' não escala nem audita. C) Incorreta: backup preserva dados, não explica origem. D) Correta: sem uma ferramenta única de linhagem, a rastreabilidade nasce da disciplina: catálogo único, execuções auditáveis por job e camadas bem separadas — o desenho cobrado como boa prática."
+    },
+    {
+      "id": "dea-avc-027",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "Gerentes regionais devem consultar a MESMA tabela de vendas do data lake vendo SOMENTE as linhas da própria região (ex.: regiao = 'sul'), via Athena, sem duplicar dados. Qual recurso implementa essa segurança em nível de LINHA?",
+      "options": [
+        "WHERE obrigatório combinado verbalmente",
+        "Uma cópia da tabela por região",
+        "Bucket policy por prefixo de região",
+        "Data filters (row-level security) do AWS Lake Formation associados aos principals"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: convenção verbal não é controle. B) Incorreta: cópias multiplicam custo e governança. C) Incorreta: bucket policy filtra objetos/prefixos — só funcionaria se os dados fossem fisicamente separados e não protege no nível lógico da tabela. D) Correta: os data filters do Lake Formation definem expressões de linha (e colunas permitidas) por principal — o Athena aplica o filtro automaticamente, sem cópias."
+    },
+    {
+      "id": "dea-avc-028",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security",
+        "datalake-s3"
+      ],
+      "text": "Um bucket do data lake criptografado com SSE-KMS (CMK própria) precisa ser lido por uma conta AWS parceira. Os objetos foram autorizados via bucket policy, mas a parceira recebe AccessDenied. Qual é a causa provável que falta corrigir?",
+      "options": [
+        "A KEY POLICY da CMK não concede kms:Decrypt à conta/role parceira — a permissão do bucket não basta quando os objetos são SSE-KMS",
+        "SSE-KMS não suporta acesso cross-account",
+        "O bucket precisa ser público",
+        "A parceira precisa de um usuário IAM na conta dona"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: com SSE-KMS, ler o objeto exige permissão no OBJETO e na CHAVE — a key policy (e a policy da role da parceira) precisam permitir kms:Decrypt; esquecer a chave é a causa nº 1 de AccessDenied cross-account. B) Incorreta: suporta, desde que a key policy autorize. C) Incorreta: público jamais. D) Incorreta: cross-account funciona com roles/policies, sem criar usuários na conta dona."
+    },
+    {
+      "id": "dea-avc-029",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security",
+        "redshift"
+      ],
+      "text": "No Amazon Redshift, o time de suporte precisa consultar a tabela de clientes vendo o CPF MASCARADO (ex.: ***.***.***-12), enquanto o time de risco vê o valor completo — na MESMA tabela, sem duplicação. Qual recurso nativo atende?",
+      "options": [
+        "Criptografar a coluna e distribuir a chave ao time de risco",
+        "Dynamic Data Masking (políticas de mascaramento aplicadas por role/usuário)",
+        "Remover a coluna do warehouse",
+        "Exportar duas versões da tabela"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorreta: gestão manual de chaves por time é frágil e fora do controle SQL. B) Correta: o DDM do Redshift aplica políticas de mascaramento em tempo de consulta conforme a identidade — total, parcial ou por função, sem cópias. C) Incorreta: remover a coluna quebra o caso de uso do time de risco. D) Incorreta: duas versões = dessincronização e dobro de governança."
+    },
+    {
+      "id": "dea-avc-030",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "A auditoria exige registrar QUEM leu QUAIS OBJETOS do bucket do data lake (operações GetObject), não apenas as ações administrativas. Qual configuração fornece essa trilha?",
+      "options": [
+        "AWS Config",
+        "GuardDuty",
+        "CloudTrail padrão (management events) já cobre",
+        "Habilitar DATA EVENTS do S3 no CloudTrail (ou S3 server access logs) para o bucket, registrando as operações em nível de objeto"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorreta: Config rastreia configuração, não leituras de objetos. B) Incorreta: GuardDuty detecta ameaças, não é trilha completa de acesso. C) Incorreta: a trail padrão registra eventos de GERENCIAMENTO (criar bucket, mudar policy), não cada GetObject. D) Correta: data events do CloudTrail capturam operações em nível de objeto (GetObject/PutObject) com identidade — atenção ao custo por volume; server access logs são a alternativa mais bruta e barata."
+    },
+    {
+      "id": "dea-avc-031",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "Um pipeline (Glue + Step Functions + S3 + KMS) roda em sub-redes privadas e a política de segurança PROÍBE qualquer tráfego pela internet, inclusive para as APIs da AWS. Quais DUAS configurações mantêm o pipeline funcionando nesse regime? (Selecione DUAS alternativas)",
+      "options": [
+        "Internet Gateway dedicado ao pipeline",
+        "Gateway VPC Endpoint para o S3 nas route tables das sub-redes privadas",
+        "Interface VPC Endpoints (PrivateLink) para os serviços de API usados (Glue, Step Functions, KMS, CloudWatch)",
+        "NAT Gateway com Elastic IP",
+        "Bastion host com proxy"
+      ],
+      "correct": [
+        1,
+        2
+      ],
+      "explanation": "A) Incorreta: IGW é internet pública. B) Correta: o Gateway Endpoint do S3 roteia o acesso ao bucket pela rede da AWS, sem internet e sem custo. C) Correta: os demais serviços expõem Interface Endpoints — ENIs privadas nas sub-redes para chamar as APIs via PrivateLink. D) Incorreta: NAT é justamente SAÍDA PARA A INTERNET — proibido pelo regime. E) Incorreta: proxy via bastion continua atravessando a internet e adiciona ponto frágil."
+    },
+    {
+      "id": "dea-avc-032",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "Uma organização com várias contas quer um data lake com CATÁLOGO CENTRAL em uma conta de dados, permitindo que contas consumidoras descubram e consultem tabelas conforme permissões, sem copiar metadados manualmente. Qual desenho o Lake Formation recomenda?",
+      "options": [
+        "Conceder permissões cross-account do Lake Formation (via AWS RAM) sobre bancos/tabelas, e as contas consumidoras criarem RESOURCE LINKS locais apontando para o catálogo central",
+        "Replicar os crawlers em cada conta consumidora",
+        "Dar acesso de administrador do Glue a todas as contas",
+        "Exportar o catálogo em CSV mensalmente para cada conta"
+      ],
+      "correct": 0,
+      "explanation": "A) Correta: o padrão hub-and-spoke do LF — a conta central concede (compartilhamento via RAM) e cada consumidora cria resource links locais para consultar via Athena/Redshift Spectrum com as próprias identidades, tudo governado e auditável. B) Incorreta: crawlers replicados geram catálogos divergentes. C) Incorreta: admin para todos destrói o menor privilégio. D) Incorreta: exportação manual é catálogo morto."
+    }
+  ]
+}

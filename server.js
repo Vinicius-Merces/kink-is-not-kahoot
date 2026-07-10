@@ -177,6 +177,12 @@ const CERTIFICATIONS = {
         name: 'AWS Certified Developer - Associate',
         shortName: 'Developer Associate',
         levels: ['iniciante', 'medio', 'avancado']
+    },
+    'dea-c01': {
+        code: 'DEA-C01',
+        name: 'AWS Certified Data Engineer - Associate',
+        shortName: 'Data Engineer Associate',
+        levels: ['iniciante', 'medio', 'avancado']
     }
 };
 
@@ -216,7 +222,20 @@ const TOPIC_LABELS = {
     'cicd': 'CI/CD (CodeSuite)',
     'cloudformation-sam': 'CloudFormation e SAM',
     'beanstalk': 'Elastic Beanstalk',
-    'troubleshooting': 'Troubleshooting e otimização'
+    'troubleshooting': 'Troubleshooting e otimização',
+    // DEA-C01
+    'de-fundamentals': 'Fundamentos de engenharia de dados',
+    'streaming': 'Ingestão streaming (Kinesis e MSK)',
+    'batch-ingestion': 'Ingestão batch e migração',
+    'glue-etl': 'AWS Glue e Data Catalog',
+    'datalake-s3': 'Data Lake no S3',
+    'redshift': 'Amazon Redshift',
+    'athena': 'Amazon Athena',
+    'emr': 'Amazon EMR e Spark',
+    'orchestration': 'Orquestração de pipelines',
+    'dataops': 'Operações e qualidade de dados',
+    'data-security': 'Segurança e governança de dados',
+    'nosql-stores': 'DynamoDB e data stores'
 };
 
 function topicLabel(id) {
