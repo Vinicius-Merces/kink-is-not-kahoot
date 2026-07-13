@@ -6,12 +6,13 @@
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-black.svg)](https://socket.io/)
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Validar bancos](https://github.com/Vinicius-Merces/kink-is-not-kahoot/actions/workflows/validate-banks.yml/badge.svg)](https://github.com/Vinicius-Merces/kink-is-not-kahoot/actions/workflows/validate-banks.yml)
 
 ## 🎯 Sobre o Projeto
 
 **KINK is not Kahoot** é uma plataforma de quizzes interativa em tempo real, construída com **Node.js + Socket.IO** para garantir baixa latência e escalabilidade. Um servidor centralizado gerencia o estado do jogo em memória, eliminando gargalos e permitindo dezenas de jogadores simultâneos.
 
-Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS** (CLF-C02, SAA-C03, DVA-C02) com banco de questões próprio e **Trilhas de Estudo** completas (apostilas) para as certificações AWS Solutions Architect Associate e Data Engineer Associate.
+Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS** com **1.833 questões próprias** (CLF-C02, SAA-C03, DVA-C02, DEA-C01) e **Trilhas de Estudo** completas (apostilas) com narração em áudio para as certificações AWS.
 
 **Desenvolvido como projeto de portfólio** para demonstrar habilidades em:
 - Node.js + Express + Socket.IO (servidor em tempo real)
@@ -21,6 +22,9 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 - Sistema de pontuação baseado em velocidade
 - Geração de conteúdo educacional (simulados e trilhas de estudo AWS)
 - Acessibilidade (ARIA, navegação por teclado, leitores de tela)
+- Pipeline de dados em Python (rotulagem, validação e CI dos bancos de questões)
+- Síntese de voz (Azure Speech + SSML) com tratamento fonético para termos em inglês
+- CI com GitHub Actions (validação automática dos bancos a cada push)
 
 ## ✨ Funcionalidades
 
@@ -49,14 +53,38 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 
 ### 🎓 Simulados AWS
 
-- 📝 Modo solo: simulados com proporção oficial de domínios por certificação (CLF-C02, SAA-C03, DVA-C02), 3 níveis de dificuldade (iniciante/médio/avançado) e quantidade de questões configurável
-- 🎓 Modo professor (ao vivo): cria sala com código, alunos entram pelo player e votam em tempo real, com distribuição de respostas da turma
-- 📊 Resultado detalhado por domínio, revisão de questões com explicações
+**Banco próprio de 1.833 questões**, com explicação em cada uma e distribuição fiel aos pesos oficiais de domínio de cada exame:
+
+| Certificação | Questões | Trilha |
+|---|---|---|
+| **CLF-C02** Cloud Practitioner | 443 | — |
+| **SAA-C03** Solutions Architect Associate | 868 | 21 capítulos |
+| **DVA-C02** Developer Associate | 412 | 14 capítulos |
+| **DEA-C01** Data Engineer Associate | 110 | 13 capítulos |
+
+- 📝 **Modo solo**: proporção oficial de domínios, 3 níveis (iniciante/médio/avançado) e quantidade configurável
+- 🎓 **Modo professor (ao vivo)**: sala com código, alunos votam em tempo real, distribuição de respostas da turma
+- ⏱️ **Modo prova real**: cronômetro de 2 min/questão, marcação para revisão e tela de conferência antes de entregar — simula a experiência da Pearson VUE
+- 🔁 **Revisar meus erros**: monta um simulado só com as questões erradas nas tentativas anteriores
+- 🎯 **Desempenho por tema**: 1.390 questões rotuladas por tópico (não só por domínio). O resultado mostra o aproveitamento em cada tema e leva direto à prática focada no ponto fraco
+- ☑️ **Questões multi-resposta** (43): "Selecione DUAS alternativas", como no exame real
+- 📊 Revisão completa com explicação por alternativa e link para o capítulo correspondente da trilha
+
+### 📈 Meu Progresso
+
+- Cartões de desempenho: simulados feitos, melhor nota, média das últimas 5, aprovações e streak de estudo
+- Gráfico de evolução da pontuação com linha de corte nos 70%
+- Desempenho acumulado por domínio e ranking dos **temas a reforçar**
+- Progresso de leitura das trilhas (capítulos concluídos)
 
 ### 📚 Trilhas de Estudo
 
-- 📖 Apostilas completas para **SAA-C03** (Solutions Architect Associate) e **DEA-C01** (Data Engineer Associate)
-- 🧭 Navegação por sidebar com scroll-spy, accordions de perguntas e respostas, barra de progresso de leitura
+- 📖 Apostilas completas para **SAA-C03** (21 capítulos), **DVA-C02** (14) e **DEA-C01** (13)
+- 🎧 **Narração em áudio** dos capítulos (Azure Speech, duas vozes alternadas) para estudo passivo
+- 📊 **Diagramas SVG** dos conceitos que texto sozinho não resolve: fluxo VPC, modos de invocação do Lambda, pipeline Kinesis→Firehose→S3→Athena, camadas do data lake, anatomia MPP do Redshift, entre outros
+- 🎯 **CTA de prática** ao fim de cada capítulo: abre um simulado focado exatamente no tema lido
+- ✅ Marcação de capítulo concluído, com progresso sincronizado entre dispositivos (Firestore)
+- 🧭 Navegação por sidebar com scroll-spy, busca no conteúdo, accordions de Q&A e barra de progresso de leitura
 - 🗂️ Glossário de siglas e plano de estudos semanal
 
 ### 🎨 Visual & Acessibilidade
@@ -86,6 +114,9 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 | **Autenticação** | Firebase Authentication (Google) |
 | **Hospedagem** | SquareCloud (Node.js + arquivos estáticos) |
 | **Música** | Áudio nativo do navegador + playlist dinâmica |
+| **Conteúdo/Dados** | Python (rotulagem por tema, validação dos bancos) |
+| **Narração** | Azure Speech (SSML, vozes pt-BR) + tratamento fonético |
+| **CI** | GitHub Actions (valida bancos e sintaxe a cada push) |
 
 ## 📁 Estrutura de Pastas
 
@@ -102,21 +133,33 @@ kink-is-not-kahoot/
 ├── my-quizzes.html           # Lista de quizzes
 ├── historico.html            # Histórico de sessões
 ├── simulados.html            # Simulados AWS (solo e ao vivo)
+├── progresso.html            # Dashboard de progresso do aluno
 ├── trilha.html               # Hub das trilhas de estudo
-├── trilha-saa.html           # Apostila SAA-C03
-├── trilha-dea.html           # Apostila DEA-C01
+├── trilha-saa.html           # Apostila SAA-C03 (21 capítulos)
+├── trilha-dva.html           # Apostila DVA-C02 (14 capítulos)
+├── trilha-dea.html           # Apostila DEA-C01 (13 capítulos)
 ├── css/                      # Estilos (style, components, landing-fx, trilha, ...)
 ├── js/                       # Scripts do frontend
 │   ├── socket-client.js       # Cliente Socket.IO
 │   ├── host-socket.js          # Lógica do host
 │   ├── player-socket.js        # Lógica do player
+│   ├── simulados.js            # Simulados (modos prova/estudo/erros/prova real)
+│   ├── progresso.js            # Dashboard de progresso
+│   ├── study-progress.js       # Progresso das trilhas + sync Firestore
+│   ├── tts-reader.js           # Player da narração dos capítulos
 │   ├── landing-fx.js           # Efeitos visuais + scroll-reveal
 │   ├── music-player.js         # Player de música
 │   └── ...                     # Outros utilitários
-├── data/exams/               # Banco de questões dos simulados (por cert. e nível)
-├── images/badges/            # Badges/certificações exibidas no "Sobre mim"
+├── data/exams/               # Banco de questões (por certificação e nível)
+├── assets/narracao/          # MP3s da narração das trilhas
 ├── assets/music/             # Trilhas sonoras (menu e jogo)
-└── scripts/question-generator/ # Ferramenta local de geração de questões (Gemini)
+├── images/badges/            # Badges/certificações exibidas no "Sobre mim"
+├── .github/workflows/        # CI: validação dos bancos a cada push
+└── scripts/
+    ├── validate_banks.py       # Validador dos bancos (roda no CI)
+    ├── question-generator/     # Geração de questões (Gemini) — local
+    ├── topic-tagger/           # Rotulagem das questões por tema (tag_saa/dva/dea.py)
+    └── tts-generator/          # Narração: roteiros + Azure Speech + tratamento fonético
 ```
 
 ## 🛠️ Como Executar Localmente
@@ -178,7 +221,35 @@ kink-is-not-kahoot/
 - `npm start` — inicia o servidor (`server.js`)
 - `npm run dev` — inicia com `nodemon` (auto-reload)
 - `npm run update-version` — atualiza `version.json`
-- `scripts/question-generator/` — ferramenta **local** para gerar novas questões dos simulados AWS via API do Google Gemini (veja `scripts/question-generator/README.md`)
+- `python3 scripts/validate_banks.py` — **valida todos os bancos de questões** (JSON, gabarito no intervalo, explicação sincronizada com as alternativas, rótulos de tema, IDs únicos, distribuição das respostas). Roda automaticamente no CI a cada push.
+- `scripts/question-generator/` — geração de questões via API do Google Gemini (local)
+- `scripts/topic-tagger/` — rotulagem das questões por tema (`tag_saa.py`, `tag_dva.py`, `tag_dea.py`)
+- `scripts/tts-generator/` — geração da narração das trilhas (veja abaixo)
+
+## 🎧 Narração das Trilhas (TTS)
+
+Os capítulos das apostilas têm áudio gerado com **Azure Speech (SSML, vozes pt-BR alternadas)**.
+
+O roteiro **não é o HTML lido em voz alta**: blocos de código são parafraseados, tabelas viram comparações fluidas e os checkpoints viram diálogo entre as duas vozes.
+
+**O problema interessante — inglês numa voz pt-BR.** Vozes neurais de locale único só realizam o inventário fonético do próprio idioma. Marcar os termos com `<phoneme alphabet="ipa">` **não funciona**: fonemas inexistentes em português (θ, æ, ɹ, ʊ) são descartados pelo motor, e a palavra sai truncada. A solução é a **re-grafia**: escrever o termo com grafemas portugueses, para a voz usar apenas sons que ela possui.
+
+| termo | re-grafia | como o português lê |
+|---|---|---|
+| gateway | `Guêituei` | /gˈejtwej/ |
+| Deny | `Denái` | /denˈaj/ |
+| bucket | `Báquet` | /bˈaket/ |
+
+O `glossary.py` converte automaticamente o IPA anotado nos roteiros para grafia portuguesa (respeitando as regras do PT-BR: "gu" antes de e/i para /g/ duro, "qu" para /k/, "ss" entre vogais, "h" mudo...), com um dicionário de exceções revisadas à mão.
+
+```bash
+python3 scripts/tts-generator/check_respell.py      # valida a grafia (não precisa de chave)
+python3 scripts/tts-generator/preview_phonetics.py  # tabela: como cada termo será falado
+python3 scripts/tts-generator/test_pronuncia.py     # gera 1 MP3 curto de teste (precisa da chave Azure)
+python3 scripts/tts-generator/generate.py cap01_script cap01.mp3
+```
+
+Estado atual da narração e o que falta regravar: veja **`BACKLOG-NARRACAO.md`**.
 
 ## 🎮 Como Jogar
 
@@ -216,7 +287,9 @@ Distribuído sob a licença **GNU General Public License v3.0**.
 
 ## 📬 Contato
 
-**Vinicius Mercês Silva** — Especialista em Produtos e Instrutor Técnico, em transição para Cloud Computing, Linux, Análise de Dados e Desenvolvimento de Software (cursando AWS Cloud Practitioner).
+**Vinicius Mercês Silva** — Profissional de TI com mais de 9 anos em suporte técnico e soluções de impressão corporativa, graduado em Análise e Desenvolvimento de Sistemas. Atua com Cloud Computing, Linux, dados e desenvolvimento de software.
+
+**AWS Certified Cloud Practitioner (CLF-C02)** · Egresso do **AWS re/Start** (Escola da Nuvem)
 
 - GitHub: [github.com/Vinicius-Merces](https://github.com/Vinicius-Merces)
 - LinkedIn: [linkedin.com/in/vinicius-merces-aws-dev](https://www.linkedin.com/in/vinicius-merces-aws-dev)
