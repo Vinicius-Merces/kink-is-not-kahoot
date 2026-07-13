@@ -11,10 +11,7 @@ Decisoes editoriais:
   funciona; phoneme IPA e a melhor aproximacao possivel sem trocar de voz.
 """
 
-SAY = lambda s: f'<say-as interpret-as="characters">{s}</say-as>'
-EMPH = lambda s: f'<emphasis level="moderate">{s}</emphasis>'
-BRK = lambda ms: f'<break time="{ms}ms"/>'
-PHON = lambda ipa, text: f'<phoneme alphabet="ipa" ph="{ipa}">{text}</phoneme>'
+from glossary import SAY, EMPH, BRK, PHON
 
 # Termos em ingles recorrentes, com IPA aproximado
 ROLE = PHON("ɹoʊl", "role")
