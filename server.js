@@ -56,6 +56,15 @@ function isAdminEmail(email) {
     return ADMIN_EMAILS.includes((email || '').trim().toLowerCase());
 }
 
+// Atalho de desenvolvimento: sem Firebase Admin, trata o usuário como admin.
+// NUNCA em produção — sem verificação de token, qualquer 'Bearer x' seria aceito.
+const ALLOW_DEV_ADMIN =
+    process.env.DEV_ADMIN === '1' && process.env.NODE_ENV !== 'production';
+
+if (!ALLOW_DEV_ADMIN && process.env.DEV_ADMIN === '1') {
+    console.warn('⚠️  DEV_ADMIN=1 ignorado: NODE_ENV=production. Atalho de admin desabilitado.');
+}
+
 // Configuração do Express
 const app = express();
 const server = http.createServer(app);
@@ -68,6 +77,15 @@ const io = new Server(server, {
 });
 
 // Middleware
+// O SquareCloud (como qualquer PaaS) fica atrás de um proxy reverso. Sem isto o
+// Express lê o IP do PROXY em vez do IP real do usuário — e o rate-limit passa a
+// contar todo mundo na MESMA chave, deixando um único visitante capaz de estourar
+// o limite de todos.
+//
+// Usamos 1 (confia apenas no primeiro salto), e não `true`: confiar em toda a
+// cadeia permitiria forjar o X-Forwarded-For e burlar o rate-limit.
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 
@@ -452,11 +470,15 @@ async function getAuthenticatedUser(req) {
 
     const token = match[1];
 
-    // Sem Firebase Admin configurado (ambiente de desenvolvimento): aceita qualquer
-    // token presente. O e-mail é o do admin para o painel funcionar localmente —
-    // em produção o Firebase Admin sempre estará inicializado.
+    // Sem Firebase Admin configurado, NÃO há como verificar o token: qualquer string
+    // passaria. Por isso o usuário de dev só existe quando explicitamente permitido
+    // (DEV_ADMIN=1) e fora de produção. Em produção sem a chave, o correto é FALHAR,
+    // não liberar acesso — senão qualquer 'Bearer x' viraria admin.
     if (!db) {
-        return { uid: 'dev-user', email: ADMIN_EMAIL, name: 'Usuário (dev)', devMode: true };
+        if (ALLOW_DEV_ADMIN) {
+            return { uid: 'dev-user', email: ADMIN_EMAIL, name: 'Usuário (dev)', devMode: true };
+        }
+        return null;
     }
 
     try {
@@ -977,6 +999,18 @@ app.post('/api/simulado/report', reportLimiter, async (req, res) => {
 
 // Verifica se a requisição pertence ao administrador (único e-mail definido em ADMIN_EMAIL)
 async function requireAdmin(req, res) {
+    // Sem Firebase Admin não dá para confiar em token nenhum. Devolver 503 deixa
+    // explícito que é falha de CONFIGURAÇÃO do servidor, e não permissão do usuário.
+    if (!db && !ALLOW_DEV_ADMIN) {
+        res.status(503).json({
+            success: false,
+            error: 'Servidor sem Firebase Admin: não é possível validar credenciais.',
+            hint: 'Defina FIREBASE_SERVICE_ACCOUNT_BASE64 nas variáveis de ambiente.',
+            firebaseAdminReady: false
+        });
+        return null;
+    }
+
     const user = await getAuthenticatedUser(req);
     if (!user || !isAdminEmail(user.email)) {
         res.status(403).json({

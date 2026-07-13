@@ -109,7 +109,30 @@
             });
 
             if (res.status === 403) {
+                await mostrarDiagnostico(auth.currentUser);
                 showScreen('denied');
+                return;
+            }
+
+            // 503 = o SERVIDOR está mal configurado (Firebase Admin não subiu).
+            // Não é falta de permissão sua — e a distinção importa.
+            if (res.status === 503) {
+                const d = await res.json().catch(() => ({}));
+                showScreen('reports');   // mantém o preview do rebrand visível
+                document.getElementById('adminReportsList').innerHTML = `
+                    <div class="admin-diag">
+                        <strong>⚙️ Configuração do servidor pendente</strong><br>
+                        ${Utils.escapeHtml(d.error || 'Firebase Admin não inicializado.')}
+                        <p class="admin-diag-cause">
+                            O servidor não consegue validar credenciais sem a chave do Firebase, então
+                            recusa as rotas de admin (falha fechada — o correto).<br><br>
+                            <strong>Como resolver:</strong> no painel do SquareCloud, defina a variável de
+                            ambiente <code>FIREBASE_SERVICE_ACCOUNT_BASE64</code>
+                            (gere o valor com <code>node scripts/print-firebase-env.js</code>) e reinicie a aplicação.
+                            <br><br>
+                            O preview do rebrand abaixo não depende disso e continua funcionando.
+                        </p>
+                    </div>`;
                 return;
             }
 
