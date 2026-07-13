@@ -43,6 +43,19 @@ try {
 // E-mail do administrador: único usuário com acesso ao painel /admin.html e às rotas /api/admin/*
 const ADMIN_EMAIL = 'vmerces24@gmail.com';
 
+// Admins: o e-mail acima + qualquer outro definido em ADMIN_EMAILS (separados por
+// vírgula). Permite trocar/adicionar admin sem mexer no código.
+const ADMIN_EMAILS = [
+    ADMIN_EMAIL,
+    ...(process.env.ADMIN_EMAILS || '').split(',')
+]
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+
+function isAdminEmail(email) {
+    return ADMIN_EMAILS.includes((email || '').trim().toLowerCase());
+}
+
 // Configuração do Express
 const app = express();
 const server = http.createServer(app);
@@ -439,9 +452,11 @@ async function getAuthenticatedUser(req) {
 
     const token = match[1];
 
-    // Sem Firebase Admin configurado (ambiente de desenvolvimento): aceita qualquer token presente
+    // Sem Firebase Admin configurado (ambiente de desenvolvimento): aceita qualquer
+    // token presente. O e-mail é o do admin para o painel funcionar localmente —
+    // em produção o Firebase Admin sempre estará inicializado.
     if (!db) {
-        return { uid: 'dev-user', email: 'dev@local', name: 'Usuário (dev)' };
+        return { uid: 'dev-user', email: ADMIN_EMAIL, name: 'Usuário (dev)', devMode: true };
     }
 
     try {
@@ -963,12 +978,42 @@ app.post('/api/simulado/report', reportLimiter, async (req, res) => {
 // Verifica se a requisição pertence ao administrador (único e-mail definido em ADMIN_EMAIL)
 async function requireAdmin(req, res) {
     const user = await getAuthenticatedUser(req);
-    if (!user || (user.email || '').toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        res.status(403).json({ success: false, error: 'Acesso restrito ao administrador' });
+    if (!user || !isAdminEmail(user.email)) {
+        res.status(403).json({
+            success: false,
+            error: 'Acesso restrito ao administrador',
+            // Diagnóstico: sem isto, um 403 é indistinguível de "Firebase Admin caiu"
+            yourEmail: user ? (user.email || null) : null,
+            firebaseAdminReady: !!db
+        });
         return null;
     }
     return user;
 }
+
+// Diagnóstico do acesso admin. Exige login, mas NÃO exige ser admin — o objetivo
+// é justamente explicar por que alguém não é reconhecido como admin.
+app.get('/api/admin/whoami', adminLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            error: 'Não autenticado (token ausente ou inválido)',
+            firebaseAdminReady: !!db
+        });
+    }
+    res.json({
+        success: true,
+        email: user.email || null,
+        isAdmin: isAdminEmail(user.email),
+        // Se isto vier false em produção, é AQUI que está o problema:
+        // o Firebase Admin não subiu (FIREBASE_SERVICE_ACCOUNT_BASE64 ausente/inválida)
+        // e o servidor não consegue ler o seu e-mail real do token.
+        firebaseAdminReady: !!db,
+        devMode: !!user.devMode,
+        adminCount: ADMIN_EMAILS.length
+    });
+});
 
 // Lista os reports de questões com erro (painel admin)
 app.get('/api/admin/reports', adminLimiter, async (req, res) => {

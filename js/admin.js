@@ -12,6 +12,83 @@
         reports: document.getElementById('adminReportsScreen')
     };
 
+    /**
+     * Explica POR QUE o acesso foi negado, em vez de mostrar só um 🚫.
+     * Consulta o servidor, que é a autoridade real, e mostra as duas visões.
+     */
+    async function mostrarDiagnostico(user) {
+        const box = document.getElementById('adminDiag');
+        if (!box) return;
+
+        const linhas = [
+            `<strong>Você está logado como:</strong> <code>${user.email || '(sem e-mail)'}</code>`,
+            `<strong>O painel espera:</strong> <code>${window.ADMIN_EMAIL || '(não definido)'}</code>`
+        ];
+
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch('/api/admin/whoami', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const d = await res.json();
+
+            linhas.push(`<strong>O servidor te vê como:</strong> <code>${d.email || '(nulo)'}</code>`);
+
+            if (d.firebaseAdminReady === false) {
+                linhas.push(
+                    '<p class="admin-diag-cause">⚠️ <strong>Causa provável:</strong> o Firebase Admin ' +
+                    'não inicializou no servidor. Sem ele, o back-end não consegue ler seu e-mail ' +
+                    'do token e nega tudo. Verifique a variável de ambiente ' +
+                    '<code>FIREBASE_SERVICE_ACCOUNT_BASE64</code> no SquareCloud.</p>'
+                );
+            } else if (d.isAdmin) {
+                linhas.push(
+                    '<p class="admin-diag-cause">ℹ️ O <strong>servidor te reconhece como admin</strong>, ' +
+                    'mas o front-end barrou. Provável divergência entre o e-mail em ' +
+                    '<code>js/auth.js</code> e o do <code>server.js</code>.</p>'
+                );
+            }
+        } catch (e) {
+            linhas.push('<p class="admin-diag-cause">⚠️ Não foi possível consultar o servidor.</p>');
+        }
+
+        box.innerHTML = linhas.join('<br>');
+        box.hidden = false;
+    }
+
+    /** Preview do rebrand: alterna o iframe entre a marca nova e a atual. */
+    function iniciarPreviewRebrand() {
+        const painel = document.getElementById('rebrandPreview');
+        if (!painel || !window.Brand) return;
+
+        const B = window.Brand;
+
+        // Depois da virada o preview perde a razão de existir.
+        if (B.isLive()) { painel.remove(); return; }
+
+        const dateEl = document.getElementById('previewDate');
+        if (dateEl) dateEl.textContent = B.cutoverLabel();
+
+        const cd = document.getElementById('previewCountdown');
+        if (cd) {
+            const d = B.daysUntilCutover();
+            cd.textContent = d === 0 ? 'É hoje.' : `Faltam ${d} ${d === 1 ? 'dia' : 'dias'}.`;
+        }
+
+        const frame = document.getElementById('rebrandFrame');
+        const link = document.getElementById('previewOpenLink');
+
+        painel.querySelectorAll('.preview-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                painel.querySelectorAll('.preview-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const url = `index.html?brand=${btn.dataset.brand}`;
+                if (frame) frame.src = url;
+                if (link) link.href = url;
+            });
+        });
+    }
+
     function showScreen(name) {
         Object.values(screens).forEach(el => el && el.classList.remove('active'));
         if (screens[name]) screens[name].classList.add('active');
@@ -180,10 +257,22 @@
         const refreshBtn = document.getElementById('adminRefreshBtn');
         if (refreshBtn) refreshBtn.addEventListener('click', loadReports);
 
-        auth.onAuthStateChanged((user) => {
+        iniciarPreviewRebrand();
+
+        auth.onAuthStateChanged(async (user) => {
             if (!user) return; // auth.js já redireciona para index.html
 
-            if (user.email !== window.ADMIN_EMAIL) {
+            // Comparação tolerante (o servidor já fazia assim; o frontend não).
+            // Diferença de maiúscula ou espaço sobrando não deve barrar o admin.
+            const meu = (user.email || '').trim().toLowerCase();
+            const esperado = (window.ADMIN_EMAIL || '').trim().toLowerCase();
+
+            if (!esperado) {
+                // ADMIN_EMAIL não carregou (ordem de scripts) — não bloqueia às cegas:
+                // deixa o servidor decidir, que é a autoridade real.
+                console.warn('[admin] window.ADMIN_EMAIL indefinido — validando pelo servidor');
+            } else if (meu !== esperado) {
+                await mostrarDiagnostico(user);
                 showScreen('denied');
                 return;
             }
