@@ -162,6 +162,34 @@
             `;
         }).join('');
 
+        // Desempenho por tema (quando a tentativa tem rotulagem por tópico)
+        let topicWrap = document.getElementById('detailTopicBreakdown');
+        if (!topicWrap) {
+            topicWrap = document.createElement('div');
+            topicWrap.id = 'detailTopicBreakdown';
+            topicWrap.className = 'topic-breakdown';
+            breakdown.after(topicWrap);
+        }
+        if (Array.isArray(attempt.topicBreakdown) && attempt.topicBreakdown.length > 0) {
+            topicWrap.style.display = '';
+            topicWrap.innerHTML = '<h4 class="detail-topic-title">🎯 Por tema</h4>' + attempt.topicBreakdown.map(t => {
+                const weak = t.score < PASS_SCORE;
+                const practice = weak && attempt.certId
+                    ? `<a class="topic-practice-link" href="simulados.html?cert=${encodeURIComponent(attempt.certId)}&topic=${encodeURIComponent(t.id)}&n=10">🎯 Praticar</a>`
+                    : '';
+                return `
+                    <div class="topic-result-chip ${weak ? 'weak' : 'good'}">
+                        <span class="topic-chip-name">${Utils.escapeHtml(t.name)}</span>
+                        <span class="topic-chip-score">${t.correct}/${t.total} — ${t.score}%</span>
+                        ${practice}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            topicWrap.style.display = 'none';
+            topicWrap.innerHTML = '';
+        }
+
         const reviewList = document.getElementById('detailReviewList');
         reviewList.innerHTML = attempt.review.map((item, i) => {
             const optionsHtml = item.options.map((opt, optIndex) => {

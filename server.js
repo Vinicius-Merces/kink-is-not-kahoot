@@ -381,6 +381,35 @@ function generateSimuladoId() {
 }
 
 // Persiste uma tentativa de simulado (solo ou ao vivo) no histórico do usuário
+// Coleta os IDs das questões erradas nas últimas tentativas do usuário (cert+nível)
+async function getWrongQuestionIds(uid, certId, level, maxAttempts = 15) {
+    const wrong = new Set();
+    try {
+        let attempts = [];
+        if (db) {
+            const snapshot = await db.collection('users').doc(uid).collection('simuladoAttempts')
+                .orderBy('createdAt', 'desc')
+                .limit(60)
+                .get();
+            attempts = snapshot.docs.map(doc => doc.data());
+        } else {
+            attempts = devSimuladoHistory.get(uid) || [];
+        }
+        attempts
+            .filter(a => a.certId === certId && a.level === level && Array.isArray(a.review))
+            .slice(0, maxAttempts)
+            .forEach(a => {
+                a.review.forEach(item => {
+                    if (item && item.isCorrect === false && item.id) wrong.add(item.id);
+                    // se acertou depois, remove da lista? Mantemos: errar uma vez já merece revisão.
+                });
+            });
+    } catch (error) {
+        console.error('⚠️ Erro ao coletar questões erradas:', error);
+    }
+    return wrong;
+}
+
 async function persistSimuladoAttempt(uid, attemptData) {
     let attemptId = null;
     try {
@@ -488,6 +517,20 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Número de perguntas inválido' });
     }
 
+    // Modo "revisar meus erros": monta o simulado só com questões que o
+    // usuário errou nas últimas tentativas dessa certificação/nível.
+    const { mode } = req.body || {};
+    let errorsMode = false;
+    let errorQuestionIds = null;
+    if (mode === 'errors') {
+        const wrongIds = await getWrongQuestionIds(user.uid, certId, level);
+        if (!wrongIds.size) {
+            return res.status(404).json({ success: false, error: 'Você ainda não tem erros registrados nesse nível. Faça um simulado primeiro!' });
+        }
+        errorsMode = true;
+        errorQuestionIds = wrongIds;
+    }
+
     // Prática focada (deep-link vindo da trilha):
     // - topic: filtra pelo assunto do capítulo (campo `topics` das questões)
     // - domain: sozinho filtra pelo domínio; junto com topic, serve de
@@ -497,7 +540,12 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
     let focusTopic = null;
     let sourceQuestions = pool.questions;
 
-    if (topic) {
+    if (errorsMode) {
+        sourceQuestions = pool.questions.filter(q => errorQuestionIds.has(q.id));
+        if (sourceQuestions.length === 0) {
+            return res.status(404).json({ success: false, error: 'Suas questões erradas não estão mais disponíveis nesse nível.' });
+        }
+    } else if (topic) {
         if (!pool.topicCounts || !pool.topicCounts[topic]) {
             return res.status(404).json({ success: false, error: 'Sem perguntas disponíveis para esse tema nesse nível' });
         }
@@ -524,7 +572,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
     }
 
     const total = Math.min(requested, MAX_SIMULADO_QUESTIONS, sourceQuestions.length);
-    const questions = (focusTopic || focusDomain)
+    const questions = (errorsMode || focusTopic || focusDomain)
         ? shuffleArray([...sourceQuestions]).slice(0, total)
         : sampleQuestionsByDomain(pool, total);
 
@@ -538,6 +586,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         domains: pool.domains,
         focusDomain,
         focusTopic,
+        errorsMode,
         questions,
         startedAt: Date.now()
     });
@@ -553,6 +602,7 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         domains: pool.domains,
         focusDomain,
         focusTopic,
+        errorsMode,
         totalQuestions: questions.length,
         questions: questions.map(sanitizeQuestion)
     });
@@ -665,6 +715,7 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
         domainStats.set(domain.id, { id: domain.id, name: domain.name, total: 0, correct: 0 });
     }
 
+    const topicStats = new Map();
     const review = simulado.questions.map(question => {
         const userAnswer = Object.prototype.hasOwnProperty.call(answers, question.id) ? answers[question.id] : null;
         const isCorrect = isAnswerCorrect(userAnswer, question.correct);
@@ -676,9 +727,18 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
             if (isCorrect) stats.correct++;
         }
 
+        const qTopics = question.topics || [];
+        qTopics.forEach(t => {
+            const ts = topicStats.get(t) || { total: 0, correct: 0 };
+            ts.total++;
+            if (isCorrect) ts.correct++;
+            topicStats.set(t, ts);
+        });
+
         return {
             id: question.id,
             domain: question.domain,
+            topics: qTopics,
             text: question.text,
             options: question.options,
             correct: question.correct,
@@ -703,6 +763,14 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
         };
     });
 
+    const topicBreakdown = Array.from(topicStats.entries()).map(([tid, stats]) => ({
+        id: tid,
+        name: topicLabel(tid),
+        total: stats.total,
+        correct: stats.correct,
+        score: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0
+    })).sort((a, b) => b.total - a.total);
+
     activeSimulados.delete(req.params.id);
 
     // Persiste a tentativa no histórico do usuário
@@ -717,6 +785,8 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
         correctCount,
         score,
         domainBreakdown,
+        topicBreakdown,
+        errorsMode: simulado.errorsMode || false,
         review
     };
 
@@ -727,6 +797,7 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
     res.json({
         success: true,
         attemptId,
+        certId: simulado.certId,
         certCode: simulado.certCode,
         certName: simulado.certName,
         level: simulado.level,
@@ -734,6 +805,8 @@ app.post('/api/simulado/:id/submit', simuladoActionLimiter, async (req, res) => 
         correctCount,
         score,
         domainBreakdown,
+        topicBreakdown,
+        errorsMode: simulado.errorsMode || false,
         review
     });
 });
@@ -765,12 +838,21 @@ app.get('/api/simulado/history', async (req, res) => {
                     mode: data.mode || 'solo',
                     roomCode: data.roomCode || null,
                     participantsCount: data.participantsCount || null,
+                    errorsMode: data.errorsMode || false,
+                    focusTopic: data.focusTopic || null,
+                    focusDomain: data.focusDomain || null,
+                    ...(req.query.include === 'breakdowns' ? {
+                        domainBreakdown: data.domainBreakdown || [],
+                        topicBreakdown: data.topicBreakdown || []
+                    } : {}),
                     createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
                 };
             });
         } else {
             const userHistory = devSimuladoHistory.get(user.uid) || [];
-            attempts = userHistory.map(({ domainBreakdown, review, ...summary }) => summary);
+            attempts = req.query.include === 'breakdowns'
+                ? userHistory.map(({ review, ...rest }) => rest)
+                : userHistory.map(({ domainBreakdown, topicBreakdown, review, ...summary }) => summary);
         }
 
         res.json({ success: true, attempts });
@@ -810,6 +892,7 @@ app.get('/api/simulado/history/:attemptId', async (req, res) => {
                     roomCode: data.roomCode || null,
                     participantsCount: data.participantsCount || null,
                     domainBreakdown: data.domainBreakdown,
+                    topicBreakdown: data.topicBreakdown || [],
                     review: data.review,
                     createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
                 }

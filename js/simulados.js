@@ -20,6 +20,11 @@
     let selectedMode = 'solo'; // 'solo' ou 'live' (Modo Professor)
     let focusDomainId = null; // prática focada em um domínio (deep-link vindo da trilha)
     let focusTopicId = null;  // prática focada em um tema/tópico específico do capítulo
+    let startMode = null;      // 'errors' = revisar meus erros
+    let examRealActive = false;         // modo prova real (cronômetro + marcação + conferência)
+    let markedQuestions = new Set();    // ids marcados para revisão
+    let examTimerInterval = null;
+    let examDeadline = 0;
     let selectedFeedbackMode = 'exam'; // 'exam' (correção só no final) ou 'study' (feedback a cada pergunta)
 
     // Estado do simulado em andamento
@@ -286,7 +291,14 @@
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ certId: selectedCertId, level: selectedLevel, numQuestions, domain: focusDomainId || undefined, topic: focusTopicId || undefined })
+                body: JSON.stringify({
+                    certId: selectedCertId,
+                    level: selectedLevel,
+                    numQuestions,
+                    mode: startMode || undefined,
+                    domain: startMode === 'errors' ? undefined : (focusDomainId || undefined),
+                    topic: startMode === 'errors' ? undefined : (focusTopicId || undefined)
+                })
             });
 
             const data = await res.json();
@@ -302,9 +314,22 @@
             console.error('Erro ao iniciar simulado:', error);
             Utils.showToast(error.message || 'Erro ao iniciar simulado', 'error');
         } finally {
+            startMode = null;
             btn.disabled = false;
             btn.textContent = '🚀 Iniciar Simulado';
         }
+    });
+
+    // ============================================
+    // Revisar meus erros (monta simulado só com questões erradas)
+    // ============================================
+    document.getElementById('reviewErrorsBtn').addEventListener('click', () => {
+        if (!selectedCertId || !selectedLevel) {
+            Utils.showToast('Escolha a certificação e o nível primeiro.', 'error');
+            return;
+        }
+        startMode = 'errors';
+        document.getElementById('startSimuladoBtn').click();
     });
 
     // ============================================
@@ -322,10 +347,55 @@
     function startExam() {
         document.getElementById('examCertBadge').textContent =
             `${currentSimulado.certCode} • ${LEVEL_LABELS[currentSimulado.level] || currentSimulado.level}`;
+
+        // Modo prova real: cronômetro (2 min/questão), marcação e conferência final
+        examRealActive = document.getElementById('examRealModeToggle').checked;
+        markedQuestions = new Set();
+        stopExamTimer();
+        const timerEl = document.getElementById('examTimer');
+        const markBtn = document.getElementById('examMarkBtn');
+        if (examRealActive) {
+            timerEl.style.display = '';
+            markBtn.style.display = '';
+            startExamTimer(currentSimulado.questions.length * 120);
+        } else {
+            timerEl.style.display = 'none';
+            markBtn.style.display = 'none';
+        }
+
+        if (currentSimulado.errorsMode) {
+            Utils.showToast('🔁 Revisando suas questões erradas — mostre que agora você sabe!', 'success');
+        }
+
         renderQuestionDots();
         renderQuestion(0);
         showScreen('exam');
         if (window.StudyProgress) window.StudyProgress.recordStudyActivity();
+    }
+
+    function startExamTimer(totalSeconds) {
+        examDeadline = Date.now() + totalSeconds * 1000;
+        renderExamTimer();
+        examTimerInterval = setInterval(renderExamTimer, 1000);
+    }
+
+    function stopExamTimer() {
+        if (examTimerInterval) clearInterval(examTimerInterval);
+        examTimerInterval = null;
+    }
+
+    function renderExamTimer() {
+        const el = document.getElementById('examTimer');
+        const remaining = Math.max(0, Math.round((examDeadline - Date.now()) / 1000));
+        const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+        const ss = String(remaining % 60).padStart(2, '0');
+        el.textContent = `⏱ ${mm}:${ss}`;
+        el.classList.toggle('warning', remaining <= 300);
+        if (remaining <= 0) {
+            stopExamTimer();
+            Utils.showToast('⏰ Tempo esgotado! Entregando o simulado...', 'error');
+            submitSimulado();
+        }
     }
 
     function renderQuestionDots() {
@@ -347,6 +417,7 @@
             const question = currentSimulado.questions[i];
             const answered = Object.prototype.hasOwnProperty.call(userAnswers, question.id);
             dot.classList.toggle('answered', answered);
+            dot.classList.toggle('marked', markedQuestions.has(question.id));
             dot.classList.toggle('current', i === currentQuestionIndex);
             if (i === currentQuestionIndex) {
                 dot.setAttribute('aria-current', 'true');
@@ -369,6 +440,7 @@
         const progressPercent = Math.round(((index + 1) / total) * 100);
         document.getElementById('examProgressFill').style.width = `${progressPercent}%`;
         document.getElementById('examProgressLabel').textContent = `Pergunta ${index + 1} de ${total}`;
+        updateMarkButton();
 
         const optionsContainer = document.getElementById('examOptions');
         const selectCount = question.selectCount || 1;
@@ -517,6 +589,26 @@
     });
 
     // ============================================
+    // Marcar para revisão (modo prova real)
+    // ============================================
+    function updateMarkButton() {
+        const btn = document.getElementById('examMarkBtn');
+        if (!examRealActive || !currentSimulado) return;
+        const q = currentSimulado.questions[currentQuestionIndex];
+        const marked = markedQuestions.has(q.id);
+        btn.classList.toggle('active', marked);
+        btn.textContent = marked ? '🔖 Marcada p/ revisão' : '🔖 Marcar p/ revisão';
+    }
+
+    document.getElementById('examMarkBtn').addEventListener('click', () => {
+        const q = currentSimulado.questions[currentQuestionIndex];
+        if (markedQuestions.has(q.id)) markedQuestions.delete(q.id);
+        else markedQuestions.add(q.id);
+        updateMarkButton();
+        updateQuestionDots();
+    });
+
+    // ============================================
     // Finalizar Simulado
     // ============================================
     document.getElementById('finishExamBtn').addEventListener('click', () => {
@@ -532,6 +624,36 @@
                 `Você respondeu todas as ${total} perguntas. Deseja finalizar o simulado?`;
         }
 
+        // Modo prova real: conferência final com atalhos para pendências
+        let summary = document.getElementById('finishReviewSummary');
+        if (summary) summary.remove();
+        if (examRealActive) {
+            const unanswered = currentSimulado.questions
+                .map((q, i) => ({ q, i }))
+                .filter(({ q }) => !Object.prototype.hasOwnProperty.call(userAnswers, q.id));
+            const marked = currentSimulado.questions
+                .map((q, i) => ({ q, i }))
+                .filter(({ q }) => markedQuestions.has(q.id));
+
+            summary = document.createElement('div');
+            summary.id = 'finishReviewSummary';
+            summary.className = 'finish-review-summary';
+            const chip = ({ i }, cls) =>
+                `<button type="button" class="finish-review-chip ${cls}" data-index="${i}">${i + 1}</button>`;
+            summary.innerHTML = `
+                ${unanswered.length ? `<div class="finish-review-group"><strong>⬜ Sem resposta (${unanswered.length}):</strong> ${unanswered.map(x => chip(x, 'blank')).join('')}</div>` : ''}
+                ${marked.length ? `<div class="finish-review-group"><strong>🔖 Marcadas p/ revisão (${marked.length}):</strong> ${marked.map(x => chip(x, 'flagged')).join('')}</div>` : ''}
+                ${!unanswered.length && !marked.length ? '<div class="finish-review-group">✅ Nenhuma pendência — tudo respondido e nada marcado.</div>' : ''}
+            `;
+            document.getElementById('confirmFinishMessage').after(summary);
+            summary.querySelectorAll('.finish-review-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                    renderQuestion(parseInt(btn.dataset.index, 10));
+                });
+            });
+        }
+
         modal.style.display = 'block';
     });
 
@@ -545,6 +667,8 @@
     });
 
     async function submitSimulado() {
+        stopExamTimer();
+        document.getElementById('examTimer').style.display = 'none';
         const user = auth.currentUser;
         if (!user) {
             Utils.showToast('Sessão expirada. Faça login novamente.', 'error');
@@ -625,6 +749,28 @@
                 </div>
             `;
         }).join('');
+
+        // Desempenho por tema (rotulagem por tópico)
+        const topicCard = document.getElementById('topicBreakdownCard');
+        const topicWrap = document.getElementById('topicBreakdown');
+        if (Array.isArray(result.topicBreakdown) && result.topicBreakdown.length > 0) {
+            topicCard.style.display = '';
+            topicWrap.innerHTML = result.topicBreakdown.map(t => {
+                const weak = t.score < PASS_SCORE;
+                const practice = weak
+                    ? `<a class="topic-practice-link" href="simulados.html?cert=${encodeURIComponent(result.certId || selectedCertId)}&topic=${encodeURIComponent(t.id)}&n=10">🎯 Praticar</a>`
+                    : '';
+                return `
+                    <div class="topic-result-chip ${weak ? 'weak' : 'good'}">
+                        <span class="topic-chip-name">${Utils.escapeHtml(t.name)}</span>
+                        <span class="topic-chip-score">${t.correct}/${t.total} — ${t.score}%</span>
+                        ${practice}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            topicCard.style.display = 'none';
+        }
 
         const reviewList = document.getElementById('reviewList');
         reviewList.innerHTML = result.review.map((item, i) => {

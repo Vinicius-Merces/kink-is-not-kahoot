@@ -63,6 +63,7 @@
                 <a href="simulados.html" class="nav-link">Simulados AWS</a>
                 <a href="trilha.html" class="nav-link active" aria-current="page">Trilha de Estudos</a>
                 <a href="historico.html" class="nav-link">Histórico</a>
+                <a href="progresso.html" class="nav-link">Progresso</a>
                 <button id="logoutBtn" class="btn-logout">Sair</button>
             </div>
             <div class="user-info">
@@ -263,6 +264,51 @@
                     <h2>AWS Lambda a fundo</h2>
                     <span class="priority-badge badge-critical">Alta prioridade</span>
                 </div>
+                <div class="trilha-diagram" role="img" aria-label="Diagrama dos três modos de invocação do Lambda e o comportamento em erro de cada um">
+                    <svg viewBox="0 0 720 330" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
+                        <text x="360" y="24" fill="#cdd3de" font-size="13" font-weight="700" text-anchor="middle">Os 3 modos de invocação do Lambda — e o que acontece no ERRO</text>
+                        <rect x="20" y="46" width="220" height="250" rx="10" fill="#0f172a" stroke="#2dd4bf"/>
+                        <text x="130" y="72" fill="#2dd4bf" font-size="12" font-weight="700" text-anchor="middle">SÍNCRONA</text>
+                        <text x="130" y="90" fill="#8892a6" font-size="10" text-anchor="middle">(RequestResponse)</text>
+                        <rect x="45" y="104" width="170" height="28" rx="6" fill="none" stroke="#cdd3de"/>
+                        <text x="130" y="122" fill="#cdd3de" font-size="10.5" text-anchor="middle">API Gateway / ALB / SDK</text>
+                        <line x1="130" y1="132" x2="130" y2="156" stroke="#8892a6" stroke-width="1.5"/>
+                        <rect x="65" y="156" width="130" height="30" rx="6" fill="#2dd4bf18" stroke="#2dd4bf"/>
+                        <text x="130" y="175" fill="#2dd4bf" font-size="11" font-weight="700" text-anchor="middle">λ Lambda</text>
+                        <line x1="130" y1="186" x2="130" y2="212" stroke="#8892a6" stroke-width="1.5"/>
+                        <text x="130" y="230" fill="#ff8a8a" font-size="10.5" text-anchor="middle" font-weight="600">Erro volta ao CHAMADOR</text>
+                        <text x="130" y="248" fill="#8892a6" font-size="9.5" text-anchor="middle">retry é responsabilidade</text>
+                        <text x="130" y="262" fill="#8892a6" font-size="9.5" text-anchor="middle">do cliente</text>
+                        <rect x="250" y="46" width="220" height="250" rx="10" fill="#0f172a" stroke="#ffd166"/>
+                        <text x="360" y="72" fill="#ffd166" font-size="12" font-weight="700" text-anchor="middle">ASSÍNCRONA</text>
+                        <text x="360" y="90" fill="#8892a6" font-size="10" text-anchor="middle">(Event)</text>
+                        <rect x="275" y="104" width="170" height="28" rx="6" fill="none" stroke="#cdd3de"/>
+                        <text x="360" y="122" fill="#cdd3de" font-size="10.5" text-anchor="middle">S3 / SNS / EventBridge</text>
+                        <line x1="360" y1="132" x2="360" y2="156" stroke="#8892a6" stroke-width="1.5"/>
+                        <rect x="295" y="156" width="130" height="30" rx="6" fill="#ffd16618" stroke="#ffd166"/>
+                        <text x="360" y="175" fill="#ffd166" font-size="11" font-weight="700" text-anchor="middle">λ + fila interna</text>
+                        <line x1="360" y1="186" x2="360" y2="212" stroke="#8892a6" stroke-width="1.5"/>
+                        <text x="360" y="230" fill="#cdd3de" font-size="10.5" text-anchor="middle" font-weight="600">2 retries automáticos →</text>
+                        <text x="360" y="248" fill="#cdd3de" font-size="10.5" text-anchor="middle" font-weight="600">DLQ ou Destinations</text>
+                        <text x="360" y="266" fill="#8892a6" font-size="9.5" text-anchor="middle">(on-failure / on-success)</text>
+                        <rect x="480" y="46" width="220" height="250" rx="10" fill="#0f172a" stroke="#ff6b6b"/>
+                        <text x="590" y="72" fill="#ff6b6b" font-size="12" font-weight="700" text-anchor="middle">EVENT SOURCE MAPPING</text>
+                        <text x="590" y="90" fill="#8892a6" font-size="10" text-anchor="middle">(poll)</text>
+                        <rect x="505" y="104" width="170" height="28" rx="6" fill="none" stroke="#cdd3de"/>
+                        <text x="590" y="122" fill="#cdd3de" font-size="10.5" text-anchor="middle">SQS / Kinesis / DynamoDB Streams</text>
+                        <line x1="590" y1="132" x2="590" y2="156" stroke="#8892a6" stroke-width="1.5" stroke-dasharray="4 3"/>
+                        <text x="602" y="148" fill="#8892a6" font-size="9">polling</text>
+                        <rect x="525" y="156" width="130" height="30" rx="6" fill="#ff6b6b18" stroke="#ff6b6b"/>
+                        <text x="590" y="175" fill="#ff6b6b" font-size="11" font-weight="700" text-anchor="middle">λ em lotes</text>
+                        <line x1="590" y1="186" x2="590" y2="212" stroke="#8892a6" stroke-width="1.5"/>
+                        <text x="590" y="230" fill="#ff8a8a" font-size="10.5" text-anchor="middle" font-weight="600">Lote com erro TRAVA o shard</text>
+                        <text x="590" y="248" fill="#8892a6" font-size="9.5" text-anchor="middle">bisect + maxRetryAttempts</text>
+                        <text x="590" y="262" fill="#8892a6" font-size="9.5" text-anchor="middle">+ destino on-failure</text>
+                        <text x="360" y="318" fill="#8892a6" font-size="10" text-anchor="middle">Identificar o MODO de invocação é o primeiro passo de metade das questões de Lambda.</text>
+                    </svg>
+                    <div class="trilha-diagram-caption">Quem chama define o modo — e o modo define o comportamento em erro. Decore as três colunas.</div>
+                </div>
+
 
                 <h3>Os números que caem na prova</h3>
                 <div class="decision-table-wrap">
@@ -700,6 +746,37 @@
                     <h2>Amazon Cognito</h2>
                     <span class="priority-badge badge-critical">Alta prioridade</span>
                 </div>
+                <div class="trilha-diagram" role="img" aria-label="Diagrama do fluxo completo Cognito: User Pool autentica e Identity Pool entrega credenciais AWS">
+                    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
+                        <rect x="20" y="110" width="120" height="70" rx="10" fill="#0f172a" stroke="#cdd3de"/>
+                        <text x="80" y="140" fill="#cdd3de" font-size="12" font-weight="700" text-anchor="middle">📱 App</text>
+                        <text x="80" y="158" fill="#8892a6" font-size="9.5" text-anchor="middle">mobile / web</text>
+                        <line x1="140" y1="125" x2="240" y2="80" stroke="#2dd4bf" stroke-width="2"/>
+                        <text x="185" y="88" fill="#2dd4bf" font-size="10" font-weight="600">1. login</text>
+                        <rect x="240" y="46" width="180" height="70" rx="10" fill="#2dd4bf14" stroke="#2dd4bf" stroke-width="1.6"/>
+                        <text x="330" y="74" fill="#2dd4bf" font-size="12" font-weight="700" text-anchor="middle">Cognito USER POOL</text>
+                        <text x="330" y="92" fill="#cdd3de" font-size="9.5" text-anchor="middle">autenticação: "quem é você?"</text>
+                        <text x="330" y="106" fill="#8892a6" font-size="9" text-anchor="middle">MFA · Hosted UI · federação social</text>
+                        <line x1="330" y1="116" x2="330" y2="150" stroke="#2dd4bf" stroke-width="2"/>
+                        <text x="342" y="138" fill="#2dd4bf" font-size="10" font-weight="600">2. tokens JWT (ID + Access + Refresh)</text>
+                        <rect x="240" y="150" width="180" height="70" rx="10" fill="#ffd16614" stroke="#ffd166" stroke-width="1.6"/>
+                        <text x="330" y="178" fill="#ffd166" font-size="12" font-weight="700" text-anchor="middle">Cognito IDENTITY POOL</text>
+                        <text x="330" y="196" fill="#cdd3de" font-size="9.5" text-anchor="middle">autorização: "quais credenciais AWS?"</text>
+                        <text x="330" y="210" fill="#8892a6" font-size="9" text-anchor="middle">troca o JWT via STS · suporta guests</text>
+                        <line x1="420" y1="185" x2="530" y2="185" stroke="#ffd166" stroke-width="2"/>
+                        <text x="475" y="175" fill="#ffd166" font-size="10" font-weight="600" text-anchor="middle">3. credenciais</text>
+                        <text x="475" y="200" fill="#8892a6" font-size="9" text-anchor="middle">temporárias (role IAM)</text>
+                        <rect x="530" y="150" width="170" height="70" rx="10" fill="#0f172a" stroke="#ff6b6b"/>
+                        <text x="615" y="178" fill="#ff6b6b" font-size="12" font-weight="700" text-anchor="middle">S3 / DynamoDB</text>
+                        <text x="615" y="196" fill="#cdd3de" font-size="9.5" text-anchor="middle">4. acesso DIRETO do app</text>
+                        <text x="615" y="210" fill="#8892a6" font-size="9" text-anchor="middle">com a role do usuário</text>
+                        <line x1="140" y1="165" x2="240" y2="185" stroke="#8892a6" stroke-width="1.3" stroke-dasharray="4 3"/>
+                        <text x="360" y="262" fill="#8892a6" font-size="10.5" text-anchor="middle">Só proteger uma API? User Pool Authorizer no API Gateway basta.</text>
+                        <text x="360" y="280" fill="#8892a6" font-size="10.5" text-anchor="middle">O Identity Pool entra quando o CLIENTE precisa chamar serviços AWS diretamente.</text>
+                    </svg>
+                    <div class="trilha-diagram-caption">O combo completo: User Pool responde "quem é você" (JWT); Identity Pool responde "o que você pode na AWS" (credenciais temporárias).</div>
+                </div>
+
 
                 <h3>User Pools vs Identity Pools — a distinção que decide questões</h3>
                 <div class="decision-table-wrap">
@@ -796,6 +873,39 @@
                     <h2>CI/CD com a CodeSuite</h2>
                     <span class="priority-badge badge-critical">Alta prioridade</span>
                 </div>
+                <div class="trilha-diagram" role="img" aria-label="Diagrama do pipeline de CI/CD com CodePipeline, CodeBuild e CodeDeploy">
+                    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
+                        <rect x="14" y="40" width="692" height="150" rx="12" fill="none" stroke="#8892a6" stroke-dasharray="6 4"/>
+                        <text x="30" y="62" fill="#8892a6" font-size="11" font-weight="700">AWS CodePipeline (orquestra os stages)</text>
+                        <rect x="36" y="84" width="140" height="80" rx="9" fill="#0f172a" stroke="#cdd3de"/>
+                        <text x="106" y="110" fill="#cdd3de" font-size="12" font-weight="700" text-anchor="middle">SOURCE</text>
+                        <text x="106" y="128" fill="#8892a6" font-size="9.5" text-anchor="middle">GitHub / S3</text>
+                        <text x="106" y="144" fill="#8892a6" font-size="9.5" text-anchor="middle">commit dispara</text>
+                        <line x1="176" y1="124" x2="216" y2="124" stroke="#2dd4bf" stroke-width="2"/>
+                        <rect x="216" y="84" width="150" height="80" rx="9" fill="#2dd4bf12" stroke="#2dd4bf"/>
+                        <text x="291" y="108" fill="#2dd4bf" font-size="12" font-weight="700" text-anchor="middle">BUILD</text>
+                        <text x="291" y="126" fill="#cdd3de" font-size="9.5" text-anchor="middle">CodeBuild</text>
+                        <text x="291" y="142" fill="#ffd166" font-size="9.5" text-anchor="middle" font-weight="600">buildspec.yml</text>
+                        <text x="291" y="156" fill="#8892a6" font-size="8.5" text-anchor="middle">install→pre_build→build→post_build</text>
+                        <line x1="366" y1="124" x2="406" y2="124" stroke="#2dd4bf" stroke-width="2"/>
+                        <rect x="406" y="84" width="130" height="80" rx="9" fill="#0f172a" stroke="#ffd166"/>
+                        <text x="471" y="112" fill="#ffd166" font-size="12" font-weight="700" text-anchor="middle">APPROVAL</text>
+                        <text x="471" y="130" fill="#8892a6" font-size="9.5" text-anchor="middle">aprovação manual</text>
+                        <text x="471" y="146" fill="#8892a6" font-size="9.5" text-anchor="middle">(opcional, com SNS)</text>
+                        <line x1="536" y1="124" x2="576" y2="124" stroke="#2dd4bf" stroke-width="2"/>
+                        <rect x="576" y="84" width="116" height="80" rx="9" fill="#ff6b6b12" stroke="#ff6b6b"/>
+                        <text x="634" y="108" fill="#ff6b6b" font-size="12" font-weight="700" text-anchor="middle">DEPLOY</text>
+                        <text x="634" y="126" fill="#cdd3de" font-size="9.5" text-anchor="middle">CodeDeploy</text>
+                        <text x="634" y="142" fill="#ffd166" font-size="9.5" text-anchor="middle" font-weight="600">appspec.yml</text>
+                        <text x="634" y="156" fill="#8892a6" font-size="8.5" text-anchor="middle">hooks + estratégia</text>
+                        <rect x="120" y="212" width="480" height="66" rx="9" fill="#0f172a" stroke="#8892a6"/>
+                        <text x="360" y="234" fill="#cdd3de" font-size="10.5" text-anchor="middle" font-weight="600">Deploy Lambda: alias com pesos → Canary10Percent5Minutes / Linear10PercentEvery1Minute</text>
+                        <text x="360" y="252" fill="#8892a6" font-size="10" text-anchor="middle">Alarme do CloudWatch dispara durante o shifting → ROLLBACK AUTOMÁTICO</text>
+                        <text x="360" y="268" fill="#8892a6" font-size="10" text-anchor="middle">EC2: in-place ou blue/green · ECS: blue/green com 2 target groups</text>
+                    </svg>
+                    <div class="trilha-diagram-caption">O pipeline completo e os DOIS arquivos que a prova cobra: buildspec.yml (CodeBuild) e appspec.yml (CodeDeploy).</div>
+                </div>
+
 
                 <h3>Quem faz o quê</h3>
                 <div class="decision-table-wrap">
