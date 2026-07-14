@@ -38,6 +38,11 @@ try {
 } catch (error) {
     console.log('⚠️ Firebase Admin não configurado (defina FIREBASE_SERVICE_ACCOUNT_BASE64 ou crie serviceAccountKey.json)');
     console.log('   O jogo funcionará sem persistência no Firestore');
+    console.error('   Detalhe do erro de inicialização Firebase:', error.message);
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+        const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+        console.log(`   FIREBASE_SERVICE_ACCOUNT_BASE64: ${b64.length} chars, começa com "${b64.slice(0, 8)}...", termina com "${b64.slice(-8)}"`);
+    }
 }
 
 // E-mail do administrador: único usuário com acesso ao painel /admin.html e às rotas /api/admin/*
