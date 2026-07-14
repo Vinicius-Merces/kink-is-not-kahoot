@@ -7,7 +7,7 @@
     const TRILHA_TOTALS = {
         'saa-c03': { label: 'SAA-C03 · Solutions Architect', total: 21, url: 'trilha-saa.html' },
         'dva-c02': { label: 'DVA-C02 · Developer', total: 14, url: 'trilha-dva.html' },
-        'dea-c01': { label: 'DEA-C01 · Data Engineer', total: 13, url: 'trilha-dea.html' }
+        'dea-c01': { label: 'DEA-C01 · Data Engineer', total: 17, url: 'trilha-dea.html' }
     };
 
     // certId -> certCode (o StudyProgress é indexado por certCode)
@@ -97,7 +97,11 @@
         const avg5 = last5.length
             ? Math.round(last5.reduce((s, a) => s + (a.score || 0), 0) / last5.length)
             : 0;
-        const streak = window.StudyProgress ? window.StudyProgress.getStreak() : 0;
+        // getStreak() retorna { current, longest } — exibir só o numero atual
+        const streakData = window.StudyProgress ? window.StudyProgress.getStreak() : null;
+        const streak = (streakData && typeof streakData === 'object')
+            ? (streakData.current || 0)
+            : (streakData || 0);
         const passed = attempts.filter(a => (a.score || 0) >= PASS_SCORE).length;
 
         const card = (icon, value, label, cls = '') =>
@@ -141,7 +145,7 @@
         }).join('');
         const gridY = [0, 25, 50, 75, 100].map(v =>
             `<line x1="${padL}" y1="${y(v)}" x2="${W - padR}" y2="${y(v)}" stroke="#ffffff12"/>
-             <text x="${padL - 8}" y="${y(v) + 3}" fill="#8892a6" font-size="9" text-anchor="end">${v}</text>`).join('');
+             <text x="${padL - 8}" y="${y(v) + 4}" fill="#8892a6" font-size="12" text-anchor="end">${v}</text>`).join('');
 
         return `
             <div class="form-card">
@@ -149,7 +153,7 @@
                 <svg class="evolution-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de evolução da pontuação nos simulados">
                     ${gridY}
                     <line x1="${padL}" y1="${cut}" x2="${W - padR}" y2="${cut}" stroke="#ffd166" stroke-dasharray="5 4" stroke-width="1.5"/>
-                    <text x="${W - padR}" y="${cut - 5}" fill="#ffd166" font-size="9" text-anchor="end">meta ${PASS_SCORE}%</text>
+                    <text x="${W - padR}" y="${cut - 6}" fill="#ffd166" font-size="12" text-anchor="end">meta ${PASS_SCORE}%</text>
                     <path d="${linePath}" fill="none" stroke="#cdd3de" stroke-width="2"/>
                     ${dots}
                 </svg>

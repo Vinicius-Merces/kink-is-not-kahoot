@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', async () => await authManager.logout());
     }
     
-    const protectedPages = ['my-quizzes.html', 'create-quiz.html', 'host.html', 'simulados.html', 'historico.html', 'admin.html'];
+    const protectedPages = ['my-quizzes.html', 'create-quiz.html', 'host.html', 'simulados.html', 'historico.html', 'progresso.html', 'admin.html'];
     const currentPage = window.location.pathname.split('/').pop();
     if (protectedPages.includes(currentPage)) {
         auth.onAuthStateChanged((user) => {
