@@ -38,6 +38,33 @@ BLOCKS = [
     },
     {"voice": "francisca", "text": BRK(800)},
 
+    # ---- Diagrama do espectro de DR ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"O diagrama deste capítulo mostra o espectro das quatro estratégias "
+            f"de recuperação de desastre numa linha horizontal. Da esquerda para a "
+            f"direita, o custo aumenta e o tempo de recuperação diminui."
+            f"{BRK(400)} Na extremidade esquerda, {BACKUP_AND_RESTORE}: apenas "
+            f"backups na região de {SAY('DR')}, {RTO} de horas, {RPO} de horas — "
+            f"o mais barato. Em seguida, {PILOT_LIGHT}: só o núcleo mínimo fica "
+            f"ligado com dados replicando, {RTO} de dezenas de minutos."
+        ),
+    },
+    {
+        "voice": "antonio",
+        "text": (
+            f"{BRK(400)} A seguir, {WARM_STANDBY}: uma cópia completa da "
+            f"produção em escala reduzida, que escala quando o failover acontece, "
+            f"{RTO} de minutos. E na extremidade direita, Multi-site "
+            f"ativo-ativo: produção nas duas regiões ao mesmo tempo, {RTO} e "
+            f"{RPO} próximos de zero — o mais caro. A legenda diz: a questão "
+            f"sempre fornece {RTO} e {RPO} e pede a estratégia mais barata que "
+            f"os atende. Guarde esse espectro."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
     # ---- RPO / RTO ----
     {
         "voice": "francisca",

@@ -48,6 +48,32 @@ BLOCKS = [
     },
     {"voice": "francisca", "text": BRK(800)},
 
+    # ---- Diagrama da arquitetura HA ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"O diagrama deste capítulo mostra o trio da alta disponibilidade "
+            f"na {SAY('AWS')}. No topo, o Route cinquenta e três resolve o "
+            f"{SAY('DNS')} e aponta para um {SAY('ALB')}, o Application Load "
+            f"Balancer. O {SAY('ALB')} distribui o tráfego para dois grupos de "
+            f"instâncias {SAY('EC2')}, um em cada zona de disponibilidade."
+        ),
+    },
+    {
+        "voice": "antonio",
+        "text": (
+            f"{BRK(400)} Ambos os grupos estão envolvidos por um único Auto "
+            f"Scaling Group — quando uma instância morre numa zona, o grupo "
+            f"sobe outra automaticamente para manter o mínimo de duas. Na base "
+            f"do diagrama, o {SAY('RDS')} primário na zona A e o standby na "
+            f"zona B, conectados por uma linha tracejada com a legenda 'failover "
+            f"automático'. Esse conjunto — Route cinquenta e três, {SAY('ALB')}, "
+            f"Auto Scaling multi-zona e {SAY('RDS')} Multi-{SAY('AZ')} — é o "
+            f"padrão de alta disponibilidade que a prova cobra com frequência."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
     # ---- HA / FT / Resiliencia ----
     {
         "voice": "antonio",

@@ -36,6 +36,35 @@ BLOCKS = [
     },
     {"voice": "francisca", "text": BRK(800)},
 
+    # ---- Diagrama de conectividade hibrida ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"O diagrama deste capítulo mostra a arquitetura de conectividade "
+            f"híbrida resiliente. À esquerda, o data center on-premises com seu "
+            f"roteador {BGP}. Duas conexões partem dali em direção à {SAY('AWS')}: "
+            f"uma linha sólida e grossa em azul, representando o Direct Connect "
+            f"como caminho principal — link dedicado, latência consistente. E uma "
+            f"linha tracejada em vermelho, representando a {SAY('VPN')} Site-a-Site "
+            f"como backup — pela internet, protocolo {SAY('IPsec')}, com failover "
+            f"automático via {BGP}."
+        ),
+    },
+    {
+        "voice": "antonio",
+        "text": (
+            f"{BRK(400)} Ambas as conexões chegam ao {TRANSIT_GATEWAY} no centro "
+            f"do diagrama, que funciona como um hub de roteamento. Do "
+            f"{TRANSIT_GATEWAY} saem três linhas, cada uma conectando uma {SAY('VPC')}: "
+            f"{SAY('VPC')} de Produção, {SAY('VPC')} de Dev e {SAY('VPC')} Shared. "
+            f"A legenda resume: um {ATTACHMENT} por {SAY('VPC')} no hub, sem teia de "
+            f"peerings — o on-premises alcança todas as {SAY('VPCs')} pelos dois "
+            f"caminhos. Esse é o padrão de conectividade híbrida corporativa que a "
+            f"prova cobra."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
     # ---- Transit Gateway ----
     {
         "voice": "francisca",

@@ -43,6 +43,33 @@ BLOCKS = [
     },
     {"voice": "francisca", "text": BRK(800)},
 
+    # ---- Diagrama da VPC ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"Antes de entrar nos conceitos, veja o diagrama deste capítulo na "
+            f"tela. Ele mostra uma {SAY('VPC')} com bloco dez ponto zero ponto "
+            f"zero barra dezesseis, abrangendo duas zonas de disponibilidade. "
+            f"No topo, um {INTERNET_GATEWAY} — a porta de entrada da internet. "
+            f"Cada zona tem uma sub-rede pública e uma privada."
+        ),
+    },
+    {
+        "voice": "antonio",
+        "text": (
+            f"{BRK(400)} Nas sub-redes públicas ficam o {NAT_GATEWAY} e o "
+            f"{BASTION_HOST} ou o {SAY('ALB')} — componentes que precisam de "
+            f"acesso à internet. Nas sub-redes privadas ficam as instâncias de "
+            f"aplicação e o banco de dados. O {SAY('RDS')} primário está na "
+            f"zona A; o standby, na zona B, com replicação síncrona entre eles, "
+            f"indicada pela linha tracejada. A legenda do diagrama resume tudo: "
+            f"o que torna uma sub-rede pública é a rota para o "
+            f"{INTERNET_GATEWAY} na tabela de rotas — não um atributo da "
+            f"sub-rede em si."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
     # ---- Anatomia da VPC ----
     {
         "voice": "antonio",
