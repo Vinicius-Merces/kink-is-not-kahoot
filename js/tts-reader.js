@@ -9,7 +9,7 @@
     // Os .mp3 ficam com cache publico de 7 dias no servidor (server.js) —
     // essa versao entra como query string pra forcar download de novo sempre
     // que o conteudo narrado for re-gerado, sem precisar esperar o cache expirar.
-    const AUDIO_VERSION = '20260713';
+    const AUDIO_VERSION = '20260714';
 
     const AUDIO_MANIFEST = {
         cap1: 'assets/narracao/saa-c03/cap01.mp3',

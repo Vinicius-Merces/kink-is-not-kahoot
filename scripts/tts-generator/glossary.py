@@ -45,9 +45,43 @@ REGRAS DE GRAFIA PT-BR QUE O TRANSDUTOR RESPEITA
 # ---------------------------------------------------------------------------
 PHONETIC_MODE = "respell"
 
-SAY = lambda s: f'<say-as interpret-as="characters">{s}</say-as>'
+import re as _re
+
 EMPH = lambda s: f'<emphasis level="moderate">{s}</emphasis>'
 BRK = lambda ms: f'<break time="{ms}ms"/>'
+
+# Termos que DEVEM ser soletrados apesar de nao casarem com o regex de sigla
+_SPELL_ANYWAY = {"fsx", "www"}
+
+# Sigla "de verdade": 2-6 chars, so maiusculas/digitos (+ plural em "s")
+_ACRONYM_RE = _re.compile(r"^[A-Z0-9]{2,6}s?$")
+
+
+def SAY(s: str) -> str:
+    """Fala um termo tecnico corretamente na voz pt-BR.
+
+    BUG CORRIGIDO: a versao antiga soletrava TUDO via say-as characters —
+    correto para siglas (S3, VPC), mas palavras como DynamoDB, failover e
+    serverless eram soletradas letra a letra no audio.
+
+    Ordem de resolucao:
+      1. RESPELL (case-insensitive; tenta singular se plural nao existir)
+      2. sigla real (maiusculas/digitos) -> soletra via say-as characters
+      3. fallback: texto como esta (voz le como palavra)
+    """
+    key = s.strip().lower()
+
+    override = RESPELL.get(key)
+    if override:
+        return override
+    # plural nao cadastrado -> usa o singular + "s"
+    if key.endswith("s") and RESPELL.get(key[:-1]):
+        return RESPELL[key[:-1]] + "s"
+
+    if key in _SPELL_ANYWAY or _ACRONYM_RE.match(s.strip()):
+        return f'<say-as interpret-as="characters">{s}</say-as>'
+
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +259,7 @@ RESPELL = {
     "nat gateway": "Nét Guêituei",
     "transit gateway": "Trânzit Guêituei",
     "internet gateway": "Ínternet Guêituei",
-    "dynamodb": "Dáinamou D B",
+    "dynamodb": "Dáinamou Di Bí",
     "auto scaling": "Ôto Isquêilin",
     "load balancer": "Lôud Bálanser",
     "load balancers": "Lôud Bálansers",
@@ -295,6 +329,89 @@ RESPELL = {
     "bastion host": "Béstian Rôust",
     "bucket": "Báquet",
     "quicksight": "Cuíque Sáite",
+
+    # --- CORRECAO DE BUG: palavras que o SAY antigo soletrava letra a letra ---
+    "task": "Tásque",
+    "serverless": "Sârverless",
+    "deploy": "Deplói",
+    "deployed": "Deplóide",
+    "deployment": "Deplóiment",
+    "trail": "Trêiol",
+    "timeout": "Taimáute",
+    "streaming": "Strímin",
+    "stream": "Stríme",
+    "on-demand": "Ón Demánd",
+    "snow family": "Snôu Fémili",
+    "data lake": "Dêita Lêique",
+    "data warehouse": "Dêita Uérraus",
+    "cluster": "Clâster",
+    "pod": "Póde",
+    "pipeline": "Páiplain",
+    "site-to-site": "Sáite tu Sáite",
+    "cookie": "Cúqui",
+    "chatbot": "Tchétbóte",
+    "voicebot": "Vóisbóte",
+    "backup": "Bécape",
+    "push": "Púche",
+    "payload": "Pêilôude",
+    "rollback": "Rôulbéque",
+    "lifecycle": "Láifsaikou",
+    "lifecycle policies": "Láifsaikou Pólissis",
+    "job": "Djóbe",
+    "trade-off": "Trêide Óff",
+    "worker": "Uôrker",
+    "upload": "Aplôude",
+    "trigger": "Tríguer",
+    "throttled": "Trótolde",
+    "tag": "Tégue",
+    "staging": "Stêidjin",
+    "software": "Sóftuer",
+    "snapshot": "Snépchote",
+    "shard": "Chárde",
+    "service": "Sârvis",
+    "script": "Iscrípt",
+    "route table": "Ráute Têibol",
+    "provisioned": "Províjande",
+    "lock-in": "Lóque In",
+    "landing zone": "Lêndin Zôune",
+    "lab": "Lébe",
+    "hypervisor": "Ráipervaizor",
+    "foundation model": "Faundêichan Módel",
+    "fork": "Fórque",
+    "call center": "Cól Cênter",
+    "backbone": "Béquiboune",
+    "dashboard": "Déchborde",
+    "spectrum": "Spéctram",
+    "private": "Práivat",
+    "billing": "Bílin",
+    "budget": "Bâdjet",
+    "basic": "Bêisic",
+    "root": "Rúte",
+    "sandbox": "Sêndbóks",
+    "enterprise": "Ênterpraiz",
+    "developer": "Devéloper",
+    "business": "Bíznes",
+    "agent": "Êidjent",
+    "choice": "Tchóis",
+    "instance store": "Ínstans Istór",
+    "global accelerator": "Glôubal Akselerêitor",
+    "cache-control": "Quéche Contrôl",
+    "hostport": "Rôust Pórte",
+    "administratoraccess": "Administrêitor Ákssess",
+    "pgvector": "Pê Gê Véctor",
+    "dx gateway": "Di Éks Guêituei",
+    "t2.micro": "Tê dois ponto máicro",
+    "exemplo.com": "exemplo ponto com",
+    "amazon.com": "Amazon ponto com",
+    "etcd": "Étci Dí",
+    "cron": "Crón",
+    "json": "Djêisson",
+    "saas": "Sáss",
+    "dax": "Dáks",
+    "orc": "Órque",
+    "owasp": "Ôuasp",
+    "ipsec": "Ai Pi Séque",
+    "aurora": "Aurôra",
 }
 
 
