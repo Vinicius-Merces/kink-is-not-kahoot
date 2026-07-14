@@ -233,10 +233,10 @@
             trilhaId: 'dea-c01',
             trilhaUrl: 'trilha-dea.html',
             domains: {
-                'data-ingestion-transformation': [1, 2, 3, 4, 8],
-                'data-store-management': [5, 6, 7, 12],
-                'data-operations-support': [9, 10],
-                'data-security-governance': [11],
+                'data-ingestion-transformation': [1, 2, 3, 4, 9, 10, 14],
+                'data-store-management': [5, 6, 7, 8, 16],
+                'data-operations-support': [11, 12, 13],
+                'data-security-governance': [15],
             },
         },
         'DVA-C02': {
