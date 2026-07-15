@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="css/landing-fx.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/trilha.css">
+    <link rel="stylesheet" href="css/tts-reader.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/music-player.css">
 
@@ -1406,6 +1407,10 @@
                         </tbody>
                     </table>
                 </div>
+                <p>Para visualização de métricas, os <strong>CloudWatch Dashboards</strong> são a resposta nativa; o <strong>Amazon Managed Grafana</strong> aparece quando o enunciado pede dashboards unificados de múltiplas fontes ou "o time já usa Grafana".</p>
+
+                <h3>Custo do pipeline — Cost Explorer e Budgets</h3>
+                <p>Gestão financeira é in-scope no DEA. <strong>Cost Explorer</strong> analisa o gasto (por serviço, tag, período) — a resposta para "descobrir o que está custando caro no pipeline"; use <strong>cost allocation tags</strong> nos recursos (jobs, buckets, clusters) para atribuir custo por projeto/time. <strong>AWS Budgets</strong> alerta (e pode acionar ações) quando o gasto ou a previsão estoura o limite — "ser avisado antes de estourar o orçamento do mês". Os controles específicos de cada serviço complementam: limites de bytes por workgroup no Athena, Flex/auto scaling no Glue, Spot nos task nodes do EMR e S3 lifecycle no lake.</p>
 
                 <h3>Investigando com CloudWatch Logs Insights</h3>
                 <p>Query language sobre os logs (<code>fields | filter | stats | sort</code>) para investigar sem exportar nada: "quantos erros por tipo na última hora no log do job" → <code>filter @message like /ERROR/ | stats count() by bin(5m)</code>. Para logs de acesso já no S3 (CloudTrail, ALB, S3 access logs), a resposta costuma ser <strong>Athena</strong> sobre o bucket. Volumes gigantes de logs de aplicações big data → <strong>OpenSearch</strong> (busca full-text + dashboards) ou <strong>EMR</strong> para reprocessamento analítico — os quatro caminhos aparecem no exam guide.</p>
@@ -1417,7 +1422,7 @@
                 <p>Vale para Glue, Step Functions (<code>Execution Status Change</code>), EMR e MWAA. A prova pergunta "como ser notificado quando o job falhar, sem polling" — EventBridge + SNS é a resposta; polling de status via script é sempre a alternativa errada.</p>
 
                 <h3>Qualidade de dados</h3>
-                <p><strong>Glue Data Quality</strong> (regras DQDL: completude, unicidade, faixas de valores) é a resposta gerenciada — pode rodar sobre tabelas do Catalog ou dentro de jobs, e travar o pipeline se a qualidade reprovar. A prova também espera o conceito de <strong>quarentena</strong>: registros reprovados vão para um caminho separado no S3 em vez de contaminar a zona processed.</p>
+                <p><strong>Glue Data Quality</strong> (regras DQDL: completude, unicidade, faixas de valores) é a resposta gerenciada — pode rodar sobre tabelas do Catalog ou dentro de jobs, e travar o pipeline se a qualidade reprovar. A prova também espera o conceito de <strong>quarentena</strong>: registros reprovados vão para um caminho separado no S3 em vez de contaminar a zona processed. Antes de definir regras, faça <strong>data profiling</strong> (estatísticas de nulos, distribuições e cardinalidade — o DataBrew gera o perfil com um clique) e, em datasets gigantes, valide por <strong>amostragem (data sampling)</strong>: perfilar uma amostra representativa em vez da tabela inteira reduz tempo e custo da análise.</p>
 
                 <h3>Idempotência e reprocessamento</h3>
                 <p>Pipelines reais falham e re-executam — o exame cobra os mecanismos: <strong>Job Bookmarks</strong> (Glue), <strong>checkpoints</strong> (Flink/KCL), <strong>DLQs</strong> (SQS/Lambda), escrita idempotente (sobrescrever partição inteira em vez de append duplicado) e <strong>exactly-once vs at-least-once</strong> (consumidor deve tolerar duplicatas em sistemas at-least-once).</p>
@@ -1527,6 +1532,7 @@
                             <tr><td>Criptografia em repouso com auditoria de uso da chave</td><td><strong>SSE-KMS com CMK</strong> (S3, Redshift, Glue, Kinesis) + CloudTrail</td></tr>
                             <tr><td>Criptografia em trânsito</td><td>TLS em todos os serviços; exigir via policy (<code>aws:SecureTransport</code>)</td></tr>
                             <tr><td>Credenciais de bancos em jobs/pipelines</td><td><strong>Secrets Manager</strong> (rotação automática) — Glue connections integram nativamente</td></tr>
+                            <tr><td>Configuração não sensível (endpoints, flags, parâmetros)</td><td><strong>Systems Manager Parameter Store</strong> — grátis no tier padrão; sem rotação automática. Credencial que rota = Secrets Manager</td></tr>
                             <tr><td>Achar PII esquecida em buckets</td><td><strong>Macie</strong></td></tr>
                             <tr><td>Mascarar dados sensíveis na consulta</td><td><strong>Redshift Dynamic Data Masking</strong>; detecção de PII no Glue/DataBrew; Lake Formation cell-level</td></tr>
                             <tr><td>Tráfego de dados sem passar pela internet</td><td><strong>VPC Endpoints</strong> (Gateway p/ S3; Interface p/ Glue, Kinesis, etc.)</td></tr>
@@ -1659,6 +1665,9 @@
                     <div class="callout-body"><strong>Timestream está fora do escopo</strong>O exam guide lista o Timestream como out-of-scope no DEA — série temporal em questão de prova tende a se resolver com DynamoDB (TTL + sort key de timestamp), S3 particionado por data ou OpenSearch.</div>
                 </div>
 
+                <h3>Proteção dos stores — AWS Backup</h3>
+                <p><strong>AWS Backup</strong> centraliza backup de RDS, DynamoDB, EFS, EBS e S3 com <em>backup plans</em> (agenda + retenção) e <em>vaults</em> — a resposta para "política de backup unificada e auditável para vários bancos, sem scripts por serviço". Vault Lock dá imutabilidade WORM aos backups (compliance). Complementa os mecanismos nativos: PITR do DynamoDB, snapshots automáticos do RDS/Redshift e versionamento do S3.</p>
+
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
@@ -1779,6 +1788,7 @@
     <script src="js/landing-fx.js" defer></script>
     <script src="js/pwa.js" defer></script>
     <script src="js/nav-menu.js" defer></script>
+    <script src="js/tts-reader.js" defer></script>
 </body>
 </html>
 

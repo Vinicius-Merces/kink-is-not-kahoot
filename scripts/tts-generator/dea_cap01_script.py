@@ -81,6 +81,50 @@ BLOCKS = [
     },
     {"voice": "francisca", "text": BRK(600)},
 
+    # ---- OLTP vs OLAP e conceitos operacionais ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"Mais quatro conceitos que o exame pressupõe. {SAY('OLTP')} versus "
+            f"{SAY('OLAP')}: {SAY('OLTP')} é transação rápida linha a linha — "
+            f"{SAY('RDS')}, {SAY('DynamoDB')}; {SAY('OLAP')} é análise agregada "
+            f"em massa, orientada a colunas — Redshift, Athena. "
+            f"{BRK(400)} Replayability: a capacidade de reprocessar dados já "
+            f"ingeridos — a retenção do Kinesis e a zona raw imutável no "
+            f"{SAY('S3')} existem para isso. Se o pipeline falhar, você reprocessa "
+            f"a partir da fonte da verdade."
+        ),
+    },
+    {
+        "voice": "antonio",
+        "text": (
+            f"{BRK(400)} Stateful versus stateless: transformação stateless não "
+            f"depende de contexto — transformar um registro por vez; stateful "
+            f"precisa de estado acumulado — janelas, agregações, deduplicação. "
+            f"Por isso deduplicar em streaming pede Flink, não uma Lambda simples. "
+            f"{BRK(400)} E data lineage: o rastro de onde o dado veio e por quais "
+            f"transformações passou — dá confiança e auditabilidade ao número que "
+            f"chega no dashboard."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
+    # ---- Os 3 Vs ----
+    {
+        "voice": "francisca",
+        "text": (
+            f"Os três Vs decidem a arquitetura. VOLUME decide entre Lambda e "
+            f"Spark distribuído — e volumes enormes com rede lenta levam à "
+            f"família Snow. VELOCIDADE decide entre batch e streaming: segundos "
+            f"é streaming, minutos é {SAY('Firehose')}, horas é batch. VARIEDADE "
+            f"decide o store: estruturado vai para Redshift ou {SAY('RDS')}; "
+            f"semiestruturado vai para {SAY('S3')} com Athena ou "
+            f"{SAY('DynamoDB')}; não estruturado vai para {SAY('S3')} puro. "
+            f"Quando a questão descreve o dado, ela está te dizendo a resposta."
+        ),
+    },
+    {"voice": "francisca", "text": BRK(1000)},
+
     # ---- Formatos de arquivo ----
     {
         "voice": "antonio",
@@ -137,6 +181,21 @@ BLOCKS = [
         ),
     },
     {"voice": "antonio", "text": BRK(1000)},
+
+    # ---- SQL que a prova espera ----
+    {
+        "voice": "francisca",
+        "text": (
+            f"Sobre {SAY('SQL')}: o {SAY('DEA')} não cobra sintaxe decorada, mas "
+            f"espera que você LEIA queries: joins, group by com having, "
+            f"{SAY('CTEs')} e window functions — row number para deduplicar, "
+            f"sum over partition para acumulados, lag e lead para comparar com a "
+            f"linha anterior. E princípios de otimização: filtrar cedo, "
+            f"selecionar só as colunas necessárias. Vamos aprofundar isso no "
+            f"capítulo doze."
+        ),
+    },
+    {"voice": "francisca", "text": BRK(1000)},
 
     # ---- Checkpoint ----
     {

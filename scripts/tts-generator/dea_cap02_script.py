@@ -117,6 +117,76 @@ BLOCKS = [
     },
     {"voice": "antonio", "text": BRK(1000)},
 
+    # ---- Lambda como consumidor: Event Source Mapping ----
+    {
+        "voice": "francisca",
+        "text": (
+            f"Lambda como consumidor do Kinesis — o Event Source Mapping tem "
+            f"quatro configurações que caem em prova. Batch size e batching "
+            f"window: quantos registros ou quanto tempo esperar antes de invocar. "
+            f"Parallelization factor: até DEZ invocações simultâneas por "
+            f"{SHARD} — escala o consumo SEM reshard; é a resposta para "
+            f"'IteratorAge alta sem mexer no stream'."
+        ),
+    },
+    {
+        "voice": "francisca",
+        "text": (
+            f"{BRK(400)} On-failure destination: registros que falham após os "
+            f"retries vão para {SAY('SQS')} ou {SAY('SNS')} — a fila de falhas do "
+            f"consumo. E bisect batch on error: divide o lote ao meio a cada "
+            f"falha até isolar o registro venenoso. Sem retry máximo configurado, "
+            f"um registro malformado trava o {SHARD} em loop infinito."
+        ),
+    },
+    {"voice": "francisca", "text": BRK(1000)},
+
+    # ---- Fan-in e fan-out ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"Fan-in e fan-out. Fan-in: milhares de fontes escrevendo no mesmo "
+            f"stream — a {PARTITION_KEY} precisa distribuir bem, e o {KPL} agrega "
+            f"registros pequenos para não estourar o limite de mil registros por "
+            f"segundo por {SHARD}. Fan-out: vários consumidores dividem os dois "
+            f"megabytes por segundo de leitura — com muitos consumidores, "
+            f"{ENHANCED_FAN_OUT}. O padrão clássico: o mesmo stream alimenta o "
+            f"{FIREHOSE} para o lake E o {FLINK} para agregação em tempo real."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
+    # ---- DynamoDB Streams ----
+    {
+        "voice": "francisca",
+        "text": (
+            f"{SAY('DynamoDB')} Streams: o {SAY('CDC')} nativo do "
+            f"{SAY('DynamoDB')} — fluxo ordenado de mudanças da tabela, retenção "
+            f"de vinte e quatro horas, consumido por Lambda. Gatilho: 'reagir a "
+            f"cada mudança na tabela'. Se a questão pede retenção maior ou "
+            f"integração com o ecossistema Kinesis, a resposta é Kinesis Data "
+            f"Streams for {SAY('DynamoDB')} — as mudanças vão para um stream "
+            f"Kinesis de verdade."
+        ),
+    },
+    {"voice": "francisca", "text": BRK(1000)},
+
+    # ---- MSK a fundo ----
+    {
+        "voice": "antonio",
+        "text": (
+            f"{MSK} a fundo. {MSK} provisionado: você dimensiona brokers — "
+            f"controle total, mais gestão. {MSK} Serverless: paga por throughput, "
+            f"sem dimensionar — gatilho 'Kafka sem gerenciar capacidade'. E "
+            f"{MSK} Connect: conectores Kafka Connect gerenciados, tipo um sink "
+            f"para o {SAY('S3')} — o {FIREHOSE} do mundo Kafka. Segurança que "
+            f"cai: autenticação {SAY('IAM')}, a mais simples, ou SASL SCRAM com "
+            f"credenciais no Secrets Manager. E lembre: Kafka mantém ordem por "
+            f"partição, como o Kinesis por {SHARD}."
+        ),
+    },
+    {"voice": "antonio", "text": BRK(1000)},
+
     # ---- Firehose em profundidade ----
     {
         "voice": "francisca",
@@ -146,7 +216,33 @@ BLOCKS = [
             f"e janelas temporais."
         ),
     },
+    {
+        "voice": "antonio",
+        "text": (
+            f"{BRK(400)} As três janelas que aparecem: tumbling — janelas fixas "
+            f"sem sobreposição, o total por minuto; sliding — sobrepostas, a "
+            f"média móvel dos últimos cinco minutos a cada minuto; e session — "
+            f"agrupa por inatividade, sessões de usuário. O estado do {FLINK} "
+            f"vive em checkpoints — é assim que ele retoma sem perder as "
+            f"agregações depois de uma falha."
+        ),
+    },
     {"voice": "antonio", "text": BRK(1000)},
+
+    # ---- Throttling e rate limits ----
+    {
+        "voice": "francisca",
+        "text": (
+            f"Sobre throttling e rate limits — o exame cobra as respostas padrão: "
+            f"retries com backoff exponencial e jitter; agregação no producer com "
+            f"o {KPL}; aumentar capacidade — {SHARDS} ou on-demand; e {SAY('SQS')} "
+            f"como amortecedor entre um produtor rápido e um consumidor limitado. "
+            f"Para fontes externas com firewall que exigem allowlist de {SAY('IP')}: "
+            f"NAT Gateway com Elastic {SAY('IP')} dá endereço fixo de saída ao "
+            f"pipeline."
+        ),
+    },
+    {"voice": "francisca", "text": BRK(1000)},
 
     # ---- Checkpoint ----
     {

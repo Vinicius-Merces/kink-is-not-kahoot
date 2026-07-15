@@ -9,31 +9,23 @@
     // Os .mp3 ficam com cache publico de 7 dias no servidor (server.js) —
     // essa versao entra como query string pra forcar download de novo sempre
     // que o conteudo narrado for re-gerado, sem precisar esperar o cache expirar.
-    const AUDIO_VERSION = '20260714';
+    const AUDIO_VERSION = '20260714b';
 
-    const AUDIO_MANIFEST = {
-        cap1: 'assets/narracao/saa-c03/cap01.mp3',
-        cap2: 'assets/narracao/saa-c03/cap02.mp3',
-        cap3: 'assets/narracao/saa-c03/cap03.mp3',
-        cap4: 'assets/narracao/saa-c03/cap04.mp3',
-        cap5: 'assets/narracao/saa-c03/cap05.mp3',
-        cap6: 'assets/narracao/saa-c03/cap06.mp3',
-        cap7: 'assets/narracao/saa-c03/cap07.mp3',
-        cap8: 'assets/narracao/saa-c03/cap08.mp3',
-        cap9: 'assets/narracao/saa-c03/cap09.mp3',
-        cap10: 'assets/narracao/saa-c03/cap10.mp3',
-        cap11: 'assets/narracao/saa-c03/cap11.mp3',
-        cap12: 'assets/narracao/saa-c03/cap12.mp3',
-        cap13: 'assets/narracao/saa-c03/cap13.mp3',
-        cap14: 'assets/narracao/saa-c03/cap14.mp3',
-        cap15: 'assets/narracao/saa-c03/cap15.mp3',
-        cap16: 'assets/narracao/saa-c03/cap16.mp3',
-        cap17: 'assets/narracao/saa-c03/cap17.mp3',
-        cap18: 'assets/narracao/saa-c03/cap18.mp3',
-        cap19: 'assets/narracao/saa-c03/cap19.mp3',
-        cap20: 'assets/narracao/saa-c03/cap20.mp3',
-        cap21: 'assets/narracao/saa-c03/cap21.mp3',
+    // Cada trilha tem sua pasta de audio e quantidade de capitulos.
+    // A trilha ativa vem do atributo data-trilha-id da sidebar da pagina.
+    const TRILHAS = {
+        'saa-c03': { dir: 'assets/narracao/saa-c03', caps: 21, album: 'Trilha SAA-C03' },
+        'dea-c01': { dir: 'assets/narracao/dea-c01', caps: 17, album: 'Trilha DEA-C01' },
     };
+
+    const trilhaEl = document.querySelector('[data-trilha-id]');
+    const trilhaId = (trilhaEl && TRILHAS[trilhaEl.dataset.trilhaId]) ? trilhaEl.dataset.trilhaId : 'saa-c03';
+    const trilha = TRILHAS[trilhaId];
+
+    const AUDIO_MANIFEST = {};
+    for (let i = 1; i <= trilha.caps; i++) {
+        AUDIO_MANIFEST[`cap${i}`] = `${trilha.dir}/cap${String(i).padStart(2, '0')}.mp3`;
+    }
 
     const state = {
         isOpen: false,
@@ -43,7 +35,8 @@
     };
 
     // ── Posição de áudio salva por capítulo (retomar de onde parou) ─────────
-    const POSITIONS_KEY = 'tts_positions';
+    // saa-c03 mantem a chave antiga para nao perder posicoes ja salvas
+    const POSITIONS_KEY = trilhaId === 'saa-c03' ? 'tts_positions' : `tts_positions_${trilhaId}`;
     let lastSavedSecond = -1;
 
     function loadPositions() {
@@ -264,9 +257,9 @@
     function updateMediaSessionMetadata() {
         if (!('mediaSession' in navigator)) return;
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: state.chapterTitle || 'Trilha SAA-C03',
+            title: state.chapterTitle || trilha.album,
             artist: 'Apostila — Narração',
-            album: 'Trilha SAA-C03',
+            album: trilha.album,
         });
     }
 

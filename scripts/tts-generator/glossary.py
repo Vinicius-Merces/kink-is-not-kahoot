@@ -278,7 +278,17 @@ RESPELL = {
     "privatelink": "Práivat Línque",
     "peering": "Píerin",
     "subnet": "Sâbnet",
-    "endpoint": "Êndpoint",
+    # endpoint: "Êndpoint" saía mal falado — re-grafia silabada fica natural
+    "endpoint": "Êndipointe",
+    "gateway endpoint": "Guêituei Êndipointe",
+    "interface endpoint": "Ínterfeis Êndipointe",
+    "vpc endpoint": "Vê Pê Cê Êndipointe",
+    "endpoint service": "Êndipointe Sârvis",
+    "reader endpoint": "Ríder Êndipointe",
+    "real-time endpoint": "Ríal Taim Êndipointe",
+    "sagemaker endpoints": "Sêidjmeiker Êndipointes",
+    # plural de sigla: soletrado terminava em "...cê ésse" — fala como palavra
+    "vpcs": "Vê Pê Cês",
     "throughput": "Trúput",
     "workload": "Uârklôud",
     "failover": "Fêilôuver",
