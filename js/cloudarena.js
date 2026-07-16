@@ -423,7 +423,14 @@
 
     function openQuestion(q) {
         const a = state.arenas[battle.certId];
-        battle.question = q;
+        // embaralha as justificativas por batalha — no arquivo a correta vem
+        // sempre primeiro, e a ordem fixa entregaria a resposta
+        const justs = (q.justifications || []).slice();
+        for (let i = justs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [justs[i], justs[j]] = [justs[j], justs[i]];
+        }
+        battle.question = Object.assign({}, q, { justifications: justs });
         battle.topic = q.topic;
         battle.phase = 'eliminate';
         battle.selected = new Set();
