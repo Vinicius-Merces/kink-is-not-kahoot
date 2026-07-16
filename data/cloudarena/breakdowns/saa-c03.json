@@ -16808,6 +16808,2910 @@
           }
         ]
       }
+    },
+    {
+      "questionId": "saa-med-049",
+      "options": [
+        {
+          "matchText": "Replicação dos volumes via rsync entre instâncias",
+          "stage": "eliminate",
+          "reasonWrong": "rsync entre instâncias é processo artesanal — sem vault isolado nem proteção contra comprometimento da conta."
+        },
+        {
+          "matchText": "AMIs das instâncias mantidas na mesma Região",
+          "stage": "eliminate",
+          "reasonWrong": "AMIs na MESMA região e MESMA conta caem junto com a produção comprometida."
+        },
+        {
+          "matchText": "Snapshots manuais guardados na própria conta de produção",
+          "stage": "trap",
+          "reasonWrong": "Snapshots na PRÓPRIA conta de produção são alcançáveis pelo invasor que comprometeu a conta — exatamente o risco a eliminar."
+        },
+        {
+          "matchText": "AWS Backup com planos que incluem cópia entre Regiões e entre contas para um vault isolado",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Backup faz cópia cross-region E cross-account nativa para um vault isolado (com Vault Lock opcional) — o padrão recomendado contra ransomware e comprometimento de conta.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Backup criptografa os backups com chave que a produção não conhece.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Backup detecta ransomware e bloqueia a conta automaticamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Backup grava as cópias em fitas físicas fora da AWS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-293",
+      "options": [
+        {
+          "matchText": "AWS Snowball",
+          "stage": "eliminate",
+          "reasonWrong": "O Snowball é transferência FÍSICA pontual de dados — não replicação contínua para DR."
+        },
+        {
+          "matchText": "AWS Direct Connect",
+          "stage": "eliminate",
+          "reasonWrong": "O Direct Connect é o LINK de rede — não replica servidores nem os recupera como EC2."
+        },
+        {
+          "matchText": "AWS Elastic Disaster Recovery (AWS DRS)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Database Migration Service (DMS)",
+          "stage": "trap",
+          "reasonWrong": "O DMS migra BANCOS DE DADOS — não replica servidores inteiros no nível de bloco."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Elastic Disaster Recovery replica continuamente os servidores no nível de bloco para a AWS e os recupera como instâncias EC2 em minutos, com RPO de poucos minutos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o DRS mantém instâncias EC2 idênticas ligadas em espelho 24/7.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DRS converte os servidores físicos em AMIs uma vez por dia.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DRS exige que os servidores já rodem VMware para replicar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-070",
+      "options": [
+        {
+          "matchText": "Elastic Fabric Adapter (EFA), combinado com cluster placement group",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS VPN entre as instâncias",
+          "stage": "trap",
+          "reasonWrong": "VPN entre instâncias ADICIONA overhead de criptografia e encapsulamento — piora a latência."
+        },
+        {
+          "matchText": "Elastic IP em cada nó do cluster",
+          "stage": "eliminate",
+          "reasonWrong": "Elastic IP é endereço público fixo — irrelevante para comunicação interna de cluster."
+        },
+        {
+          "matchText": "CloudFront na frente do cluster",
+          "stage": "eliminate",
+          "reasonWrong": "CloudFront é CDN para conteúdo web — nada a ver com MPI entre nós."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o EFA permite OS-bypass para comunicação MPI de baixíssima latência, e o cluster placement group aproxima fisicamente as instâncias — o par que emula interconexão HPC dedicada.",
+            "correct": true
+          },
+          {
+            "text": "Porque o EFA cria um barramento de memória compartilhada entre os nós.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EFA usa rádio de curto alcance entre os racks do datacenter.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EFA dobra a banda da VPC para todas as instâncias.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-074",
+      "options": [
+        {
+          "matchText": "Família C (otimizada para computação) para a codificação e família R (otimizada para memória) para o banco em RAM",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Família T com burst para ambas",
+          "stage": "eliminate",
+          "reasonWrong": "A família T usa CRÉDITOS de burst — codificação que satura CPU por horas esgota os créditos e degrada."
+        },
+        {
+          "matchText": "Família R para a codificação e família C para o banco em RAM",
+          "stage": "trap",
+          "reasonWrong": "Está INVERTIDO: C é para CPU (codificação) e R para RAM (banco em memória)."
+        },
+        {
+          "matchText": "Família I (otimizada para armazenamento) para ambas",
+          "stage": "eliminate",
+          "reasonWrong": "A família I otimiza DISCO NVMe local — nenhuma das cargas é limitada por I/O de disco."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a codificação é CPU-bound (família C, alta vCPU/memória) e o banco de 400 GB em RAM é memory-bound (família R, alta memória/vCPU) — casar o gargalo com a especialidade.",
+            "correct": true
+          },
+          {
+            "text": "Porque a família C inclui GPU para acelerar codecs de vídeo.",
+            "correct": false
+          },
+          {
+            "text": "Porque a família R oferece a maior contagem de vCPUs do catálogo.",
+            "correct": false
+          },
+          {
+            "text": "Porque C e R são as únicas famílias com suporte a placement groups.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-084",
+      "options": [
+        {
+          "matchText": "Mixed instances policy, definindo a porcentagem base On-Demand e o restante em Spot com múltiplos tipos de instância",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Dedicated Hosts com Spot dentro deles",
+          "stage": "eliminate",
+          "reasonWrong": "Dedicated Hosts são hardware dedicado caro — não é o mecanismo de combinar On-Demand e Spot."
+        },
+        {
+          "matchText": "Dois ASGs independentes sem coordenação",
+          "stage": "eliminate",
+          "reasonWrong": "Dois ASGs sem coordenação dividem a gestão e não balanceiam base + pico de forma integrada."
+        },
+        {
+          "matchText": "Reserved Instances para toda a capacidade de pico",
+          "stage": "trap",
+          "reasonWrong": "RI para TODO o pico paga desconto sobre capacidade que fica ociosa fora dos picos."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a mixed instances policy define a base On-Demand (percentual) e completa com Spot diversificado em vários tipos — economia nos picos com risco de interrupção diluído, tudo no mesmo ASG.",
+            "correct": true
+          },
+          {
+            "text": "Porque a mixed instances policy converte On-Demand em Spot nos horários baratos.",
+            "correct": false
+          },
+          {
+            "text": "Porque a mixed instances policy garante preço fixo para as Spot do grupo.",
+            "correct": false
+          },
+          {
+            "text": "Porque a mixed instances policy exige no mínimo três ASGs vinculados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-122",
+      "options": [
+        {
+          "matchText": "Configurar uma 'Mixed Instances Policy' no Auto Scaling Group, especificando MÚLTIPLOS tipos de instância elegíveis e uma combinação de capacidade On-Demand (base) com Spot (para o restante), usando a estratégia de alocação 'capacity-optimized' para o Spot.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar o Auto Scaling Group para usar exclusivamente Instâncias Reservadas, eliminando a necessidade de Spot.",
+          "stage": "eliminate",
+          "reasonWrong": "Só Reserved elimina o Spot e o desconto — abandona o objetivo de custo."
+        },
+        {
+          "matchText": "Usar apenas o tipo de instância Spot mais barato disponível na região, para maximizar a economia de custos.",
+          "stage": "eliminate",
+          "reasonWrong": "Um ÚNICO tipo Spot (o mais barato) é o cenário de MAIOR risco: o pool esgota e todas as instâncias somem juntas."
+        },
+        {
+          "matchText": "Aumentar a capacidade desejada (desired capacity) do Auto Scaling Group para o dobro do necessário, todas com o mesmo tipo de instância Spot.",
+          "stage": "trap",
+          "reasonWrong": "Dobrar a capacidade com o MESMO tipo Spot duplica o custo e mantém o risco concentrado no mesmo pool."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Mixed Instances Policy com vários tipos + base On-Demand + estratégia capacity-optimized escolhe os pools Spot com mais capacidade disponível — interrupções simultâneas ficam improváveis e a base garante o mínimo.",
+            "correct": true
+          },
+          {
+            "text": "Porque a capacity-optimized trava o preço das Spot pelo período do job.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Mixed Instances Policy impede a AWS de interromper as Spot do grupo.",
+            "correct": false
+          },
+          {
+            "text": "Porque a base On-Demand assume automaticamente o formato das Spot perdidas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-127",
+      "options": [
+        {
+          "matchText": "Migrar a aplicação para usar apenas armazenamento de instância (instance store) em vez de volumes EBS, pois instance store inicializa mais rápido.",
+          "stage": "eliminate",
+          "reasonWrong": "Instance store não acelera a INSTALAÇÃO de software — e perde dados no stop; nada a ver com o gargalo."
+        },
+        {
+          "matchText": "Configurar o Auto Scaling Group para manter sempre o dobro de instâncias necessárias, compensando o tempo de inicialização lento.",
+          "stage": "trap",
+          "reasonWrong": "Dobrar a frota mascara o problema pagando o dobro — o tempo de recuperação continua 10-15 min."
+        },
+        {
+          "matchText": "Criar uma AMI customizada ('golden AMI') a partir de uma instância já configurada com todo o software e configurações necessárias, e configurar o Launch Template do Auto Scaling Group para usar essa AMI.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o tamanho (tipo) das instâncias EC2 para que o script de inicialização execute mais rapidamente.",
+          "stage": "eliminate",
+          "reasonWrong": "Instância maior acelera um pouco o script, mas a instalação continua acontecendo a cada lançamento."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a golden AMI já contém software e configuração prontos: a instância nova só faz boot e está pronta em ~2 min — sem os 10-15 min de instalação a cada substituição.",
+            "correct": true
+          },
+          {
+            "text": "Porque a golden AMI mantém a instância antiga viva até a nova aquecer.",
+            "correct": false
+          },
+          {
+            "text": "Porque a golden AMI transforma o user data em execução paralela.",
+            "correct": false
+          },
+          {
+            "text": "Porque a golden AMI é armazenada na RAM do host para boot instantâneo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-134",
+      "options": [
+        {
+          "matchText": "Instâncias da família 'T' (Burstable, ex.: T4g, T3) — com créditos de CPU para picos ocasionais.",
+          "stage": "trap",
+          "reasonWrong": "A família T é BURSTABLE: pipeline batch intensivo esgota os créditos de CPU e o desempenho despenca."
+        },
+        {
+          "matchText": "Instâncias da família 'I' (Storage Optimized, ex.: I3, I4i) — otimizadas para alto IOPS de armazenamento local NVMe.",
+          "stage": "eliminate",
+          "reasonWrong": "A família I otimiza I/O de DISCO — o gargalo declarado é CPU, com pouco I/O."
+        },
+        {
+          "matchText": "Instâncias da família 'R' (Memory Optimized, ex.: R6g, R5) — otimizadas para alta relação memória/vCPU.",
+          "stage": "eliminate",
+          "reasonWrong": "A família R paga prêmio por MEMÓRIA — que a carga usa pouco; dinheiro jogado em RAM ociosa."
+        },
+        {
+          "matchText": "Instâncias da família 'C' (Compute Optimized, ex.: C7g, C6i) — otimizadas para alta relação vCPU/memória, ideais para processamento intensivo em CPU.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a família C tem a maior proporção vCPU/memória — máxima capacidade de cálculo por dólar para cargas CPU-bound como genômica, encoding e modelagem.",
+            "correct": true
+          },
+          {
+            "text": "Porque a família C tem clock destravado para overclock automático.",
+            "correct": false
+          },
+          {
+            "text": "Porque a família C inclui aceleradores de genômica dedicados.",
+            "correct": false
+          },
+          {
+            "text": "Porque a família C é a única compatível com processamento batch.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-145",
+      "options": [
+        {
+          "matchText": "Lançar as 20 instâncias EC2 dentro de um 'Cluster Placement Group', usando tipos de instância que suportam essa configuração.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar um 'Spread Placement Group', que distribui cada instância em hardware subjacente distinto.",
+          "stage": "trap",
+          "reasonWrong": "O spread SEPARA as instâncias em hardware distinto — aumenta a distância e a latência, o oposto do pedido."
+        },
+        {
+          "matchText": "Distribuir as 20 instâncias entre o maior número possível de Zonas de Disponibilidade, para maximizar a resiliência.",
+          "stage": "eliminate",
+          "reasonWrong": "Multi-AZ maximiza RESILIÊNCIA ao custo de latência entre zonas — mata a simulação all-to-all."
+        },
+        {
+          "matchText": "Usar um 'Partition Placement Group', dividindo as instâncias em partições lógicas distintas.",
+          "stage": "eliminate",
+          "reasonWrong": "O partition group isola grupos em racks distintos (big data distribuído) — não minimiza latência entre TODAS as instâncias."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Cluster Placement Group coloca as 20 instâncias fisicamente próximas na mesma AZ — máxima banda e mínima latência para comunicação all-to-all de HPC.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Cluster Placement Group liga as instâncias por cabo dedicado.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Cluster Placement Group reserva um rack exclusivo do datacenter.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Cluster Placement Group ativa o EFA automaticamente em todos os nós.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-146",
+      "options": [
+        {
+          "matchText": "Instâncias da família 'T' (Burstable) com o máximo de créditos de CPU acumulados.",
+          "stage": "eliminate",
+          "reasonWrong": "A família T é para cargas leves com burst ocasional — não acomoda vários GB em RAM com trabalho contínuo."
+        },
+        {
+          "matchText": "Instâncias da família 'R' (Memory Optimized, ex.: R6g, R7i) — oferecem alta relação memória/vCPU, adequadas para cargas que mantêm grandes conjuntos de dados em RAM.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Instâncias da família 'I' (Storage Optimized) — oferecem armazenamento NVMe local de alto desempenho.",
+          "stage": "eliminate",
+          "reasonWrong": "A família I otimiza DISCO NVMe — o dado está na RAM, não no disco."
+        },
+        {
+          "matchText": "Instâncias da família 'C' (Compute Optimized) — oferecem a maior proporção de vCPU por instância.",
+          "stage": "trap",
+          "reasonWrong": "A família C maximiza vCPU — mas o limite aqui é MEMÓRIA; seriam ainda mais instâncias fragmentadas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a família R oferece alta relação memória/vCPU: o dataset de vários GB cabe em MENOS instâncias, consolidando o processamento com a CPU moderada suficiente.",
+            "correct": true
+          },
+          {
+            "text": "Porque a família R compartilha RAM entre instâncias do mesmo host.",
+            "correct": false
+          },
+          {
+            "text": "Porque a família R usa memória persistente que sobrevive a reboots.",
+            "correct": false
+          },
+          {
+            "text": "Porque a família R comprime os dados em memória de forma transparente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-152",
+      "options": [
+        {
+          "matchText": "Instâncias da família 'I' (Storage Optimized, ex.: I3, I4i, I7ie) — equipadas com armazenamento NVMe SSD local de altíssimo IOPS e baixa latência.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Instâncias da família 'T' (Burstable) com EBS otimizado habilitado.",
+          "stage": "eliminate",
+          "reasonWrong": "A família T é burstable com EBS — nem de longe sustenta milhões de IOPS locais."
+        },
+        {
+          "matchText": "Instâncias da família 'C' (Compute Optimized) com armazenamento de instância (instance store) padrão.",
+          "stage": "eliminate",
+          "reasonWrong": "A família C otimiza CPU — seu instance store (quando existe) não é o NVMe massivo da família I."
+        },
+        {
+          "matchText": "Instâncias da família 'R' (Memory Optimized) com volumes Amazon EBS gp3 configurados com o máximo de IOPS provisionados.",
+          "stage": "trap",
+          "reasonWrong": "EBS gp3 mesmo no máximo é armazenamento DE REDE — latência maior e teto de IOPS muito abaixo do NVMe local da família I."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a família I traz NVMe SSD LOCAL de altíssimo IOPS e latência mínima — projetada para NoSQL auto-gerenciado (Cassandra) com milhões de operações aleatórias por segundo.",
+            "correct": true
+          },
+          {
+            "text": "Porque a família I replica o NVMe local para o EBS automaticamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a família I é a única que suporta o Cassandra na AWS.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NVMe local da família I persiste os dados após o término da instância.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-182",
+      "options": [
+        {
+          "matchText": "Adquirir um Compute Savings Plan, comprometendo-se com um valor de gasto por hora (USD/hora) por 1 ou 3 anos, que se aplica automaticamente ao uso de EC2 (qualquer família/tamanho/região/SO), AWS Fargate e AWS Lambda.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar o AWS Cost Explorer para identificar quais workloads podem ser desligadas durante a noite, reduzindo o número de horas cobradas.",
+          "stage": "eliminate",
+          "reasonWrong": "Desligar workloads à noite é otimização operacional — não é o desconto por compromisso pedido."
+        },
+        {
+          "matchText": "Adquirir Reserved Instances (Standard) de 3 anos para os tipos de instância EC2 atualmente em uso, garantindo o maior desconto possível.",
+          "stage": "trap",
+          "reasonWrong": "RIs Standard de 3 anos TRAVAM família/região — quebram com a migração planejada C5 → C6g e entre regiões."
+        },
+        {
+          "matchText": "Migrar todas as cargas de trabalho para Spot Instances, que não exigem nenhum compromisso e oferecem os maiores descontos possíveis.",
+          "stage": "eliminate",
+          "reasonWrong": "Spot tem o maior desconto mas com risco de interrupção — não é compromisso de desconto para cargas variadas e contínuas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Compute Savings Plan compromete USD/hora e aplica o desconto automaticamente a EC2 (qualquer família/tamanho/região/SO), Fargate e Lambda — flexibilidade total para as migrações planejadas.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Compute Savings Plan permite cancelar o compromisso com 30 dias de aviso.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Compute Savings Plan cobre também RDS e ElastiCache.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Compute Savings Plan dobra o desconto para instâncias Graviton.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-196",
+      "options": [
+        {
+          "matchText": "Usar o AWS CloudTrail para revisar o histórico de criação de cada recurso e identificar quais não são mais utilizados.",
+          "stage": "eliminate",
+          "reasonWrong": "O CloudTrail mostra QUEM criou o quê — revisar centenas de recursos manualmente é o oposto de automatizado."
+        },
+        {
+          "matchText": "Usar o AWS Trusted Advisor, que (no plano Business) inclui verificações na categoria 'Otimização de Custos' identificando instâncias EC2 com baixa utilização, Load Balancers ociosos, volumes EBS não associados e Elastic IPs não utilizados, entre outros, com recomendações específicas.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar o AWS Compute Optimizer, que cobre todos os tipos de recursos mencionados (incluindo Load Balancers ociosos e Elastic IPs não utilizados) com recomendações de remoção.",
+          "stage": "trap",
+          "reasonWrong": "O Compute Optimizer cobre EC2/EBS/Lambda/ASG — NÃO cobre Load Balancers ociosos nem Elastic IPs soltos."
+        },
+        {
+          "matchText": "Usar o AWS Config para criar regras customizadas que identifiquem cada um dos quatro tipos de recursos ociosos mencionados.",
+          "stage": "eliminate",
+          "reasonWrong": "Config com regras customizadas exigiria ESCREVER cada verificação — o Trusted Advisor já as tem prontas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Trusted Advisor (plano Business) já traz as checagens prontas de custo: EC2 subutilizada, ELB ocioso, EBS não associado e Elastic IP solto — centralizado e com recomendações.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Trusted Advisor remove os recursos ociosos automaticamente após 30 dias.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Trusted Advisor é o único serviço com acesso ao histórico de billing.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Trusted Advisor Business inclui um consultor humano dedicado.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-197",
+      "options": [
+        {
+          "matchText": "Adquirir uma Reserved Instance de 3 anos para a instância t3.medium, reduzindo o custo por hora da instância sempre ligada.",
+          "stage": "trap",
+          "reasonWrong": "A RI barateia a hora, mas continua pagando 24/7 por 57 minutos ociosos a cada hora."
+        },
+        {
+          "matchText": "Configurar a instância EC2 com Spot, mas mantê-la ligada continuamente, já que Spot Instances têm o menor custo por hora entre todas as opções do EC2.",
+          "stage": "eliminate",
+          "reasonWrong": "Spot ligada continuamente ainda paga o tempo ocioso — e pode ser interrompida."
+        },
+        {
+          "matchText": "Reescrever a rotina como uma função AWS Lambda, e configurar uma regra do Amazon EventBridge Scheduler para invocá-la a cada hora — a Lambda cobra apenas pelo tempo de execução (poucos minutos por invocação), eliminando o custo da instância EC2 ociosa pelo restante do tempo.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o tamanho da instância para t3.large, para que a rotina de processamento seja concluída mais rapidamente, reduzindo o tempo de execução.",
+          "stage": "eliminate",
+          "reasonWrong": "Instância maior custa MAIS e não elimina a ociosidade — só encurta os 3 minutos de trabalho."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a rotina de ~3 min/hora cabe no Lambda (limite 15 min): o EventBridge Scheduler invoca a cada hora e paga-se só o tempo executado — os 57 minutos ociosos custam zero.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Lambda comprime e move arquivos mais rápido que qualquer EC2.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EventBridge executa a rotina sem custo dentro do Free Tier para sempre.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Lambda mantém a instância EC2 ligada apenas durante os 3 minutos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-245",
+      "options": [
+        {
+          "matchText": "All at Once — atualiza todas as instâncias simultaneamente; se houver problema, um redeploy manual da versão anterior é necessário, mas o processo de atualização em si é o mais rápido",
+          "stage": "eliminate",
+          "reasonWrong": "All at Once atualiza tudo junto — DOWNTIME garantido e rollback via redeploy manual."
+        },
+        {
+          "matchText": "Blue/Green Deployment via Elastic Beanstalk — criar um ambiente idêntico ('green') com a nova versão, testar completamente, e depois usar 'Swap Environment URLs' para trocar o tráfego instantaneamente; o ambiente antigo ('blue') fica preservado para rollback imediato se necessário",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Immutable Deployment — lança novas instâncias em um grupo temporário com a nova versão; após saúde confirmada, substitui as antigas instâncias e termina as temporárias; rollback é feito terminando as novas instâncias",
+          "stage": "trap",
+          "reasonWrong": "O Immutable é seguro e sem downtime, mas o rollback IMEDIATO com um clique de volta é o diferencial do Blue/Green via swap de URLs."
+        },
+        {
+          "matchText": "Rolling with Additional Batch — implanta a nova versão em lotes, adicionando instâncias temporárias para manter a capacidade total, garantindo zero downtime durante a atualização",
+          "stage": "eliminate",
+          "reasonWrong": "Rolling with Additional Batch mantém capacidade, mas o rollback no meio do processo é lento e complexo — não é 'imediato'."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Blue/Green cria o ambiente 'green' completo, testa e faz Swap Environment URLs instantâneo — zero downtime, e o rollback é outro swap de volta para o 'blue' preservado.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Blue/Green atualiza as instâncias uma a uma sem criar ambiente novo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o swap de URLs migra os dados do banco entre os ambientes.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ambiente green é gratuito até receber tráfego de produção.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-269",
+      "options": [
+        {
+          "matchText": "EC2 Auto Scaling com Warm Pool — um Warm Pool mantém instâncias EC2 pré-iniciadas em estado 'stopped' ou 'running' (não registradas no ALB), prontas para uso imediato quando o ASG decide fazer scale-out; o custo é menor que instâncias totalmente ativas 24/7",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon SageMaker com Elastic Inference — SageMaker Elastic Inference conecta aceleração de GPU fracionada às instâncias de inferência, reduzindo o custo de GPU sem cold start",
+          "stage": "eliminate",
+          "reasonWrong": "Elastic Inference é aceleração fracionada para INFERÊNCIA no SageMaker — não resolve cold start de instâncias GPU do EC2."
+        },
+        {
+          "matchText": "Amazon EC2 Spot Instances em um ASG — Spot Instances têm custo menor e estão disponíveis imediatamente quando solicitadas, sem cold start",
+          "stage": "eliminate",
+          "reasonWrong": "Spot não elimina cold start — lançar e inicializar a instância GPU demora igual (e pode nem haver capacidade)."
+        },
+        {
+          "matchText": "Lambda com container images que incluem o modelo de ML — containers Lambda pré-aquecidos eliminam cold start, e Lambda escala automaticamente com as requisições de processamento de imagem",
+          "stage": "trap",
+          "reasonWrong": "Lambda NÃO tem GPU — containers com modelo de ML pesado em Lambda não substituem instâncias GPU."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Warm Pool mantém instâncias pré-inicializadas (stopped = só custo de EBS): no scale-out elas são promovidas em segundos, sem pagar GPU ociosa 24/7.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Warm Pool mantém a GPU aquecida fisicamente no datacenter.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Warm Pool pré-carrega os jobs de ML antes de eles chegarem.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Warm Pool usa instâncias de outros clientes em standby.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-275",
+      "options": [
+        {
+          "matchText": "EC2 Spot Instances com Spot Fleet — oferecem até 90% de desconto sobre On-Demand e são adequadas para aplicações críticas 24/7 com configuração de diversificação de pools",
+          "stage": "eliminate",
+          "reasonWrong": "Spot pode ser interrompida — inaceitável para aplicação CRÍTICA 24/7, mesmo com fleet diversificado."
+        },
+        {
+          "matchText": "Compute Savings Plans com 3 anos e All Upfront — mais flexíveis que RIs Standard e oferecem descontos similares (até 66%), aplicáveis a qualquer família de instância EC2, Lambda e Fargate sem compromisso com tamanho específico",
+          "stage": "trap",
+          "reasonWrong": "O Compute Savings Plan é mais FLEXÍVEL, mas o desconto máximo (~66%) fica ABAIXO da RI Standard 3 anos All Upfront (~72%) — a pergunta pede o MAIOR desconto."
+        },
+        {
+          "matchText": "On-Demand Instances com pagamento por segundo — a flexibilidade de desligar quando não estiver em uso reduz o custo total ao longo do ano, pois a empresa paga apenas pelo uso real",
+          "stage": "eliminate",
+          "reasonWrong": "On-Demand é o preço cheio — a aplicação roda 24/7, não há o que desligar."
+        },
+        {
+          "matchText": "EC2 Reserved Instances (Standard) com termo de 3 anos e pagamento total antecipado (All Upfront) — oferecem até 72% de desconto sobre On-Demand, o maior desconto disponível para uso comprometido de longa duração em uma família/tamanho/região específicos",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a RI Standard de 3 anos All Upfront dá até ~72% de desconto — o maior disponível — e o perfil (24/7, previsível, 3 anos de histórico) aceita o compromisso rígido.",
+            "correct": true
+          },
+          {
+            "text": "Porque a RI Standard permite trocar de família a cada trimestre.",
+            "correct": false
+          },
+          {
+            "text": "Porque o pagamento All Upfront isenta a empresa de tributos sobre a fatura.",
+            "correct": false
+          },
+          {
+            "text": "Porque a RI Standard inclui capacidade reservada em duas regiões.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-277",
+      "options": [
+        {
+          "matchText": "EC2 Scheduled Reserved Instances ou Auto Scaling com Scheduled Actions (scale-in para 0 fora do horário + scale-out para capacidade necessária às 9h) usando Spot Instances para os workers de batch — Spot Instance com Spot Fleet diversificado reduz custos em até 90% e Scheduled Actions evitam instâncias ociosas fora do horário",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar instâncias de menor tamanho (downsize) que rodem 24/7 em vez de instâncias grandes que ficam ociosas fora do horário",
+          "stage": "eliminate",
+          "reasonWrong": "Downsize 24/7 continua pagando 128 horas semanais de ociosidade — só que menor."
+        },
+        {
+          "matchText": "Migrar o workload de batch para AWS Lambda com Scheduled Events — Lambda cobra apenas pelo tempo de execução (milissegundos), sem custo para instâncias ociosas",
+          "stage": "trap",
+          "reasonWrong": "Lambda tem limite de 15 MINUTOS por execução — jobs batch de horas não cabem; e a proposta perde os workers Spot."
+        },
+        {
+          "matchText": "Reserved Instances Standard com 1 ano de termo para todas as instâncias de batch — garantem 40% de desconto sobre On-Demand mesmo para instâncias paradas fora do horário",
+          "stage": "eliminate",
+          "reasonWrong": "RIs para uso de ~24% do tempo pagam desconto sobre 76% de ociosidade — matemática ruim."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque Scheduled Actions zeram o grupo fora do horário (9h-17h úteis) e Spot diversificado corta até 90% do custo dos workers batch tolerantes a interrupção — o combo mais barato.",
+            "correct": true
+          },
+          {
+            "text": "Porque as Scheduled Actions hibernam as instâncias preservando os jobs.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Spot Fleet garante zero interrupções dentro do horário agendado.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Scheduled Actions convertem as instâncias em Lambda fora do horário.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-285",
+      "options": [
+        {
+          "matchText": "Usar apenas Spot Instances para todos os nós do cluster EMR — o EMR gerencia automaticamente a substituição de nós Spot interrompidos, mantendo o processamento sem perda de dados",
+          "stage": "trap",
+          "reasonWrong": "Spot em TODOS os nós põe o HDFS em risco: Core Nodes interrompidos perdem blocos de dados — 'sem perda de dados' é falso."
+        },
+        {
+          "matchText": "Usar EMR Serverless em vez de clusters EMR gerenciados — o EMR Serverless não tem Master, Core e Task Nodes separados, cobrando apenas pelo tempo de processamento sem gerenciamento de nós",
+          "stage": "eliminate",
+          "reasonWrong": "O EMR Serverless muda a plataforma — a pergunta é sobre otimizar o CLUSTER existente com nós."
+        },
+        {
+          "matchText": "Core Nodes com On-Demand ou Reserved Instances (para confiabilidade de dados no HDFS) + Task Nodes com Spot Instances (para processamento extra tolerante a interrupção) — Spot Instances para Task Nodes reduzem custo de computação em até 90% sem afetar a integridade dos dados no HDFS que reside nos Core Nodes",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar Spot Instances para Master Node e On-Demand para Core e Task Nodes — o Master Node não armazena dados e pode ser substituído facilmente se interrompido",
+          "stage": "eliminate",
+          "reasonWrong": "Master Node em Spot é o PIOR lugar: se ele cai, o cluster INTEIRO morre."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque Core Nodes (HDFS) em On-Demand/RI garantem os dados, e Task Nodes (só computação) em Spot cortam até 90% — interrompeu um Task, o Spark reprocessa sem perder nada.",
+            "correct": true
+          },
+          {
+            "text": "Porque os Task Nodes em Spot fazem backup do HDFS antes de serem interrompidos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EMR migra o HDFS para o S3 quando detecta interrupção Spot.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Core Nodes em RI processam o dobro de tasks por hora.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-287",
+      "options": [
+        {
+          "matchText": "Todos os workloads no ECS com Fargate — Fargate não requer gerenciamento de instâncias EC2, tem custo zero de ociosidade (paga apenas pela execução das tasks), e é mais econômico que EC2 para microsserviços 24/7",
+          "stage": "trap",
+          "reasonWrong": "Fargate para API 24/7 previsível sai MAIS caro que EC2 com RI — a conveniência tem preço por vCPU/GB maior."
+        },
+        {
+          "matchText": "Microsserviços de API no ECS Fargate com Provisioned Concurrency + Jobs de batch com Lambda (sem ECS) — Lambda escala para zero entre execuções, eliminando custos quando não há batch jobs",
+          "stage": "eliminate",
+          "reasonWrong": "Batch de 30 MINUTOS estoura o limite de 15 min do Lambda — inviável."
+        },
+        {
+          "matchText": "Microsserviços de API no ECS com EC2 launch type usando Reserved Instances (uso 24/7 previsível) + Jobs de batch no ECS com Fargate Spot ou EC2 Spot (tolerantes a interrupção, rodam esporadicamente) — RIs para uso contínuo e Spot para workloads esporádicos é a combinação mais econômica",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Todos os workloads em ECS com EC2 On-Demand — On-Demand oferece máxima flexibilidade sem compromisso, ideal para workloads de tráfego variável como batch jobs esporádicos",
+          "stage": "eliminate",
+          "reasonWrong": "On-Demand para tudo é o preço cheio: nem desconto de compromisso no 24/7, nem desconto Spot no batch."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o perfil 24/7 previsível pede EC2 + Reserved Instances (maior desconto de compromisso) e o batch esporádico e reiniciável pede Fargate Spot/EC2 Spot (até 70-90% de desconto).",
+            "correct": true
+          },
+          {
+            "text": "Porque o EC2 launch type executa containers mais rápido que o Fargate.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Fargate Spot mantém os batch jobs imunes a interrupções.",
+            "correct": false
+          },
+          {
+            "text": "Porque as RIs cobrem automaticamente as tasks Fargate do mesmo cluster.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-292",
+      "options": [
+        {
+          "matchText": "Health checks, configurados com um período de tolerância maior",
+          "stage": "trap",
+          "reasonWrong": "Health checks detectam saúde — não pausam a finalização para rodar scripts."
+        },
+        {
+          "matchText": "Políticas de escalabilidade (scaling policies) baseadas em métricas do CloudWatch",
+          "stage": "eliminate",
+          "reasonWrong": "Scaling policies decidem QUANDO escalar — não interceptam o término da instância."
+        },
+        {
+          "matchText": "Lifecycle hooks, que colocam a instância em um estado de espera (como 'Terminating:Wait') antes da finalização, permitindo a execução de ações personalizadas",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Launch templates com um script de inicialização (user data) diferente",
+          "stage": "eliminate",
+          "reasonWrong": "Launch template/user data roda na INICIALIZAÇÃO — não na finalização."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o lifecycle hook coloca a instância em Terminating:Wait: o script envia os logs e fecha as conexões graciosamente, e só então a finalização continua.",
+            "correct": true
+          },
+          {
+            "text": "Porque o lifecycle hook cancela o scale-in se o script demorar.",
+            "correct": false
+          },
+          {
+            "text": "Porque o lifecycle hook migra as conexões para a instância substituta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o lifecycle hook cria um snapshot completo antes de finalizar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-306",
+      "options": [
+        {
+          "matchText": "All at once",
+          "stage": "eliminate",
+          "reasonWrong": "All at once atualiza todas as instâncias juntas — downtime na certa."
+        },
+        {
+          "matchText": "Rolling",
+          "stage": "eliminate",
+          "reasonWrong": "Rolling atualiza em lotes REDUZINDO a capacidade durante o deploy — viola o requisito."
+        },
+        {
+          "matchText": "Immutable",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Rolling with additional batch",
+          "stage": "trap",
+          "reasonWrong": "Rolling with additional batch mantém a capacidade, mas mistura versões e o rollback no meio é lento — não é o mais seguro."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Immutable cria um conjunto NOVO e completo de instâncias em paralelo e só troca quando saudáveis — capacidade total o tempo todo e rollback rápido (descartar as novas).",
+            "correct": true
+          },
+          {
+            "text": "Porque o Immutable atualiza o código sem reiniciar as instâncias antigas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Immutable usa um segundo ambiente com URL própria trocada via DNS.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Immutable é a única política sem custo adicional de instâncias.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-307",
+      "options": [
+        {
+          "matchText": "Configurar Rolling deployment com lote de 100%",
+          "stage": "trap",
+          "reasonWrong": "Rolling com lote de 100% = all-at-once no MESMO ambiente — downtime e sem ambiente paralelo para reverter."
+        },
+        {
+          "matchText": "Usar o recurso 'Swap environment URLs' (troca de CNAMEs) entre os ambientes blue e green",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Habilitar o Managed Platform Updates",
+          "stage": "eliminate",
+          "reasonWrong": "Managed Platform Updates atualiza a PLATAFORMA (SO/runtime) — não versões da aplicação."
+        },
+        {
+          "matchText": "Reimplantar a versão anterior pelo console",
+          "stage": "eliminate",
+          "reasonWrong": "Reimplantar a versão anterior pelo console é o rollback LENTO que se quer eliminar."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Swap Environment URLs troca os CNAMEs entre blue e green: o tráfego migra quase instantaneamente para o clone validado, e a reversão é outra troca.",
+            "correct": true
+          },
+          {
+            "text": "Porque o swap copia as instâncias do green para dentro do blue.",
+            "correct": false
+          },
+          {
+            "text": "Porque o swap atualiza os registros A das instâncias uma a uma.",
+            "correct": false
+          },
+          {
+            "text": "Porque o swap exige recriar o ambiente antigo a cada troca.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-308",
+      "options": [
+        {
+          "matchText": "Aumentar o timeout do ALB para aguardar o processamento",
+          "stage": "trap",
+          "reasonWrong": "Prender a requisição HTTP esperando o processamento é antipadrão — degrada a experiência e estoura timeouts."
+        },
+        {
+          "matchText": "Criar um Worker Environment, que consome tarefas de uma fila Amazon SQS gerenciada pelo Beanstalk",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Mover o processamento para funções na borda com CloudFront Functions",
+          "stage": "eliminate",
+          "reasonWrong": "CloudFront Functions executam MILISSEGUNDOS de lógica na borda — inviável para processamento de imagens."
+        },
+        {
+          "matchText": "Usar instâncias Spot no mesmo ambiente web",
+          "stage": "eliminate",
+          "reasonWrong": "Spot no ambiente web muda o custo — não tira o processamento pesado do caminho das requisições."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Worker Environment do Beanstalk consome tarefas de uma fila SQS gerenciada: o web tier enfileira e o worker processa em segundo plano, com o daemon gerenciado pelo próprio Beanstalk.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Worker Environment executa as tarefas dentro do ALB.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Worker Environment usa Lambda para processar a fila.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Worker Environment prioriza as tarefas por tamanho de imagem.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-043",
+      "options": [
+        {
+          "matchText": "Roteamento de geolocalização",
+          "stage": "eliminate",
+          "reasonWrong": "Geolocalização roteia por ORIGEM do usuário — não retorna múltiplos IPs saudáveis."
+        },
+        {
+          "matchText": "Roteamento multivalue answer com health checks associados a cada registro",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Roteamento simples com vários IPs no mesmo registro",
+          "stage": "trap",
+          "reasonWrong": "Roteamento simples com vários IPs devolve todos SEM health check — clientes recebem IPs mortos."
+        },
+        {
+          "matchText": "CNAME apontando para cada instância sequencialmente",
+          "stage": "eliminate",
+          "reasonWrong": "CNAMEs sequenciais não fazem verificação de integridade nem distribuição."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o multivalue answer retorna até 8 registros SAUDÁVEIS por consulta (health check por registro), excluindo os reprovados — distribuição simples com verificação via DNS.",
+            "correct": true
+          },
+          {
+            "text": "Porque o multivalue answer balanceia a carga medindo a CPU das instâncias.",
+            "correct": false
+          },
+          {
+            "text": "Porque o multivalue answer converte o Route 53 em um load balancer L7.",
+            "correct": false
+          },
+          {
+            "text": "Porque o multivalue answer retorna sempre o IP mais próximo do cliente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-052",
+      "options": [
+        {
+          "matchText": "VPC Peering entre as duas Regiões",
+          "stage": "eliminate",
+          "reasonWrong": "VPC Peering conecta redes — não roteia usuários globais nem faz failover."
+        },
+        {
+          "matchText": "AWS Global Accelerator, com IPs anycast estáticos e failover automático baseado em health checks dos endpoints regionais",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Route 53 failover com TTL alto para estabilidade",
+          "stage": "trap",
+          "reasonWrong": "Failover DNS depende do TTL dos clientes — TTL ALTO deixa o failover ainda MAIS lento; viola o requisito."
+        },
+        {
+          "matchText": "CloudFront com duas origens",
+          "stage": "eliminate",
+          "reasonWrong": "CloudFront é para conteúdo HTTP cacheável — a aplicação é TCP puro."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Global Accelerator dá 2 IPs anycast ESTÁTICOS (firewall feliz) e desvia o tráfego entre regiões em SEGUNDOS via health checks — sem depender de cache de DNS.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Global Accelerator atualiza o DNS dos clientes com TTL de 1 segundo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Global Accelerator mantém as duas regiões ativas simultaneamente para cada conexão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Global Accelerator tuneliza o tráfego via VPN entre as regiões.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-066",
+      "options": [
+        {
+          "matchText": "Ativar restrição geográfica nas Edge Locations",
+          "stage": "eliminate",
+          "reasonWrong": "Restrição geográfica bloqueia países — nada a ver com hit ratio."
+        },
+        {
+          "matchText": "Reduzir o TTL para zero e revalidar tudo na origem",
+          "stage": "trap",
+          "reasonWrong": "TTL zero revalida TUDO na origem — destrói o cache em vez de aproveitá-lo."
+        },
+        {
+          "matchText": "Ajustar a cache policy para excluir da cache key os parâmetros irrelevantes, mantendo apenas os que realmente alteram o conteúdo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Remover a distribuição e servir direto do S3",
+          "stage": "eliminate",
+          "reasonWrong": "Servir direto do S3 elimina a CDN inteira — joga fora latência e offload."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque cada combinação de query string na cache key gera entrada própria: excluindo os parâmetros de rastreamento irrelevantes, requisições equivalentes compartilham a mesma entrada e o hit ratio sobe.",
+            "correct": true
+          },
+          {
+            "text": "Porque a cache policy comprime os parâmetros de marketing para caberem no cache.",
+            "correct": false
+          },
+          {
+            "text": "Porque excluir parâmetros da cache key os remove da requisição à origem sempre.",
+            "correct": false
+          },
+          {
+            "text": "Porque a cache key menor reduz o tamanho dos objetos armazenados na borda.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-081",
+      "options": [
+        {
+          "matchText": "Roteamento baseado em latência (latency-based routing)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Roteamento de geolocalização",
+          "stage": "trap",
+          "reasonWrong": "Geolocalização decide pelo MAPA (país/continente) — nem sempre é a rota de rede mais rápida."
+        },
+        {
+          "matchText": "Roteamento de failover",
+          "stage": "eliminate",
+          "reasonWrong": "Failover é ativo-passivo — não otimiza tempo de resposta por usuário."
+        },
+        {
+          "matchText": "Roteamento ponderado 50/50",
+          "stage": "eliminate",
+          "reasonWrong": "Ponderado 50/50 ignora completamente a localização e a latência do usuário."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o latency-based routing usa medições REAIS de latência da AWS e responde com a região mais rápida para cada cliente — rede medida, não geografia presumida.",
+            "correct": true
+          },
+          {
+            "text": "Porque o latency-based routing testa a latência do navegador a cada acesso.",
+            "correct": false
+          },
+          {
+            "text": "Porque o latency-based routing move a aplicação para a região do usuário.",
+            "correct": false
+          },
+          {
+            "text": "Porque o latency-based routing só funciona com o Global Accelerator.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-082",
+      "options": [
+        {
+          "matchText": "Reduzir o TTL do cache para forçar downloads frequentes",
+          "stage": "trap",
+          "reasonWrong": "TTL menor força downloads MAIS frequentes — piora exatamente o gargalo."
+        },
+        {
+          "matchText": "Desabilitar o HTTPS para reduzir overhead",
+          "stage": "eliminate",
+          "reasonWrong": "Desabilitar HTTPS é inaceitável em segurança e o ganho seria irrisório."
+        },
+        {
+          "matchText": "Mudar a origem para uma instância maior",
+          "stage": "eliminate",
+          "reasonWrong": "Instância maior na origem não muda os BYTES transferidos na última milha móvel."
+        },
+        {
+          "matchText": "Habilitar a compressão automática de objetos no CloudFront (gzip/Brotli) para clientes que a suportam",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a compressão automática do CloudFront (Brotli/gzip conforme Accept-Encoding) comprime JS/CSS na borda — muito menos bytes e menor tempo de download em redes móveis.",
+            "correct": true
+          },
+          {
+            "text": "Porque a compressão reduz a resolução das imagens automaticamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a compressão junta os arquivos JS e CSS em um único bundle.",
+            "correct": false
+          },
+          {
+            "text": "Porque a compressão exige pré-comprimir os arquivos na origem.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-105",
+      "options": [
+        {
+          "matchText": "Usar um único registro CNAME apontando para us-east-1 e atualizá-lo manualmente para us-west-2 caso o ambiente primário fique indisponível.",
+          "stage": "eliminate",
+          "reasonWrong": "CNAME atualizado MANUALMENTE depende de alguém acordar de madrugada — não é automático."
+        },
+        {
+          "matchText": "Configurar registros com política de roteamento Failover, associando um Health Check ao endpoint primário em us-east-1 e definindo o registro de us-west-2 como secundário.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar registros com política de roteamento por Latência (Latency-based), apontando para us-east-1 e us-west-2.",
+          "stage": "trap",
+          "reasonWrong": "Latency-based DIVIDE o tráfego pela latência — o standby receberia tráfego em operação normal."
+        },
+        {
+          "matchText": "Configurar registros com política de roteamento Ponderado (Weighted), distribuindo 90% do tráfego para us-east-1 e 10% para us-west-2.",
+          "stage": "eliminate",
+          "reasonWrong": "Weighted 90/10 manda 10% dos usuários para o standby o tempo todo — e não alterna sozinho na falha."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Failover routing monitora o primário via health check: saudável = tudo para us-east-1; falhou = DNS passa a responder com o standby de us-west-2 automaticamente.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Failover routing replica a aplicação para a região secundária.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Failover routing mantém as duas regiões ativas dividindo a carga.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Failover routing reinicia o endpoint primário antes de alternar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-233",
+      "options": [
+        {
+          "matchText": "Amazon Route 53 com routing policy de Failover (Primary/Secondary) e health checks ativos no endpoint da API — quando o health check detecta falha na região primária (30-60s), Route 53 automaticamente resolve o DNS para o endpoint da região secundária",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Lambda com Event Source Mapping cross-region — Lambda automaticamente processa eventos da região secundária quando a primária está indisponível",
+          "stage": "eliminate",
+          "reasonWrong": "'Event Source Mapping cross-region' não é mecanismo de failover de API REST."
+        },
+        {
+          "matchText": "AWS Global Accelerator com endpoint groups em duas regiões e health checks — o Global Accelerator detecta a falha e redireciona o tráfego em segundos via Anycast, sem depender de propagação DNS",
+          "stage": "trap",
+          "reasonWrong": "O Global Accelerator falha em segundos e É excelente — mas para uma API REST DNS-based com requisito de <60s, a resposta canônica da questão é o Failover do Route 53; o Accelerator muda os IPs de entrada da API (e o cenário não pede IP estático)."
+        },
+        {
+          "matchText": "Amazon CloudFront com Origins em duas regiões e Origin Failover habilitado — CloudFront detecta erros HTTP 5xx da origem primária e automaticamente tenta a origem secundária na mesma requisição",
+          "stage": "eliminate",
+          "reasonWrong": "O Origin Failover do CloudFront cobre ERROS por requisição na origem — não é failover DNS regional de API completa."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Route 53 Failover com health checks (10-30s de intervalo) detecta a falha e passa a resolver para a região secundária — failover automático dentro da janela de ~60s.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Route 53 propaga a mudança instantaneamente para todos os resolvers do mundo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o health check do Route 53 reinicia a API primária antes do failover.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Failover routing balanceia o tráfego entre as duas regiões após a falha.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-243",
+      "options": [
+        {
+          "matchText": "Weighted Routing Policy — o time cria dois records para o mesmo nome de domínio com pesos diferentes (ex.: versão atual com peso 90, nova versão com peso 10), e o Route 53 distribui o tráfego proporcionalmente aos pesos, resultando em ~10% para a nova versão",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Latency-based Routing Policy — os usuários mais próximos geograficamente da nova versão (que está em uma região diferente) recebem tráfego proporcional à latência, resultando em ~10% conforme a distribuição geográfica",
+          "stage": "eliminate",
+          "reasonWrong": "Latency-based roteia pela latência de rede — o percentual não é controlável."
+        },
+        {
+          "matchText": "Geolocation Routing Policy com a região onde a nova versão está deployada recebendo usuários de uma área geográfica específica que representa ~10% da base de usuários",
+          "stage": "trap",
+          "reasonWrong": "Geolocation por área que 'representa ~10%' é gambiarra imprecisa e enviesada geograficamente — canary deve ser aleatório."
+        },
+        {
+          "matchText": "Failover Routing Policy com health checks configurados para alternar entre primário (90%) e secundário (10%) baseado em disponibilidade",
+          "stage": "eliminate",
+          "reasonWrong": "Failover é tudo-ou-nada por saúde — não divide percentualmente."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Weighted Routing com pesos 90/10 no mesmo hostname distribui ~10% das resoluções para a nova versão — o mecanismo padrão de canary via DNS, ajustável a qualquer momento.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Weighted Routing identifica os usuários beta pelo cookie de sessão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Weighted Routing mede a qualidade da nova versão e ajusta os pesos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Weighted Routing exige health checks para dividir o tráfego.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-255",
+      "options": [
+        {
+          "matchText": "Cache Behaviors no CloudFront — cada Cache Behavior mapeia um path pattern (ex.: /api/*, /static/*) a configurações independentes de TTL, headers encaminhados, e origem; a ordem de precedência dos behaviors (mais específicos primeiro) determina qual configuração é aplicada a cada requisição",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar Lambda@Edge no viewer request para modificar o TTL com base no caminho — a função inspeciona o path e define o header Cache-Control correto antes do cache verification",
+          "stage": "eliminate",
+          "reasonWrong": "Lambda@Edge para definir TTL por path é código e custo para algo que a distribuição resolve por CONFIGURAÇÃO."
+        },
+        {
+          "matchText": "Criar duas distribuições CloudFront separadas — uma para /api/* com TTL=0 e outra para /static/* com TTL=24h — e usar Route 53 para rotear os paths corretos para cada distribuição",
+          "stage": "eliminate",
+          "reasonWrong": "Duas distribuições + Route 53 não roteiam por PATH (DNS não enxerga caminho) — e duplicam a gestão."
+        },
+        {
+          "matchText": "Configurar Origin Response Headers Policies separadas para cada caminho — a origem retorna cabeçalhos Cache-Control diferentes para /api/* e /static/*, e o CloudFront respeita automaticamente esses cabeçalhos por caminho",
+          "stage": "trap",
+          "reasonWrong": "Headers da origem ajudam, mas a pergunta pede a funcionalidade DO CLOUDFRONT que aplica configurações POR CAMINHO — cache behaviors; e depender só da origem não separa TTLs de forma garantida na distribuição."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque Cache Behaviors mapeiam path patterns (/api/* TTL=0, /static/* TTL=24h) a configurações independentes de cache, headers e origem — avaliados por precedência do mais específico.",
+            "correct": true
+          },
+          {
+            "text": "Porque os Cache Behaviors reescrevem os caminhos antes de chegar à origem.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Cache Behaviors criam distribuições separadas internamente por path.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Cache Behaviors aplicam o TTL do último behavior criado.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-272",
+      "options": [
+        {
+          "matchText": "Global Accelerator cacheia conteúdo HTTP nas edge locations assim como o CloudFront, mas também suporta UDP para aplicações de jogos — ambos os serviços são CDNs, com o Global Accelerator sendo mais completo",
+          "stage": "trap",
+          "reasonWrong": "O Global Accelerator NÃO cacheia conteúdo — não é CDN; a afirmação mistura os dois produtos."
+        },
+        {
+          "matchText": "Global Accelerator usa a rede backbone privada da AWS (Anycast de IPs estáticos) para rotear tráfego TCP/UDP com latência mais previsível para qualquer origem — ideal para aplicações não-HTTP (UDP, TCP custom), IPs estáticos necessários, e failover de endpoint; CloudFront é um CDN que cacheia conteúdo em edge locations, otimizado para HTTP/S com benefício máximo em conteúdo cacheável",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Ambos os serviços são equivalentes para aplicações web — a diferença é apenas de custo: Global Accelerator é mais caro por GB de dados, enquanto CloudFront é cobrado por requisição",
+          "stage": "eliminate",
+          "reasonWrong": "Não são equivalentes: um acelera transporte TCP/UDP com IPs estáticos, o outro cacheia conteúdo HTTP."
+        },
+        {
+          "matchText": "CloudFront suporta protocolos TCP/UDP incluindo WebSockets e gRPC — portanto, para jogos online com requisitos de baixa latência, CloudFront é superior ao Global Accelerator pois também cacheia assets estáticos do jogo",
+          "stage": "eliminate",
+          "reasonWrong": "O CloudFront não é a escolha para UDP de jogos — ele é HTTP/S; gRPC/WebSockets não o tornam acelerador de UDP."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Global Accelerator dá IPs anycast estáticos e leva TCP/UDP pela backbone privada (latência previsível, failover) sem cache; o CloudFront é CDN HTTP/S que cacheia na borda — jogos = Accelerator.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Global Accelerator é a versão paga do CloudFront com mais edge locations.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CloudFront acelera UDP quando o Origin Shield está habilitado.",
+            "correct": false
+          },
+          {
+            "text": "Porque os dois compartilham o mesmo cache global da AWS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-283",
+      "options": [
+        {
+          "matchText": "Migrar o conteúdo estático para um bucket S3 com S3 Transfer Acceleration — o Transfer Acceleration usa edge locations do CloudFront para uploads mas tem menor custo de egress para regiões distantes",
+          "stage": "eliminate",
+          "reasonWrong": "O Transfer Acceleration é para UPLOADS ao S3 — não reduz o custo de DISTRIBUIÇÃO do CloudFront."
+        },
+        {
+          "matchText": "Configurar o CloudFront Price Class — usar 'Price Class 100' (apenas Américas e Europa) em vez da padrão que inclui todas as regiões; usuários da Ásia/Oceania ainda são atendidos mas pelas edge locations mais próximas dentro do Price Class (com latência ligeiramente maior), enquanto os custos de transfer são reduzidos por excluir as regiões de maior preço por GB",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar um cache maior no CloudFront (aumentar o TTL máximo) — objetos cacheados por mais tempo resultam em menos requests à origem e menos custo de transferência de dados",
+          "stage": "trap",
+          "reasonWrong": "Aumentar TTL reduz requisições à ORIGEM — o custo dominante aqui é a transferência das edges caras da Ásia/Oceania, que continua."
+        },
+        {
+          "matchText": "Usar CloudFront Signed URLs com TTL de 24 horas — URLs assinadas evitam que bots e scrapers consumam banda do CloudFront nas regiões de alto custo, reduzindo o custo total",
+          "stage": "eliminate",
+          "reasonWrong": "Signed URLs controlam ACESSO — bots são hipótese inventada; o custo por região continua o mesmo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Price Class 100 restringe a distribuição às edges das Américas e Europa (as mais baratas): os usuários principais mantêm a experiência e as regiões caras saem da conta.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Price Class 100 bloqueia o acesso de usuários da Ásia e Oceania.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Price Class 100 dá desconto de 50% em todas as edge locations.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Price Class 100 move o conteúdo para buckets regionais mais baratos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-032",
+      "options": [
+        {
+          "matchText": "Múltiplas contas eliminam a necessidade de IAM dentro de cada uma",
+          "stage": "eliminate",
+          "reasonWrong": "O IAM continua necessário DENTRO de cada conta — contas não substituem permissões."
+        },
+        {
+          "matchText": "A AWS oferece desconto de faturamento para organizações com mais contas",
+          "stage": "eliminate",
+          "reasonWrong": "Não existe desconto por quantidade de contas — o Consolidated Billing agrega uso, o que é outra coisa."
+        },
+        {
+          "matchText": "Contas separadas dobram automaticamente os limites de serviço sem custo",
+          "stage": "trap",
+          "reasonWrong": "Limites de serviço são POR CONTA, mas isso não é 'dobrar sem custo' nem o benefício de segurança perguntado."
+        },
+        {
+          "matchText": "Cada conta é uma fronteira rígida de isolamento: um comprometimento ou erro em uma conta não afeta diretamente os recursos das demais",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a conta é a fronteira de isolamento mais forte da AWS: comprometimento ou erro em uma não alcança as demais — blast radius contido, com SCPs específicas por OU.",
+            "correct": true
+          },
+          {
+            "text": "Porque contas separadas compartilham as roles IAM automaticamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a separação em OUs criptografa o tráfego entre as contas.",
+            "correct": false
+          },
+          {
+            "text": "Porque cada conta ganha um firewall gerenciado exclusivo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-174",
+      "options": [
+        {
+          "matchText": "Usar o AWS Trusted Advisor para alertar a equipe de governança sempre que recursos forem criados em regiões não permitidas.",
+          "stage": "eliminate",
+          "reasonWrong": "O Trusted Advisor ALERTA depois — não impede a criação; e o requisito é bloqueio."
+        },
+        {
+          "matchText": "Em cada conta (dev e teste), criar uma política IAM que nega ações fora de 'us-east-1' e 'sa-east-1', e anexá-la a todos os usuários e roles existentes.",
+          "stage": "trap",
+          "reasonWrong": "Políticas IAM em cada conta podem ser REMOVIDAS pelos administradores locais — e configurar conta a conta viola o 'centralizado'."
+        },
+        {
+          "matchText": "Usar o AWS Organizations para agrupar as contas de desenvolvimento e teste em uma Unidade Organizacional (OU), e aplicar uma Service Control Policy (SCP) que nega ações em regiões fora de 'us-east-1' e 'sa-east-1' para essa OU.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar o AWS Config em cada conta para detectar e excluir automaticamente recursos criados em regiões não permitidas.",
+          "stage": "eliminate",
+          "reasonWrong": "O Config DETECTA e remedia depois que o recurso existiu — não bloqueia preventivamente."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a SCP na OU com condição aws:RequestedRegion nega ações fora de us-east-1/sa-east-1 para TODAS as identidades das contas — teto central que o IAM local não contorna.",
+            "correct": true
+          },
+          {
+            "text": "Porque a SCP remove as regiões extras do console das contas afetadas.",
+            "correct": false
+          },
+          {
+            "text": "Porque a SCP transfere os recursos existentes para as regiões permitidas.",
+            "correct": false
+          },
+          {
+            "text": "Porque a SCP concede as permissões básicas nas duas regiões liberadas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-203",
+      "options": [
+        {
+          "matchText": "AWS Config Rule que detecta a criação de access keys e notifica o time de segurança via SNS",
+          "stage": "eliminate",
+          "reasonWrong": "Config Rule + SNS é DETECÇÃO — as access keys já teriam sido criadas."
+        },
+        {
+          "matchText": "Service Control Policy (SCP) aplicada à OU no AWS Organizations, com um Deny explícito para iam:CreateAccessKey — SCPs agem como teto de permissões que nenhuma política na conta filha pode contornar",
+          "stage": "correct"
+        },
+        {
+          "matchText": "IAM Permission Boundary aplicada a todos os usuários IAM dentro de cada conta filha",
+          "stage": "trap",
+          "reasonWrong": "Permission Boundaries são aplicadas POR entidade DENTRO da conta — o admin local pode não aplicá-las; não é teto externo."
+        },
+        {
+          "matchText": "IAM Policy do tipo Deny aplicada a todos os grupos IAM em cada conta filha, negando a ação iam:CreateAccessKey",
+          "stage": "eliminate",
+          "reasonWrong": "Deny em grupos IAM da conta filha pode ser editado/removido pelo próprio admin da conta."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a SCP com Deny explícito em iam:CreateAccessKey é um teto EXTERNO à conta: vale para todas as identidades, inclusive o administrador local — nada dentro da conta o contorna.",
+            "correct": true
+          },
+          {
+            "text": "Porque a SCP desativa as access keys existentes na OU imediatamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a SCP substitui as políticas IAM das contas filhas.",
+            "correct": false
+          },
+          {
+            "text": "Porque a SCP exige MFA para criar access keys em vez de bloquear.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-248",
+      "options": [
+        {
+          "matchText": "Criar uma Lambda com SDK da AWS que itera por todas as 50 contas e executa `aws cloudformation update-stack` em cada uma — isso propaga a mudança sem necessidade de configuração adicional no StackSet",
+          "stage": "trap",
+          "reasonWrong": "Lambda iterando 50 contas com update-stack é reimplementar o StackSets na mão — frágil e sem controle de concorrência/rollback."
+        },
+        {
+          "matchText": "Habilitar o Parameter Store Override no StackSet para que cada conta aplique seus próprios parâmetros quando o template é atualizado centralmente",
+          "stage": "eliminate",
+          "reasonWrong": "'Parameter Store Override' não é um recurso do StackSets."
+        },
+        {
+          "matchText": "Usar AWS Config Conformance Packs com Auto-Remediation — o Conformance Pack detecta e aplica automaticamente a configuração desejada em todas as contas sem necessidade de StackSets",
+          "stage": "eliminate",
+          "reasonWrong": "Conformance Packs avaliam CONFORMIDADE — não implantam a infraestrutura do template."
+        },
+        {
+          "matchText": "CloudFormation StackSets com Auto Deployment habilitado para Organizations — quando activado, o StackSet automaticamente cria stack instances em contas novas adicionadas à OU, remove de contas removidas, e pode ser configurado para propagar atualizações de template automaticamente para todas as contas existentes",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o StackSets com Auto Deployment (service-managed, integrado ao Organizations) cria instâncias em contas novas da OU, remove das que saem e propaga atualizações do template para todas — com controle de concorrência.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Auto Deployment executa o template só na conta de gerenciamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Auto Deployment converte o template em SCP para as contas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Auto Deployment exige aprovação manual de cada conta filha.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-041",
+      "options": [
+        {
+          "matchText": "Reiniciar manualmente as instâncias travadas todos os dias",
+          "stage": "eliminate",
+          "reasonWrong": "Reiniciar manualmente todo dia é operação braçal — não é solução de arquitetura."
+        },
+        {
+          "matchText": "Aumentar o tempo do health check grace period",
+          "stage": "trap",
+          "reasonWrong": "O grace period só ADIA a avaliação de saúde após o launch — não faz o ASG enxergar a falha da aplicação."
+        },
+        {
+          "matchText": "Trocar o ALB por um NLB",
+          "stage": "eliminate",
+          "reasonWrong": "Trocar para NLB não muda o tipo de health check que o ASG usa."
+        },
+        {
+          "matchText": "Configurar o Auto Scaling Group para usar o health check do tipo ELB, considerando não saudável a instância reprovada no health check do balanceador",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque com health check type ELB o ASG adota a visão do balanceador (que testa a RESPOSTA HTTP): app travada = reprovada no ALB = instância substituída — o que o status check do EC2 não detecta.",
+            "correct": true
+          },
+          {
+            "text": "Porque o health check ELB reinicia o processo da aplicação dentro da instância.",
+            "correct": false
+          },
+          {
+            "text": "Porque o health check ELB verifica os logs da aplicação em busca de erros.",
+            "correct": false
+          },
+          {
+            "text": "Porque o health check ELB migra as conexões antes de substituir a instância.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-042",
+      "options": [
+        {
+          "matchText": "Provisionar capacidade extra (N+1 por AZ), de modo que as AZs remanescentes somem a capacidade necessária para o pico mesmo perdendo uma zona",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar apenas instâncias Spot para a capacidade de contingência",
+          "stage": "eliminate",
+          "reasonWrong": "Spot para CONTINGÊNCIA é aposta: na falha de uma AZ a capacidade Spot pode estar disputada e sumir também."
+        },
+        {
+          "matchText": "Reduzir a capacidade mínima para economizar e escalar somente após a falha",
+          "stage": "trap",
+          "reasonWrong": "Escalar SÓ APÓS a falha depende de lançamentos de emergência — quando todo mundo disputa capacidade na região."
+        },
+        {
+          "matchText": "Concentrar todas as instâncias na AZ mais confiável",
+          "stage": "eliminate",
+          "reasonWrong": "Concentrar tudo numa AZ 'confiável' cria o ponto único de falha máximo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque resiliência estática = provisionar N+1 por AZ: perdendo uma zona, as remanescentes ainda somam 100% do pico — sem depender de scale-out de emergência.",
+            "correct": true
+          },
+          {
+            "text": "Porque o N+1 dobra a capacidade de cada AZ automaticamente nos picos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o N+1 garante que a AWS priorize a conta em caso de falta de capacidade.",
+            "correct": false
+          },
+          {
+            "text": "Porque o N+1 permite desligar os health checks das AZs saudáveis.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-051",
+      "options": [
+        {
+          "matchText": "Fazer deploys somente de madrugada",
+          "stage": "eliminate",
+          "reasonWrong": "Deploy de madrugada só esconde o downtime — e o rollback continua lento."
+        },
+        {
+          "matchText": "Implantação in-place em todas as instâncias simultaneamente",
+          "stage": "trap",
+          "reasonWrong": "In-place em todas as instâncias SIMULTANEAMENTE é o downtime máximo possível."
+        },
+        {
+          "matchText": "Desativar os health checks durante o deploy",
+          "stage": "eliminate",
+          "reasonWrong": "Desativar health checks cega o balanceador — os usuários é que descobrem o bug."
+        },
+        {
+          "matchText": "Implantação blue/green: provisionar o ambiente novo em paralelo, redirecionar o tráfego ao validá-lo e manter o antigo pronto para reversão imediata",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque no blue/green o ambiente novo sobe em paralelo, o tráfego migra após validação e o antigo fica pronto: problema = redirecionamento de volta em segundos, downtime zero.",
+            "correct": true
+          },
+          {
+            "text": "Porque o blue/green atualiza metade das instâncias de cada vez.",
+            "correct": false
+          },
+          {
+            "text": "Porque o blue/green faz o backup do banco antes de cada deploy.",
+            "correct": false
+          },
+          {
+            "text": "Porque o blue/green agenda a troca para o horário de menor tráfego.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-059",
+      "options": [
+        {
+          "matchText": "Converter o NLB para Gateway Load Balancer",
+          "stage": "eliminate",
+          "reasonWrong": "O Gateway Load Balancer é para appliances de rede (firewalls) — não resolve distribuição entre zonas."
+        },
+        {
+          "matchText": "Adicionar um segundo balanceador na mesma VPC",
+          "stage": "eliminate",
+          "reasonWrong": "Um segundo balanceador duplica a infraestrutura sem mudar o comportamento por zona."
+        },
+        {
+          "matchText": "Remover os health checks para incluir todos os targets",
+          "stage": "trap",
+          "reasonWrong": "Remover health checks manda tráfego para targets DOENTES — piora tudo."
+        },
+        {
+          "matchText": "Habilitar o cross-zone load balancing no balanceador",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o cross-zone load balancing (opcional no NLB) faz cada nó distribuir para os targets saudáveis de TODAS as AZs — a carga equaliza mesmo com zonas desbalanceadas.",
+            "correct": true
+          },
+          {
+            "text": "Porque o cross-zone move os targets para a AZ com menos carga.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cross-zone cria um nó extra do balanceador em cada AZ.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cross-zone só funciona quando as AZs têm o mesmo número de targets.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-071",
+      "options": [
+        {
+          "matchText": "Route 53 com registros A fixos para as instâncias",
+          "stage": "eliminate",
+          "reasonWrong": "Registros A fixos para instâncias não balanceiam com health check nem aguentam milhões de conexões — e IP de instância muda."
+        },
+        {
+          "matchText": "Network Load Balancer, que opera na camada 4 com altíssimo desempenho e oferece um IP estático (ou Elastic IP) por Zona de Disponibilidade",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Classic Load Balancer",
+          "stage": "eliminate",
+          "reasonWrong": "O Classic Load Balancer é legado — sem IP estático e sem o desempenho de camada 4 do NLB."
+        },
+        {
+          "matchText": "Application Load Balancer com regras de roteamento por caminho",
+          "stage": "trap",
+          "reasonWrong": "O ALB é camada 7 (HTTP) com IPs VARIÁVEIS — não atende TCP puro com IP fixo para firewall."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o NLB une os dois requisitos: camada 4 com milhões de conexões e latência mínima + IP estático (ou Elastic IP) por AZ para liberação no firewall do parceiro.",
+            "correct": true
+          },
+          {
+            "text": "Porque o NLB inspeciona o conteúdo TCP para rotear com inteligência.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB compartilha um único IP global entre todas as regiões.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB é o único balanceador que suporta health checks.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-075",
+      "options": [
+        {
+          "matchText": "Simple scaling com cooldown maior",
+          "stage": "trap",
+          "reasonWrong": "Simple scaling com cooldown maior fica ainda MAIS lento — continua reagindo depois do pico começar."
+        },
+        {
+          "matchText": "Health checks mais frequentes no ALB",
+          "stage": "eliminate",
+          "reasonWrong": "Health checks do ALB detectam instâncias doentes — não antecipam capacidade."
+        },
+        {
+          "matchText": "Desligar o Auto Scaling e fixar capacidade máxima permanente",
+          "stage": "eliminate",
+          "reasonWrong": "Capacidade máxima fixa 24/7 resolve o pico pagando desperdício o dia inteiro."
+        },
+        {
+          "matchText": "Predictive scaling, que prevê a demanda a partir do histórico de métricas e escala antecipadamente",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o predictive scaling aprende o padrão histórico com ML e agenda a capacidade ANTES do pico das 8h — combinável com target tracking para ajustes em tempo real.",
+            "correct": true
+          },
+          {
+            "text": "Porque o predictive scaling aumenta a CPU das instâncias existentes antes do pico.",
+            "correct": false
+          },
+          {
+            "text": "Porque o predictive scaling consulta a agenda corporativa do RH para prever os acessos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o predictive scaling reserva instâncias Spot com antecedência.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-101",
+      "options": [
+        {
+          "matchText": "Configurar o Auto Scaling Group para usar sub-redes em pelo menos duas AZs e associar o ALB a sub-redes nessas mesmas AZs.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Habilitar Multi-AZ apenas no banco de dados RDS utilizado pela aplicação.",
+          "stage": "trap",
+          "reasonWrong": "Multi-AZ no RDS protege o BANCO — as instâncias web e o ALB continuariam morrendo com a AZ."
+        },
+        {
+          "matchText": "Aumentar o tamanho (tipo) das instâncias EC2 para suportar mais carga em caso de pico.",
+          "stage": "eliminate",
+          "reasonWrong": "Instâncias maiores na MESMA AZ caem juntas do mesmo jeito."
+        },
+        {
+          "matchText": "Substituir as múltiplas instâncias por uma única instância EC2 maior com um Elastic IP associado.",
+          "stage": "eliminate",
+          "reasonWrong": "Uma única instância com Elastic IP é o ponto único de falha definitivo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque ASG em sub-redes de 2+ AZs (com o ALB nas mesmas AZs) repõe instâncias em zona saudável e o ALB roteia só para alvos íntegros — a falha de uma AZ não derruba nada.",
+            "correct": true
+          },
+          {
+            "text": "Porque o ASG multi-AZ mantém uma cópia espelhada de cada instância na outra zona.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ALB migra as instâncias da AZ que falhou para a saudável.",
+            "correct": false
+          },
+          {
+            "text": "Porque as sub-redes multi-AZ compartilham os mesmos IPs em caso de falha.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-107",
+      "options": [
+        {
+          "matchText": "Alterar o tipo de health check do Auto Scaling Group para ELB e configurar um health check no target group do ALB que verifique um endpoint da aplicação.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Criar um alarme do CloudWatch baseado na métrica CPUUtilization para disparar uma ação de scaling.",
+          "stage": "trap",
+          "reasonWrong": "Alarme de CPU dispara SCALING por carga — app travada pode até ter CPU baixa; não substitui a instância doente."
+        },
+        {
+          "matchText": "Aumentar o período de cooldown do Auto Scaling Group.",
+          "stage": "eliminate",
+          "reasonWrong": "Cooldown maior só ESPAÇA as ações de scaling — nada a ver com detectar aplicação travada."
+        },
+        {
+          "matchText": "Manter o tipo de health check padrão (EC2), que já verifica o status do sistema operacional e do hardware da instância.",
+          "stage": "eliminate",
+          "reasonWrong": "Manter o health check EC2 é manter o problema: ele só vê infraestrutura, não o processo da aplicação."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque com health check type ELB o ASG adota o veredito do target group (que testa o endpoint da aplicação): app travada = unhealthy no ALB = instância encerrada e substituída.",
+            "correct": true
+          },
+          {
+            "text": "Porque o health check ELB reinicia o serviço web dentro da instância travada.",
+            "correct": false
+          },
+          {
+            "text": "Porque o health check ELB faz o ALB parar de retornar 502 imediatamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o health check ELB verifica a memória além do status do EC2.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-109",
+      "options": [
+        {
+          "matchText": "Aumentar o tempo de 'sticky sessions' (duração do cookie de afinidade) no ALB para várias horas.",
+          "stage": "trap",
+          "reasonWrong": "Sticky sessions mais longas AGRAVAM o desbalanceamento — e a sessão continua morrendo com a instância."
+        },
+        {
+          "matchText": "Armazenar os dados de sessão em um cluster Amazon ElastiCache (Redis ou Memcached) compartilhado, acessível por todas as instâncias, e remover a dependência de 'sticky sessions'.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar o Auto Scaling Group para nunca remover instâncias (capacidade mínima = capacidade máxima = capacidade desejada).",
+          "stage": "eliminate",
+          "reasonWrong": "Congelar o ASG (min=max) mata a elasticidade — paga-se capacidade fixa para não perder sessões."
+        },
+        {
+          "matchText": "Armazenar os dados de sessão em arquivos locais no disco EBS de cada instância, em vez de na memória RAM.",
+          "stage": "eliminate",
+          "reasonWrong": "Sessão em EBS local continua PRESA à instância — removida a instância, some a sessão."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque externalizar as sessões para o ElastiCache torna as instâncias stateless: qualquer uma atende qualquer usuário, o ALB distribui livre e o scale-in não derruba carrinho de ninguém.",
+            "correct": true
+          },
+          {
+            "text": "Porque o ElastiCache sincroniza a RAM entre todas as instâncias do grupo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ElastiCache impede o Auto Scaling de remover instâncias com sessões ativas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ElastiCache faz backup das sessões no S3 a cada minuto.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-114",
+      "options": [
+        {
+          "matchText": "Aumentar o tempo limite (timeout) ocioso (idle timeout) do próprio Application Load Balancer.",
+          "stage": "trap",
+          "reasonWrong": "O idle timeout corta conexões OCIOSAS — não protege requisições ativas durante a remoção da instância."
+        },
+        {
+          "matchText": "Configurar o Auto Scaling Group para encerrar instâncias antigas imediatamente, sem aguardar a finalização das implantações.",
+          "stage": "eliminate",
+          "reasonWrong": "Encerrar imediatamente é o problema atual PIORADO."
+        },
+        {
+          "matchText": "Configurar o 'deregistration delay' (connection draining) do target group do ALB para um valor igual ou maior que o tempo máximo esperado das requisições (ex.: 60-120 segundos).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Reduzir o intervalo do health check do target group para detectar instâncias problemáticas mais rapidamente.",
+          "stage": "eliminate",
+          "reasonWrong": "Health check mais rápido detecta doentes mais cedo — não deixa as requisições em andamento terminarem."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o deregistration delay (connection draining) para de enviar requisições NOVAS à instância que sai, mas deixa as conexões em andamento concluírem (60-120s) antes do encerramento.",
+            "correct": true
+          },
+          {
+            "text": "Porque o deregistration delay migra as requisições em andamento para outra instância.",
+            "correct": false
+          },
+          {
+            "text": "Porque o deregistration delay pausa o deploy até o tráfego zerar naturalmente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o deregistration delay retorna 503 amigável durante a transição.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-120",
+      "options": [
+        {
+          "matchText": "Application Load Balancer (ALB), configurando um Elastic IP estático manualmente em cada listener.",
+          "stage": "trap",
+          "reasonWrong": "O ALB NÃO aceita Elastic IP em listener — seus IPs são dinâmicos atrás de DNS."
+        },
+        {
+          "matchText": "Classic Load Balancer (CLB), que oferece suporte nativo a IPs estáticos por AZ e é recomendado para novas implantações de alto desempenho.",
+          "stage": "eliminate",
+          "reasonWrong": "O CLB é legado — sem IP estático por AZ e sem o desempenho pedido; 'recomendado para novas implantações' é falso."
+        },
+        {
+          "matchText": "Network Load Balancer (NLB), com um Elastic IP estático associado a cada AZ habilitada.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Gateway Load Balancer (GWLB), configurado com IPs estáticos por AZ para distribuição de tráfego entre as instâncias da aplicação.",
+          "stage": "eliminate",
+          "reasonWrong": "O GWLB é para inserir APPLIANCES de rede (firewalls) no caminho — não para balancear aplicação TCP."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o NLB opera na camada 4 com milhões de conexões e latência mínima, e aceita um Elastic IP ESTÁTICO por AZ — whitelist de IPs atendida com failover automático entre AZs.",
+            "correct": true
+          },
+          {
+            "text": "Porque o NLB anuncia um único IP global para todas as AZs.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB reserva capacidade dedicada nos roteadores da AWS.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB é o único balanceador com SLA de 100%.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-123",
+      "options": [
+        {
+          "matchText": "Configurar o Auto Scaling Group para usar Scheduled Scaling, aumentando a capacidade automaticamente em horários fixos do dia.",
+          "stage": "eliminate",
+          "reasonWrong": "Scheduled Scaling serve para picos PREVISÍVEIS por horário — promoções repentinas não têm hora marcada."
+        },
+        {
+          "matchText": "Reduzir o período de cooldown do Auto Scaling Group para 0 segundos, permitindo ações de escalonamento contínuas.",
+          "stage": "eliminate",
+          "reasonWrong": "Cooldown 0 gera THRASHING (liga-desliga em ciclos) — não torna a resposta proporcional."
+        },
+        {
+          "matchText": "Aumentar o número de instâncias adicionadas por etapa de step scaling de 1 para 2, mantendo o mesmo intervalo de avaliação de 5 minutos.",
+          "stage": "trap",
+          "reasonWrong": "2 instâncias por etapa a cada 5 minutos continua lento e fixo — não é proporcional ao tamanho do desvio."
+        },
+        {
+          "matchText": "Substituir a política de step scaling por uma política de 'Target Tracking Scaling' com um alvo de utilização média de CPU (ex.: 50%), permitindo que o Auto Scaling ajuste a capacidade proporcionalmente e de forma contínua para manter esse alvo.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Target Tracking funciona como termostato: calcula continuamente quantas instâncias mantêm a CPU no alvo (50%) e ajusta PROPORCIONALMENTE ao desvio — resposta rápida a picos de qualquer tamanho.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Target Tracking prevê os picos analisando o histórico com ML.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Target Tracking dobra a capacidade a cada violação do alvo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Target Tracking elimina a necessidade de capacidade máxima no grupo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-130",
+      "options": [
+        {
+          "matchText": "Usar o AWS CloudShell para executar scripts que configuram a infraestrutura sempre que uma nova versão da aplicação for implantada.",
+          "stage": "eliminate",
+          "reasonWrong": "CloudShell + scripts é automação artesanal — a equipe vira dona da manutenção de tudo."
+        },
+        {
+          "matchText": "Usar o AWS Elastic Beanstalk, criando um ambiente com balanceamento de carga e Auto Scaling habilitados, distribuído por múltiplas AZs.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Implantar a aplicação em uma única instância EC2 de maior capacidade, sem balanceador de carga, simplificando a infraestrutura.",
+          "stage": "eliminate",
+          "reasonWrong": "Uma instância única sem balanceador ignora TODOS os requisitos (multi-AZ, scaling, rollback)."
+        },
+        {
+          "matchText": "Provisionar manualmente um ALB, um Target Group, um Launch Template e um Auto Scaling Group através do console EC2, configurando cada um individualmente.",
+          "stage": "trap",
+          "reasonWrong": "Provisionar ALB/ASG/target groups manualmente FUNCIONA — mas é exatamente o esforço componente a componente que se quer evitar."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Elastic Beanstalk provisiona ALB, ASG multi-AZ, health monitoring e suporta rollback de versão a partir do código enviado — o menor esforço operacional para o cenário.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Beanstalk gerencia também o banco de dados e o DNS da aplicação por padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Beanstalk dispensa instâncias EC2, rodando o Java em containers ocultos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Beanstalk é a única forma de ter rollback automático na AWS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-156",
+      "options": [
+        {
+          "matchText": "Aumentar o número de listeners configurados no Network Load Balancer para distribuir melhor o tráfego.",
+          "stage": "eliminate",
+          "reasonWrong": "Mais listeners no NLB não mudam o TRAJETO do tráfego pela internet pública."
+        },
+        {
+          "matchText": "Configurar uma distribuição Amazon CloudFront na frente do Network Load Balancer, com cache desabilitado.",
+          "stage": "trap",
+          "reasonWrong": "CloudFront é HTTP/S — não acelera UDP de jogos; 'cache desabilitado' não o transforma em acelerador TCP/UDP."
+        },
+        {
+          "matchText": "Configurar o AWS Global Accelerator, apontando para o Network Load Balancer existente como endpoint, e direcionar os jogadores para os endereços IP estáticos Anycast fornecidos pelo Global Accelerator.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Migrar a aplicação para múltiplas regiões da AWS, uma em cada continente, com Route 53 latency-based routing.",
+          "stage": "eliminate",
+          "reasonWrong": "Multi-região resolve, mas o requisito diz explicitamente SEM migrar a aplicação — desproporcional."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Global Accelerator dá IPs anycast estáticos: o jogador entra na borda AWS mais próxima e o tráfego segue pelo backbone privado até o NLB existente — menos latência e variação.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Global Accelerator cacheia os pacotes UDP nas edge locations.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Global Accelerator move o NLB para perto de cada jogador.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Global Accelerator comprime o tráfego do jogo em 60%.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-165",
+      "options": [
+        {
+          "matchText": "Configurar o Security Group do ALB para permitir tráfego na porta 443 apenas a partir de uma lista de IPs confiáveis conhecidos.",
+          "stage": "eliminate",
+          "reasonWrong": "Security Group com lista fixa de IPs bloqueia o PÚBLICO da aplicação web — inviável para site aberto."
+        },
+        {
+          "matchText": "Aumentar o timeout de sessão da aplicação para reduzir o número de vezes que os usuários precisam fazer login.",
+          "stage": "eliminate",
+          "reasonWrong": "Timeout de sessão maior reduz logins legítimos — não bloqueia o atacante."
+        },
+        {
+          "matchText": "Habilitar o AWS Shield Advanced, que automaticamente identifica e bloqueia tentativas de login excessivas em qualquer aplicação protegida.",
+          "stage": "trap",
+          "reasonWrong": "O Shield Advanced é anti-DDoS volumétrico — não tem regra automática de força bruta em página de login."
+        },
+        {
+          "matchText": "Criar uma Web ACL no AWS WAF, associada ao ALB, com uma 'Rate-based Rule' que bloqueia (por um período configurável) qualquer IP que exceda um limite definido de requisições à URL de login em uma janela de 5 minutos.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Rate-based Rule do WAF no ALB conta requisições por IP à URL /login em janela de 5 min e BLOQUEIA temporariamente quem exceder — força bruta contida, usuários normais ilesos.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Rate-based Rule valida as senhas antes de encaminhar ao backend.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Rate-based Rule exige CAPTCHA de todos os visitantes do site.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Rate-based Rule bloqueia países inteiros com muitas tentativas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-172",
+      "options": [
+        {
+          "matchText": "Gerar um certificado autoassinado (self-signed) usando OpenSSL, e instalá-lo manualmente em cada instância EC2 da camada de aplicação.",
+          "stage": "eliminate",
+          "reasonWrong": "Certificado autoassinado gera AVISOS de segurança nos navegadores e renovação manual — o oposto do pedido."
+        },
+        {
+          "matchText": "Armazenar dados sensíveis criptografados no banco de dados (criptografia em repouso), considerando isso suficiente para atender ao requisito de segurança em trânsito.",
+          "stage": "eliminate",
+          "reasonWrong": "Criptografia em REPOUSO no banco não protege os dados NO CAMINHO — são requisitos diferentes."
+        },
+        {
+          "matchText": "Provisionar um certificado TLS público através do AWS Certificate Manager (ACM), associá-lo ao listener HTTPS (443) do ALB, e configurar uma regra no listener HTTP (80) para redirecionar (HTTP 301) todas as requisições para HTTPS.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar o Security Group do ALB para bloquear todo o tráfego na porta 80, permitindo apenas a porta 443.",
+          "stage": "trap",
+          "reasonWrong": "Bloquear a porta 80 REJEITA o usuário que digitou http:// — sem o redirecionamento exigido para HTTPS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o ACM emite o certificado público gratuito com renovação automática no listener 443, e a regra no listener 80 redireciona (301) todo HTTP para HTTPS — criptografia total sem gestão manual.",
+            "correct": true
+          },
+          {
+            "text": "Porque o ACM instala o certificado dentro de cada instância EC2 do grupo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o redirect 301 criptografa a primeira requisição HTTP do usuário.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ALB converte HTTP em HTTPS internamente sem redirecionar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-187",
+      "options": [
+        {
+          "matchText": "Aumentar permanentemente a capacidade mínima do Auto Scaling Group para o valor necessário durante o horário de pico, garantindo que instâncias extras já estejam sempre disponíveis.",
+          "stage": "trap",
+          "reasonWrong": "Mínimo permanente alto resolve as 8h pagando instâncias ociosas TODAS as noites e fins de semana."
+        },
+        {
+          "matchText": "Configurar o Application Load Balancer para rejeitar novas conexões durante os primeiros minutos do horário de pico, até que o Auto Scaling termine de lançar novas instâncias.",
+          "stage": "eliminate",
+          "reasonWrong": "Rejeitar conexões no início do pico é punir o usuário pela lentidão do scaling."
+        },
+        {
+          "matchText": "Substituir o Target Tracking Scaling por Simple Scaling, que reage mais rapidamente a mudanças de CPU do que o Target Tracking.",
+          "stage": "eliminate",
+          "reasonWrong": "Simple Scaling é MAIS rudimentar que Target Tracking — não fica mais rápido."
+        },
+        {
+          "matchText": "Adicionar uma Scheduled Scaling Action ao Auto Scaling Group que aumenta a capacidade mínima/desejada pouco antes das 8h em dias úteis (ex.: 7h45), e outra que a reduz no final do expediente — mantendo o Target Tracking Scaling baseado em CPU para ajustes adicionais durante o dia.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Scheduled Action sobe a capacidade às 7h45 dos dias úteis (antes do pico previsível) e a reduz à noite — com o Target Tracking cuidando dos ajustes finos durante o dia.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Scheduled Action pré-aquece o cache das instâncias antes das 8h.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Scheduled Action substitui o Target Tracking durante o expediente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Scheduled Action usa ML para descobrir os horários de pico.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-236",
+      "options": [
+        {
+          "matchText": "Aumentar o cooldown period do ASG (padrão 300 segundos) — o cooldown impede que novas atividades de scaling sejam iniciadas antes que o efeito da ação anterior seja completamente refletido nas métricas, reduzindo o thrashing",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar o scale-in protection em todas as instâncias do ASG — isso impede que o ASG remova instâncias, eliminando o ciclo de remoção e adição",
+          "stage": "eliminate",
+          "reasonWrong": "Scale-in protection em TUDO impede qualquer redução — o grupo só cresce e o custo explode."
+        },
+        {
+          "matchText": "Aumentar o intervalo de polling das métricas do CloudWatch para 5 minutos — métricas com intervalo maior produzem decisões de scaling menos frequentes",
+          "stage": "eliminate",
+          "reasonWrong": "Métricas mais espaçadas ATRASAM a reação a picos reais — mascara em vez de estabilizar."
+        },
+        {
+          "matchText": "Substituir a política de scaling simples (Simple Scaling) por Target Tracking Scaling — o Target Tracking ajusta continuamente a capacidade para manter uma métrica-alvo, evitando o overshooting que causa thrashing",
+          "stage": "trap",
+          "reasonWrong": "O Target Tracking é ótima política, mas a pergunta descreve o MECANISMO clássico anti-thrashing: dar tempo às métricas estabilizarem — o cooldown."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque aumentar o cooldown dá tempo de o efeito da ação anterior refletir nas métricas antes da próxima decisão — o tráfego se distribui pelas instâncias novas e o liga-desliga cessa.",
+            "correct": true
+          },
+          {
+            "text": "Porque o cooldown maior congela as métricas do CloudWatch durante o período.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cooldown remove as instâncias mais novas primeiro no scale-in.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cooldown limita o grupo a uma ação de scaling por dia.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-238",
+      "options": [
+        {
+          "matchText": "Step Scaling com threshold baixo (ex.: 30% CPU) — ao escalar agressivamente antes de atingir 100% de CPU, o ASG sempre terá folga de capacidade disponível durante o pico",
+          "stage": "eliminate",
+          "reasonWrong": "Step scaling com threshold baixo continua REATIVO — só dispara mais cedo, sem garantir capacidade ANTES do pico."
+        },
+        {
+          "matchText": "Predictive Scaling — usa Machine Learning para analisar padrões históricos de tráfego e pré-provisionar capacidade automaticamente antes dos picos, sem configuração manual de horários",
+          "stage": "trap",
+          "reasonWrong": "O Predictive Scaling aprende padrões RECORRENTES — Black Friday é um evento anual atípico que o histórico recente não ensina; a garantia vem do agendamento explícito."
+        },
+        {
+          "matchText": "Target Tracking Scaling com métrica de RequestCount por Target — o ASG aumenta automaticamente antes do pico baseado na previsão de requisições",
+          "stage": "eliminate",
+          "reasonWrong": "Target Tracking reage à métrica ATUAL — não 'prevê' requisições."
+        },
+        {
+          "matchText": "Scheduled Scaling (Escalonamento Agendado) — o time pré-configura ações para aumentar a capacidade mínima/desejada do ASG em horários específicos (ex.: sexta 23h antes da Black Friday), garantindo instâncias prontas antes do pico sem dependência de métricas",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Scheduled Scaling agenda o aumento de capacidade para data/hora exata (sexta 23h pré-Black Friday) — instâncias prontas ANTES do pico, sem depender de métrica nenhuma.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Scheduled Scaling detecta promoções e escala sozinho ao vê-las.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Scheduled Scaling reserva capacidade junto à AWS para a data.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Scheduled Scaling substitui as demais políticas durante o evento.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-240",
+      "options": [
+        {
+          "matchText": "Configurar o Connection Draining (Deregistration Delay) no ALB Target Group — ele define um período (default 300s, configurável) durante o qual o ALB não envia NOVAS requisições à instância sendo deregistrada, mas permite que as requisições em andamento completem antes de remover a instância do pool",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar um health check mais agressivo no ALB (intervalo de 5s, threshold de 2 falhas) — o ALB remove instâncias doentes mais rapidamente, antes que comecem a retornar erros",
+          "stage": "eliminate",
+          "reasonWrong": "Health check agressivo detecta MAIS RÁPIDO, mas as conexões em andamento continuam sendo cortadas na remoção."
+        },
+        {
+          "matchText": "Habilitar o Stickiness (sessões pegajosas) no ALB — as sessões existentes continuam roteadas para a mesma instância, evitando que usuários recebam erros ao ter suas sessões migradas para outra instância",
+          "stage": "eliminate",
+          "reasonWrong": "Stickiness prende sessões a instâncias — não protege conexões durante a deregistração."
+        },
+        {
+          "matchText": "Usar o AWS Auto Scaling Lifecycle Hooks para pausar o scale-in, executar uma Lambda que aguarda 60 segundos, e só então completar o termination — o ALB tem tempo de remover a instância antes que seja terminada",
+          "stage": "trap",
+          "reasonWrong": "Lifecycle hook + Lambda de espera trata o TÉRMINO da instância — o mecanismo nativo do ALB para drenar conexões é o deregistration delay."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Deregistration Delay para de mandar requisições novas para a instância em remoção e deixa as em andamento completarem — os 502/503 de conexões cortadas desaparecem.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Deregistration Delay reenvia automaticamente as requisições que falharam.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Deregistration Delay mantém a instância no pool até o tráfego zerar por 10 minutos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Deregistration Delay transfere as conexões abertas para outra instância.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-241",
+      "options": [
+        {
+          "matchText": "Aplicar um novo template com o CloudFormation que reverte explicitamente as mudanças do update problemático — o CloudFormation aplicará o 'rollback manual' como um novo update bem-sucedido",
+          "stage": "trap",
+          "reasonWrong": "Em UPDATE_ROLLBACK_FAILED a stack NÃO aceita novos updates — aplicar template novo é bloqueado."
+        },
+        {
+          "matchText": "Deletar a stack inteira e recriar do zero com o template original — é mais seguro do que tentar recuperar uma stack em estado UPDATE_ROLLBACK_FAILED",
+          "stage": "eliminate",
+          "reasonWrong": "Deletar a stack derruba TODA a infraestrutura de produção — pânico, não recuperação."
+        },
+        {
+          "matchText": "Usar 'Continue Update Rollback' no console do CloudFormation ou via API, especificando os recursos que estão bloqueando o rollback para skipá-los — isso permite que o CloudFormation complete o rollback dos recursos que consegue desfazer, restaurando a stack para o estado anterior ao update problemático",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar o CloudFormation Drift Detection para identificar os recursos fora de conformidade e manualmente sincronizar o estado real com o template — isso desbloqueará a stack",
+          "stage": "eliminate",
+          "reasonWrong": "Drift Detection só DIAGNOSTICA diferenças — não destrava o estado de rollback falho."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Continue Update Rollback (com skip dos recursos travados, ex.: deletados por fora) permite ao CloudFormation completar o rollback e voltar ao último estado estável.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Continue Update Rollback reaplica o update que falhou com mais permissões.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Continue Update Rollback recria os recursos deletados externamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Continue Update Rollback converte a stack para o modo drift.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-247",
+      "options": [
+        {
+          "matchText": "VPC Security Groups com regras que forçam IPs de clientes específicos para IPs de instâncias específicas — o routing determinístico garante que o mesmo cliente sempre chegue na mesma instância",
+          "stage": "eliminate",
+          "reasonWrong": "Security Groups filtram tráfego — não roteiam clientes para instâncias específicas."
+        },
+        {
+          "matchText": "Sticky Sessions com cookies gerenciados pelo ALB (AWSALB/AWSALBCORS) — o ALB injeta um cookie na resposta que identifica a instância, e o cliente apresenta o cookie em requisições subsequentes",
+          "stage": "trap",
+          "reasonWrong": "Cookies AWSALB são do **ALB** (camada 7/HTTP) — o NLB não enxerga cookies em TCP/UDP."
+        },
+        {
+          "matchText": "Session affinity via Amazon ElastiCache — a aplicação armazena o mapeamento de sessão no ElastiCache, e o NLB consulta o cache antes de cada roteamento para direcionar para a instância correta",
+          "stage": "eliminate",
+          "reasonWrong": "ElastiCache guarda estado de sessão da APLICAÇÃO — o NLB não consulta cache para rotear."
+        },
+        {
+          "matchText": "Sticky Sessions com stickiness baseado em IP de origem no NLB (Source IP affinity) — o NLB mantém um mapeamento de IP de origem para instância de destino, garantindo que conexões do mesmo IP de origem sejam sempre roteadas para a mesma instância",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o NLB oferece stickiness por IP DE ORIGEM (source IP affinity): conexões do mesmo IP vão sempre para o mesmo target durante o período — sem cookies, camada 4 pura.",
+            "correct": true
+          },
+          {
+            "text": "Porque o NLB injeta um cabeçalho TCP com o ID da instância de destino.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB usa o MAC address do cliente para o mapeamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB delega a afinidade ao Route 53 automaticamente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-250",
+      "options": [
+        {
+          "matchText": "Configurar Cross-Zone Load Balancing no ALB — isso garante que o ALB distribua tráfego uniformemente entre instâncias em todas as AZs, eliminando desequilíbrios por AZ",
+          "stage": "trap",
+          "reasonWrong": "O cross-zone já é SEMPRE ativo no ALB — não é a configuração faltante; e o desequilíbrio é por CARGA das requisições, não por AZ."
+        },
+        {
+          "matchText": "Configurar Stickiness no Target Group com TTL de 1 segundo — com TTL muito curto, as sessões são redistribuídas frequentemente, resultando em balanceamento mais uniforme ao longo do tempo",
+          "stage": "eliminate",
+          "reasonWrong": "Stickiness com TTL de 1s é gambiarra — round robin continua ignorando a carga real de cada alvo."
+        },
+        {
+          "matchText": "Aumentar o número de instâncias EC2 no Auto Scaling Group — mais instâncias distribuem a carga, reduzindo a sobrecarga por instância e o desequilíbrio percebido",
+          "stage": "eliminate",
+          "reasonWrong": "Mais instâncias diluem a carga, mas o roteamento continua cego: requisições pesadas seguem se acumulando."
+        },
+        {
+          "matchText": "Habilitar Least Outstanding Requests (LOR) algorithm no Target Group — o ALB roteia cada nova requisição para a instância com o menor número de requisições em processamento naquele momento, em vez do padrão Round Robin que distribui igualmente sem considerar a carga atual de cada instância",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Least Outstanding Requests roteia cada requisição nova para o alvo com MENOS requisições em andamento — considera a carga real, ao contrário do round robin sequencial.",
+            "correct": true
+          },
+          {
+            "text": "Porque o LOR mede a CPU de cada instância antes de rotear.",
+            "correct": false
+          },
+          {
+            "text": "Porque o LOR divide as requisições grandes entre múltiplas instâncias.",
+            "correct": false
+          },
+          {
+            "text": "Porque o LOR é obrigatório em target groups com instâncias de tamanhos mistos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-256",
+      "options": [
+        {
+          "matchText": "Classic Load Balancer no modo TCP — o CLB suporta TCP passthrough quando configurado no modo de protocolo TCP, sem terminação SSL",
+          "stage": "eliminate",
+          "reasonWrong": "O CLB no modo TCP tecnicamente faz passthrough, mas é GERAÇÃO LEGADA — não é a recomendação para nova arquitetura."
+        },
+        {
+          "matchText": "Application Load Balancer com target groups do tipo IP — targets do tipo IP suportam bypass de SSL e encaminham conexões diretamente para os endpoints sem terminação SSL no ALB",
+          "stage": "eliminate",
+          "reasonWrong": "Target group tipo IP muda o REGISTRO de alvos — o ALB continua terminando HTTP/TLS na camada 7."
+        },
+        {
+          "matchText": "Gateway Load Balancer (GWLB) — opera em Layer 3 e encaminha pacotes IP diretamente para appliances de rede sem nenhuma inspeção ou terminação SSL",
+          "stage": "trap",
+          "reasonWrong": "O GWLB insere APPLIANCES de segurança no caminho (GENEVE) — não é balanceador de aplicação."
+        },
+        {
+          "matchText": "Network Load Balancer (NLB) operando em Layer 4 (TCP/UDP) — o NLB faz passthrough de conexões TCP sem inspecionar o conteúdo HTTP, permitindo que SSL seja terminado diretamente pelas instâncias EC2 de backend, reduzindo overhead de processamento no balanceador",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o NLB (camada 4) faz TCP passthrough sem inspecionar conteúdo: o TLS termina no backend, o overhead do balanceador cai e a latência dos binários grandes melhora.",
+            "correct": true
+          },
+          {
+            "text": "Porque o NLB comprime os PDFs e imagens antes de entregá-los.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB cacheia os arquivos binários mais pedidos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o NLB divide os arquivos grandes em conexões paralelas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-150",
+      "options": [
+        {
+          "matchText": "Migrar a aplicação de trading inteiramente para a AWS, eliminando a necessidade de conectividade híbrida.",
+          "stage": "eliminate",
+          "reasonWrong": "Migrar o trading inteiro é reescrever a estratégia da empresa — não resolve a conectividade híbrida pedida."
+        },
+        {
+          "matchText": "Configurar o AWS Global Accelerator para otimizar a rota de rede entre o data center e a VPC.",
+          "stage": "eliminate",
+          "reasonWrong": "O Global Accelerator otimiza tráfego de USUÁRIOS da internet para a AWS — não é link dedicado datacenter-AWS."
+        },
+        {
+          "matchText": "Estabelecer uma conexão AWS Direct Connect entre o data center e a AWS, com a largura de banda dedicada apropriada para o volume de dados.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o número de túneis do AWS Site-to-Site VPN para distribuir a carga de tráfego entre eles.",
+          "stage": "trap",
+          "reasonWrong": "Mais túneis VPN somam banda, mas continuam pela INTERNET pública — a latência variável permanece."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Direct Connect é conexão FÍSICA dedicada e privada datacenter-AWS: throughput consistente pela banda contratada e latência previsível — atende o volume diário e o trading.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Direct Connect criptografa o tráfego por padrão, dispensando VPN.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Direct Connect usa a internet com prioridade de tráfego garantida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Direct Connect é provisionado em minutos pelo console.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-274",
+      "options": [
+        {
+          "matchText": "O Direct Connect não suporta velocidades acima de 600 Mbps para conexões de 1 Gbps — a velocidade nominal inclui overhead de protocolo, e o throughput efetivo real é sempre ~60% da velocidade nominal",
+          "stage": "eliminate",
+          "reasonWrong": "Não existe 'desconto de 40% de overhead' — 1 Gbps de Direct Connect entrega perto disso com TCP bem configurado."
+        },
+        {
+          "matchText": "O problema é o MTU (Maximum Transmission Unit) não otimizado — o Direct Connect suporta Jumbo Frames (MTU 9001) que aumentam o payload por pacote; ativar Jumbo Frames nas ENIs das instâncias EC2 aumenta o throughput para o máximo disponível",
+          "stage": "trap",
+          "reasonWrong": "Jumbo Frames reduzem overhead de CABEÇALHO (~pouco%) — não vencem a matemática do BDP com 150ms de RTT."
+        },
+        {
+          "matchText": "O throughput TCP é limitado pelo produto bandwidth-delay (BDP = bandwidth × RTT) — com 150ms de RTT e window size padrão de 64KB, o throughput máximo teórico é ~430Kbps por fluxo TCP; para usar toda a banda do Direct Connect, é necessário usar múltiplos fluxos TCP paralelos ou tunear o TCP window size nas instâncias EC2 (scale receive window)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O limite de 600 Mbps é uma limitação do Direct Connect Standard — para atingir 1 Gbps de throughput real, é necessário contratar o Direct Connect Dedicated Connection Boost que aumenta o throughput efetivo",
+          "stage": "eliminate",
+          "reasonWrong": "'Direct Connect Boost' não existe."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o throughput TCP é limitado pelo bandwidth-delay product: com RTT alto e janela padrão, cada fluxo satura muito abaixo do link — a correção é janela TCP maior (window scaling) e/ou múltiplos fluxos paralelos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o BDP define a perda de pacotes máxima tolerada pelo link dedicado.",
+            "correct": false
+          },
+          {
+            "text": "Porque o RTT de 150ms viola o SLA do Direct Connect e deve ser reportado à AWS.",
+            "correct": false
+          },
+          {
+            "text": "Porque fluxos paralelos dividem a latência de 150ms entre si.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "saa-med-319",
+      "options": [
+        {
+          "matchText": "AWS Outposts no datacenter da desenvolvedora",
+          "stage": "eliminate",
+          "reasonWrong": "O Outposts leva a AWS ao datacenter DO CLIENTE — não à rede da operadora móvel."
+        },
+        {
+          "matchText": "AWS Wavelength, com Wavelength Zones incorporadas à rede 5G das operadoras",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon CloudFront com edge locations",
+          "stage": "trap",
+          "reasonWrong": "O CloudFront acelera CONTEÚDO via cache — não executa servidores de partida."
+        },
+        {
+          "matchText": "AWS Local Zones em outra cidade",
+          "stage": "eliminate",
+          "reasonWrong": "Local Zones ficam em centros urbanos — mas fora da rede 5G da operadora; o salto até a internet continua."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Wavelength implanta computação da AWS DENTRO da rede 5G das operadoras: o tráfego do jogador nem sai para a internet — latência de um dígito de milissegundo.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Wavelength prioriza os pacotes do jogo no núcleo da rede 5G.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Wavelength distribui o servidor da partida entre os celulares.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Wavelength é uma antena 5G dedicada da AWS para jogos.",
+            "correct": false
+          }
+        ]
+      }
     }
   ]
 }
