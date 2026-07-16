@@ -16,6 +16,7 @@
     const TRILHAS = {
         'saa-c03': { dir: 'assets/narracao/saa-c03', caps: 21, album: 'Trilha SAA-C03' },
         'dea-c01': { dir: 'assets/narracao/dea-c01', caps: 17, album: 'Trilha DEA-C01' },
+        'dva-c02': { dir: 'assets/narracao/dva-c02', caps: 14, album: 'Trilha DVA-C02' },
     };
 
     const trilhaEl = document.querySelector('[data-trilha-id]');

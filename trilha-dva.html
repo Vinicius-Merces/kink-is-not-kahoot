@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="css/landing-fx.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/trilha.css">
+    <link rel="stylesheet" href="css/tts-reader.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/music-player.css">
 
@@ -235,6 +236,26 @@
 
                 <h3>Regiões, endpoints e paginação</h3>
                 <p>Três pontos rápidos que rendem questões: (1) o SDK precisa de uma <strong>Região</strong> definida (env <code>AWS_REGION</code>, config ou código) — "endpoint não encontrado" costuma ser Região errada; (2) chamadas de listagem são <strong>paginadas</strong> (use os paginators do SDK em vez de loops manuais com NextToken); (3) para testar permissões sem executar, a CLI tem <code>--dry-run</code> em várias operações do EC2.</p>
+
+                <h3>Padrões de arquitetura — o vocabulário da Task 1.1</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Conceito</th><th>O que saber para a prova</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Event-driven</strong></td><td>Componentes reagem a eventos em vez de se chamarem diretamente (S3 Event → Lambda; EventBridge roteando). Escala e desacopla — é a resposta padrão para "reduzir acoplamento"</td></tr>
+                            <tr><td><strong>Microsserviços vs monolito</strong></td><td>Serviços pequenos com deploy independente vs aplicação única. "Times independentes, deploys separados, escalar partes isoladamente" = microsserviços</td></tr>
+                            <tr><td><strong>Coreografia vs orquestração</strong></td><td>Coreografia: cada serviço reage a eventos, sem coordenador central (EventBridge/SNS). <strong>Orquestração</strong>: um coordenador central dirige o fluxo (Step Functions). "Fluxo complexo com estado e tratamento de erro central" = orquestração</td></tr>
+                            <tr><td><strong>Acoplamento forte vs fraco</strong></td><td>Chamada síncrona direta = forte (falha propaga). Fila/evento no meio = fraco (falha isolada, retry natural). SQS é a resposta clássica de desacoplamento</td></tr>
+                            <tr><td><strong>Síncrono vs assíncrono</strong></td><td>Síncrono: o chamador espera a resposta. Assíncrono: aceita (202) e processa depois — o padrão para trabalho demorado, picos e resiliência</td></tr>
+                            <tr><td><strong>Idempotência</strong></td><td>Processar a mesma requisição 2x produz o mesmo resultado — obrigatório onde há retry (SQS entrega at-least-once). Implementação típica: chave de idempotência + condition expression no DynamoDB</td></tr>
+                            <tr><td><strong>Fan-out</strong></td><td>1 evento → N consumidores independentes: SNS → múltiplas SQS (durabilidade por consumidor)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout tip">
+                    <div class="callout-icon">💡</div>
+                    <div class="callout-body"><strong>Stateless primeiro</strong>O exame favorece componentes <strong>stateless</strong> (estado fora, em DynamoDB/ElastiCache/S3) porque escalam horizontalmente sem sessão presa. Se a questão menciona "instâncias guardam estado local e usuários perdem sessão", a resposta envolve externalizar o estado — nunca sticky sessions como solução definitiva.</div>
+                </div>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
@@ -523,6 +544,19 @@
                     <div class="callout-body"><strong>Query vs Scan (de novo, porque cai)</strong>Scan lê a tabela INTEIRA (o FilterExpression filtra DEPOIS da leitura — paga tudo). Se a consulta é por atributo que não é chave, a resposta é criar um <strong>GSI</strong> e usar Query. Para acelerar um Scan legítimo (ex.: exportação), use <strong>Parallel Scan</strong> (Segments/TotalSegments).</div>
                 </div>
 
+                <h3>ElastiCache — as estratégias de cache que o guide cita nominalmente</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Estratégia</th><th>Como funciona</th><th>Trade-off</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Lazy loading</strong> (read-through/cache-aside)</td><td>Busca no cache; miss → lê do banco e grava no cache</td><td>Só cacheia o que é lido (eficiente), mas o primeiro acesso é lento e o dado pode ficar <strong>stale</strong></td></tr>
+                            <tr><td><strong>Write-through</strong></td><td>Toda escrita atualiza banco E cache juntos</td><td>Cache sempre atual, mas escreve mais (dados nunca lidos ocupam cache) — combine com lazy loading</td></tr>
+                            <tr><td><strong>TTL</strong></td><td>Expiração por tempo em cada chave</td><td>O corretivo do stale: equilibra frescor vs taxa de miss — a resposta que complementa qualquer estratégia</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p><strong>Redis vs Memcached</strong> em uma linha: Redis tem persistência, replicação/failover, estruturas ricas e pub/sub — é a resposta padrão; Memcached é cache puro multi-thread, simples, sem persistência ("cache mais simples possível, escala horizontal"). <strong>MemoryDB</strong> é o Redis durável usado como banco primário. E lembre a diferença de papel: <strong>DAX é só para DynamoDB</strong> (write-through, API compatível); ElastiCache é genérico (RDS, APIs, sessões).</p>
+
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
                     <li class="qa-item">
@@ -634,7 +668,13 @@
                 </div>
 
                 <h3>SNS e EventBridge — distribuir eventos</h3>
-                <p><strong>SNS</strong> é pub/sub push com <strong>fan-out</strong> (o padrão SNS → múltiplas filas SQS aparece MUITO: durabilidade + consumidores independentes) e <strong>filter policies</strong> por atributo da mensagem. <strong>EventBridge</strong> é o barramento de eventos com <strong>regras de padrão de conteúdo</strong> (filtra pelo corpo do evento), integrações SaaS, Scheduler, archive/replay e transformação de entrada — quando a questão fala em "rotear eventos por conteúdo para vários alvos" ou "eventos de terceiros", é EventBridge.</p>
+                <p><strong>SNS</strong> é pub/sub push com <strong>fan-out</strong> (o padrão SNS → múltiplas filas SQS aparece MUITO: durabilidade + consumidores independentes) e <strong>filter policies</strong> por atributo da mensagem — o guide cita "subscription filter policies para otimizar mensageria": filtrar no SNS evita que cada consumidor receba e descarte o que não é dele. <strong>EventBridge</strong> é o barramento de eventos com <strong>regras de padrão de conteúdo</strong> (filtra pelo corpo do evento), integrações SaaS, Scheduler, archive/replay e transformação de entrada — quando a questão fala em "rotear eventos por conteúdo para vários alvos" ou "eventos de terceiros", é EventBridge.</p>
+
+                <h3>Kinesis para o desenvolvedor</h3>
+                <p>O DVA cobra "handling data streaming": <strong>Kinesis Data Streams</strong> com shards (1 MB/s in, 2 MB/s out por shard), <strong>partition key</strong> decidindo o shard (chave quente = <code>ProvisionedThroughputExceededException</code> → melhorar distribuição), ordem garantida <em>por shard</em>, e consumo via Lambda event source mapping (batch, parallelization factor, bisect on error — o mesmo ESM do capítulo 2). Diferença-chave para SQS: Kinesis <strong>retém e permite reler</strong> (replay, múltiplos consumidores); SQS deleta ao consumir (um consumidor). "Vários consumidores lendo o mesmo fluxo em tempo real" = Kinesis; "distribuir trabalho para workers" = SQS.</p>
+
+                <h3>AppSync em uma dose</h3>
+                <p><strong>AWS AppSync</strong> é GraphQL gerenciado: o cliente pede exatamente os campos de que precisa em uma chamada (menos round-trips que REST), com <strong>subscriptions</strong> para tempo real via WebSocket e resolvers para DynamoDB/Lambda. Gatilhos de prova: "app mobile com dados em tempo real (chat, colaboração)" ou "reduzir over-fetching de múltiplas APIs REST" → AppSync.</p>
 
                 <h3>Step Functions — orquestração com estado</h3>
                 <div class="decision-table-wrap">
@@ -717,6 +757,12 @@
                     </table>
                 </div>
                 <p>Regra de prova: a palavra <strong>"rotação automática de credenciais"</strong> aponta para Secrets Manager; "parâmetros de configuração baratos/hierárquicos (/app/prod/db-url)" aponta para Parameter Store.</p>
+
+                <h3>Rotação de chaves e certificados</h3>
+                <p><strong>Rotação no KMS</strong>: customer managed keys aceitam rotação automática anual (habilitável/desabilitável — o guide cita exatamente isso); as versões antigas da chave ficam disponíveis para descriptografar dados antigos, então nada quebra. Chave com material importado NÃO tem rotação automática. <strong>Certificados</strong>: o <strong>ACM</strong> emite e renova certificados TLS públicos de graça (para ALB, CloudFront, API Gateway) — renovação automática é o motivo de prova; o <strong>AWS Private CA</strong> emite certificados privados para comunicação interna serviço-a-serviço (mTLS, microsserviços) — "certificados para hosts internos que não são públicos" = Private CA. Para desenvolvimento, chaves SSH e certificados self-signed resolvem local — mas nunca em produção.</p>
+
+                <h3>Dados sensíveis no código — classificação e higiene</h3>
+                <p>O Domínio 2 dedica uma task inteira a isso. <strong>Classificação</strong>: PII (identifica a pessoa — CPF, e-mail) e PHI (dados de saúde) exigem tratamento reforçado — criptografia, acesso mínimo, mascaramento em logs. As regras práticas de prova: (1) <strong>variáveis de ambiente da Lambda são criptografadas com KMS</strong> — use uma CMK própria e helpers de criptografia para valores sensíveis, ou melhor, busque do Secrets Manager em runtime; (2) <strong>nunca logar dados sensíveis</strong> — sanitize antes de logar (a questão do "CPF aparecendo no CloudWatch Logs" se resolve no código, redigindo o campo); (3) segredo commitado no Git = <strong>revogar e rotacionar imediatamente</strong> (remover do histórico não basta — a chave já vazou).</p>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
@@ -923,6 +969,21 @@
                 <h3>buildspec.yml — a anatomia</h3>
                 <p>Fases em ordem: <code>install</code> (runtimes) → <code>pre_build</code> (login no ECR, dependências) → <code>build</code> (compilar/testar) → <code>post_build</code> (push da imagem, empacotar). Além delas: <code>artifacts</code> (o que sai do build), <code>cache</code> (acelerar builds) e <code>env</code> — com suporte a <strong>parameter-store</strong> e <strong>secrets-manager</strong> para variáveis sensíveis (nunca hardcode). Build falhou? Os logs estão no CloudWatch Logs; para depurar localmente existe o CodeBuild agent local.</p>
 
+                <h3>As outras ferramentas Developer Tools (in-scope no guide)</h3>
+                <div class="decision-table-wrap">
+                    <table class="decision">
+                        <thead><tr><th>Ferramenta</th><th>Papel</th><th>Gatilho na questão</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>CodeArtifact</strong></td><td>Repositório gerenciado de pacotes (npm, pip, Maven, NuGet)</td><td>"Repositório privado de dependências aprovadas para os times", proxy de registries públicos</td></tr>
+                            <tr><td><strong>CodeGuru Reviewer</strong></td><td>Revisão automática de código com ML (bugs, vazamento de segredo, más práticas)</td><td>"Detectar problemas de código automaticamente no pull request"</td></tr>
+                            <tr><td><strong>CodeGuru Profiler</strong></td><td>Perfil de performance da aplicação em produção (CPU, linhas caras)</td><td>"Descobrir qual método consome CPU/custo em produção" — profiling contínuo</td></tr>
+                            <tr><td><strong>AWS Copilot</strong></td><td>CLI que cria e deploya apps containerizadas (ECS/Fargate) com pipelines e ambientes prontos</td><td>"Deploy de app em contêiner sem escrever CloudFormation/task definitions na mão"</td></tr>
+                            <tr><td><strong>Amplify</strong></td><td>Build/hosting full-stack para web/mobile com <strong>branches por ambiente</strong> e CI/CD embutido</td><td>"Cada branch do Git vira um ambiente de preview" — front-end com backend gerenciado</td></tr>
+                            <tr><td><strong>CloudShell</strong></td><td>Shell no navegador já autenticado com suas credenciais, AWS CLI pré-instalada</td><td>"Rodar comandos CLI sem configurar credenciais localmente"</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
                 <h3>CodeDeploy — hooks e estratégias</h3>
                 <div class="decision-table-wrap">
                     <table class="decision">
@@ -1004,7 +1065,10 @@
                 </div>
 
                 <h3>SAM — CloudFormation para serverless</h3>
-                <p>O SAM é uma <strong>transformação</strong> do CloudFormation (<code>Transform: AWS::Serverless-2016-10-31</code>) com recursos abreviados: <code>AWS::Serverless::Function</code>, <code>::Api</code>, <code>::SimpleTable</code>. CLI essencial: <code>sam build</code> → <code>sam package</code> (sobe artefatos ao S3) → <code>sam deploy</code>; e <code>sam local invoke</code> / <code>sam local start-api</code> para <strong>testar Lambdas localmente em Docker</strong> — a resposta para "testar a função sem fazer deploy".</p>
+                <p>O SAM é uma <strong>transformação</strong> do CloudFormation (<code>Transform: AWS::Serverless-2016-10-31</code>) com recursos abreviados: <code>AWS::Serverless::Function</code>, <code>::Api</code>, <code>::SimpleTable</code>. CLI essencial: <code>sam build</code> → <code>sam package</code> (sobe artefatos ao S3) → <code>sam deploy</code>; e <code>sam local invoke</code> / <code>sam local start-api</code> para <strong>testar Lambdas localmente em Docker</strong> — a resposta para "testar a função sem fazer deploy". O mesmo template SAM implantado com parâmetros diferentes cria os ambientes de staging/produção — o padrão de "deploy do stack em outro ambiente" que o guide cobra.</p>
+
+                <h3>AppConfig — configuração dinâmica e feature flags</h3>
+                <p><strong>AWS AppConfig</strong> (parte do Systems Manager) entrega configuração para a aplicação <strong>sem redeploy</strong>: feature flags, tuning operacional, allowlists. Os diferenciais que a prova cobra contra o Parameter Store simples: <strong>validators</strong> (JSON Schema ou Lambda validam a config antes de publicar), <strong>deployment strategies</strong> (rollout gradual da config, ex.: 10% dos hosts por vez) e <strong>rollback automático</strong> ligado a alarme do CloudWatch. Gatilho: "ativar uma feature gradualmente sem novo deploy" ou "config inválida derrubou a app — como validar antes de aplicar" → AppConfig.</p>
 
                 <h3>Checkpoint de revisão</h3>
                 <ul class="qa-list">
@@ -1053,6 +1117,9 @@
 
                 <h3>CloudWatch para devs — os detalhes cobrados</h3>
                 <p><strong>Métricas custom</strong> via <code>PutMetricData</code>, com namespace e dimensions; resolução padrão de 1 minuto e <strong>high-resolution até 1 segundo</strong> (para alarmes de reação rápida). Em EC2, memória e disco usado NÃO são métricas nativas — exigem o <strong>CloudWatch Agent</strong>. Nos <strong>Logs</strong>: metric filters transformam padrões de log em métricas (ex.: contar "ERROR" e alarmar), subscription filters transmitem logs em tempo real para Lambda/Kinesis, e o Logs Insights consulta com query language. Lambda loga stdout automaticamente (permissões via execution role).</p>
+
+                <h3>EMF e structured logging — citados nominalmente no guide</h3>
+                <p><strong>EMF (Embedded Metric Format)</strong>: a aplicação escreve o log em um formato JSON especial e o CloudWatch <strong>extrai métricas automaticamente</strong> dele — métrica custom de alto volume <em>sem chamadas PutMetricData</em> (que custam e têm cota). É a resposta para "emitir métricas custom da Lambda com o menor custo/latência". <strong>Structured logging</strong>: logar JSON com campos consistentes (requestId, userId, nível) em vez de texto livre — é o que torna o Logs Insights realmente útil (<code>filter userId = "x"</code>) e é a "estratégia de logging eficaz" que a Task 4.2 pede. Complemento: diferencie <em>logging</em> (o que aconteceu), <em>monitoring</em> (métricas e alarmes sobre saúde) e <em>observability</em> (os três pilares juntos — logs, métricas e traces — para explicar o desconhecido).</p>
 
                 <h3>X-Ray — instrumentação</h3>
                 <div class="decision-table-wrap">
@@ -1170,7 +1237,7 @@
                 </div>
 
                 <h3>Otimização — as respostas-padrão</h3>
-                <p>Latência de leitura repetitiva: <strong>cache</strong> (ElastiCache com lazy loading/write-through + TTL, DAX no DynamoDB, cache do API Gateway). Lambda lenta: mais <strong>memória</strong> (= mais CPU), conexões/clients <strong>fora do handler</strong> (reuso entre invocações), Provisioned Concurrency para cold start. Custo: HTTP API em vez de REST quando não precisa dos extras, S3 Bucket Keys com SSE-KMS, long polling no SQS.</p>
+                <p>Latência de leitura repetitiva: <strong>cache</strong> (ElastiCache com lazy loading/write-through + TTL, DAX no DynamoDB, cache do API Gateway — que também cacheia <em>por header</em> de request quando o conteúdo varia por cliente). Lambda lenta: mais <strong>memória</strong> (= mais CPU), conexões/clients <strong>fora do handler</strong> (reuso entre invocações), Provisioned Concurrency para cold start — e para <em>descobrir</em> o gargalo em produção, <strong>CodeGuru Profiler</strong> (profiling contínuo de CPU) ou X-Ray. Custo: HTTP API em vez de REST quando não precisa dos extras, S3 Bucket Keys com SSE-KMS, long polling no SQS, e SNS filter policies para não entregar mensagens que o consumidor descartaria.</p>
 
                 <h3>Tabela mestre de decisão — DVA em uma página</h3>
                 <div class="decision-table-wrap">
@@ -1243,5 +1310,6 @@
     <script src="js/landing-fx.js" defer></script>
     <script src="js/pwa.js" defer></script>
     <script src="js/nav-menu.js" defer></script>
+    <script src="js/tts-reader.js" defer></script>
 </body>
 </html>
