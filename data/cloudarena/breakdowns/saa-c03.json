@@ -1,0 +1,797 @@
+{
+ "certId": "saa-c03",
+ "overlays": [
+  {
+   "questionId": "saa-ini-076",
+   "options": [
+    {
+     "matchText": "Amazon EMR",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Amazon RDS",
+     "stage": "eliminate",
+     "reasonWrong": "O RDS é um banco relacional transacional — não executa frameworks distribuídos como Spark ou Hadoop."
+    },
+    {
+     "matchText": "AWS Lambda",
+     "stage": "trap",
+     "reasonWrong": "O Lambda é serverless, mas tem limite de 15 minutos e nenhum suporte a clusters Spark/Hadoop — não serve para jobs de terabytes."
+    },
+    {
+     "matchText": "Amazon Lightsail",
+     "stage": "eliminate",
+     "reasonWrong": "O Lightsail oferece servidores virtuais simplificados para projetos pequenos — sem orquestração de clusters de big data."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o EMR provisiona clusters gerenciados com Spark, Hadoop e Hive, que podem ser criados por job e encerrados ao final para economizar.",
+      "correct": true
+     },
+     {
+      "text": "Porque o EMR é a única forma de rodar código Java na AWS.",
+      "correct": false
+     },
+     {
+      "text": "Porque o EMR armazena os dados de forma mais barata que o S3.",
+      "correct": false
+     },
+     {
+      "text": "Porque o EMR converte automaticamente qualquer aplicação em serverless.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-058",
+   "options": [
+    {
+     "matchText": "Executar a máquina de estados inteira duas vezes em paralelo",
+     "stage": "trap",
+     "reasonWrong": "Executar a máquina inteira em paralelo duplica efeitos colaterais (cobranças, registros) e não trata a falha pontual de um estado."
+    },
+    {
+     "matchText": "Configurar políticas de Retry com backoff exponencial (e Catch para tratamento de erro) diretamente nos estados da máquina",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Migrar o fluxo para uma única função Lambda monolítica",
+     "stage": "eliminate",
+     "reasonWrong": "Fundir tudo numa Lambda monolítica elimina a orquestração e o controle declarativo de erros por etapa — perde exatamente o que o Step Functions oferece."
+    },
+    {
+     "matchText": "Reduzir o timeout de todos os estados para falhar mais rápido",
+     "stage": "eliminate",
+     "reasonWrong": "Reduzir timeouts aumenta as falhas em chamadas lentas — o oposto de absorver instabilidade transitória."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque Retry e Catch são declarados por estado, com intervalo, multiplicador de backoff e número de tentativas — resiliência sem escrever código.",
+      "correct": true
+     },
+     {
+      "text": "Porque o Retry do Step Functions reexecuta a máquina inteira desde o início a cada falha.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Catch impede que o estado com erro seja cobrado.",
+      "correct": false
+     },
+     {
+      "text": "Porque o backoff exponencial garante que a API externa nunca mais falhe.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-123",
+   "options": [
+    {
+     "matchText": "Executar a aplicação no Amazon ECS com o tipo de lançamento AWS Fargate, que monitora as tasks e as substitui automaticamente em caso de falha, sem gerenciamento de servidores",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Empacotar a aplicação como uma AMI e lançar uma nova instância manualmente sempre que houver falha",
+     "stage": "eliminate",
+     "reasonWrong": "Relançar instância manualmente a cada falha é lento, propenso a erro e ainda exige gerenciar EC2 — exatamente o que o time quer evitar."
+    },
+    {
+     "matchText": "Executar a aplicação em uma única instância EC2 dedicada com Docker instalado manualmente",
+     "stage": "eliminate",
+     "reasonWrong": "Uma única instância EC2 com Docker manual é um ponto único de falha sem substituição automática nenhuma."
+    },
+    {
+     "matchText": "Executar a aplicação em instâncias EC2 com um script cron que verifica periodicamente se o contêiner está em execução",
+     "stage": "trap",
+     "reasonWrong": "O cron detecta a falha, mas continua sendo um script próprio rodando em servidores gerenciados por você — não é uma solução gerenciada."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque no Fargate o ECS monitora as tasks continuamente e substitui automaticamente as que falham, sem nenhum servidor para gerenciar.",
+      "correct": true
+     },
+     {
+      "text": "Porque o Fargate impede que os contêineres travem.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Fargate roda os contêineres de graça quando há falha.",
+      "correct": false
+     },
+     {
+      "text": "Porque o ECS exige instâncias EC2 dedicadas para monitorar tasks.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-082",
+   "options": [
+    {
+     "matchText": "A comunicação dentro da mesma AZ tem latência menor do que entre AZs distintas, reduzindo o tempo de cada consulta",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Bancos de dados não funcionam fora da AZ dos servidores de aplicação",
+     "stage": "trap",
+     "reasonWrong": "Bancos funcionam normalmente em AZs distintas (é a base do Multi-AZ) — o problema é a latência somada em cada consulta, não impossibilidade."
+    },
+    {
+     "matchText": "Tráfego entre AZs é limitado a 1 Mbps por conexão",
+     "stage": "eliminate",
+     "reasonWrong": "Não existe limite de 1 Mbps entre AZs — a rede é de alta capacidade; a diferença real é latência e custo por GB."
+    },
+    {
+     "matchText": "Consultas entre AZs precisam de aprovação manual do administrador",
+     "stage": "eliminate",
+     "reasonWrong": "Não há aprovação manual em tráfego entre AZs — a comunicação é transparente."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque AZs são instalações fisicamente separadas: cada ida e volta entre elas soma latência, e aproximar as camadas reduz o tempo acumulado.",
+      "correct": true
+     },
+     {
+      "text": "Porque o tráfego na mesma AZ usa um protocolo diferente e mais rápido que o TCP.",
+      "correct": false
+     },
+     {
+      "text": "Porque instâncias na mesma AZ compartilham a mesma memória RAM.",
+      "correct": false
+     },
+     {
+      "text": "Porque a AWS prioriza pacotes de rede de quem está na mesma AZ.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-053",
+   "options": [
+    {
+     "matchText": "DynamoDB Global Tables",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Índices secundários globais (GSI)",
+     "stage": "trap",
+     "reasonWrong": "Apesar do nome \"global\", o GSI só permite consultar por atributos alternativos dentro da mesma tabela e Região."
+    },
+    {
+     "matchText": "DynamoDB Accelerator (DAX)",
+     "stage": "eliminate",
+     "reasonWrong": "O DAX é um cache em memória que acelera leituras na mesma Região — não replica dados entre Regiões."
+    },
+    {
+     "matchText": "Backups sob demanda do DynamoDB",
+     "stage": "eliminate",
+     "reasonWrong": "Backups protegem contra perda de dados, mas não dão leitura e escrita ativas em múltiplas Regiões."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque as Global Tables criam réplicas multi-Região e multi-ativas: cada Região lê e escreve localmente, com replicação automática entre elas.",
+      "correct": true
+     },
+     {
+      "text": "Porque as Global Tables movem a tabela para uma Região especial de alta disponibilidade.",
+      "correct": false
+     },
+     {
+      "text": "Porque as Global Tables fazem backup contínuo em todas as Regiões.",
+      "correct": false
+     },
+     {
+      "text": "Porque as Global Tables usam o CloudFront para replicar os dados.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-045",
+   "options": [
+    {
+     "matchText": "RTO (Recovery Time Objective): o tempo máximo aceitável para restaurar o serviço após a interrupção",
+     "stage": "correct"
+    },
+    {
+     "matchText": "TTL (Time to Live) dos registros DNS",
+     "stage": "eliminate",
+     "reasonWrong": "TTL define por quanto tempo resolvedores fazem cache de um registro DNS — parâmetro técnico, não métrica de DR."
+    },
+    {
+     "matchText": "SLA (Service Level Agreement) da AWS",
+     "stage": "eliminate",
+     "reasonWrong": "SLA é o compromisso contratual de disponibilidade do provedor, não a métrica interna de recuperação do negócio."
+    },
+    {
+     "matchText": "RPO (Recovery Point Objective): a perda máxima aceitável de dados medida em tempo",
+     "stage": "trap",
+     "reasonWrong": "O RPO mede a PERDA DE DADOS aceitável em tempo (ex.: perder no máximo 15 min de transações) — não o prazo para o serviço voltar."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o RTO define o tempo máximo aceitável para restaurar o serviço — \"voltar a operar em 2 horas\" é exatamente um objetivo de tempo de recuperação.",
+      "correct": true
+     },
+     {
+      "text": "Porque o RTO define quantos dados podem ser perdidos durante o desastre.",
+      "correct": false
+     },
+     {
+      "text": "Porque o RTO é o tempo que a AWS garante por contrato para restaurar qualquer serviço.",
+      "correct": false
+     },
+     {
+      "text": "Porque o RTO mede a frequência mínima dos backups.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-011",
+   "options": [
+    {
+     "matchText": "Instâncias On-Demand",
+     "stage": "eliminate",
+     "reasonWrong": "On-Demand tem o preço cheio, sem nenhum desconto — não é a opção de menor custo."
+    },
+    {
+     "matchText": "Instâncias Reservadas",
+     "stage": "trap",
+     "reasonWrong": "Reservadas dão desconto em troca de compromisso de 1–3 anos para cargas estáveis — não aproveitam a tolerância a interrupções do cenário."
+    },
+    {
+     "matchText": "Instâncias Dedicated Hosts",
+     "stage": "eliminate",
+     "reasonWrong": "Dedicated Hosts fornecem hardware físico dedicado para licenciamento/compliance — custam MAIS, não menos."
+    },
+    {
+     "matchText": "Instâncias Spot",
+     "stage": "correct"
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque instâncias Spot usam capacidade ociosa com grandes descontos, em troca de poderem ser interrompidas — perfeitas para cargas tolerantes a interrupção.",
+      "correct": true
+     },
+     {
+      "text": "Porque instâncias Spot têm hardware mais moderno que as On-Demand.",
+      "correct": false
+     },
+     {
+      "text": "Porque instâncias Spot nunca são interrompidas quando bem configuradas.",
+      "correct": false
+     },
+     {
+      "text": "Porque instâncias Spot incluem suporte empresarial gratuito.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-044",
+   "options": [
+    {
+     "matchText": "Roteamento simples com múltiplos endereços IP",
+     "stage": "eliminate",
+     "reasonWrong": "Roteamento simples não usa health checks — usuários continuariam recebendo o IP do servidor fora do ar."
+    },
+    {
+     "matchText": "Roteamento ponderado com pesos 50/50",
+     "stage": "trap",
+     "reasonWrong": "Pesos 50/50 mandariam metade dos usuários para a contingência o tempo todo, mesmo com o site principal saudável."
+    },
+    {
+     "matchText": "Roteamento de failover com health checks no endpoint primário",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Roteamento de geolocalização",
+     "stage": "eliminate",
+     "reasonWrong": "Geolocalização escolhe o destino pela origem geográfica do usuário, não pela disponibilidade do site."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque a política de failover monitora o endpoint primário com health checks e só responde com o secundário quando o primário falha.",
+      "correct": true
+     },
+     {
+      "text": "Porque o roteamento de failover copia o site principal para o S3 automaticamente.",
+      "correct": false
+     },
+     {
+      "text": "Porque health checks do Route 53 reiniciam o servidor principal quando ele cai.",
+      "correct": false
+     },
+     {
+      "text": "Porque o failover do Route 53 acelera o DNS em situações de pico.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-017",
+   "options": [
+    {
+     "matchText": "Network ACL da VPC",
+     "stage": "eliminate",
+     "reasonWrong": "NACLs filtram tráfego de rede em sub-redes — nada a ver com permissões de API ou governança de contas."
+    },
+    {
+     "matchText": "Service Control Policy (SCP)",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Bucket policy do S3",
+     "stage": "eliminate",
+     "reasonWrong": "Bucket policy controla acesso a um bucket específico do S3 — não restringe ações do CloudTrail em múltiplas contas."
+    },
+    {
+     "matchText": "Política baseada em identidade do IAM",
+     "stage": "trap",
+     "reasonWrong": "Políticas IAM atuam dentro de UMA conta e podem ser alteradas por administradores locais — não impõem limite organizacional inviolável."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque SCPs se aplicam no nível da organização (OUs/contas) e definem o teto de permissões — o que a SCP nega fica bloqueado até para administradores.",
+      "correct": true
+     },
+     {
+      "text": "Porque SCPs criptografam as trilhas do CloudTrail contra exclusão.",
+      "correct": false
+     },
+     {
+      "text": "Porque SCPs substituem as políticas IAM dentro de cada conta.",
+      "correct": false
+     },
+     {
+      "text": "Porque SCPs monitoram e desfazem exclusões depois que acontecem.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-005",
+   "options": [
+    {
+     "matchText": "Criar VPCs automaticamente",
+     "stage": "eliminate",
+     "reasonWrong": "Criar VPCs é operação do serviço Amazon VPC — não é função de health check."
+    },
+    {
+     "matchText": "Monitorar a saúde de endpoints e rotear tráfego apenas para recursos saudáveis",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Gerenciar políticas do IAM",
+     "stage": "eliminate",
+     "reasonWrong": "Gerenciar políticas IAM é função do próprio IAM — sem relação com health checks."
+    },
+    {
+     "matchText": "Criptografar registros DNS",
+     "stage": "trap",
+     "reasonWrong": "DNS é um protocolo público por natureza — o Route 53 não criptografa registros; criptografia de dados é papel de KMS/TLS."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque health checks monitoram a disponibilidade dos endpoints e alimentam políticas de roteamento que desviam o tráfego dos recursos não saudáveis.",
+      "correct": true
+     },
+     {
+      "text": "Porque health checks aumentam a capacidade dos servidores monitorados.",
+      "correct": false
+     },
+     {
+      "text": "Porque health checks fazem backup automático dos registros DNS.",
+      "correct": false
+     },
+     {
+      "text": "Porque health checks bloqueiam ataques DDoS no DNS.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-023",
+   "options": [
+    {
+     "matchText": "AWS Direct Connect",
+     "stage": "trap",
+     "reasonWrong": "O Direct Connect usa circuito físico dedicado que leva semanas para provisionar — não atende ao requisito de implantação rápida pela internet."
+    },
+    {
+     "matchText": "VPC Peering",
+     "stage": "eliminate",
+     "reasonWrong": "Peering conecta duas VPCs dentro da AWS — não conecta um escritório on-premises a uma VPC."
+    },
+    {
+     "matchText": "AWS Site-to-Site VPN",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Amazon Route 53",
+     "stage": "eliminate",
+     "reasonWrong": "O Route 53 resolve nomes DNS — não estabelece túneis de rede criptografados."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque a Site-to-Site VPN cria túneis IPsec criptografados pela internet entre o gateway local e a VPC, provisionáveis em horas.",
+      "correct": true
+     },
+     {
+      "text": "Porque a VPN da AWS dispensa configuração no roteador da empresa.",
+      "correct": false
+     },
+     {
+      "text": "Porque a Site-to-Site VPN oferece banda garantida maior que o Direct Connect.",
+      "correct": false
+     },
+     {
+      "text": "Porque a VPN converte o tráfego para HTTPS, dispensando IPsec.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-001",
+   "options": [
+    {
+     "matchText": "Usuário IAM",
+     "stage": "trap",
+     "reasonWrong": "Usuário IAM é identidade de longo prazo com credenciais permanentes — não foi projetado para ser assumido temporariamente por um serviço."
+    },
+    {
+     "matchText": "Papel (Role) do IAM",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Política gerenciada pelo cliente",
+     "stage": "eliminate",
+     "reasonWrong": "Uma política define permissões, mas precisa estar anexada a uma identidade — ela própria não pode ser \"assumida\" para gerar credenciais."
+    },
+    {
+     "matchText": "Grupo IAM",
+     "stage": "eliminate",
+     "reasonWrong": "Grupo IAM só agrupa usuários para aplicar políticas em conjunto — não pode ser assumido nem gera credenciais temporárias."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque uma Role é assumida por serviços ou usuários e entrega credenciais temporárias com permissões específicas, sem compartilhar segredos de longo prazo.",
+      "correct": true
+     },
+     {
+      "text": "Porque a Role armazena as senhas dos usuários com criptografia.",
+      "correct": false
+     },
+     {
+      "text": "Porque a Role duplica as permissões do administrador para o serviço.",
+      "correct": false
+     },
+     {
+      "text": "Porque a Role converte chaves de acesso permanentes em temporárias.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-295",
+   "options": [
+    {
+     "matchText": "AWS Storage Gateway (File Gateway)",
+     "stage": "correct"
+    },
+    {
+     "matchText": "AWS DataSync",
+     "stage": "trap",
+     "reasonWrong": "O DataSync MOVE dados entre on-premises e AWS em transferências — não fornece acesso híbrido contínuo com cache local."
+    },
+    {
+     "matchText": "Amazon EFS",
+     "stage": "eliminate",
+     "reasonWrong": "O EFS é um filesystem NFS nativo da AWS — não mantém os dados no S3 nem oferece cache local on-premises."
+    },
+    {
+     "matchText": "AWS Transfer Family",
+     "stage": "eliminate",
+     "reasonWrong": "O Transfer Family expõe SFTP/FTPS gerenciado sobre o S3 para parceiros — não é um servidor de arquivos híbrido local."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o File Gateway expõe um share NFS/SMB local, grava os dados como objetos no S3 e mantém em cache apenas os arquivos quentes.",
+      "correct": true
+     },
+     {
+      "text": "Porque o File Gateway replica o servidor de arquivos inteiro para o EFS.",
+      "correct": false
+     },
+     {
+      "text": "Porque o File Gateway sincroniza pastas locais via VPN dedicada.",
+      "correct": false
+     },
+     {
+      "text": "Porque o File Gateway transforma o NFS local em um bucket S3 físico.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-012",
+   "options": [
+    {
+     "matchText": "Amazon GuardDuty",
+     "stage": "trap",
+     "reasonWrong": "O GuardDuty detecta AMEAÇAS de segurança (atividade maliciosa) — não recursos subutilizados para otimização de custo."
+    },
+    {
+     "matchText": "Amazon Route 53",
+     "stage": "eliminate",
+     "reasonWrong": "O Route 53 é DNS — não analisa utilização de recursos nem gera recomendações de custo."
+    },
+    {
+     "matchText": "AWS Direct Connect",
+     "stage": "eliminate",
+     "reasonWrong": "O Direct Connect é conectividade dedicada de rede — sem relação com identificar recursos ociosos."
+    },
+    {
+     "matchText": "AWS Trusted Advisor",
+     "stage": "correct"
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o Trusted Advisor analisa a conta e recomenda otimizações em categorias como custo, apontando recursos ociosos ou subutilizados.",
+      "correct": true
+     },
+     {
+      "text": "Porque o Trusted Advisor desliga automaticamente instâncias ociosas.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Trusted Advisor renegocia os preços com a AWS.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Trusted Advisor é o único serviço com acesso às métricas de CPU.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-009",
+   "options": [
+    {
+     "matchText": "S3 Standard",
+     "stage": "correct"
+    },
+    {
+     "matchText": "S3 Glacier Flexible Retrieval",
+     "stage": "eliminate",
+     "reasonWrong": "Glacier Flexible Retrieval é arquivamento com recuperação de minutos a horas — não milissegundos."
+    },
+    {
+     "matchText": "S3 Glacier Instant Retrieval apenas para arquivamento",
+     "stage": "trap",
+     "reasonWrong": "Apesar do nome \"Instant\", essa classe é para ARQUIVAMENTO raramente acessado, com taxa de recuperação — não para acesso frequente."
+    },
+    {
+     "matchText": "S3 Glacier Deep Archive",
+     "stage": "eliminate",
+     "reasonWrong": "Deep Archive é a classe mais barata e mais lenta (até 12 horas) — o oposto do acesso frequente."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o S3 Standard é projetado para acesso frequente: latência de milissegundos, alta taxa de transferência e sem taxa de recuperação.",
+      "correct": true
+     },
+     {
+      "text": "Porque o S3 Standard usa SSDs exclusivos por cliente.",
+      "correct": false
+     },
+     {
+      "text": "Porque o S3 Standard mantém os objetos na memória RAM dos servidores.",
+      "correct": false
+     },
+     {
+      "text": "Porque o S3 Standard é a única classe com replicação entre AZs.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-003",
+   "options": [
+    {
+     "matchText": "AWS CloudFormation",
+     "stage": "trap",
+     "reasonWrong": "O CloudFormation provisiona infraestrutura via templates (IaC) — não armazena nem rotaciona segredos automaticamente."
+    },
+    {
+     "matchText": "Amazon Route 53",
+     "stage": "eliminate",
+     "reasonWrong": "O Route 53 é DNS e roteamento de tráfego — sem relação com credenciais."
+    },
+    {
+     "matchText": "AWS Secrets Manager",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Amazon S3 Glacier",
+     "stage": "eliminate",
+     "reasonWrong": "O S3 Glacier é armazenamento de arquivamento de baixo custo — não gerencia segredos nem rotaciona credenciais."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o Secrets Manager armazena, recupera e ROTACIONA segredos automaticamente, com integração nativa a RDS e outros bancos.",
+      "correct": true
+     },
+     {
+      "text": "Porque o Secrets Manager criptografa os segredos com uma chave que nunca muda.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Secrets Manager injeta as senhas direto no código-fonte.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Secrets Manager é gratuito para qualquer volume de segredos.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-050",
+   "options": [
+    {
+     "matchText": "Fazer o serviço de pagamento tentar a chamada síncrona infinitamente até obter sucesso",
+     "stage": "eliminate",
+     "reasonWrong": "Retentativas síncronas infinitas seguram recursos, degradam o pagamento e sobrecarregam o serviço em recuperação."
+    },
+    {
+     "matchText": "Unificar os dois serviços em uma única aplicação monolítica",
+     "stage": "eliminate",
+     "reasonWrong": "Fundir os serviços AUMENTA o acoplamento: uma falha em qualquer parte derruba o conjunto."
+    },
+    {
+     "matchText": "Aumentar o tamanho da instância do serviço de emissão de notas",
+     "stage": "trap",
+     "reasonWrong": "Instância maior não muda a fragilidade do acoplamento síncrono: qualquer queda da emissão continua derrubando os pagamentos."
+    },
+    {
+     "matchText": "Colocar uma fila do Amazon SQS entre os serviços, para que os pedidos fiquem armazenados de forma durável até a emissão processá-los",
+     "stage": "correct"
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque a fila desacopla os serviços: o pagamento publica e segue funcionando, e a emissão processa as mensagens acumuladas quando se recupera.",
+      "correct": true
+     },
+     {
+      "text": "Porque o SQS reexecuta o serviço de emissão automaticamente quando ele cai.",
+      "correct": false
+     },
+     {
+      "text": "Porque o SQS converte as chamadas síncronas em requisições mais rápidas.",
+      "correct": false
+     },
+     {
+      "text": "Porque a fila garante que as notas fiscais sejam emitidas em menos de um segundo.",
+      "correct": false
+     }
+    ]
+   }
+  },
+  {
+   "questionId": "saa-ini-002",
+   "options": [
+    {
+     "matchText": "Um serviço de criptografia de disco",
+     "stage": "eliminate",
+     "reasonWrong": "Criptografia de disco é papel do KMS com EBS — Security Group controla tráfego, não criptografia."
+    },
+    {
+     "matchText": "Um firewall sem estado (stateless) aplicado a sub-redes",
+     "stage": "trap",
+     "reasonWrong": "Firewall SEM estado aplicado a SUB-REDES descreve a Network ACL — o Security Group tem estado e atua no nível da instância."
+    },
+    {
+     "matchText": "Um firewall com estado (stateful) que controla o tráfego de entrada e saída de instâncias",
+     "stage": "correct"
+    },
+    {
+     "matchText": "Um repositório de chaves de acesso",
+     "stage": "eliminate",
+     "reasonWrong": "Repositório de chaves seria Secrets Manager/IAM — sem relação com controle de tráfego."
+    }
+   ],
+   "finalBlow": {
+    "justifications": [
+     {
+      "text": "Porque o Security Group é um firewall stateful no nível da instância: a resposta de um tráfego permitido é liberada automaticamente.",
+      "correct": true
+     },
+     {
+      "text": "Porque o Security Group bloqueia tráfego dentro da própria instância entre processos.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Security Group aplica regras de negação explícita (deny) como as NACLs.",
+      "correct": false
+     },
+     {
+      "text": "Porque o Security Group filtra o tráfego apenas na saída da VPC.",
+      "correct": false
+     }
+    ]
+   }
+  }
+ ]
+}

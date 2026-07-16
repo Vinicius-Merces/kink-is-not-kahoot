@@ -112,8 +112,8 @@
     const CLF_ENEMIES = {
         'cloud-concepts': { name: 'Espírito da Nuvem', family: 'clf', emoji: '☁️' },
         'security-compliance': { name: 'Escudo de Conformidade', family: 'clf', emoji: '🛡️' },
-        'cloud-technology-services': { name: 'Autômato de Serviços', family: 'clf', emoji: '🤖' },
-        'billing-pricing': { name: 'Contador Implacável', family: 'clf', emoji: '💰' },
+        'technology-services': { name: 'Autômato de Serviços', family: 'clf', emoji: '🤖' },
+        'billing-pricing-support': { name: 'Contador Implacável', family: 'clf', emoji: '💰' },
     };
     const FALLBACK_ENEMY = { name: 'Anomalia da Nuvem', family: 'clf', emoji: '⛈️' };
 
@@ -194,52 +194,17 @@
         return res.json();
     }
 
-    function resolveArenaQuestion(baseQuestion, overlay) {
-        const resolved = baseQuestion.options.map(optionText => {
-            const meta = overlay.options.find(o => o.matchText === optionText);
-            if (!meta) throw new Error(`Overlay desalinhado: "${optionText}" nao encontrado em ${overlay.questionId}`);
-            return { text: optionText, stage: meta.stage, reasonWrong: meta.reasonWrong || '' };
-        });
-        const correctInBank = baseQuestion.options[baseQuestion.correct];
-        const correctMeta = resolved.find(o => o.stage === 'correct');
-        if (!correctMeta || correctInBank !== correctMeta.text) {
-            throw new Error(`Divergencia de gabarito em ${overlay.questionId}: banco diz "${correctInBank}"`);
-        }
-        return resolved;
-    }
-
+    // O /data é bloqueado no static do servidor (protege gabaritos) — o jogo
+    // recebe do endpoint /api/arena/<certId> apenas as questões COM overlay,
+    // já resolvidas por texto e com o gabarito cruzado no servidor.
+    // Uma chamada por arena; zero chamadas por batalha.
     async function loadArenaData(certId) {
         if (arenaData[certId]) return arenaData[certId];
-        const [banks, overlayFile] = await Promise.all([
-            Promise.all(LEVELS.map(lvl =>
-                fetchJson(`data/exams/${certId}/${lvl}.json`).catch(() => ({ questions: [] })))),
-            fetchJson(`data/cloudarena/breakdowns/${certId}.json`).catch(() => ({ overlays: [] })),
-        ]);
-        const overlayById = new Map((overlayFile.overlays || []).map(o => [o.questionId, o]));
-        const pools = { iniciante: [], medio: [], avancado: [] };
-        let totalBank = 0;
-        banks.forEach((bank, i) => {
-            const lvl = LEVELS[i];
-            for (const q of (bank.questions || [])) {
-                totalBank++;
-                const ov = overlayById.get(q.id);
-                if (!ov) continue;
-                try {
-                    const options = resolveArenaQuestion(q, ov);
-                    pools[lvl].push({
-                        id: q.id, text: q.text, level: lvl,
-                        topic: (q.topics && q.topics[0]) || q.domain || 'unknown',
-                        options,
-                        justifications: ov.finalBlow.justifications,
-                        explanation: q.explanation || '',
-                    });
-                } catch (err) {
-                    console.error('[CloudArena] overlay inválido, questão ignorada:', err.message);
-                }
-            }
-        });
-        const covered = pools.iniciante.length + pools.medio.length + pools.avancado.length;
-        arenaData[certId] = { pools, totalBank, covered };
+        const payload = await fetchJson(`/api/arena/${certId}`);
+        if (!payload.success) throw new Error(payload.error || 'Falha ao carregar a arena');
+        const pools = payload.pools || { iniciante: [], medio: [], avancado: [] };
+        const covered = LEVELS.reduce((s, l) => s + (pools[l] ? pools[l].length : 0), 0);
+        arenaData[certId] = { pools, totalBank: payload.totalBank || 0, covered };
         return arenaData[certId];
     }
 
@@ -405,6 +370,23 @@
         const boss = isBossLevel(certId, a.currentLevel);
         const hp = boss ? bossHp(certId) : HP_NORMAL;
         const totalRounds = hp / 4; // spec: rounds = HP ÷ 4
+
+        // Retomada de sessão (spec 7.1): se fechou o navegador no meio de uma
+        // batalha, reabre a MESMA pergunta do início (round/HP do chefe também).
+        const pending = a.pendingEncounter;
+        if (pending && findQuestionById(certId, pending.questionId)) {
+            battle = {
+                certId, boss: pending.boss,
+                enemyMaxHp: pending.enemyMaxHp, enemyHp: pending.enemyHp,
+                totalRounds: pending.totalRounds, round: pending.round,
+                tookDamage: false, golpe1Mistake: false,
+                enteredWithHp: a.heroCurrentHp,
+                question: null, topic: null,
+            };
+            openQuestion(findQuestionById(certId, pending.questionId));
+            return;
+        }
+
         battle = {
             certId, boss,
             enemyMaxHp: hp, enemyHp: hp,
@@ -418,6 +400,16 @@
         nextRound();
     }
 
+    function findQuestionById(certId, qid) {
+        const data = arenaData[certId];
+        if (!data) return null;
+        for (const lvl of LEVELS) {
+            const q = data.pools[lvl].find(x => x.id === qid);
+            if (q) return q;
+        }
+        return null;
+    }
+
     function nextRound() {
         const a = state.arenas[battle.certId];
         const difficulty = pickDifficulty(battle.certId, a.currentLevel, battle.boss);
@@ -426,12 +418,23 @@
             renderNoContent(battle.certId);
             return;
         }
+        openQuestion(q);
+    }
+
+    function openQuestion(q) {
+        const a = state.arenas[battle.certId];
         battle.question = q;
         battle.topic = q.topic;
         battle.phase = 'eliminate';
         battle.selected = new Set();
         battle.eliminatedTexts = [];
         battle.disabledJusts = new Set();
+        // persiste o encontro em andamento para retomada exata
+        a.pendingEncounter = {
+            questionId: q.id, boss: battle.boss, round: battle.round,
+            totalRounds: battle.totalRounds,
+            enemyHp: battle.enemyHp, enemyMaxHp: battle.enemyMaxHp,
+        };
         saveState();
         renderBattle();
     }
@@ -522,6 +525,7 @@
     function enemyDefeated() {
         const certId = battle.certId;
         const a = state.arenas[certId];
+        a.pendingEncounter = null; // encontro resolvido — nada a retomar
         a.enemiesDefeated++;
         animateHero('victory');
 
@@ -649,6 +653,7 @@
             playDays: a.playDays,
         };
         Object.assign(a, freshArenaState(), preserved);
+        a.pendingEncounter = null;
         a.hadGameOver = true;
         a.prevBestBeforeDeath = prevBest;
         saveState();

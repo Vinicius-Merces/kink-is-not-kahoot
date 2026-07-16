@@ -9,7 +9,7 @@
     // Os .mp3 ficam com cache publico de 7 dias no servidor (server.js) —
     // essa versao entra como query string pra forcar download de novo sempre
     // que o conteudo narrado for re-gerado, sem precisar esperar o cache expirar.
-    const AUDIO_VERSION = '20260714b';
+    const AUDIO_VERSION = '20260715';
 
     // Cada trilha tem sua pasta de audio e quantidade de capitulos.
     // A trilha ativa vem do atributo data-trilha-id da sidebar da pagina.

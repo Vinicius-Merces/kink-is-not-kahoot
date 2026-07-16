@@ -176,6 +176,68 @@ app.use(express.static(path.join(__dirname)));
 // ROTAS HTTP
 // ============================================
 
+// ── CloudArena: payload do jogo por certificação ─────────────────────────
+// /data é bloqueado no static (gabaritos); o jogo recebe daqui apenas as
+// questões QUE TÊM overlay, já resolvidas (vínculo por texto + checagem de
+// gabarito feita no servidor). Uma chamada por arena; zero por batalha.
+const arenaCache = new Map();
+
+app.get('/api/arena/:certId', (req, res) => {
+    const certId = String(req.params.certId || '').toLowerCase();
+    if (!/^[a-z]{3}-c\d{2}$/.test(certId)) {
+        return res.status(400).json({ success: false, error: 'certId inválido' });
+    }
+    if (arenaCache.has(certId)) {
+        return res.json(arenaCache.get(certId));
+    }
+    try {
+        const overlayPath = path.join(__dirname, 'data', 'cloudarena', 'breakdowns', `${certId}.json`);
+        let overlays = [];
+        if (fs.existsSync(overlayPath)) {
+            overlays = (JSON.parse(fs.readFileSync(overlayPath, 'utf8')).overlays) || [];
+        }
+        const overlayById = new Map(overlays.map(o => [o.questionId, o]));
+        const pools = { iniciante: [], medio: [], avancado: [] };
+        let totalBank = 0;
+
+        for (const level of ['iniciante', 'medio', 'avancado']) {
+            const bankPath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
+            if (!fs.existsSync(bankPath)) continue;
+            const bank = JSON.parse(fs.readFileSync(bankPath, 'utf8'));
+            for (const q of (bank.questions || [])) {
+                totalBank++;
+                const ov = overlayById.get(q.id);
+                if (!ov) continue;
+                // vínculo por TEXTO + checagem cruzada de gabarito
+                const resolved = q.options.map(optionText => {
+                    const meta = (ov.options || []).find(o => o.matchText === optionText);
+                    return meta ? { text: optionText, stage: meta.stage, reasonWrong: meta.reasonWrong || '' } : null;
+                });
+                const correctMeta = resolved.find(o => o && o.stage === 'correct');
+                if (resolved.some(o => !o) || !correctMeta || correctMeta.text !== q.options[q.correct]) {
+                    console.error(`[CloudArena] overlay desalinhado ignorado: ${q.id}`);
+                    continue;
+                }
+                pools[level].push({
+                    id: q.id,
+                    text: q.text,
+                    level,
+                    topic: (q.topics && q.topics[0]) || q.domain || 'unknown',
+                    options: resolved,
+                    justifications: (ov.finalBlow && ov.finalBlow.justifications) || [],
+                    explanation: q.explanation || '',
+                });
+            }
+        }
+        const payload = { success: true, certId, totalBank, pools };
+        arenaCache.set(certId, payload);
+        res.json(payload);
+    } catch (err) {
+        console.error('[CloudArena] erro ao montar payload:', err.message);
+        res.status(500).json({ success: false, error: 'Erro ao carregar a arena' });
+    }
+});
+
 // Rota principal
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

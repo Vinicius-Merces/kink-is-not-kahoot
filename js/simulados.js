@@ -49,6 +49,118 @@
     window.showSimuladoScreen = showScreen;
 
     // ============================================
+    // Pausar e retomar simulado (persistência local)
+    // ============================================
+    // A sessão do servidor vive ~2h (SIMULADO_TTL_MS) — o estado salvo segue
+    // o mesmo prazo. Auto-salva a cada resposta/navegação; o botão ⏸ apenas
+    // volta à seleção com um banner "Continuar" esperando.
+    const PAUSE_KEY = 'cloudpath_simulado_paused_v1';
+    const PAUSE_TTL_MS = 2 * 60 * 60 * 1000;
+
+    function savePausedState() {
+        if (!currentSimulado) return;
+        try {
+            localStorage.setItem(PAUSE_KEY, JSON.stringify({
+                savedAt: Date.now(),
+                simulado: currentSimulado,
+                userAnswers,
+                questionFeedback,
+                currentQuestionIndex,
+                examRealActive,
+                marked: [...markedQuestions],
+                feedbackMode: selectedFeedbackMode,
+                remainingSeconds: examRealActive
+                    ? Math.max(0, Math.round((examDeadline - Date.now()) / 1000))
+                    : null,
+            }));
+        } catch (e) { /* localStorage indisponível — pausa segue só em memória */ }
+    }
+
+    function loadPausedState() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(PAUSE_KEY));
+            if (!raw || !raw.simulado) return null;
+            if (Date.now() - raw.savedAt > PAUSE_TTL_MS) {
+                clearPausedState();
+                return null;
+            }
+            return raw;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function clearPausedState() {
+        try { localStorage.removeItem(PAUSE_KEY); } catch (e) { /* noop */ }
+        renderResumeBanner();
+    }
+
+    function renderResumeBanner() {
+        const banner = document.getElementById('resumeSimuladoBanner');
+        if (!banner) return;
+        const saved = loadPausedState();
+        if (!saved) {
+            banner.style.display = 'none';
+            banner.innerHTML = '';
+            return;
+        }
+        const total = saved.simulado.questions.length;
+        const answered = Object.keys(saved.userAnswers || {}).length;
+        const mins = Math.max(1, Math.round((Date.now() - saved.savedAt) / 60000));
+        banner.style.display = '';
+        banner.innerHTML = `
+            <div class="form-card" style="border-color: rgba(255,209,102,0.5); display:flex; flex-wrap:wrap; align-items:center; gap:0.8rem; justify-content:space-between;">
+                <div>
+                    <strong>⏸ Simulado pausado</strong><br>
+                    <small>${Utils.escapeHtml(saved.simulado.certCode)} · ${LEVEL_LABELS[saved.simulado.level] || saved.simulado.level} — ${answered}/${total} respondidas · pausado há ${mins} min</small>
+                </div>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" id="resumeSimuladoBtn" class="btn btn-primary">▶ Continuar</button>
+                    <button type="button" id="discardSimuladoBtn" class="btn btn-outline">🗑 Descartar</button>
+                </div>
+            </div>`;
+        document.getElementById('resumeSimuladoBtn').addEventListener('click', resumeSimulado);
+        document.getElementById('discardSimuladoBtn').addEventListener('click', () => {
+            clearPausedState();
+            Utils.showToast('Simulado descartado.', 'success');
+        });
+    }
+
+    function resumeSimulado() {
+        const saved = loadPausedState();
+        if (!saved) return;
+
+        currentSimulado = saved.simulado;
+        userAnswers = saved.userAnswers || {};
+        questionFeedback = saved.questionFeedback || {};
+        currentQuestionIndex = saved.currentQuestionIndex || 0;
+        selectedFeedbackMode = saved.feedbackMode || 'exam';
+        examRealActive = !!saved.examRealActive;
+        markedQuestions = new Set(saved.marked || []);
+
+        document.getElementById('examCertBadge').textContent =
+            `${currentSimulado.certCode} • ${LEVEL_LABELS[currentSimulado.level] || currentSimulado.level}`;
+
+        stopExamTimer();
+        const timerEl = document.getElementById('examTimer');
+        const markBtn = document.getElementById('examMarkBtn');
+        if (examRealActive) {
+            timerEl.style.display = '';
+            markBtn.style.display = '';
+            startExamTimer(saved.remainingSeconds != null ? saved.remainingSeconds : currentSimulado.questions.length * 120);
+        } else {
+            timerEl.style.display = 'none';
+            markBtn.style.display = 'none';
+        }
+
+        renderQuestionDots();
+        renderQuestion(Math.min(currentQuestionIndex, currentSimulado.questions.length - 1));
+        showScreen('exam');
+        Utils.showToast('▶ Simulado retomado de onde você parou!', 'success');
+        if (window.StudyProgress) window.StudyProgress.recordStudyActivity();
+    }
+
+    // ============================================
     // Carregamento de certificações
     // ============================================
     async function loadCertifications() {
@@ -539,6 +651,7 @@
         nextBtn.style.visibility = index === total - 1 ? 'hidden' : 'visible';
 
         updateQuestionDots();
+        savePausedState(); // auto-save: fechar a aba também preserva o progresso
     }
 
     document.getElementById('prevQuestionBtn').addEventListener('click', () => {
@@ -606,6 +719,20 @@
         else markedQuestions.add(q.id);
         updateMarkButton();
         updateQuestionDots();
+        savePausedState();
+    });
+
+    // ============================================
+    // Pausar simulado (retomar depois de onde parou)
+    // ============================================
+    document.getElementById('examPauseBtn').addEventListener('click', () => {
+        if (!currentSimulado) return;
+        savePausedState();
+        stopExamTimer();
+        currentSimulado = null;
+        renderResumeBanner();
+        showScreen('selection');
+        Utils.showToast('⏸ Simulado pausado — continue quando quiser (válido por 2h).', 'success');
     });
 
     // ============================================
@@ -693,6 +820,7 @@
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro ao corrigir simulado');
 
+            clearPausedState(); // simulado entregue — nada a retomar
             renderResults(data);
             showScreen('result');
         } catch (error) {
@@ -822,4 +950,5 @@
     // Inicialização
     // ============================================
     loadCertifications();
+    renderResumeBanner();
 })();
