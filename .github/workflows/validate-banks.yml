@@ -1,0 +1,36 @@
+name: Validar bancos
+
+# Roda a validação dos bancos de questões e dos overlays do CloudArena
+# a cada push/PR que toque nos dados ou nos validadores.
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'data/**'
+      - 'scripts/validate_banks.py'
+      - 'scripts/validate_arena.py'
+      - '.github/workflows/validate-banks.yml'
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'scripts/validate_banks.py'
+      - 'scripts/validate_arena.py'
+  workflow_dispatch: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validar bancos de questões
+        run: python3 scripts/validate_banks.py
+
+      - name: Validar overlays do CloudArena
+        run: python3 scripts/validate_arena.py
