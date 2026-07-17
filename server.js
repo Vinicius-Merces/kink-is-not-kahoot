@@ -204,6 +204,7 @@ app.get('/api/arena/:certId', (req, res) => {
             const bankPath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
             if (!fs.existsSync(bankPath)) continue;
             const bank = JSON.parse(fs.readFileSync(bankPath, 'utf8'));
+            const domainNames = new Map((bank.domains || []).map(d => [d.id, d.name]));
             for (const q of (bank.questions || [])) {
                 totalBank++;
                 const ov = overlayById.get(q.id);
@@ -218,11 +219,16 @@ app.get('/api/arena/:certId', (req, res) => {
                     console.error(`[CloudArena] overlay desalinhado ignorado: ${q.id}`);
                     continue;
                 }
+                // Inimigo resolvido pelo domínio oficial; nome do golpe vem do
+                // primeiro tópico da questão (rótulo legível) — spec seção 13
+                const firstTopic = (q.topics && q.topics[0]) || null;
                 pools[level].push({
                     id: q.id,
                     text: q.text,
                     level,
-                    topic: (q.topics && q.topics[0]) || q.domain || 'unknown',
+                    domain: q.domain || 'unknown',
+                    attackName: (firstTopic && TOPIC_LABELS[firstTopic]) || firstTopic
+                        || domainNames.get(q.domain) || 'Nuvem',
                     options: resolved,
                     justifications: (ov.finalBlow && ov.finalBlow.justifications) || [],
                     explanation: q.explanation || '',
@@ -762,6 +768,60 @@ app.post('/api/study-progress', progressLimiter, async (req, res) => {
     } catch (error) {
         console.error('Erro ao salvar progresso de estudo:', error);
         return res.status(500).json({ success: false, error: 'Erro ao salvar progresso' });
+    }
+});
+
+// ============================================
+// CloudArena: estado do jogo sincronizado com a conta (spec seção 12)
+// Mesmo padrão do progresso das trilhas acima — Firestore é a fonte da
+// verdade por usuário; localStorage no cliente vira cache/fallback.
+// ============================================
+const devArenaState = new Map(); // uid -> payload (fallback sem Firebase Admin)
+
+app.get('/api/cloudarena/state', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    try {
+        if (db) {
+            const doc = await db.collection('users').doc(user.uid).collection('meta').doc('cloudarena').get();
+            return res.json({ success: true, state: doc.exists ? (doc.data().state || null) : null });
+        }
+        return res.json({ success: true, state: devArenaState.get(user.uid) || null });
+    } catch (error) {
+        console.error('Erro ao carregar estado do CloudArena:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao carregar estado' });
+    }
+});
+
+app.post('/api/cloudarena/state', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    const state = req.body && req.body.state;
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+        return res.status(400).json({ success: false, error: 'Estado inválido' });
+    }
+    let raw;
+    try { raw = JSON.stringify(state); } catch (e) { raw = null; }
+    if (!raw || raw.length > 200000) {
+        return res.status(413).json({ success: false, error: 'Estado inválido ou grande demais' });
+    }
+    try {
+        if (db) {
+            await db.collection('users').doc(user.uid).collection('meta').doc('cloudarena').set({
+                state,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+        } else {
+            devArenaState.set(user.uid, state);
+        }
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Erro ao salvar estado do CloudArena:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao salvar estado' });
     }
 });
 

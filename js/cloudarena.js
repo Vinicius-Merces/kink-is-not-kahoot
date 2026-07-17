@@ -53,69 +53,37 @@
     const KILLS_PER_HERO_LEVEL = 5;
 
     // ════════════════════════════════════════════════════════════════════
-    // Inimigos por tópico (SAA/DVA/DEA) e por domínio (CLF) — spec seção 13
+    // Inimigos — 4 por prova, mapeados aos domínios oficiais (spec seção 13)
+    // Cada domínio tem 2 personagens: um inimigo comum e um chefe, ambos com
+    // arte própria. O inimigo é resolvido pelo campo `domain` da questão.
     // ════════════════════════════════════════════════════════════════════
-    const ENEMIES = {
-        // Segurança/Identidade (roxo)
-        'iam': { name: 'Guardião de Permissões', family: 'seguranca', emoji: '🛡️' },
-        'security-services': { name: 'Sentinela GuardDuty', family: 'seguranca', emoji: '🛡️' },
-        'governance': { name: 'Auditor Implacável', family: 'seguranca', emoji: '🛡️' },
-        'security-dev': { name: 'Cifra Errante', family: 'seguranca', emoji: '🛡️' },
-        'cognito': { name: 'Duplo Identidade', family: 'seguranca', emoji: '🛡️' },
-        'data-security': { name: 'Vigia do Cofre', family: 'seguranca', emoji: '🛡️' },
-        // Computação (laranja)
-        'ec2-compute': { name: 'Instância Rebelde', family: 'computacao', emoji: '⚙️' },
-        'serverless': { name: 'Fantasma sem Servidor', family: 'computacao', emoji: '⚙️' },
-        'containers': { name: 'Enxame de Contêineres', family: 'computacao', emoji: '⚙️' },
-        'lambda': { name: 'Gatilho Lambda', family: 'computacao', emoji: '⚙️' },
-        'beanstalk': { name: 'Broto Beanstalk', family: 'computacao', emoji: '⚙️' },
-        'emr': { name: 'Colmeia EMR', family: 'computacao', emoji: '⚙️' },
-        // Armazenamento/Dados (azul)
-        's3-storage': { name: 'Balde Sem Fundo', family: 'dados', emoji: '🗄️' },
-        'databases': { name: 'Réplica Sombria', family: 'dados', emoji: '🗄️' },
-        'analytics': { name: 'Oráculo de Dados', family: 'dados', emoji: '🗄️' },
-        's3-dev': { name: 'Bucket Espectral', family: 'dados', emoji: '🗄️' },
-        'dynamodb': { name: 'Tabela Voraz', family: 'dados', emoji: '🗄️' },
-        'datalake-s3': { name: 'Lago Profundo', family: 'dados', emoji: '🗄️' },
-        'redshift': { name: 'Colosso Redshift', family: 'dados', emoji: '🗄️' },
-        'athena': { name: 'Esfinge Athena', family: 'dados', emoji: '🗄️' },
-        'nosql-stores': { name: 'Chave-Valor Camaleão', family: 'dados', emoji: '🗄️' },
-        // Rede (verde)
-        'vpc': { name: 'Muralha VPC', family: 'rede', emoji: '🌐' },
-        'edge-dns': { name: 'Eco de Borda', family: 'rede', emoji: '🌐' },
-        'hybrid-networking': { name: 'Ponte Híbrida', family: 'rede', emoji: '🌐' },
-        'api-gateway': { name: 'Portão de API', family: 'rede', emoji: '🌐' },
-        // Resiliência (âmbar)
-        'high-availability': { name: 'Sentinela Multi-AZ', family: 'resiliencia', emoji: '🔱' },
-        'dr-backup': { name: 'Fênix de Backup', family: 'resiliencia', emoji: '🔱' },
-        'troubleshooting': { name: 'Bug Persistente', family: 'resiliencia', emoji: '🔱' },
-        // Operações/Monitoramento (cinza-azulado)
-        'monitoring': { name: 'Olho do CloudWatch', family: 'operacoes', emoji: '👁️' },
-        'cost': { name: 'Cobrador Implacável', family: 'operacoes', emoji: '👁️' },
-        'migration': { name: 'Peregrino DMS', family: 'operacoes', emoji: '👁️' },
-        'cicd': { name: 'Esteira Automática', family: 'operacoes', emoji: '👁️' },
-        'cloudformation-sam': { name: 'Arquiteto de Templates', family: 'operacoes', emoji: '👁️' },
-        'sdk-cli': { name: 'Terminal Sombrio', family: 'operacoes', emoji: '👁️' },
-        // Integração/IA (magenta)
-        'app-integration': { name: 'Mensageiro das Filas', family: 'integracao', emoji: '📮' },
-        'ml-ai': { name: 'Oráculo Preditivo', family: 'integracao', emoji: '📮' },
-        'messaging': { name: 'Eco da Fila', family: 'integracao', emoji: '📮' },
-        // Pipeline de dados (teal)
-        'de-fundamentals': { name: 'Fluxo Bruto', family: 'pipeline', emoji: '🌊' },
-        'streaming': { name: 'Corrente Kinesis', family: 'pipeline', emoji: '🌊' },
-        'batch-ingestion': { name: 'Caravana em Lote', family: 'pipeline', emoji: '🌊' },
-        'glue-etl': { name: 'Cola ETL', family: 'pipeline', emoji: '🌊' },
-        'orchestration': { name: 'Maestro de Pipelines', family: 'pipeline', emoji: '🌊' },
-        'dataops': { name: 'Guardião da Qualidade', family: 'pipeline', emoji: '🌊' },
+    const DOMAIN_ENEMIES = {
+        'saa-c03': {
+            'secure-architectures': { common: 'Sentinela da Fortaleza', boss: 'Guardião de Arquiteturas Seguras', emoji: '🛡️' },
+            'resilient-architectures': { common: 'Sentinela da Resiliência', boss: 'Titã da Redundância', emoji: '🔱' },
+            'high-performing-architectures': { common: 'Fera do Alto Desempenho', boss: 'Devorador de Latência', emoji: '⚡' },
+            'cost-optimized-architectures': { common: 'Auditor de Faturas', boss: 'Ceifador de Gastos', emoji: '💰' },
+        },
+        'dva-c02': {
+            'development-aws-services': { common: 'Forjador de Código', boss: 'Arauto do SDK', emoji: '⚙️' },
+            'security': { common: 'Sentinela de Tokens', boss: 'Guardião de Segredos', emoji: '🛡️' },
+            'deployment': { common: 'Maquinista CI/CD', boss: 'Arauto do Deploy', emoji: '🚀' },
+            'troubleshooting-optimization': { common: 'Bug Persistente', boss: 'Stack Trace Amaldiçoado', emoji: '🐛' },
+        },
+        'dea-c01': {
+            'data-ingestion-transformation': { common: 'Torrente Bruta', boss: 'Mestre do Streaming', emoji: '🌊' },
+            'data-store-management': { common: 'Colosso do Armazenamento', boss: 'Guardião dos Lagos', emoji: '🗄️' },
+            'data-operations-support': { common: 'Guardião da Qualidade', boss: 'Vigia de Pipelines', emoji: '👁️' },
+            'data-security-governance': { common: 'Vigia do Cofre', boss: 'Arauto da Conformidade', emoji: '🔐' },
+        },
+        'clf-c02': {
+            'cloud-concepts': { common: 'Espírito da Nuvem', boss: 'Elemental Elástico', emoji: '☁️' },
+            'security-compliance': { common: 'Escudo de Conformidade', boss: 'Guardião do Shared Responsibility', emoji: '🛡️' },
+            'technology-services': { common: 'Autômato de Serviços', boss: 'Golem de Catálogo', emoji: '🤖' },
+            'billing-pricing-support': { common: 'Ceifador de Faturas', boss: 'Oráculo do Orçamento', emoji: '💰' },
+        },
     };
-    // CLF não tem topics — usa os 4 domínios oficiais da prova
-    const CLF_ENEMIES = {
-        'cloud-concepts': { name: 'Espírito da Nuvem', family: 'clf', emoji: '☁️' },
-        'security-compliance': { name: 'Escudo de Conformidade', family: 'clf', emoji: '🛡️' },
-        'technology-services': { name: 'Autômato de Serviços', family: 'clf', emoji: '🤖' },
-        'billing-pricing-support': { name: 'Contador Implacável', family: 'clf', emoji: '💰' },
-    };
-    const FALLBACK_ENEMY = { name: 'Anomalia da Nuvem', family: 'clf', emoji: '⛈️' };
+    const FALLBACK_ENEMY = { common: 'Anomalia da Nuvem', boss: 'Anomalia Primordial', emoji: '⛈️' };
 
     // ════════════════════════════════════════════════════════════════════
     // Persistência (localStorage) — spec seção 12
@@ -158,6 +126,7 @@
 
     function saveState() {
         try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* cheio/privado */ }
+        scheduleSync();
     }
 
     // heroLevel/heroMaxHp são SEMPRE derivados de enemiesDefeated (spec 12)
@@ -170,6 +139,133 @@
     }
     function saveAchievements() {
         try { localStorage.setItem(ACH_KEY, JSON.stringify(achState)); } catch (e) { /* noop */ }
+        scheduleSync();
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // Sincronização com a conta (spec seção 12 — requisito do v1)
+    // Firestore é a fonte da verdade por usuário; o localStorage acima vira
+    // cache local (leitura instantânea) e fallback para deslogados. Mesmo
+    // padrão já testado em produção no study-progress.js: pull+merge no
+    // login, push com debounce (~2,5s) a cada mudança de estado.
+    // ════════════════════════════════════════════════════════════════════
+    let syncTimer = null;
+    let syncInitialized = false;
+
+    function firebaseUser() {
+        try {
+            return (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+        } catch (e) { return null; }
+    }
+
+    // O documento sincronizado carrega o estado inteiro + as conquistas
+    // desbloqueadas (um objeto só, pequeno — não precisa fragmentar).
+    function syncPayload() {
+        return Object.assign({}, state, { achievements: achState.unlocked });
+    }
+
+    /**
+     * Merge por campo — nunca "o último a salvar vence" sem critério:
+     * - bestLevelReached / challengeBestLevel: max(local, remoto)
+     * - run em andamento: fica o lado com maior enemiesDefeated
+     * - conquistas e bossesDefeated: união (nunca se perde o que abriu)
+     * - recentQuestionIds: união simples (anti-repetição, baixo risco)
+     * - heroChoice: o mais recente vence (preferência estética)
+     */
+    function mergeArena(localA, remoteA) {
+        const l = Object.assign(freshArenaState(), localA || {});
+        const r = Object.assign(freshArenaState(), remoteA || {});
+        const merged = Object.assign({}, (r.enemiesDefeated || 0) > (l.enemiesDefeated || 0) ? r : l);
+        merged.bestLevelReached = Math.max(l.bestLevelReached || 0, r.bestLevelReached || 0);
+        merged.challengeBestLevel = Math.max(l.challengeBestLevel || 0, r.challengeBestLevel || 0);
+        merged.bossesDefeated = Array.from(new Set([...(l.bossesDefeated || []), ...(r.bossesDefeated || [])]));
+        merged.recentQuestionIds = Array.from(new Set([...(l.recentQuestionIds || []), ...(r.recentQuestionIds || [])]));
+        merged.hadGameOver = !!(l.hadGameOver || r.hadGameOver);
+        return merged;
+    }
+
+    function mergeRemoteState(remote) {
+        if (!remote || typeof remote !== 'object') return false;
+        const before = JSON.stringify(state) + JSON.stringify(achState.unlocked);
+        const rArenas = remote.arenas || {};
+        for (const id of Object.keys(ARENAS)) {
+            state.arenas[id] = mergeArena(state.arenas[id], rArenas[id]);
+        }
+        if (remote.heroChoice &&
+            (!state.heroChoice || String(remote.heroChoiceAt || '') > String(state.heroChoiceAt || ''))) {
+            state.heroChoice = remote.heroChoice;
+            state.heroChoiceAt = remote.heroChoiceAt || state.heroChoiceAt || null;
+        }
+        state.playDays = Array.from(new Set([...(state.playDays || []), ...(remote.playDays || [])]));
+        if (remote.lastResult && (!state.lastResult ||
+            String(remote.lastResult.date || '') > String(state.lastResult.date || ''))) {
+            state.lastResult = remote.lastResult;
+        }
+        for (const [id, ts] of Object.entries(remote.achievements || {})) {
+            // união; se os dois têm, fica o timestamp mais antigo (primeiro desbloqueio)
+            if (!achState.unlocked[id] || String(ts) < String(achState.unlocked[id])) {
+                achState.unlocked[id] = ts;
+            }
+        }
+        return (JSON.stringify(state) + JSON.stringify(achState.unlocked)) !== before;
+    }
+
+    async function pushState() {
+        const user = firebaseUser();
+        if (!user) return;
+        try {
+            const token = await user.getIdToken();
+            await fetch('/api/cloudarena/state', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ state: syncPayload() }),
+            });
+        } catch (e) { /* offline/erro de rede — tenta na próxima alteração */ }
+    }
+
+    function scheduleSync() {
+        if (!firebaseUser()) return;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(pushState, 2500);
+    }
+
+    async function pullAndMerge(user) {
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch('/api/cloudarena/state', {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (!data.success) return;
+            const changed = mergeRemoteState(data.state);
+            if (changed) {
+                try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* noop */ }
+                try { localStorage.setItem(ACH_KEY, JSON.stringify(achState)); } catch (e) { /* noop */ }
+                // atualiza a tela inicial com o progresso vindo de outro
+                // dispositivo — sem interromper uma batalha em andamento
+                if (!battle) renderHome();
+            }
+            pushState();
+        } catch (e) { /* segue com o estado local */ }
+    }
+
+    function initSync() {
+        if (syncInitialized) return;
+        if (typeof firebase === 'undefined' || !firebase.auth) return; // SDK ainda não carregou
+        syncInitialized = true;
+        firebase.auth().onAuthStateChanged(user => { if (user) pullAndMerge(user); });
+    }
+
+    // O firebase carrega depois deste script: tenta na carga da página e
+    // re-tenta por alguns segundos até o SDK existir.
+    if (typeof window !== 'undefined') {
+        window.addEventListener('load', () => {
+            let tries = 0;
+            const timer = setInterval(() => {
+                initSync();
+                if (syncInitialized || ++tries > 20) clearInterval(timer);
+            }, 500);
+        });
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -294,23 +390,134 @@
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Sprites — herói animado, inimigos estáticos (spec seções 6 e 13)
+    // Sprites — herói animado por atlas, inimigos estáticos (spec 6 e 13)
     // ════════════════════════════════════════════════════════════════════
-    // Herói: images/arena/hero/<masculino|feminino>/<idle|attack|hurt|victory|defeat>.png
-    // Inimigo: images/arena/enemies/<topic>-idle.png / -attack.png
-    //          CLF: images/arena/enemies/clf/<domain>-idle.png / -attack.png
-    // Enquanto os PNGs não existem, o loader cai num placeholder (emoji).
-    function heroSpriteUrl(stateName) {
+    // Herói: images/arena/hero/<masculino|feminino>/ com 5 spritesheets
+    // (idle/attack/hurt/victory/death.png, 6 frames cada) + atlas.json com
+    // recorte (x, w) e âncora (anchorX, anchorY) POR FRAME — os frames têm
+    // larguras desiguais e o alinhamento é pela âncora dos pés, não pela
+    // borda do quadro (ver CLOUDARENA-HEROI-ANIMACAO.md). O atlas do
+    // personagem não-referência traz o campo raiz "scale" para normalizar
+    // o tamanho visual entre os dois heróis.
+    // Inimigo: images/arena/enemies/<domain>-idle.png / -attack.png e
+    // -boss-idle/-boss-attack (CLF numa subpasta clf/). Enquanto os PNGs
+    // dos inimigos não existem, o loader cai num placeholder (emoji).
+    const HERO_STATES = ['idle', 'attack', 'hurt', 'victory', 'death'];
+    const HERO_FPS = 10;
+    const HERO_HIT_FRAME = 4;      // 1-indexado — o VFX de dano dispara aqui
+    const HERO_LUNGE_PX = 46;      // deslocamento até a frente do inimigo
+
+    class HeroSprite {
+        constructor(choice) {
+            this.choice = choice;
+            this.basePath = `images/arena/hero/${choice}/`;
+            this.atlas = null;
+            this.images = {};
+            this.canvas = null;
+            this.ctx = null;
+            this._timer = null;
+            this._loading = null;
+        }
+
+        load() {
+            if (this._loading) return this._loading;
+            this._loading = (async () => {
+                const res = await fetch(this.basePath + 'atlas.json');
+                if (!res.ok) throw new Error(`atlas do herói ${this.choice} não encontrado`);
+                this.atlas = await res.json();
+                const states = HERO_STATES.filter(s => this.atlas[s]);
+                await Promise.all(states.map(s => new Promise((ok, fail) => {
+                    const img = new Image();
+                    img.onload = ok;
+                    img.onerror = () => fail(new Error(`spritesheet ${s}.png não carregou`));
+                    img.src = `${this.basePath}${s}.png`;
+                    this.images[s] = img;
+                })));
+                return this;
+            })();
+            return this._loading;
+        }
+
+        get isReady() { return !!(this.atlas && this.images.idle && this.images.idle.complete); }
+
+        attach(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.ctx.imageSmoothingEnabled = false;
+        }
+
+        stop() {
+            if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+        }
+
+        // Desenha alinhando a ÂNCORA (pés) do frame ao ponto fixo do canvas —
+        // não a borda esquerda do recorte. É isso que elimina o tremor entre
+        // frames de largura desigual. O campo "scale" do atlas normaliza o
+        // tamanho entre personagens e escala junto as coordenadas da âncora.
+        drawFrame(stateName, index) {
+            if (!this.canvas || !this.atlas || !this.atlas[stateName]) return;
+            const st = this.atlas[stateName];
+            const f = st.frames[Math.min(index, st.frames.length - 1)];
+            // Ponto fixo dos pés no canvas 180x150 — verificado contra os dois
+            // atlas reais: nenhum frame corta conteúdo (só padding transparente)
+            const scale = this.atlas.scale || 1;
+            const worldX = this.canvas.width / 2;
+            const worldY = this.canvas.height - 5;
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(
+                this.images[stateName],
+                f.x, 0, f.w, st.frameHeight,
+                worldX - f.anchorX * scale, worldY - f.anchorY * scale,
+                f.w * scale, st.frameHeight * scale
+            );
+        }
+
+        /**
+         * Toca um estado. loop=true repete (idle); sem loop, o último frame
+         * fica na tela até o caller trocar de estado (a morte usa isso).
+         * onFrame(iZeroBased, total) sincroniza movimento e o gatilho de hit
+         * ao frame renderizado, não a um timer estimado.
+         */
+        play(stateName, { loop = false, onFrame = null, onComplete = null } = {}) {
+            if (!this.isReady || !this.atlas[stateName]) return false;
+            this.stop();
+            const st = this.atlas[stateName];
+            let i = 0;
+            const interval = 1000 / HERO_FPS;
+            const tick = () => {
+                this.drawFrame(stateName, i);
+                if (onFrame) onFrame(i, st.frames.length);
+                i++;
+                if (i >= st.frames.length) {
+                    if (loop) {
+                        i = 0;
+                    } else {
+                        // holdLast (morte): o último frame fica na tela
+                        this._timer = null;
+                        if (onComplete) onComplete();
+                        return;
+                    }
+                }
+                this._timer = setTimeout(tick, interval);
+            };
+            tick();
+            return true;
+        }
+    }
+
+    const heroSpriteCache = {};   // choice -> HeroSprite
+    function getHeroSprite() {
         const choice = state.heroChoice || 'masculino';
-        return `images/arena/hero/${choice}/${stateName}.png`;
+        if (!heroSpriteCache[choice]) heroSpriteCache[choice] = new HeroSprite(choice);
+        return heroSpriteCache[choice];
     }
 
-    function enemySpriteUrl(certId, topic, pose) {
-        if (certId === 'clf-c02') return `images/arena/enemies/clf/${topic}-${pose}.png`;
-        return `images/arena/enemies/${topic}-${pose}.png`;
+    function enemySpriteUrl(certId, domain, pose, boss) {
+        const dir = certId === 'clf-c02' ? 'images/arena/enemies/clf/' : 'images/arena/enemies/';
+        return `${dir}${domain}${boss ? '-boss' : ''}-${pose}.png`;
     }
 
-    function setSprite(imgEl, url, fallbackEmoji) {
+    function setSprite(imgEl, url) {
         imgEl.onerror = () => {
             imgEl.style.display = 'none';
             const fb = imgEl.nextElementSibling;
@@ -324,9 +531,10 @@
         imgEl.src = url;
     }
 
-    function enemyInfo(certId, topic) {
-        if (certId === 'clf-c02') return CLF_ENEMIES[topic] || FALLBACK_ENEMY;
-        return ENEMIES[topic] || FALLBACK_ENEMY;
+    function enemyInfo(certId, domain, boss) {
+        const byDomain = DOMAIN_ENEMIES[certId] || {};
+        const entry = byDomain[domain] || FALLBACK_ENEMY;
+        return { name: boss ? entry.boss : entry.common, emoji: entry.emoji };
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -381,7 +589,7 @@
                 totalRounds: pending.totalRounds, round: pending.round,
                 tookDamage: false, golpe1Mistake: false,
                 enteredWithHp: a.heroCurrentHp,
-                question: null, topic: null,
+                question: null, domain: null, attackName: null,
             };
             openQuestion(findQuestionById(certId, pending.questionId));
             return;
@@ -395,7 +603,8 @@
             golpe1Mistake: false,       // para Well-Architected
             enteredWithHp: a.heroCurrentHp,
             question: null,
-            topic: null,
+            domain: null,
+            attackName: null,
         };
         nextRound();
     }
@@ -431,7 +640,8 @@
             [justs[i], justs[j]] = [justs[j], justs[i]];
         }
         battle.question = Object.assign({}, q, { justifications: justs });
-        battle.topic = q.topic;
+        battle.domain = q.domain;
+        battle.attackName = q.attackName || 'Nuvem';
         battle.phase = 'eliminate';
         battle.selected = new Set();
         battle.eliminatedTexts = [];
@@ -448,62 +658,79 @@
 
     function heroHit() { // herói causa 1 de dano fixo (spec 7.2)
         battle.enemyHp = Math.max(0, battle.enemyHp - 1);
-        animateHero('attack');
-        animateEnemyHurt();
     }
 
-    function heroHurt(certId) {
+    // Aplica o dano do inimigo no estado (sem animação — a coreografia roda
+    // depois do re-render, via playExchange). Retorna true se o herói morreu.
+    function applyHeroDamage(certId) {
         const dmg = enemyDamage(certId);
         const a = state.arenas[certId];
         a.heroCurrentHp = Math.round(Math.max(0, a.heroCurrentHp - dmg) * 10) / 10;
         a.lowestHpRatio = Math.min(a.lowestHpRatio, a.heroCurrentHp / heroMaxHp(a));
         battle.tookDamage = true;
         a.noDamageStreak = 0;
-        animateEnemyAttack();
         saveState();
-        if (a.heroCurrentHp <= 0) {
-            setTimeout(() => gameOver(certId), 650);
-            return true;
+        return a.heroCurrentHp <= 0;
+    }
+
+    /**
+     * Coreografia pós-resolução de um golpe: primeiro o re-render já
+     * aconteceu, então as animações rodam por cima da tela nova.
+     * Ordem: ataque do herói (se acertou algo) -> ataque do inimigo (se
+     * errou algo) -> morte/game over se o HP zerou.
+     */
+    function playExchange(didHit, tookHits, died) {
+        const steps = [];
+        if (didHit) {
+            steps.push(next => heroAttack(() => { animateEnemyHurt(); setTimeout(next, 380); }));
         }
-        return false;
+        if (tookHits > 0) {
+            steps.push(next => animateEnemyAttack(died, next));
+        }
+        let k = 0;
+        const next = () => {
+            if (k < steps.length) { steps[k++](next); return; }
+            if (died) setTimeout(() => gameOver(battle.certId), 350);
+        };
+        next();
     }
 
     // Golpe 1 — eliminação de exatamente 2
     function confirmElimination() {
         if (battle.selected.size !== 2) return;
-        const a = state.arenas[battle.certId];
-        let died = false;
+        let hits = 0, mistakes = 0;
         for (const text of battle.selected) {
             const opt = battle.question.options.find(o => o.text === text);
             if (opt.stage === 'eliminate') {
-                heroHit();
+                hits++;
             } else {
                 // eliminou a correta ou a armadilha — dano no jogador
                 battle.golpe1Mistake = true;
-                died = heroHurt(battle.certId);
-                if (died) return;
+                mistakes++;
             }
         }
+        for (let i = 0; i < hits; i++) heroHit();
+        let died = false;
+        for (let i = 0; i < mistakes && !died; i++) died = applyHeroDamage(battle.certId);
         battle.eliminatedTexts = [...battle.selected];
         battle.phase = 'choose';
         saveState();
         renderBattle();
+        playExchange(hits > 0, mistakes, died);
     }
 
     // Golpe 2 — escolha entre correta e armadilha
     function chooseOption(text) {
         const opt = battle.question.options.find(o => o.text === text);
         battle.chosenText = text;
-        if (opt.stage === 'correct') {
-            heroHit();
-            battle.choseCorrect = true;
-        } else {
-            battle.choseCorrect = false;
-            if (heroHurt(battle.certId)) return;
-        }
+        battle.choseCorrect = opt.stage === 'correct';
+        let died = false;
+        if (battle.choseCorrect) heroHit();
+        else died = applyHeroDamage(battle.certId);
         battle.phase = 'finalblow';
         saveState();
         renderBattle();
+        playExchange(battle.choseCorrect, battle.choseCorrect ? 0 : 1, died);
     }
 
     // Golpe 3 — justificativa; abate instantâneo só em inimigo normal ou
@@ -514,18 +741,21 @@
         if (just.correct) {
             if (!battle.boss || isLastRound) {
                 battle.enemyHp = 0; // abate garantido
-                animateHero('attack');
-                enemyDefeated();
+                updateHpBars();
+                heroAttack(() => animateEnemyHurt());
+                setTimeout(enemyDefeated, 720);
             } else {
                 heroHit();
                 battle.round++;
+                heroAttack(() => animateEnemyHurt());
                 showToast(`Round ${battle.round} de ${battle.totalRounds} — o chefe resiste!`);
-                setTimeout(nextRound, 900);
+                setTimeout(nextRound, 1200);
             }
         } else {
             battle.disabledJusts.add(idx);
-            if (heroHurt(battle.certId)) return;
+            const died = applyHeroDamage(battle.certId);
             renderBattle();
+            playExchange(false, 1, died);
         }
     }
 
@@ -555,7 +785,7 @@
         if (battle.boss && !battle.golpe1Mistake) unlock('well-architected', 'Well-Architected');
 
         if (battle.boss) {
-            const info = enemyInfo(certId, battle.topic);
+            const info = enemyInfo(certId, battle.domain, true);
             const levelLabel = a.inChallenge ? `desafio-${a.challengePosition}` : a.currentLevel;
             if (!a.bossesDefeated.includes(levelLabel)) a.bossesDefeated.push(levelLabel);
             unlock(`boss:${certId}:${levelLabel}`,
@@ -668,19 +898,80 @@
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Animações — herói tem poses desenhadas; inimigo é overlay/deslocamento
-    // em código sobre sprite estático (spec seção 13)
+    // Animações — herói animado por atlas/canvas; inimigo é deslocamento e
+    // overlay em código sobre sprite estático (spec seção 13)
     // ════════════════════════════════════════════════════════════════════
+    function heroPlayIdle() {
+        const hero = getHeroSprite();
+        if (hero.isReady && hero.canvas) hero.play('idle', { loop: true });
+    }
+
+    // Poses simples (hurt/victory/death). O ataque tem coreografia própria
+    // em heroAttack() — hit sincronizado ao frame, não a um timer.
     function animateHero(pose) {
-        const img = $('#heroSprite');
-        if (!img) return;
-        setSprite(img, heroSpriteUrl(pose), '🧑‍🚀');
         const wrap = $('#heroWrap');
+        if (!wrap) return;
+        const hero = getHeroSprite();
+        if (hero.isReady && hero.canvas) {
+            wrap.style.transform = '';
+            if (pose === 'death') {
+                hero.play('death'); // termina no último frame e fica lá
+            } else {
+                hero.play(pose, { onComplete: heroPlayIdle });
+            }
+            if (pose === 'hurt') {
+                wrap.classList.remove('hero-hurt');
+                void wrap.offsetWidth;
+                wrap.classList.add('hero-hurt');
+            }
+            return;
+        }
+        // fallback sem spritesheets: comportamento antigo via classes CSS
         wrap.classList.remove('hero-attack', 'hero-hurt');
         void wrap.offsetWidth;
         if (pose === 'attack') wrap.classList.add('hero-attack');
         if (pose === 'hurt') wrap.classList.add('hero-hurt');
-        setTimeout(() => setSprite(img, heroSpriteUrl('idle'), '🧑‍🚀'), 700);
+    }
+
+    /**
+     * Ciclo de ataque do herói (CLOUDARENA-HEROI-ANIMACAO.md):
+     * frames 1-3 aproximam o herói do inimigo (interpolação da posição),
+     * o frame 4 é o impacto — onHit dispara EXATAMENTE quando ele é
+     * desenhado —, frames 5-6 recuam só a pose. Depois do ciclo o herói
+     * volta à posição original e retoma o idle.
+     */
+    function heroAttack(onHit) {
+        const wrap = $('#heroWrap');
+        const hero = getHeroSprite();
+        if (!wrap || !(hero.isReady && hero.canvas)) {
+            // fallback: lunge CSS com hit no meio do movimento
+            if (wrap) {
+                wrap.classList.remove('hero-attack');
+                void wrap.offsetWidth;
+                wrap.classList.add('hero-attack');
+            }
+            setTimeout(() => { if (onHit) onHit(); }, 180);
+            return;
+        }
+        const approachFrames = HERO_HIT_FRAME - 1;
+        let hitFired = false;
+        wrap.style.transition = 'none';
+        hero.play('attack', {
+            onFrame: (i) => {
+                const progress = Math.min((i + 1) / approachFrames, 1);
+                wrap.style.transform = `translateX(${Math.round(HERO_LUNGE_PX * progress)}px)`;
+                if (i + 1 === HERO_HIT_FRAME && !hitFired) {
+                    hitFired = true;
+                    if (onHit) onHit();
+                }
+            },
+            onComplete: () => {
+                // retorno à posição original — transição separada do ciclo
+                wrap.style.transition = 'transform 0.25s ease';
+                wrap.style.transform = 'translateX(0)';
+                setTimeout(() => { wrap.style.transition = ''; heroPlayIdle(); }, 260);
+            },
+        });
     }
 
     function animateEnemyHurt() {
@@ -693,20 +984,56 @@
         updateHpBars();
     }
 
-    function animateEnemyAttack() {
+    // Ataque do inimigo: troca para a pose de ataque, desloca em direção ao
+    // herói, exibe o nome do golpe (tópico da questão — spec seção 13) e no
+    // impacto dispara a animação hurt (ou death) do herói.
+    function animateEnemyAttack(heroDies, done) {
         const wrap = $('#enemyWrap');
         const img = $('#enemySprite');
-        if (!wrap || !img) return;
-        setSprite(img, enemySpriteUrl(battle.certId, battle.topic, 'attack'), null);
+        if (!wrap || !img) { if (done) done(); return; }
+        const info = enemyInfo(battle.certId, battle.domain, battle.boss);
+        const callout = $('#attackCallout');
+        if (callout) {
+            callout.textContent = `${info.name} ataca com ${battle.attackName}!`;
+            callout.classList.add('show');
+        }
+        setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
         wrap.classList.add('enemy-attacking'); // desloca em direção ao herói via CSS
         setTimeout(() => {
-            animateHero('hurt');
+            animateHero(heroDies ? 'death' : 'hurt');
             updateHpBars();
         }, 320);
         setTimeout(() => {
             wrap.classList.remove('enemy-attacking');
-            setSprite(img, enemySpriteUrl(battle.certId, battle.topic, 'idle'), null);
+            setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
+            if (callout) callout.classList.remove('show');
+            // se o herói morreu, espera a animação de morte terminar
+            if (done) setTimeout(done, heroDies ? 650 : 80);
         }, 700);
+    }
+
+    // Liga o canvas recém-renderizado ao sprite do herói e inicia o idle.
+    // Se os spritesheets não carregarem (offline/arquivo faltando), mantém
+    // o fallback de emoji — o jogo nunca trava por causa de arte.
+    function initHeroCanvas() {
+        const canvas = $('#heroCanvas');
+        if (!canvas) return;
+        const fb = canvas.nextElementSibling;
+        const hero = getHeroSprite();
+        const activate = () => {
+            if (!document.body.contains(canvas)) return; // tela já mudou
+            hero.attach(canvas);
+            canvas.style.display = '';
+            if (fb && fb.classList.contains('sprite-fallback')) fb.style.display = 'none';
+            hero.play('idle', { loop: true });
+        };
+        // attach SÍNCRONO quando já carregado: as coreografias (playExchange)
+        // rodam logo após o re-render e precisam do canvas novo já ligado
+        if (hero.isReady) { activate(); return; }
+        hero.load().then(activate).catch(() => {
+            canvas.style.display = 'none';
+            if (fb && fb.classList.contains('sprite-fallback')) fb.style.display = 'flex';
+        });
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -721,6 +1048,7 @@
     function renderHome() {
         currentArena = null;
         battle = null;
+        Object.values(heroSpriteCache).forEach(h => h.stop());
         const cards = Object.entries(ARENAS).map(([id, arena]) => {
             const a = state.arenas[id];
             const inRun = a.enemiesDefeated > 0 || a.currentLevel > 1 || a.inChallenge;
@@ -753,7 +1081,13 @@
             </div>`;
 
         app().querySelectorAll('.hero-choice').forEach(b =>
-            b.addEventListener('click', () => { state.heroChoice = b.dataset.hero; saveState(); renderHome(); }));
+            b.addEventListener('click', () => {
+                state.heroChoice = b.dataset.hero;
+                state.heroChoiceAt = new Date().toISOString(); // "o mais recente vence" no merge (spec 12)
+                saveState();
+                getHeroSprite().load().catch(() => { /* segue com fallback */ });
+                renderHome();
+            }));
         $('#achievementsBtn').addEventListener('click', renderAchievements);
         app().querySelectorAll('.arena-btn').forEach(b =>
             b.addEventListener('click', () => enterArena(b.dataset.arena)));
@@ -765,6 +1099,7 @@
             return;
         }
         app().innerHTML = '<div class="arena-loading">Carregando a arena…</div>';
+        getHeroSprite().load().catch(() => { /* fallback de emoji cobre */ });
         try {
             await loadArenaData(certId);
         } catch (err) {
@@ -803,7 +1138,7 @@
         const arena = ARENAS[certId];
         const a = state.arenas[certId];
         const q = battle.question;
-        const info = enemyInfo(certId, battle.topic);
+        const info = enemyInfo(certId, battle.domain, battle.boss);
         const levelLabel = a.inChallenge
             ? `Desafio ${a.challengePosition}/20`
             : `Nível ${a.currentLevel}/${arena.maxLevel}`;
@@ -859,9 +1194,10 @@
                     <span class="battle-dmg">dano inimigo: ${enemyDamage(certId)}</span>
                 </div>
                 <div class="battle-field">
+                    <div class="attack-callout" id="attackCallout"></div>
                     <div class="fighter" id="heroWrap">
                         ${hpBarHtml('heroHp', a.heroCurrentHp, heroMaxHp(a), '#2dd4bf')}
-                        <img id="heroSprite" class="sprite" alt="Herói">
+                        <canvas id="heroCanvas" class="sprite" width="180" height="150" style="display:none"></canvas>
                         <div class="sprite-fallback">${state.heroChoice === 'feminino' ? '👩‍🚀' : '🧑‍🚀'}</div>
                         <div class="fighter-name">Você · nv. ${heroLevel(a)}</div>
                     </div>
@@ -879,8 +1215,8 @@
                 </div>
             </div>`;
 
-        setSprite($('#heroSprite'), heroSpriteUrl('idle'));
-        setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.topic, 'idle'));
+        initHeroCanvas();
+        setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
 
         if (battle.phase === 'eliminate') {
