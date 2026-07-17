@@ -49,20 +49,20 @@ class MusicPlayer {
 
     loadPlaylist() {
         const menuPlaylist = [
-            { id: 'menu1', title: 'KINK Theme', artist: 'KINK Original', url: '/assets/music/Index/KINK - Ta pronto pro jogo.mp3', cover: '🎵', duration: '2:34' },
-            { id: 'menu2', title: 'Rebel Rhythm', artist: 'KINK Original', url: '/assets/music/Index/KINK - EletroVibe.mp3', cover: '⚡', duration: '2:09' },
-            { id: 'menu3', title: 'Yeah! KINK', artist: 'KINK Original', url: '/assets/music/Index/KINK - Yeah!.mp3', cover: '⚛️', duration: '2:24' },
-            { id: 'menu4', title: 'Just KINK', artist: 'KINK Original', url: '/assets/music/Index/KINK - Pulsating Vibe.mp3', cover: '⚛️', duration: '2:13' }
+            { id: 'menu1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Jam.mp3', cover: '🎵', duration: '0:00' },
+            { id: 'menu2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Chama.mp3', cover: '⚡', duration: '0:00' },
+            { id: 'menu3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Leva.mp3', cover: '☁️', duration: '0:00' },
+            { id: 'menu4', title: 'Neon', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neon.mp3', cover: '🎹', duration: '0:00' },
+            { id: 'menu5', title: 'Neons', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neons.mp3', cover: '🎯', duration: '0:00' },
+            { id: 'menu6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Signal.mp3', cover: '⚛️', duration: '0:00' }
         ];
         const gamePlaylist = [
-            { id: 'game1', title: 'Epic Tension', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Play! 2.mp3', cover: '⚡', duration: '2:51' },
-            { id: 'game2', title: 'Quiz Pulse', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher 2.mp3', cover: '🎯', duration: '2:16' },
-            { id: 'game3', title: 'Background Lo-Fi', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Lofi Session.mp3', cover: '🎷🎼', duration: '2:08' },
-            { id: 'game4', title: 'Quizz Lo-Fi', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Lofi Session 2.mp3', cover: '🎹🎸', duration: '1:48' },
-            { id: 'game5', title: 'Epic Suspense', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Dark drama.mp3', cover: '🎹', duration: '1:50' },
-            { id: 'game6', title: 'Epic Answers', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Play!.mp3', cover: '☯️', duration: '2:42' },
-            { id: 'game7', title: 'KINK Drama', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Dark drama 2.mp3', cover: '⚛️', duration: '2:14' },
-            { id: 'game8', title: 'Be KINK', artist: 'KINK Original', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher.mp3', cover: '🪯', duration: '1:36' }
+            { id: 'game1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Jam.mp3', cover: '🎵', duration: '0:00' },
+            { id: 'game2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Chama.mp3', cover: '⚡', duration: '0:00' },
+            { id: 'game3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Leva.mp3', cover: '☁️', duration: '0:00' },
+            { id: 'game4', title: 'Neon', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neon.mp3', cover: '🎹', duration: '0:00' },
+            { id: 'game5', title: 'Neons', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neons.mp3', cover: '🎯', duration: '0:00' },
+            { id: 'game6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Signal.mp3', cover: '⚛️', duration: '0:00' }
         ];
         // Apenas a landing page usa a playlist própria; todo o resto usa a trilha instrumental/calma
         this.currentPlaylist = (this.playlistType === 'menu') ? menuPlaylist : gamePlaylist;
@@ -89,7 +89,7 @@ class MusicPlayer {
         if (this.playlistType === 'game') return '🎮 Playlist de Jogo';
         if (this.playlistType === 'simulado') return '🎓 Playlist de Estudo';
         if (this.playlistType === 'ambient') return '🎧 Playlist Ambiente';
-        return '🎵 Playlist KINK';
+        return '🎵 Playlist CloudPath';
     }
 
     setupAudioEvents() {
@@ -122,7 +122,7 @@ class MusicPlayer {
 
     updatePlayButton() {
         const playPauseBtn = document.getElementById('playPauseBtn');
-        const player = document.getElementById('kinkMusicPlayer');
+        const player = document.getElementById('cloudMusicPlayer');
         if (playPauseBtn) playPauseBtn.innerHTML = this.isPlaying ? '⏸️' : '▶️';
         if (player) {
             if (this.isPlaying) {
@@ -136,10 +136,10 @@ class MusicPlayer {
     }
 
     createPlayerUI() {
-        if (document.getElementById('kinkMusicPlayer')) return;
+        if (document.getElementById('cloudMusicPlayer')) return;
 
         const playerHTML = `
-            <div id="kinkMusicPlayer" class="music-player-v2 ${this.isPlaying ? 'playing' : 'paused'}">
+            <div id="cloudMusicPlayer" class="music-player-v2 ${this.isPlaying ? 'playing' : 'paused'}">
                 <!-- PLAYER EXPANDIDO -->
                 <div class="player-expanded" id="playerExpanded" style="display: ${this.isMinimized ? 'none' : 'flex'};">
                     <!-- Cabeçalho -->
@@ -157,7 +157,7 @@ class MusicPlayer {
                     <!-- Informações da track -->
                     <div class="player-track-info">
                         <h3 class="track-title" id="currentTitle">Carregando...</h3>
-                        <p class="track-artist" id="currentArtist">KINK Music</p>
+                        <p class="track-artist" id="currentArtist">CloudPath Music</p>
                     </div>
 
                     <!-- Barra de progresso -->
@@ -291,7 +291,7 @@ class MusicPlayer {
 
         // Atualizar UI expandida
         document.getElementById('currentTitle').textContent = track.title;
-        document.getElementById('currentArtist').textContent = track.artist || 'KINK';
+        document.getElementById('currentArtist').textContent = track.artist || 'CloudPath';
         document.getElementById('artworkEmoji').textContent = track.cover || '🎵';
 
         // Atualizar UI minimizada

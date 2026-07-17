@@ -1,4 +1,4 @@
-// Registra o service worker para permitir instalar o KINK como app
+// Registra o service worker para permitir instalar o CloudPath como app
 // na tela inicial do Android/iOS (PWA).
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -74,7 +74,7 @@ if ('serviceWorker' in navigator) {
         event.preventDefault();
         createBanner({
             icon: '📲',
-            title: 'Instale o KINK',
+            title: 'Instale o CloudPath',
             text: 'Adicione à tela inicial para abrir como um app, com acesso rápido.',
             actionLabel: 'Instalar',
             onAction: () => event.prompt()
@@ -89,7 +89,7 @@ if ('serviceWorker' in navigator) {
     if (isIos && !isOtherBrowser) {
         createBanner({
             icon: '📲',
-            title: 'Instale o KINK',
+            title: 'Instale o CloudPath',
             text: 'Toque em Compartilhar e depois em "Adicionar à Tela de Início".'
         });
     }

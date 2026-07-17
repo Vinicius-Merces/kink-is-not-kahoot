@@ -33,7 +33,11 @@ import sys
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 PASTAS = {
     "menuPlaylist": ("assets/music/Index", "menu"),
-    "gamePlaylist": ("assets/music/instrumental", "game"),
+    # TEMPORARIO: as instrumentais do KINK foram excluidas na virada e ainda
+    # nao ha faixas CloudPath em assets/music/instrumental. Ate la, a playlist
+    # de jogo usa as mesmas faixas novas. Quando gravar instrumentais, volte
+    # esta linha para "assets/music/instrumental" e rode o script de novo.
+    "gamePlaylist": ("assets/music/Index", "game"),
 }
 
 # Titulo customizado por nome de arquivo (sem extensao). Opcional.

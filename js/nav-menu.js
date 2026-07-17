@@ -1,40 +1,126 @@
-// Menu sanduíche (mobile): abre/fecha o .nav-menu e cuida da acessibilidade básica
+// Navegação CloudPath — grupos com dropdown (desktop) e gaveta (mobile).
+//
+// Acessibilidade:
+//  - Botões de grupo usam aria-expanded/aria-controls (padrão disclosure)
+//  - Esc fecha dropdown aberto e a gaveta; clique fora também
+//  - No mobile, os grupos ficam sempre abertos (viram seções da gaveta)
+//  - A página atual marca o item (aria-current) e o grupo (.current)
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('navToggle');
     const menu = document.getElementById('navMenu');
-    if (!toggle || !menu) return;
+    if (!menu) return;
 
-    const openMenu = () => {
-        toggle.setAttribute('aria-expanded', 'true');
-        menu.classList.add('open');
-    };
+    const groups = Array.from(menu.querySelectorAll('.nav-group'));
+    const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
 
-    const closeMenu = () => {
-        toggle.setAttribute('aria-expanded', 'false');
-        menu.classList.remove('open');
-    };
+    // ── Scrim (fundo escurecido atrás da gaveta no mobile) ──
+    let scrim = document.querySelector('.nav-scrim');
+    if (!scrim) {
+        scrim = document.createElement('div');
+        scrim.className = 'nav-scrim';
+        scrim.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(scrim);
+    }
 
-    toggle.addEventListener('click', () => {
-        const isOpen = toggle.getAttribute('aria-expanded') === 'true';
-        if (isOpen) closeMenu(); else openMenu();
-    });
-
-    menu.querySelectorAll('a, button').forEach((el) => {
-        el.addEventListener('click', closeMenu);
-    });
-
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeMenu();
-    });
-
-    document.addEventListener('click', (event) => {
-        if (toggle.getAttribute('aria-expanded') !== 'true') return;
-        if (!menu.contains(event.target) && !toggle.contains(event.target)) {
-            closeMenu();
+    // ── Marca a página atual (item + grupo) ──
+    const here = location.pathname.split('/').pop() || 'index.html';
+    groups.forEach((group) => {
+        const current = group.querySelector(`.nav-item[href="${here}"]`);
+        if (current) {
+            current.setAttribute('aria-current', 'page');
+            group.classList.add('current');
         }
     });
 
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) closeMenu();
+    // ── Dropdowns (desktop) ──
+    const closeGroup = (group) => {
+        group.classList.remove('open');
+        const btn = group.querySelector('.nav-group-btn');
+        if (btn && !isMobile()) btn.setAttribute('aria-expanded', 'false');
+    };
+    const closeAllGroups = (except) => {
+        groups.forEach((g) => { if (g !== except) closeGroup(g); });
+    };
+
+    groups.forEach((group) => {
+        const btn = group.querySelector('.nav-group-btn');
+        if (!btn) return;
+
+        btn.addEventListener('click', () => {
+            if (isMobile()) return; // na gaveta o grupo é uma seção fixa
+            const willOpen = !group.classList.contains('open');
+            closeAllGroups(group);
+            group.classList.toggle('open', willOpen);
+            btn.setAttribute('aria-expanded', String(willOpen));
+        });
     });
+
+    // ── Gaveta (mobile) ──
+    const openDrawer = () => {
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        menu.classList.add('open');
+        scrim.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    };
+    const closeDrawer = () => {
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open');
+        scrim.classList.remove('show');
+        document.body.style.overflow = '';
+    };
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const open = toggle.getAttribute('aria-expanded') === 'true';
+            if (open) closeDrawer(); else openDrawer();
+        });
+    }
+    scrim.addEventListener('click', closeDrawer);
+
+    // Navegar por um link fecha tudo
+    menu.querySelectorAll('a, button.btn-logout').forEach((el) => {
+        el.addEventListener('click', () => { closeDrawer(); closeAllGroups(); });
+    });
+
+    // Esc: fecha dropdown aberto (e devolve o foco ao botão) ou a gaveta
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const open = groups.find((g) => g.classList.contains('open'));
+        if (open) {
+            closeGroup(open);
+            const btn = open.querySelector('.nav-group-btn');
+            if (btn) btn.focus();
+            return;
+        }
+        closeDrawer();
+    });
+
+    // Clique fora fecha dropdowns
+    document.addEventListener('click', (event) => {
+        if (!menu.contains(event.target) && (!toggle || !toggle.contains(event.target))) {
+            closeAllGroups();
+        }
+    });
+
+    // ── Estado dos aria-expanded por viewport ──
+    // Na gaveta os grupos ficam sempre visíveis; para o leitor de tela não
+    // anunciar "recolhido" num conteúdo aberto, o estado acompanha o layout.
+    const syncViewportState = () => {
+        const mobile = isMobile();
+        groups.forEach((group) => {
+            const btn = group.querySelector('.nav-group-btn');
+            if (!btn) return;
+            if (mobile) {
+                btn.setAttribute('aria-expanded', 'true');
+                btn.setAttribute('tabindex', '-1');
+                group.classList.remove('open');
+            } else {
+                btn.setAttribute('aria-expanded', group.classList.contains('open') ? 'true' : 'false');
+                btn.removeAttribute('tabindex');
+            }
+        });
+        if (!mobile) closeDrawer();
+    };
+    syncViewportState();
+    window.addEventListener('resize', syncViewportState);
 });

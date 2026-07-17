@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validador dos bancos de questões do KINK.
+Validador dos bancos de questões do CloudPath.
 
 Verifica invariantes que, se quebradas, corrompem a experiência do simulado:
   1. JSON válido e com as chaves estruturais esperadas
