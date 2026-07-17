@@ -49,12 +49,12 @@ class MusicPlayer {
 
     loadPlaylist() {
         const menuPlaylist = [
-            // ATENÇÃO: URLs devem bater EXATAMENTE com os nomes dos arquivos
-            // no disco (Linux diferencia maiúsculas). Todas as faixas do Index
-            // usam "CloudPath" com P maiúsculo (renomeadas em 17/07/2026).
+            // Nomes de arquivo sem espaço e minúsculos ("slug") para as duas
+            // faixas que davam problema — Linux e Windows resolvem o caminho
+            // igual. As demais mantêm o nome antigo (funcionavam).
             { id: 'menu1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Jam.mp3', cover: '🎵', duration: '0:00' },
-            { id: 'menu2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Chama.mp3', cover: '⚡', duration: '0:00' },
-            { id: 'menu3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Leva.mp3', cover: '☁️', duration: '0:00' },
+            { id: 'menu2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-me-chama.mp3', cover: '⚡', duration: '0:00' },
+            { id: 'menu3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-me-leva.mp3', cover: '☁️', duration: '0:00' },
             { id: 'menu4', title: 'Neon', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neon.mp3', cover: '🎹', duration: '0:00' },
             { id: 'menu5', title: 'Neons', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neons.mp3', cover: '🎯', duration: '0:00' },
             { id: 'menu6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Signal.mp3', cover: '⚛️', duration: '0:00' }
