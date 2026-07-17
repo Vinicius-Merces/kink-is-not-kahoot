@@ -1,533 +1,533 @@
 {
- "certId": "dea-c01",
- "overlays": [
-  {
-   "questionId": "dea-ini-018",
-   "options": [
+  "certId": "dea-c01",
+  "overlays": [
     {
-     "matchText": "Amazon Athena",
-     "stage": "correct"
+      "questionId": "dea-ini-018",
+      "options": [
+        {
+          "matchText": "Amazon Athena",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Glue DataBrew",
+          "stage": "eliminate",
+          "reasonWrong": "O DataBrew é preparação VISUAL de dados — não é engine SQL de consulta."
+        },
+        {
+          "matchText": "Amazon EMR com cluster permanente",
+          "stage": "trap",
+          "reasonWrong": "O EMR roda SQL via Spark/Presto, mas com CLUSTER provisionado e pago por hora — viola o \"sem infraestrutura, pago por consulta\"."
+        },
+        {
+          "matchText": "Amazon RDS",
+          "stage": "eliminate",
+          "reasonWrong": "O RDS é banco relacional OLTP — exige carregar os dados e provisionar instância."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Athena é SQL serverless direto sobre o S3, usando o Glue Catalog, cobrado por dados escaneados — zero infraestrutura.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Athena carrega os arquivos Parquet para um banco colunar interno, onde as consultas SQL rodam com índices otimizados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Athena é gratuito para arquivos em formato colunar — a cobrança por dados escaneados vale apenas para CSV e JSON.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Athena só cobra quando a consulta retorna resultados, tornando as agregações vazias isentas de custo de varredura.",
+            "correct": false
+          }
+        ]
+      }
     },
     {
-     "matchText": "AWS Glue DataBrew",
-     "stage": "eliminate",
-     "reasonWrong": "O DataBrew é preparação VISUAL de dados — não é engine SQL de consulta."
+      "questionId": "dea-ini-005",
+      "options": [
+        {
+          "matchText": "AWS Snowball Edge",
+          "stage": "eliminate",
+          "reasonWrong": "Snowball é transferência FÍSICA de grandes volumes de arquivos — não replica bancos continuamente."
+        },
+        {
+          "matchText": "Amazon AppFlow",
+          "stage": "eliminate",
+          "reasonWrong": "AppFlow integra dados de aplicações SaaS (Salesforce etc.) — não bancos on-premises."
+        },
+        {
+          "matchText": "AWS Database Migration Service (DMS)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS DataSync",
+          "stage": "trap",
+          "reasonWrong": "DataSync move ARQUIVOS (NFS/SMB) para a AWS — o requisito é replicação de BANCO com a origem em operação, que é o CDC do DMS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o DMS é especializado em migrar e replicar bancos: full load inicial + CDC contínuo lendo o log de transações, com a origem no ar.",
+            "correct": true
+          },
+          {
+            "text": "Porque o DMS pausa o banco Oracle de origem em janelas curtas de consistência, sincronizando os snapshots antes de reativá-lo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DMS converte automaticamente o hardware e o sistema operacional do servidor Oracle para instâncias EC2 equivalentes.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DMS transfere os arquivos de dados brutos direto do disco do servidor, replicando os datafiles em blocos para a AWS.",
+            "correct": false
+          }
+        ]
+      }
     },
     {
-     "matchText": "Amazon EMR com cluster permanente",
-     "stage": "trap",
-     "reasonWrong": "O EMR roda SQL via Spark/Presto, mas com CLUSTER provisionado e pago por hora — viola o \"sem infraestrutura, pago por consulta\"."
+      "questionId": "dea-ini-029",
+      "options": [
+        {
+          "matchText": "Desativar a criptografia para facilitar o acesso",
+          "stage": "eliminate",
+          "reasonWrong": "Desativar criptografia viola o requisito básico de proteção em repouso."
+        },
+        {
+          "matchText": "Salvar as chaves em um arquivo no próprio bucket",
+          "stage": "eliminate",
+          "reasonWrong": "Guardar a chave junto do dado anula a proteção — quem lê o bucket lê a chave."
+        },
+        {
+          "matchText": "SSE-KMS com uma customer managed key (uso da chave auditado no CloudTrail)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Criptografia apenas em trânsito com HTTPS",
+          "stage": "trap",
+          "reasonWrong": "HTTPS protege EM TRÂNSITO — o requisito é criptografia EM REPOUSO com auditoria de uso da chave."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o SSE-KMS cifra os objetos em repouso com uma customer managed key, e cada uso da chave gera um evento auditável no CloudTrail.",
+            "correct": true
+          },
+          {
+            "text": "Porque o SSE-KMS bloqueia o download dos objetos criptografados por usuários sem a role de auditoria registrada no CloudTrail.",
+            "correct": false
+          },
+          {
+            "text": "Porque a CMK criptografa o bucket inteiro de uma única vez, aplicando a cifra a todos os objetos existentes e futuros num só evento.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CloudTrail executa a criptografia dos objetos ao registrá-los, unificando a auditoria e a proteção em um serviço só.",
+            "correct": false
+          }
+        ]
+      }
     },
     {
-     "matchText": "Amazon RDS",
-     "stage": "eliminate",
-     "reasonWrong": "O RDS é banco relacional OLTP — exige carregar os dados e provisionar instância."
+      "questionId": "dea-ini-014",
+      "options": [
+        {
+          "matchText": "Regras de Lifecycle, transicionando os objetos para classes mais frias (ex.: Glacier) com o tempo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Versionamento do bucket",
+          "stage": "trap",
+          "reasonWrong": "Versionamento AUMENTA o custo (guarda versões antigas) — não move dados para classes mais frias."
+        },
+        {
+          "matchText": "S3 Transfer Acceleration",
+          "stage": "eliminate",
+          "reasonWrong": "Transfer Acceleration acelera UPLOADS de longa distância — não reduz custo de armazenamento."
+        },
+        {
+          "matchText": "S3 Event Notifications",
+          "stage": "eliminate",
+          "reasonWrong": "Event Notifications disparam ações quando objetos chegam — não movem dados entre classes."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque lifecycle rules movem objetos automaticamente para classes mais baratas conforme envelhecem (IA, Glacier, Deep Archive) e podem expirá-los.",
+            "correct": true
+          },
+          {
+            "text": "Porque as lifecycle rules comprimem os logs antigos em arquivos menores, reduzindo o custo por gigabyte sem mudar a classe de armazenamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glacier é gratuito para dados com mais de 90 dias de idade — o lifecycle apenas marca os objetos elegíveis para a isenção.",
+            "correct": false
+          },
+          {
+            "text": "Porque as lifecycle rules deletam os dados antigos e mantêm apenas um índice de metadados, que permite restaurá-los sob demanda.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-024",
+      "options": [
+        {
+          "matchText": "No AWS CloudTrail",
+          "stage": "trap",
+          "reasonWrong": "O CloudTrail audita CHAMADAS de API — mostra quem iniciou o job, mas não o stderr e o traceback da execução."
+        },
+        {
+          "matchText": "Dentro do bucket S3 de origem dos dados",
+          "stage": "eliminate",
+          "reasonWrong": "O bucket de origem contém os DADOS do job — não os logs de execução."
+        },
+        {
+          "matchText": "No AWS Config",
+          "stage": "eliminate",
+          "reasonWrong": "O Config rastreia mudanças de CONFIGURAÇÃO de recursos — não logs de aplicação."
+        },
+        {
+          "matchText": "No Amazon CloudWatch Logs, nos log groups do job",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue envia os logs e o stderr de cada execução para log groups do CloudWatch Logs — é lá que está o traceback do erro.",
+            "correct": true
+          },
+          {
+            "text": "Porque o CloudWatch Logs reexecuta o job automaticamente após a falha, anexando o diagnóstico da nova tentativa ao log group.",
+            "correct": false
+          },
+          {
+            "text": "Porque os logs do Glue ficam disponíveis por apenas uma hora após a execução, e o CloudWatch é onde o snapshot fica preservado.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CloudWatch Logs grava o stdout apenas dos jobs bem-sucedidos — as falhas ficam registradas nos eventos do EventBridge.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-008",
+      "options": [
+        {
+          "matchText": "Porque são os únicos formatos aceitos pelo S3",
+          "stage": "eliminate",
+          "reasonWrong": "O S3 aceita QUALQUER formato — não há restrição."
+        },
+        {
+          "matchText": "Porque armazenam os dados linha a linha, ideais para escrita transacional",
+          "stage": "trap",
+          "reasonWrong": "Linha a linha descreve CSV/Avro — o Parquet é COLUNAR, otimizado para leitura analítica, não escrita transacional."
+        },
+        {
+          "matchText": "Porque permitem ler apenas as COLUNAS necessárias à consulta e comprimem melhor, reduzindo dados escaneados e custo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Porque são mais fáceis de abrir no Excel",
+          "stage": "eliminate",
+          "reasonWrong": "Abrir no Excel não é critério de arquitetura analítica."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque no formato colunar a engine lê só as colunas do SELECT e comprime melhor por coluna — menos dados escaneados, menos custo.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Parquet criptografa os dados automaticamente por coluna, dispensando o SSE do S3 nas consultas analíticas do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Parquet elimina a necessidade de particionamento: o índice interno do arquivo substitui as partições por data no S3.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Parquet armazena os dados já agregados por dia, permitindo que a engine responda médias e somas sem escanear as linhas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-010",
+      "options": [
+        {
+          "matchText": "Amazon Athena",
+          "stage": "trap",
+          "reasonWrong": "O Athena executa SQL serverless — não dá controle de cluster nem roda jobs Spark arbitrários com bibliotecas customizadas."
+        },
+        {
+          "matchText": "AWS Batch",
+          "stage": "eliminate",
+          "reasonWrong": "O Batch agenda contêineres genéricos com filas — não é um cluster Spark/Hive gerenciado."
+        },
+        {
+          "matchText": "AWS Lambda",
+          "stage": "eliminate",
+          "reasonWrong": "O Lambda tem limite de 15 minutos e nenhum suporte a frameworks distribuídos."
+        },
+        {
+          "matchText": "Amazon EMR",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o EMR fornece clusters gerenciados de Spark, Hive e todo o ecossistema Hadoop, com controle fino de instâncias, bibliotecas e configurações.",
+            "correct": true
+          },
+          {
+            "text": "Porque o EMR transforma o Spark em um serviço serverless sem cluster visível, abstraindo os tipos de instância e as bibliotecas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EMR inclui um data warehouse colunar embutido, que armazena o resultado dos jobs Spark e Hive para consulta em SQL padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EMR é a única forma suportada de ler dados do S3 com Spark — o conector s3a é exclusivo dos clusters gerenciados da AWS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-003",
+      "options": [
+        {
+          "matchText": "Glue Schema Registry",
+          "stage": "trap",
+          "reasonWrong": "O Schema Registry versiona schemas de STREAMING (Avro/JSON em Kafka/Kinesis) — não varre arquivos no S3."
+        },
+        {
+          "matchText": "Glue Studio",
+          "stage": "eliminate",
+          "reasonWrong": "O Glue Studio é o editor VISUAL de jobs de ETL — não descobre schemas."
+        },
+        {
+          "matchText": "Glue Crawler, gravando as tabelas no Glue Data Catalog",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Glue DataBrew",
+          "stage": "eliminate",
+          "reasonWrong": "O DataBrew é preparação visual de dados — não cataloga tabelas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Crawler varre o S3, infere o schema dos arquivos e cria/atualiza as tabelas no Glue Data Catalog — prontas para o Athena consultar.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Crawler converte os CSVs e JSONs em Parquet durante a varredura, gravando a versão otimizada de volta no S3 já catalogada.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Crawler move os arquivos para um banco relacional gerenciado, onde o schema é imposto na carga e as tabelas ficam consultáveis.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Crawler valida a qualidade dos dados antes de catalogar, rejeitando os arquivos cujo schema diverge do padrão da tabela.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-019",
+      "options": [
+        {
+          "matchText": "Amazon DynamoDB",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon Redshift",
+          "stage": "trap",
+          "reasonWrong": "O Redshift é warehouse ANALÍTICO — não aguenta milhões de escritas OLTP por minuto com latência de milissegundos."
+        },
+        {
+          "matchText": "Amazon Athena",
+          "stage": "eliminate",
+          "reasonWrong": "O Athena é engine de CONSULTA sobre o S3 — não é um banco transacional de escrita."
+        },
+        {
+          "matchText": "Amazon Neptune",
+          "stage": "eliminate",
+          "reasonWrong": "O Neptune é banco de GRAFOS — para relacionamentos, não chave-valor de alta taxa."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o DynamoDB é o chave-valor gerenciado com latência de milissegundos de um dígito e escala praticamente ilimitada de escrita.",
+            "correct": true
+          },
+          {
+            "text": "Porque o DynamoDB executa consultas SQL complexas com joins distribuídos, mantendo a latência baixa por meio de índices colunares.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DynamoDB guarda os eventos de sessão inteiramente em memória RAM, o que garante a latência de um dígito em qualquer escala.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DynamoDB replica cada evento para o Redshift em tempo real, unindo a escrita rápida com a análise das sessões gravadas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-022",
+      "options": [
+        {
+          "matchText": "AWS IAM",
+          "stage": "eliminate",
+          "reasonWrong": "O IAM é controle de acesso — não orquestra fluxos."
+        },
+        {
+          "matchText": "AWS Step Functions",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon Kinesis",
+          "stage": "eliminate",
+          "reasonWrong": "O Kinesis transporta STREAMS de dados — não coordena etapas com decisões e retry."
+        },
+        {
+          "matchText": "Amazon SQS",
+          "stage": "trap",
+          "reasonWrong": "O SQS desacopla produtor e consumidor, mas não define sequência, decisões nem tratamento de erro entre etapas — isso é orquestração."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Step Functions define a máquina de estados do pipeline — sequência, choice, retry/catch e paralelismo — com execução visual e serverless.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Step Functions executa as transformações de dados dentro dele mesmo, eliminando a necessidade de Lambda ou Glue nas etapas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Step Functions agenda os jobs por um cron interno, disparando cada etapa do pipeline no horário definido na máquina de estados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Step Functions garante que nenhuma etapa falhe: o serviço repete cada estado até o sucesso antes de liberar o seguinte.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-016",
+      "options": [
+        {
+          "matchText": "Amazon Redshift",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon DynamoDB",
+          "stage": "eliminate",
+          "reasonWrong": "O DynamoDB é chave-valor para OLTP de alta escala — não é warehouse colunar."
+        },
+        {
+          "matchText": "Amazon RDS MySQL",
+          "stage": "trap",
+          "reasonWrong": "O RDS MySQL é OLTP relacional linha a linha — sem MPP nem armazenamento colunar para análise em massa."
+        },
+        {
+          "matchText": "Amazon ElastiCache",
+          "stage": "eliminate",
+          "reasonWrong": "O ElastiCache é cache em memória — não armazena bilhões de linhas para análise."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Redshift armazena por COLUNAS e distribui cada consulta entre nós em paralelo (MPP) — projetado para agregações sobre bilhões de linhas.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Redshift indexa automaticamente cada coluna como um banco MySQL, e são esses índices que aceleram as consultas analíticas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Redshift mantém os dados inteiros em memória distribuída entre os nós, evitando qualquer leitura de disco nas agregações.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Redshift é a versão provisionada do Athena: o mesmo motor SQL, mas com nós dedicados em vez de cobrança por varredura.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-001",
+      "options": [
+        {
+          "matchText": "Amazon SQS",
+          "stage": "eliminate",
+          "reasonWrong": "O SQS é fila de mensagens ponto a ponto — não entrega streaming em data lake."
+        },
+        {
+          "matchText": "Amazon Kinesis Data Firehose",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Glue Crawler",
+          "stage": "eliminate",
+          "reasonWrong": "O Glue Crawler cataloga schemas — não transporta eventos."
+        },
+        {
+          "matchText": "Amazon Kinesis Data Streams",
+          "stage": "trap",
+          "reasonWrong": "O Kinesis Data Streams exige que VOCÊ escreva e gerencie os consumidores — o requisito é entrega gerenciada sem aplicação consumidora."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Firehose é o serviço de ENTREGA gerenciada: recebe os eventos, faz buffer e deposita no S3 sozinho — zero consumidores para gerenciar.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Firehose entrega cada clique individualmente em tempo real ao S3, garantindo latência de milissegundos por evento recebido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Firehose armazena os eventos por 365 dias, permitindo que múltiplas aplicações releiam o stream de cliques quando quiserem.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Firehose provisiona um cluster gerenciado de brokers compatível com Kafka, que deposita os tópicos no S3 automaticamente.",
+            "correct": false
+          }
+        ]
+      }
     }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o Athena é SQL serverless direto sobre o S3, usando o Glue Catalog, cobrado por dados escaneados — zero infraestrutura.",
-      "correct": true
-     },
-     {
-      "text": "Porque o Athena carrega os arquivos Parquet para um banco interno antes de consultar.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Athena é gratuito para arquivos em formato colunar.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Athena só cobra quando a consulta retorna resultados.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-005",
-   "options": [
-    {
-     "matchText": "AWS Snowball Edge",
-     "stage": "eliminate",
-     "reasonWrong": "Snowball é transferência FÍSICA de grandes volumes de arquivos — não replica bancos continuamente."
-    },
-    {
-     "matchText": "Amazon AppFlow",
-     "stage": "eliminate",
-     "reasonWrong": "AppFlow integra dados de aplicações SaaS (Salesforce etc.) — não bancos on-premises."
-    },
-    {
-     "matchText": "AWS Database Migration Service (DMS)",
-     "stage": "correct"
-    },
-    {
-     "matchText": "AWS DataSync",
-     "stage": "trap",
-     "reasonWrong": "DataSync move ARQUIVOS (NFS/SMB) para a AWS — o requisito é replicação de BANCO com a origem em operação, que é o CDC do DMS."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o DMS é especializado em migrar e replicar bancos: full load inicial + CDC contínuo lendo o log de transações, com a origem no ar.",
-      "correct": true
-     },
-     {
-      "text": "Porque o DMS desliga o banco Oracle de origem para garantir consistência.",
-      "correct": false
-     },
-     {
-      "text": "Porque o DMS converte automaticamente o hardware do servidor para a AWS.",
-      "correct": false
-     },
-     {
-      "text": "Porque o DMS transfere os arquivos de dados brutos do disco do servidor.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-029",
-   "options": [
-    {
-     "matchText": "Desativar a criptografia para facilitar o acesso",
-     "stage": "eliminate",
-     "reasonWrong": "Desativar criptografia viola o requisito básico de proteção em repouso."
-    },
-    {
-     "matchText": "Salvar as chaves em um arquivo no próprio bucket",
-     "stage": "eliminate",
-     "reasonWrong": "Guardar a chave junto do dado anula a proteção — quem lê o bucket lê a chave."
-    },
-    {
-     "matchText": "SSE-KMS com uma customer managed key (uso da chave auditado no CloudTrail)",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Criptografia apenas em trânsito com HTTPS",
-     "stage": "trap",
-     "reasonWrong": "HTTPS protege EM TRÂNSITO — o requisito é criptografia EM REPOUSO com auditoria de uso da chave."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o SSE-KMS cifra os objetos em repouso com uma customer managed key, e cada uso da chave gera um evento auditável no CloudTrail.",
-      "correct": true
-     },
-     {
-      "text": "Porque o SSE-KMS impede qualquer download dos objetos criptografados.",
-      "correct": false
-     },
-     {
-      "text": "Porque a CMK criptografa o bucket inteiro de uma única vez.",
-      "correct": false
-     },
-     {
-      "text": "Porque o CloudTrail é quem executa a criptografia dos objetos.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-014",
-   "options": [
-    {
-     "matchText": "Regras de Lifecycle, transicionando os objetos para classes mais frias (ex.: Glacier) com o tempo",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Versionamento do bucket",
-     "stage": "trap",
-     "reasonWrong": "Versionamento AUMENTA o custo (guarda versões antigas) — não move dados para classes mais frias."
-    },
-    {
-     "matchText": "S3 Transfer Acceleration",
-     "stage": "eliminate",
-     "reasonWrong": "Transfer Acceleration acelera UPLOADS de longa distância — não reduz custo de armazenamento."
-    },
-    {
-     "matchText": "S3 Event Notifications",
-     "stage": "eliminate",
-     "reasonWrong": "Event Notifications disparam ações quando objetos chegam — não movem dados entre classes."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque lifecycle rules movem objetos automaticamente para classes mais baratas conforme envelhecem (IA, Glacier, Deep Archive) e podem expirá-los.",
-      "correct": true
-     },
-     {
-      "text": "Porque as lifecycle rules comprimem os logs antigos para ocupar menos espaço.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Glacier é gratuito para dados com mais de 90 dias.",
-      "correct": false
-     },
-     {
-      "text": "Porque as lifecycle rules deletam os dados e mantêm apenas um índice.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-024",
-   "options": [
-    {
-     "matchText": "No AWS CloudTrail",
-     "stage": "trap",
-     "reasonWrong": "O CloudTrail audita CHAMADAS de API — mostra quem iniciou o job, mas não o stderr e o traceback da execução."
-    },
-    {
-     "matchText": "Dentro do bucket S3 de origem dos dados",
-     "stage": "eliminate",
-     "reasonWrong": "O bucket de origem contém os DADOS do job — não os logs de execução."
-    },
-    {
-     "matchText": "No AWS Config",
-     "stage": "eliminate",
-     "reasonWrong": "O Config rastreia mudanças de CONFIGURAÇÃO de recursos — não logs de aplicação."
-    },
-    {
-     "matchText": "No Amazon CloudWatch Logs, nos log groups do job",
-     "stage": "correct"
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o Glue envia os logs e o stderr de cada execução para log groups do CloudWatch Logs — é lá que está o traceback do erro.",
-      "correct": true
-     },
-     {
-      "text": "Porque o CloudWatch Logs reexecuta o job automaticamente após a falha.",
-      "correct": false
-     },
-     {
-      "text": "Porque os logs do Glue ficam disponíveis apenas por uma hora.",
-      "correct": false
-     },
-     {
-      "text": "Porque o CloudWatch Logs só grava logs de jobs que terminam com sucesso.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-008",
-   "options": [
-    {
-     "matchText": "Porque são os únicos formatos aceitos pelo S3",
-     "stage": "eliminate",
-     "reasonWrong": "O S3 aceita QUALQUER formato — não há restrição."
-    },
-    {
-     "matchText": "Porque armazenam os dados linha a linha, ideais para escrita transacional",
-     "stage": "trap",
-     "reasonWrong": "Linha a linha descreve CSV/Avro — o Parquet é COLUNAR, otimizado para leitura analítica, não escrita transacional."
-    },
-    {
-     "matchText": "Porque permitem ler apenas as COLUNAS necessárias à consulta e comprimem melhor, reduzindo dados escaneados e custo",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Porque são mais fáceis de abrir no Excel",
-     "stage": "eliminate",
-     "reasonWrong": "Abrir no Excel não é critério de arquitetura analítica."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque no formato colunar a engine lê só as colunas do SELECT e comprime melhor por coluna — menos dados escaneados, menos custo.",
-      "correct": true
-     },
-     {
-      "text": "Porque o Parquet criptografa os dados automaticamente.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Parquet elimina a necessidade de particionamento.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Parquet armazena os dados já agregados por dia.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-010",
-   "options": [
-    {
-     "matchText": "Amazon Athena",
-     "stage": "trap",
-     "reasonWrong": "O Athena executa SQL serverless — não dá controle de cluster nem roda jobs Spark arbitrários com bibliotecas customizadas."
-    },
-    {
-     "matchText": "AWS Batch",
-     "stage": "eliminate",
-     "reasonWrong": "O Batch agenda contêineres genéricos com filas — não é um cluster Spark/Hive gerenciado."
-    },
-    {
-     "matchText": "AWS Lambda",
-     "stage": "eliminate",
-     "reasonWrong": "O Lambda tem limite de 15 minutos e nenhum suporte a frameworks distribuídos."
-    },
-    {
-     "matchText": "Amazon EMR",
-     "stage": "correct"
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o EMR fornece clusters gerenciados de Spark, Hive e todo o ecossistema Hadoop, com controle fino de instâncias, bibliotecas e configurações.",
-      "correct": true
-     },
-     {
-      "text": "Porque o EMR transforma o Spark em um serviço serverless sem cluster.",
-      "correct": false
-     },
-     {
-      "text": "Porque o EMR inclui um data warehouse colunar embutido.",
-      "correct": false
-     },
-     {
-      "text": "Porque o EMR é a única forma de ler dados do S3 com Spark.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-003",
-   "options": [
-    {
-     "matchText": "Glue Schema Registry",
-     "stage": "trap",
-     "reasonWrong": "O Schema Registry versiona schemas de STREAMING (Avro/JSON em Kafka/Kinesis) — não varre arquivos no S3."
-    },
-    {
-     "matchText": "Glue Studio",
-     "stage": "eliminate",
-     "reasonWrong": "O Glue Studio é o editor VISUAL de jobs de ETL — não descobre schemas."
-    },
-    {
-     "matchText": "Glue Crawler, gravando as tabelas no Glue Data Catalog",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Glue DataBrew",
-     "stage": "eliminate",
-     "reasonWrong": "O DataBrew é preparação visual de dados — não cataloga tabelas."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o Crawler varre o S3, infere o schema dos arquivos e cria/atualiza as tabelas no Glue Data Catalog — prontas para o Athena consultar.",
-      "correct": true
-     },
-     {
-      "text": "Porque o Crawler converte os CSVs em Parquet durante a varredura.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Crawler move os arquivos para um banco relacional.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Crawler valida a qualidade dos dados antes de catalogar.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-019",
-   "options": [
-    {
-     "matchText": "Amazon DynamoDB",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Amazon Redshift",
-     "stage": "trap",
-     "reasonWrong": "O Redshift é warehouse ANALÍTICO — não aguenta milhões de escritas OLTP por minuto com latência de milissegundos."
-    },
-    {
-     "matchText": "Amazon Athena",
-     "stage": "eliminate",
-     "reasonWrong": "O Athena é engine de CONSULTA sobre o S3 — não é um banco transacional de escrita."
-    },
-    {
-     "matchText": "Amazon Neptune",
-     "stage": "eliminate",
-     "reasonWrong": "O Neptune é banco de GRAFOS — para relacionamentos, não chave-valor de alta taxa."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o DynamoDB é o chave-valor gerenciado com latência de milissegundos de um dígito e escala praticamente ilimitada de escrita.",
-      "correct": true
-     },
-     {
-      "text": "Porque o DynamoDB executa consultas SQL complexas com joins.",
-      "correct": false
-     },
-     {
-      "text": "Porque o DynamoDB guarda os eventos em memória RAM apenas.",
-      "correct": false
-     },
-     {
-      "text": "Porque o DynamoDB replica cada evento para o Redshift em tempo real.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-022",
-   "options": [
-    {
-     "matchText": "AWS IAM",
-     "stage": "eliminate",
-     "reasonWrong": "O IAM é controle de acesso — não orquestra fluxos."
-    },
-    {
-     "matchText": "AWS Step Functions",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Amazon Kinesis",
-     "stage": "eliminate",
-     "reasonWrong": "O Kinesis transporta STREAMS de dados — não coordena etapas com decisões e retry."
-    },
-    {
-     "matchText": "Amazon SQS",
-     "stage": "trap",
-     "reasonWrong": "O SQS desacopla produtor e consumidor, mas não define sequência, decisões nem tratamento de erro entre etapas — isso é orquestração."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o Step Functions define a máquina de estados do pipeline — sequência, choice, retry/catch e paralelismo — com execução visual e serverless.",
-      "correct": true
-     },
-     {
-      "text": "Porque o Step Functions executa as transformações de dados dentro dele mesmo.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Step Functions agenda os jobs por cron interno.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Step Functions garante que nenhuma etapa falhe.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-016",
-   "options": [
-    {
-     "matchText": "Amazon Redshift",
-     "stage": "correct"
-    },
-    {
-     "matchText": "Amazon DynamoDB",
-     "stage": "eliminate",
-     "reasonWrong": "O DynamoDB é chave-valor para OLTP de alta escala — não é warehouse colunar."
-    },
-    {
-     "matchText": "Amazon RDS MySQL",
-     "stage": "trap",
-     "reasonWrong": "O RDS MySQL é OLTP relacional linha a linha — sem MPP nem armazenamento colunar para análise em massa."
-    },
-    {
-     "matchText": "Amazon ElastiCache",
-     "stage": "eliminate",
-     "reasonWrong": "O ElastiCache é cache em memória — não armazena bilhões de linhas para análise."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o Redshift armazena por COLUNAS e distribui cada consulta entre nós em paralelo (MPP) — projetado para agregações sobre bilhões de linhas.",
-      "correct": true
-     },
-     {
-      "text": "Porque o Redshift indexa cada coluna automaticamente como o MySQL.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Redshift mantém os dados inteiros em memória.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Redshift é a versão paga do Athena.",
-      "correct": false
-     }
-    ]
-   }
-  },
-  {
-   "questionId": "dea-ini-001",
-   "options": [
-    {
-     "matchText": "Amazon SQS",
-     "stage": "eliminate",
-     "reasonWrong": "O SQS é fila de mensagens ponto a ponto — não entrega streaming em data lake."
-    },
-    {
-     "matchText": "Amazon Kinesis Data Firehose",
-     "stage": "correct"
-    },
-    {
-     "matchText": "AWS Glue Crawler",
-     "stage": "eliminate",
-     "reasonWrong": "O Glue Crawler cataloga schemas — não transporta eventos."
-    },
-    {
-     "matchText": "Amazon Kinesis Data Streams",
-     "stage": "trap",
-     "reasonWrong": "O Kinesis Data Streams exige que VOCÊ escreva e gerencie os consumidores — o requisito é entrega gerenciada sem aplicação consumidora."
-    }
-   ],
-   "finalBlow": {
-    "justifications": [
-     {
-      "text": "Porque o Firehose é o serviço de ENTREGA gerenciada: recebe os eventos, faz buffer e deposita no S3 sozinho — zero consumidores para gerenciar.",
-      "correct": true
-     },
-     {
-      "text": "Porque o Firehose entrega cada clique individualmente em tempo real.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Firehose armazena os eventos por 365 dias para replay.",
-      "correct": false
-     },
-     {
-      "text": "Porque o Firehose exige um cluster de brokers como o Kafka.",
-      "correct": false
-     }
-    ]
-   }
-  }
- ]
+  ]
 }

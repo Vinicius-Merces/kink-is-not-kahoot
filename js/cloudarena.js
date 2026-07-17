@@ -403,7 +403,10 @@
     // -boss-idle/-boss-attack (CLF numa subpasta clf/). Enquanto os PNGs
     // dos inimigos não existem, o loader cai num placeholder (emoji).
     const HERO_STATES = ['idle', 'attack', 'hurt', 'victory', 'death'];
-    const HERO_FPS = 10;
+    // Velocidade por estado (6 frames cada): idle/hurt/morte em ciclo de ~2s
+    // (3 fps), vitória ~2,4s (2,5 fps), ataque em ~1s (6 fps) — o golpe
+    // precisa ser ágil.
+    const HERO_STATE_FPS = { idle: 3, hurt: 3, death: 3, victory: 2.5, attack: 6 };
     const HERO_HIT_FRAME = 4;      // 1-indexado — o VFX de dano dispara aqui
     const HERO_LUNGE_PX = 46;      // deslocamento até a frente do inimigo
 
@@ -423,18 +426,25 @@
             if (this._loading) return this._loading;
             this._loading = (async () => {
                 const res = await fetch(this.basePath + 'atlas.json');
-                if (!res.ok) throw new Error(`atlas do herói ${this.choice} não encontrado`);
+                if (!res.ok) throw new Error(`atlas do herói ${this.choice} não encontrado (HTTP ${res.status})`);
                 this.atlas = await res.json();
                 const states = HERO_STATES.filter(s => this.atlas[s]);
                 await Promise.all(states.map(s => new Promise((ok, fail) => {
                     const img = new Image();
                     img.onload = ok;
-                    img.onerror = () => fail(new Error(`spritesheet ${s}.png não carregou`));
+                    img.onerror = () => fail(new Error(`spritesheet ${s}.png do herói ${this.choice} não carregou`));
                     img.src = `${this.basePath}${s}.png`;
                     this.images[s] = img;
                 })));
                 return this;
-            })();
+            })().catch(err => {
+                // NÃO deixa a promise rejeitada em cache: uma falha transitória
+                // (arquivo ainda não publicado, rede) deve ser re-tentada no
+                // próximo render, não condenar o herói ao fallback pra sempre
+                this._loading = null;
+                console.warn('[CloudArena] sprites do herói indisponíveis:', err.message);
+                throw err;
+            });
             return this._loading;
         }
 
@@ -483,7 +493,7 @@
             this.stop();
             const st = this.atlas[stateName];
             let i = 0;
-            const interval = 1000 / HERO_FPS;
+            const interval = 1000 / (HERO_STATE_FPS[stateName] || 6);
             const tick = () => {
                 this.drawFrame(stateName, i);
                 if (onFrame) onFrame(i, st.frames.length);
@@ -682,7 +692,7 @@
     function playExchange(didHit, tookHits, died) {
         const steps = [];
         if (didHit) {
-            steps.push(next => heroAttack(() => { animateEnemyHurt(); setTimeout(next, 380); }));
+            steps.push(next => heroAttack(() => { animateEnemyHurt(); setTimeout(next, 700); }));
         }
         if (tookHits > 0) {
             steps.push(next => animateEnemyAttack(died, next));
@@ -743,13 +753,13 @@
                 battle.enemyHp = 0; // abate garantido
                 updateHpBars();
                 heroAttack(() => animateEnemyHurt());
-                setTimeout(enemyDefeated, 720);
+                setTimeout(enemyDefeated, 1300); // ataque (~1s) + retorno
             } else {
                 heroHit();
                 battle.round++;
                 heroAttack(() => animateEnemyHurt());
                 showToast(`Round ${battle.round} de ${battle.totalRounds} — o chefe resiste!`);
-                setTimeout(nextRound, 1200);
+                setTimeout(nextRound, 1500);
             }
         } else {
             battle.disabledJusts.add(idx);
@@ -829,7 +839,7 @@
             a.challengePosition++;
             a.challengeBestLevel = Math.max(a.challengeBestLevel, a.challengePosition - 1);
             saveState();
-            setTimeout(() => startEncounter(certId), 900);
+            setTimeout(() => startEncounter(certId), 2600); // espera a animação de vitória (~2,4s)
             return;
         }
 
@@ -863,7 +873,7 @@
 
         a.currentLevel++;
         saveState();
-        setTimeout(() => startEncounter(certId), 900);
+        setTimeout(() => startEncounter(certId), 2600); // espera a animação de vitória (~2,4s)
     }
 
     function gameOver(certId) {
@@ -1007,8 +1017,8 @@
             wrap.classList.remove('enemy-attacking');
             setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
             if (callout) callout.classList.remove('show');
-            // se o herói morreu, espera a animação de morte terminar
-            if (done) setTimeout(done, heroDies ? 650 : 80);
+            // se o herói morreu, espera a animação de morte (~2s) terminar
+            if (done) setTimeout(done, heroDies ? 1700 : 80);
         }, 700);
     }
 
