@@ -16,7 +16,12 @@
 
 **CloudPath** é uma plataforma de estudos para certificações AWS com quizzes interativos em tempo real, construída com **Node.js + Socket.IO** para garantir baixa latência e escalabilidade. Um servidor centralizado gerencia o estado do jogo em memória, eliminando gargalos e permitindo dezenas de jogadores simultâneos.
 
-Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS** com **1.833 questões próprias** (CLF-C02, SAA-C03, DVA-C02, DEA-C01) e **Trilhas de Estudo** completas (apostilas) com narração em áudio para as certificações AWS.
+O CloudPath reúne quatro pilares de estudo sobre o mesmo banco de conteúdo próprio:
+
+- **Simulados AWS** — 1.833 questões próprias (CLF-C02, SAA-C03, DVA-C02, DEA-C01) com explicação por alternativa e proporção oficial de domínios.
+- **Trilhas de Estudo** — apostilas completas com narração em áudio e diagramas SVG.
+- **CloudArena** — um RPG de batalha por turnos que transforma cada questão em um combate, para estudar praticando sem parecer prova.
+- **Quiz ao vivo** — modo estilo Kahoot com sala, código e ranking em tempo real, para uso em sala de aula.
 
 **Desenvolvido como projeto de portfólio** para demonstrar habilidades em:
 - Node.js + Express + Socket.IO (servidor em tempo real)
@@ -24,6 +29,7 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 - JavaScript puro (Vanilla JS) no frontend
 - Arquitetura cliente-servidor com WebSockets
 - Sistema de pontuação baseado em velocidade
+- Game design: loop de RPG por turnos (HP, chefes, runs, conquistas) sobre conteúdo educacional
 - Geração de conteúdo educacional (simulados e trilhas de estudo AWS)
 - Acessibilidade (ARIA, navegação por teclado, leitores de tela)
 - Pipeline de dados em Python (rotulagem, validação e CI dos bancos de questões)
@@ -74,6 +80,23 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 - ☑️ **Questões multi-resposta** (43): "Selecione DUAS alternativas", como no exame real
 - 📊 Revisão completa com explicação por alternativa e link para o capítulo correspondente da trilha
 
+### ⚔️ CloudArena
+
+Um **RPG de batalha por turnos** que reaproveita o mesmo banco de questões dos simulados, mas troca a moldura de "prova" pela de um jogo. Em vez de responder uma lista, você **enfrenta inimigos**: cada questão é um combate, e a explicação vira a mecânica da luta. Todo o conteúdo é estático — **zero chamadas de IA em tempo de execução**.
+
+**As quatro arenas.** Uma por certificação (CLF-C02, SAA-C03, DVA-C02, DEA-C01), independentes e com progressão própria. A CLF vai até o nível 50; as demais até 100. A dificuldade sobe por faixas de 10 níveis, misturando questões iniciante/médio/avançado numa curva que endurece conforme você avança.
+
+**A batalha em três golpes.** Cada inimigo é uma questão vestida de combate:
+1. **Eliminação** — descarte as 2 alternativas claramente erradas (o jogo explica *por que* cada uma cai).
+2. **Escolha** — reste com a correta e uma **armadilha** (o distrator mais convincente); acerte qual é qual.
+3. **Golpe final** — escolha, entre 4 justificativas, a que explica *por que* a resposta certa é certa. É o golpe que ensina o raciocínio, não só o gabarito.
+
+**Inimigos, chefes e HP.** Os 4 inimigos de cada prova são mapeados aos domínios oficiais do exame — cada domínio tem um inimigo comum e um **chefe**, com arte própria. Inimigo normal tem 4 de HP (resolve em poucos rounds), chefe tem 12, e os chefes das arenas de desafio chegam a 24–32. O herói ganha níveis conforme derrota inimigos (a cada 5 abates), com sprites animados de estados (idle, ataque, dano, vitória, derrota) e dois personagens à escolha.
+
+**Runs, desafio e conquistas.** As certificações associadas têm **modo desafio** (runs de 20 combates encadeados). São **19 conquistas** — de "Sem Arranhões" (vencer sem tomar dano) a "Arquiteto Completo" (zerar as 4 arenas) — parte global, parte por arena. Progresso e conquistas ficam salvos por perfil.
+
+> **Cobertura atual dos combates:** SAA-C03 já tem 448 questões preparadas como inimigos; CLF, DVA e DEA estão em construção (16/14/12 overlays), e o `validate_arena.py` garante no CI que cada combate bate exatamente com a questão original do banco.
+
 ### 📈 Meu Progresso
 
 - Cartões de desempenho: simulados feitos, melhor nota, média das últimas 5, aprovações e streak de estudo
@@ -93,20 +116,22 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 
 ### 🎨 Visual & Acessibilidade
 
-- 🌌 Tema visual unificado em todas as páginas: aurora animada, grid "data floor", ícones flutuantes (cloud/data) e canvas de partículas
-- ✨ Animações de scroll-reveal com progressive enhancement (degrada graciosamente sem JS) e suporte a `prefers-reduced-motion`
-- ♿ Telas de jogo (host/player) com foco em acessibilidade: ARIA labels, `aria-live`, navegação por teclado e skip links
+- 🌌 Tema visual unificado "console de nuvem": fundo escuro profundo, aurora sutil, grid "data floor" e canvas de partículas
+- 🧭 **Navbar em grupos** (Estudar · Quizzes · Desempenho) com dropdowns no desktop e gaveta lateral no mobile — resolve o excesso de abas sem esconder nada
+- ✨ Animações de scroll-reveal com progressive enhancement (degrada sem JS) e suporte a `prefers-reduced-motion`
+- ♿ Acessibilidade em todo o site: `aria-expanded`/`aria-current` na navegação, `aria-live` nas telas de jogo, foco visível universal, skip link e fechamento por Esc/clique-fora nos menus
 - 📱 Totalmente responsivo (mobile, tablet, desktop)
 
 ### 🎵 Player de Música
 
-- 🎵 Detecta automaticamente a página (menu ou jogo) e troca a playlist
-- 🎵 Playlist do menu: músicas com vocais (`/assets/music/Index/`)
-- 🎵 Playlist do jogo: músicas instrumentais (`/assets/music/instrumental/`)
+- 🎵 Detecta a página e troca a playlist automaticamente:
+  - **Landing e CloudArena** → faixas com vocais (`/assets/music/Index/`)
+  - **Trilhas, quizzes e simulados** → faixas instrumentais (`/assets/music/instrumental/`)
 - 🎵 Controles: play/pause, próximo/anterior, volume, mute
-- 🎵 Modo minimizável (círculo com a letra "K" e pulsação)
+- 🎵 Modo minimizável flutuante com indicador de pulsação
 - 🎵 Atalhos de teclado (Espaço, setas ← → ↑ ↓)
-- 🎵 Persistência de última música e volume (separado por tipo de playlist)
+- 🎵 Persistência de última faixa e volume (separada por tipo de playlist)
+- 🎵 Trilha 100% CloudPath após o rebrand (títulos exibidos sem menção à marca antiga)
 
 ## 🚀 Tech Stack
 
@@ -118,25 +143,27 @@ Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS*
 | **Autenticação** | Firebase Authentication (Google) |
 | **Hospedagem** | SquareCloud (Node.js + arquivos estáticos) |
 | **Música** | Áudio nativo do navegador + playlist dinâmica |
-| **Conteúdo/Dados** | Python (rotulagem por tema, validação dos bancos) |
+| **Conteúdo/Dados** | Python (rotulagem por tema, validação de bancos e overlays da arena) |
+| **CloudArena** | Motor de RPG por turnos em Vanilla JS sobre dados estáticos (sem IA em runtime) |
 | **Narração** | Azure Speech (SSML, vozes pt-BR) + tratamento fonético |
 | **CI** | GitHub Actions (valida bancos e sintaxe a cada push) |
 
 ## 📁 Estrutura de Pastas
 
 ```
-kink-is-not-kahoot/
+kink-is-not-kahoot/            # nome do repositório (produto: CloudPath)
 ├── server.js               # Servidor Node.js + Socket.IO
 ├── package.json            # Dependências
 ├── version.json            # Versionamento
 ├── squarecloud.app         # Configuração do SquareCloud
 ├── index.html              # Página inicial (+ seção "Sobre mim")
-├── host.html                # Painel do professor (quiz ao vivo)
+├── host.html                 # Painel do professor (quiz ao vivo)
 ├── player.html               # Tela do aluno (quiz ao vivo)
-├── create-quiz.html         # Criar/editar quizzes
+├── create-quiz.html          # Criar/editar quizzes
 ├── my-quizzes.html           # Lista de quizzes
 ├── historico.html            # Histórico de sessões
 ├── simulados.html            # Simulados AWS (solo e ao vivo)
+├── cloudarena.html           # CloudArena (RPG de estudo por turnos)
 ├── progresso.html            # Dashboard de progresso do aluno
 ├── trilha.html               # Hub das trilhas de estudo
 ├── trilha-saa.html           # Apostila SAA-C03 (21 capítulos)
@@ -152,15 +179,22 @@ kink-is-not-kahoot/
 │   ├── study-progress.js       # Progresso das trilhas + sync Firestore
 │   ├── tts-reader.js           # Player da narração dos capítulos
 │   ├── landing-fx.js           # Efeitos visuais + scroll-reveal
+│   ├── cloudarena.js           # CloudArena (motor do RPG: batalha, HP, runs)
+│   ├── nav-menu.js             # Navbar em grupos (dropdowns + gaveta mobile)
 │   ├── music-player.js         # Player de música
 │   └── ...                     # Outros utilitários
 ├── data/exams/               # Banco de questões (por certificação e nível)
+├── data/cloudarena/          # Overlays de combate + conquistas do CloudArena
 ├── assets/narracao/          # MP3s da narração das trilhas
 ├── assets/music/             # Trilhas sonoras (menu e jogo)
 ├── images/badges/            # Badges/certificações exibidas no "Sobre mim"
-├── .github/workflows/        # CI: validação dos bancos a cada push
+├── images/arena/             # Sprites animados do herói (idle/ataque/dano/...)
+├── images/branding/          # Logo e ícones do CloudPath (PWA)
+├── .github/workflows/        # CI: valida bancos + overlays da arena a cada push
 └── scripts/
     ├── validate_banks.py       # Validador dos bancos (roda no CI)
+    ├── validate_arena.py       # Validador dos overlays do CloudArena (CI)
+    ├── rebuild_playlist.py     # Regenera as playlists a partir dos MP3 em disco
     ├── question-generator/     # Geração de questões (Gemini) — local
     ├── topic-tagger/           # Rotulagem das questões por tema (tag_saa/dva/dea.py)
     └── tts-generator/          # Narração: roteiros + Azure Speech + tratamento fonético
@@ -226,6 +260,8 @@ kink-is-not-kahoot/
 - `npm run dev` — inicia com `nodemon` (auto-reload)
 - `npm run update-version` — atualiza `version.json`
 - `python3 scripts/validate_banks.py` — **valida todos os bancos de questões** (JSON, gabarito no intervalo, explicação sincronizada com as alternativas, rótulos de tema, IDs únicos, distribuição das respostas). Roda automaticamente no CI a cada push.
+- `python3 scripts/validate_arena.py` — **valida os overlays do CloudArena** contra os bancos: exige 4 opções (1 correta, 2 eliminações, 1 armadilha), confere que cada `matchText` bate com a alternativa original e que o golpe final tem exatamente 1 justificativa correta. Também roda no CI.
+- `python3 scripts/rebuild_playlist.py` — regenera as playlists do player lendo os MP3 direto do disco (evita erros de caminho por espaço/maiúscula). Use `--normalize` para padronizar nomes.
 - `scripts/question-generator/` — geração de questões via API do Google Gemini (local)
 - `scripts/topic-tagger/` — rotulagem das questões por tema (`tag_saa.py`, `tag_dva.py`, `tag_dea.py`)
 - `scripts/tts-generator/` — geração da narração das trilhas (veja abaixo)
