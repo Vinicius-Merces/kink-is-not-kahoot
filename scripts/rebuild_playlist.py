@@ -6,7 +6,7 @@ POR QUE ISSO EXISTE
 Os nomes dos MP3 novos vieram com maiuscula inconsistente:
 
     CloudPath Jam.mp3        <- P maiusculo
-    Cloudpath Me Chama.mp3   <- p minusculo
+    cloudpath-me-chama.mp3   <- slug: sem espaco, minusculo
 
 O SquareCloud roda LINUX, onde nome de arquivo diferencia maiuscula de
 minuscula. Se o codigo apontar para "CloudPath Me Chama.mp3" e o arquivo em
@@ -40,7 +40,8 @@ PASTAS = {
 
 # Titulo customizado por nome de arquivo (sem extensao). Opcional.
 TITULOS = {
-    # "CloudPath Jam": "Cloud Jam",
+    "cloudpath-me-chama": "Me Chama",
+    "cloudpath-me-leva": "Me Leva",
 }
 
 # Emoji da capa, ciclico (so estetica)
@@ -69,9 +70,11 @@ def titulo_de(nome_arquivo):
     base = os.path.splitext(nome_arquivo)[0]
     if base in TITULOS:
         return TITULOS[base]
-    # remove prefixos tipo "CloudPath - ", "CloudPath " ou "KINK - "
-    t = re.sub(r"^(CloudPath|KINK)\s*[-–]?\s*", "", base, flags=re.I).strip()
-    # Capitaliza cada palavra do titulo exibido ("Dark drama" -> "Dark Drama")
+    # remove prefixo de marca ("CloudPath", "cloudpath", "KINK") com separador
+    # opcional, seja espaco ou hifen (cobre "CloudPath - X" e o slug "cloudpath-x")
+    t = re.sub(r"^(cloudpath|kink)\s*[-–_]?\s*", "", base, flags=re.I)
+    t = t.replace("-", " ").replace("_", " ").strip()
+    # Capitaliza cada palavra ("me chama" -> "Me Chama", "dark drama" -> "Dark Drama")
     t = " ".join(p[:1].upper() + p[1:] if p else p for p in t.split(" "))
     return t or base
 
