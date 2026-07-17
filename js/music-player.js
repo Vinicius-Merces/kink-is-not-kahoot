@@ -1,4 +1,4 @@
-// Music Player KINK - VERSÃO MELHORADA 2.1
+// Music Player CloudPath - VERSÃO 3.0 (pós-rebrand)
 // Visual intuitivo + Funcionalidades expandidas
 // Mantém separação de playlists (Menu vs Game)
 
@@ -33,8 +33,8 @@ class MusicPlayer {
         const page = path.substring(path.lastIndexOf('/') + 1);
         const isLanding = page === '' || page === 'index.html';
 
-        if (isLanding) {
-            // Apenas a landing page toca a trilha própria/animada
+        if (isLanding || page === 'cloudarena.html') {
+            // Landing e CloudArena tocam a trilha própria/animada (pasta Index)
             this.playlistType = 'menu';
         } else if (page === 'host.html' || page === 'player.html') {
             this.playlistType = 'game';
@@ -49,6 +49,9 @@ class MusicPlayer {
 
     loadPlaylist() {
         const menuPlaylist = [
+            // ATENÇÃO: URLs devem bater EXATAMENTE com os nomes dos arquivos
+            // no disco (Linux diferencia maiúsculas). Todas as faixas do Index
+            // usam "CloudPath" com P maiúsculo (renomeadas em 17/07/2026).
             { id: 'menu1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Jam.mp3', cover: '🎵', duration: '0:00' },
             { id: 'menu2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Chama.mp3', cover: '⚡', duration: '0:00' },
             { id: 'menu3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Leva.mp3', cover: '☁️', duration: '0:00' },
@@ -57,12 +60,16 @@ class MusicPlayer {
             { id: 'menu6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Signal.mp3', cover: '⚛️', duration: '0:00' }
         ];
         const gamePlaylist = [
-            { id: 'game1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Jam.mp3', cover: '🎵', duration: '0:00' },
-            { id: 'game2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Chama.mp3', cover: '⚡', duration: '0:00' },
-            { id: 'game3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Me Leva.mp3', cover: '☁️', duration: '0:00' },
-            { id: 'game4', title: 'Neon', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neon.mp3', cover: '🎹', duration: '0:00' },
-            { id: 'game5', title: 'Neons', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neons.mp3', cover: '🎯', duration: '0:00' },
-            { id: 'game6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Signal.mp3', cover: '⚛️', duration: '0:00' }
+            // Instrumentais: os ARQUIVOS mantêm o nome KINK original (por
+            // enquanto), mas o título exibido ao usuário é CloudPath.
+            { id: 'game1', title: 'Lofi Session', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Lofi Session.mp3', cover: '🎧', duration: '0:00' },
+            { id: 'game2', title: 'Lofi Session 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Lofi Session 2.mp3', cover: '🎧', duration: '0:00' },
+            { id: 'game3', title: 'Quiz Lobby Cipher', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher.mp3', cover: '🕹️', duration: '0:00' },
+            { id: 'game4', title: 'Quiz Lobby Cipher 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher 2.mp3', cover: '🕹️', duration: '0:00' },
+            { id: 'game5', title: 'Play!', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Play!.mp3', cover: '🎮', duration: '0:00' },
+            { id: 'game6', title: 'Play! 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Play! 2.mp3', cover: '🎮', duration: '0:00' },
+            { id: 'game7', title: 'Dark Drama', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Dark drama.mp3', cover: '🌑', duration: '0:00' },
+            { id: 'game8', title: 'Dark Drama 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Dark drama 2.mp3', cover: '🌑', duration: '0:00' }
         ];
         // Apenas a landing page usa a playlist própria; todo o resto usa a trilha instrumental/calma
         this.currentPlaylist = (this.playlistType === 'menu') ? menuPlaylist : gamePlaylist;
