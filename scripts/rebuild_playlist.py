@@ -32,12 +32,10 @@ import sys
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 PASTAS = {
+    # Landing e CloudArena (playlist "menu") tocam as faixas novas do Index;
+    # trilha, quizzes e simulados (playlist "game") tocam as instrumentais.
     "menuPlaylist": ("assets/music/Index", "menu"),
-    # TEMPORARIO: as instrumentais do KINK foram excluidas na virada e ainda
-    # nao ha faixas CloudPath em assets/music/instrumental. Ate la, a playlist
-    # de jogo usa as mesmas faixas novas. Quando gravar instrumentais, volte
-    # esta linha para "assets/music/instrumental" e rode o script de novo.
-    "gamePlaylist": ("assets/music/Index", "game"),
+    "gamePlaylist": ("assets/music/instrumental", "game"),
 }
 
 # Titulo customizado por nome de arquivo (sem extensao). Opcional.
@@ -71,8 +69,10 @@ def titulo_de(nome_arquivo):
     base = os.path.splitext(nome_arquivo)[0]
     if base in TITULOS:
         return TITULOS[base]
-    # remove prefixos tipo "CloudPath - " ou "CloudPath "
-    t = re.sub(r"^CloudPath\s*[-–]?\s*", "", base, flags=re.I).strip()
+    # remove prefixos tipo "CloudPath - ", "CloudPath " ou "KINK - "
+    t = re.sub(r"^(CloudPath|KINK)\s*[-–]?\s*", "", base, flags=re.I).strip()
+    # Capitaliza cada palavra do titulo exibido ("Dark drama" -> "Dark Drama")
+    t = " ".join(p[:1].upper() + p[1:] if p else p for p in t.split(" "))
     return t or base
 
 
@@ -81,9 +81,10 @@ def listar(pasta_rel):
     if not os.path.isdir(abs_):
         print(f"  ⚠ pasta não encontrada: {pasta_rel}")
         return []
-    faixas = [f for f in sorted(os.listdir(abs_)) if f.lower().endswith(".mp3")]
-    # Ignora as musicas antigas do KINK (serao excluidas na virada)
-    return [f for f in faixas if "kink" not in f.lower()]
+    # Os ARQUIVOS com nome KINK sao mantidos por enquanto — o rebrand aqui
+    # acontece so no titulo exibido (ver titulo_de). Renomear os mp3 exige
+    # deploy simultaneo de arquivo + JS (Linux diferencia maiusculas).
+    return [f for f in sorted(os.listdir(abs_)) if f.lower().endswith(".mp3")]
 
 
 def bloco_js(nome_array, pasta_rel, prefixo):
@@ -91,13 +92,15 @@ def bloco_js(nome_array, pasta_rel, prefixo):
     if not arquivos:
         return None, 0
 
+    artista = "CloudPath Instrumental" if prefixo == "game" else "CloudPath Original"
+
     linhas = []
     for i, arq in enumerate(arquivos, 1):
         # O caminho usa o nome EXATO do disco (nada digitado a mao).
         url = f"/{pasta_rel}/{arq}"
         linhas.append(
             f"            {{ id: '{prefixo}{i}', title: '{titulo_de(arq)}', "
-            f"artist: 'CloudPath Original', url: '{url}', "
+            f"artist: '{artista}', url: '{url}', "
             f"cover: '{CAPAS[(i - 1) % len(CAPAS)]}', duration: '0:00' }}"
         )
     corpo = ",\n".join(linhas)
