@@ -1,6 +1,10 @@
-# 🔥 KINK is not Kahoot
+# ☁️ CloudPath
 
-*The rebellious quiz platform that breaks all the rules*
+*Sua trilha para a nuvem — trilhas de estudo, simulados e quizzes AWS em tempo real*
+
+> **Nota:** este projeto nasceu como **KINK is not Kahoot** e virou **CloudPath** em 17/07/2026.
+> O repositório mantém o nome antigo por histórico; o produto e o domínio são CloudPath
+> ([cloudpath.squareweb.app](https://cloudpath.squareweb.app)).
 
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-black.svg)](https://socket.io/)
@@ -10,7 +14,7 @@
 
 ## 🎯 Sobre o Projeto
 
-**KINK is not Kahoot** é uma plataforma de quizzes interativa em tempo real, construída com **Node.js + Socket.IO** para garantir baixa latência e escalabilidade. Um servidor centralizado gerencia o estado do jogo em memória, eliminando gargalos e permitindo dezenas de jogadores simultâneos.
+**CloudPath** é uma plataforma de estudos para certificações AWS com quizzes interativos em tempo real, construída com **Node.js + Socket.IO** para garantir baixa latência e escalabilidade. Um servidor centralizado gerencia o estado do jogo em memória, eliminando gargalos e permitindo dezenas de jogadores simultâneos.
 
 Além do modo "quiz ao vivo" no estilo Kahoot, o projeto inclui **Simulados AWS** com **1.833 questões próprias** (CLF-C02, SAA-C03, DVA-C02, DEA-C01) e **Trilhas de Estudo** completas (apostilas) com narração em áudio para as certificações AWS.
 
@@ -274,10 +278,11 @@ Estado atual da narração e o que falta regravar: veja **`BACKLOG-NARRACAO.md`*
 
 ## 🎨 Design e Identidade Visual
 
-- Cores principais: `#ff6b6b` (Rebel Red) e `#4ecdc4` (KINK Teal)
-- Fundo escuro: gradiente de `#1a1a2e` a `#0f3460`, com aurora animada e grid "data floor"
-- Efeito glitch no título principal
-- Cards com vidro (glassmorphism), hover com brilho e ícones flutuantes temáticos (cloud/data)
+- Cores principais: `#ff6b6b` (Coral) e `#4ecdc4` (Teal) — as mesmas do logo CloudPath
+- Fundo escuro profundo (`#060b16` → `#0f2138`) com aurora sutil e grid "data floor"
+- Tipografia: Space Grotesk (títulos), Montserrat (texto) e JetBrains Mono (chips estilo console AWS)
+- Navbar em grupos (Estudar · Quizzes · Desempenho) com dropdowns acessíveis e gaveta no mobile
+- Cards com vidro (glassmorphism) e hover com brilho
 - Player de música flutuante com minimização e indicadores visuais
 - Totalmente responsivo (mobile, tablet, desktop)
 
@@ -296,6 +301,6 @@ Distribuído sob a licença **GNU General Public License v3.0**.
 
 ---
 
-⚠️ **Disclaimer**: KINK is not Kahoot não é afiliado ao Kahoot. É um projeto independente criado para fins educacionais e de portfólio.
+⚠️ **Disclaimer**: CloudPath não é afiliado à AWS nem ao Kahoot. É um projeto independente criado para fins educacionais e de portfólio.
 
-Built with 🔥 for those who dare to be different
+☁️ Built for the climb — sa-east-1

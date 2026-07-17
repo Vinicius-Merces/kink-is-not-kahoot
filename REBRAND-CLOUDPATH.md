@@ -1,5 +1,19 @@
 # Rebrand: KINK is not Kahoot → CloudPath
 
+## ✅ STATUS — virada executada em 17/07/2026
+
+| Etapa | Status |
+|---|---|
+| Rename permanente do código (`rebrand.py`) | ✅ feito |
+| Trilha sonora 100% CloudPath (`rebuild_playlist.py --normalize`) | ✅ feito (faixas KINK excluídas) |
+| Auditoria (`rebrand_audit.py`) | ✅ 🟢 TROCAR = 0 visível |
+| Card de aviso da landing + painel de preview do admin | ✅ removidos |
+| Identidade visual nova (tema `css/cloudpath.css`, navbar em grupos, hero, loading) | ✅ feito |
+| README e version.json (v3.0.0) | ✅ atualizados |
+| **Firebase → Authorized domains → `cloudpath.squareweb.app`** | ⚠️ **MANUAL — console** |
+| **SquareCloud → domínio novo + redirect do antigo** | ⚠️ **MANUAL — painel** |
+
+
 **Virada: 17/07/2026** · Novo endereço: `cloudpath.squareweb.app`
 
 A paleta **não muda** (`#ff6b6b` coral + `#4ecdc4` teal) — o logo novo já usa exatamente essas cores.

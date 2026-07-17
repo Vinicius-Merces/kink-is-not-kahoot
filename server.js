@@ -2706,7 +2706,7 @@ const PORT = process.env.PORT || 80;
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`
-    🔥 KINK is not Kahoot Server 🔥
+    ☁️  CloudPath Server ☁️
     =================================
     🚀 Servidor rodando na porta ${PORT}
     📡 WebSocket: ws://localhost:${PORT}

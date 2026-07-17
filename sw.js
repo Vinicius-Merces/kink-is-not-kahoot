@@ -1,12 +1,12 @@
 // Service worker mínimo: habilita o "Adicionar à tela inicial" no Android/iOS
 // e dá uma sobrevida offline básica, sem interferir no Socket.io/APIs.
-const CACHE_NAME = 'kink-cache-v1';
+const CACHE_NAME = 'cloudpath-cache-v1';
 
 const PRECACHE_URLS = [
     '/',
     '/manifest.json',
-    '/images/icons/icon-192.png',
-    '/images/icons/icon-512.png'
+    '/images/branding/cloudpath-icon-192.png',
+    '/images/branding/cloudpath-icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

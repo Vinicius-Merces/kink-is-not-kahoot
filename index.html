@@ -6,14 +6,21 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/pwa.css">
     <meta name="theme-color" content="#ff6b6b">
-    <link rel="icon" type="image/png" sizes="32x32" href="images/icons/icon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="images/icons/icon-16.png">
-    <link rel="apple-touch-icon" href="images/icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/branding/cloudpath-icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/branding/cloudpath-icon-16.png">
+    <link rel="apple-touch-icon" href="images/branding/cloudpath-icon-180.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="KINK">
-    <title>KINK is not Kahoot - Sistema de Quiz Interativo</title>
+    <meta name="apple-mobile-web-app-title" content="CloudPath">
+    <title>CloudPath — Trilhas de estudo e simulados AWS</title>
+    <meta name="description" content="Sua trilha para a nuvem: apostilas, simulados com proporção oficial de domínios e quizzes ao vivo para as certificações AWS (CLF-C02, SAA-C03, DVA-C02, DEA-C01).">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CloudPath — Sua trilha para a nuvem">
+    <meta property="og:description" content="Trilhas de estudo, simulados e quizzes em tempo real para certificações AWS.">
+    <meta property="og:url" content="https://cloudpath.squareweb.app/">
+    <meta property="og:image" content="https://cloudpath.squareweb.app/images/branding/cloudpath-icon-512.png">
+    <meta name="twitter:card" content="summary">
     <!-- Marca o <html> como "com JS" antes da renderização, para o scroll-reveal
          só ocultar conteúdo quando o JS estiver realmente disponível -->
     <script>document.documentElement.classList.add('js-anim');</script>
@@ -22,42 +29,9 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/branding.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <style>
-        /* Loading overlay */
-        #loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #1a1a2e;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s;
-        }
-        .loading-content {
-            text-align: center;
-        }
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: #ff6b6b;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .loading-content p {
-            color: white;
-            font-family: 'Montserrat', sans-serif;
-        }
-    </style>
 
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/cloudpath.css">
 </head>
 <body>
     <a href="#main-content" class="skip-link">Pular para o conteúdo</a>
@@ -70,30 +44,22 @@
         <div class="aurora-blob blob-blue"></div>
     </div>
     <div class="tech-grid" aria-hidden="true"></div>
-    <div class="floating-icons" aria-hidden="true">
-        <span class="float-icon icon-1">☁️</span>
-        <span class="float-icon icon-2">🗄️</span>
-        <span class="float-icon icon-3">🌐</span>
-        <span class="float-icon icon-4">📊</span>
-        <span class="float-icon icon-5">🔗</span>
-        <span class="float-icon icon-6">⚙️</span>
-    </div>
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p>Carregando KINK...</p>
+    <div id="loading-overlay" class="cp-loading" role="status" aria-live="polite">
+        <div class="cp-loading-inner">
+            <img class="cp-loading-cloud" src="images/branding/cloudpath-icon-192.png" alt="" aria-hidden="true">
+            <div class="cp-loading-bar" aria-hidden="true"></div>
+            <p>preparando sua trilha para a nuvem…</p>
         </div>
     </div>
 
     <!-- Navbar simplificada da home: logo + acesso rápido ao login -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-logo">
-                <h2 class="glitch-mini">KINK</h2>
-                <span>is not Kahoot</span>
-            </div>
+            <a href="index.html" class="nav-logo" aria-label="CloudPath — página inicial">
+                <img class="brand-logo-img" src="images/branding/cloudpath-logo-sm.png" alt="CloudPath" width="160" height="37" decoding="async">
+            </a>
             <div class="user-info">
                 <button id="navLoginBtn" class="nav-login-btn" type="button">🔐 Entrar</button>
                 <span id="userName" style="display: none;"></span>
@@ -105,47 +71,24 @@
 
     <div class="container" id="main-content" style="display: none;">
 
-        <!-- Aviso de mudanca de marca: KINK -> CloudPath (removido apos a virada) -->
-        <aside class="rebrand-notice" id="rebrandNotice" role="status" hidden>
-            <img class="rebrand-logo" src="images/branding/cloudpath-logo.png"
-                 srcset="images/branding/cloudpath-logo-sm.png 900w,
-                         images/branding/cloudpath-logo.png 4000w"
-                 sizes="(max-width: 720px) 200px, 170px"
-                 alt="CloudPath" width="170" height="39" loading="lazy" decoding="async">
-
-            <div class="rebrand-body">
-                <span class="rebrand-badge">Novidade</span>
-                <p class="rebrand-title">
-                    Estamos virando <strong>CloudPath</strong> — a partir de <span id="rebrandDate">17/07</span>.
-                </p>
-                <p class="rebrand-text">
-                    Mesma plataforma, mesmas trilhas e simulados, mesmo progresso: só um nome que
-                    representa melhor o que ela virou — a sua trilha para a nuvem. Guarde o novo endereço:
-                </p>
-                <a class="rebrand-url" href="https://cloudpath.squareweb.app"
-                   rel="noopener">cloudpath.squareweb.app</a>
-            </div>
-
-            <div class="rebrand-countdown" id="rebrandCountdown">
-                <span class="rebrand-countdown-num" id="rebrandDays">--</span>
-                <span class="rebrand-countdown-label">dias</span>
-            </div>
-
-            <button type="button" class="rebrand-dismiss" id="rebrandDismiss"
-                    aria-label="Dispensar aviso">&times;</button>
-        </aside>
-
         <div class="hero-section">
             <div class="logo">
-                <h1 class="glitch" data-text="KINK">KINK</h1>
-                <p class="tagline">is not Kahoot</p>
-                <p class="subtitle">The rebellious quiz platform</p>
+                <img class="brand-hero-logo" src="images/branding/cloudpath-logo.png"
+                     srcset="images/branding/cloudpath-logo-sm.png 900w, images/branding/cloudpath-logo.png 4000w"
+                     sizes="(max-width: 720px) 86vw, 440px"
+                     alt="" aria-hidden="true" width="440" height="101" decoding="async">
+                <h1 class="sr-only">CloudPath — sua trilha para a nuvem</h1>
+                <p class="brand-hero-tagline">Sua trilha para a nuvem — trilhas de estudo, simulados e quizzes AWS</p>
+                <p class="hero-terminal" aria-label="cloudpath start, certificações SAA-C03 e DEA-C01">
+                    <span class="prompt" aria-hidden="true">$</span>
+                    <span class="cmd">cloudpath start <span class="flag">--cert</span> saa-c03 dea-c01</span>
+                    <span class="cursor" aria-hidden="true"></span>
+                </p>
                 <div class="hero-badges">
-                    <span class="hero-badge hero-badge-live"><span class="live-dot" aria-hidden="true"></span> Sistema online</span>
-                    <span class="hero-badge">⚡ Tempo real</span>
-                    <span class="hero-badge">🏆 Ranking ao vivo</span>
-                    <span class="hero-badge">🎓 Simulados AWS</span>
-                    <span class="hero-badge">📚 Trilha de Estudos</span>
+                    <span class="hero-badge hero-badge-live"><span class="live-dot" aria-hidden="true"></span> online</span>
+                    <span class="hero-badge">sa-east-1 · São Paulo</span>
+                    <span class="hero-badge">simulados · proporção oficial</span>
+                    <span class="hero-badge">ranking em tempo real</span>
                 </div>
             </div>
 
@@ -173,7 +116,7 @@
                         <li><span>🏆</span> Acompanhe sua posição no ranking</li>
                     </ul>
                     <div class="join-form">
-                        <input type="text" id="roomCode" placeholder="Código KINK" maxlength="6">
+                        <input type="text" id="roomCode" placeholder="Código da sala" maxlength="6" autocomplete="off" autocapitalize="characters" aria-label="Código da sala (6 caracteres)">
                         <button id="joinBtn" class="btn btn-success">Entrar</button>
                     </div>
                 </div>
@@ -196,7 +139,7 @@
                 <div class="simulado-banner-icon">📚</div>
                 <div>
                     <h2>Trilha de Estudos</h2>
-                    <p>Apostilas completas no estilo do KINK para revisar a teoria do SAA-C03 e do DEA-C01 antes dos simulados, com tabelas de decisão, armadilhas comuns e checkpoints de revisão.</p>
+                    <p>Apostilas completas para revisar a teoria do SAA-C03 e do DEA-C01 antes dos simulados, com tabelas de decisão, armadilhas comuns e checkpoints de revisão.</p>
                 </div>
             </div>
             <a href="trilha.html" id="trilhaBtn" class="btn btn-success btn-large">📖 Ver apostilas</a>
@@ -269,7 +212,7 @@
         </section>
 
         <div class="rebellion-badge reveal">
-            <p>⚠️ KINK is not Kahoot - We do things differently ⚠️</p>
+            <p><span aria-hidden="true">☁️ </span>CloudPath — sua trilha para a nuvem <span aria-hidden="true">· </span>deploy: sa-east-1</p>
         </div>
     </div>
     
@@ -277,8 +220,8 @@
     <div id="loginModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
         <div class="modal-content">
             <button class="close" type="button" aria-label="Fechar">&times;</button>
-            <h2 id="loginModalTitle">Login no KINK</h2>
-            <p>Use sua conta Google para acessar o KINK</p>
+            <h2 id="loginModalTitle">Login no CloudPath</h2>
+            <p>Use sua conta Google para acessar o CloudPath</p>
             <button id="googleLoginBtn" class="btn btn-google btn-large" style="width: 100%; margin-top: 1rem;">
                 🔐 Entrar com Google
             </button>
@@ -329,7 +272,7 @@
             } else {
                 console.error('❌ Firebase não carregou após 2 segundos');
                 document.getElementById('loading-overlay').innerHTML = `
-                    <div class="loading-content">
+                    <div class="cp-loading-inner">
                         <p style="color: #ff6b6b;">❌ Erro ao carregar Firebase</p>
                         <p style="font-size: 12px;">Recarregue a página ou tente novamente mais tarde</p>
                         <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #ff6b6b; border: none; border-radius: 5px; cursor: pointer;">Recarregar</button>
