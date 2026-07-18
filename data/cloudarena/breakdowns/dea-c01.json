@@ -528,6 +528,3746 @@
           }
         ]
       }
+    },
+    {
+      "questionId": "dea-med-001",
+      "options": [
+        {
+          "matchText": "Trocar o Firehose por DMS",
+          "stage": "eliminate",
+          "reasonWrong": "DMS migra bancos de dados — não ingere stream do Firehose nem converte formato para o S3."
+        },
+        {
+          "matchText": "Habilitar a conversão de formato do próprio Firehose para Apache Parquet, usando um schema do Glue Data Catalog",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o buffer do Firehose para 900 segundos",
+          "stage": "eliminate",
+          "reasonWrong": "Buffer maior só agrupa mais eventos por arquivo — continua entregando JSON, sem virar colunar."
+        },
+        {
+          "matchText": "Criar um cluster EMR para converter os arquivos após a entrega",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um cluster EMR de fato converteria os JSON para Parquet — mas ADICIONA um componente e uma etapa pós-entrega (o que o requisito veta) e mantém os arquivos JSON crus no caminho; converter para colunar na PRÓPRIA entrega é a conversão de formato nativa do Firehose."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a conversão de formato do Firehose grava direto em Apache Parquet usando o schema do Glue Data Catalog — os dados já chegam colunares ao S3, sem adicionar nenhum componente ao pipeline.",
+            "correct": true
+          },
+          {
+            "text": "Porque trocar o Firehose por DMS grava direto em Apache Parquet usando o schema do Glue Data Catalog — os dados já chegam colunares ao S3, sem adicionar nenhum componente ao pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o buffer para 900s grava direto em Apache Parquet usando o schema do Glue Data Catalog — os dados já chegam colunares ao S3, sem adicionar nenhum componente ao pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cluster EMR grava direto em Apache Parquet usando o schema do Glue Data Catalog — os dados já chegam colunares ao S3, sem adicionar nenhum componente ao pipeline de ingestão.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-002",
+      "options": [
+        {
+          "matchText": "Adicionar um segundo stream idêntico",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um segundo stream ADICIONA capacidade de leitura/escrita — mas exige repartir a produção e GERENCIAR shards nos dois manualmente, justamente o que se quer eliminar; dimensionar sozinho conforme o tráfego imprevisível é o modo On-Demand."
+        },
+        {
+          "matchText": "Trocar a partition key por um valor constante",
+          "stage": "eliminate",
+          "reasonWrong": "Partition key constante joga todo o tráfego num único shard — piora o throttling em vez de resolver."
+        },
+        {
+          "matchText": "Migrar o stream para o modo ON-DEMAND, que dimensiona a capacidade automaticamente",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Reduzir o período de retenção",
+          "stage": "eliminate",
+          "reasonWrong": "Reduzir a retenção guarda os dados por menos tempo — não muda a capacidade de ingestão do stream."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o modo On-Demand dimensiona a capacidade do stream automaticamente conforme o tráfego sobe e desce — o ProvisionedThroughputExceededException some sem gerenciamento manual de shards.",
+            "correct": true
+          },
+          {
+            "text": "Porque um segundo stream idêntico dimensiona a capacidade automaticamente conforme o tráfego sobe e desce — o ProvisionedThroughputExceededException some sem gerenciamento manual de shards.",
+            "correct": false
+          },
+          {
+            "text": "Porque a partition key constante dimensiona a capacidade automaticamente conforme o tráfego sobe e desce — o ProvisionedThroughputExceededException some sem gerenciamento manual de shards.",
+            "correct": false
+          },
+          {
+            "text": "Porque reduzir a retenção dimensiona a capacidade automaticamente conforme o tráfego sobe e desce — o ProvisionedThroughputExceededException some sem gerenciamento manual de shards.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-003",
+      "options": [
+        {
+          "matchText": "Ativar o versionamento do bucket",
+          "stage": "eliminate",
+          "reasonWrong": "Versionamento do S3 guarda versões de objetos — não controla quais arquivos o job já processou."
+        },
+        {
+          "matchText": "Glue Job Bookmarks",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Glue Schema Registry",
+          "stage": "eliminate",
+          "reasonWrong": "Schema Registry versiona SCHEMAS — não faz o job ler só os dados novos do prefixo."
+        },
+        {
+          "matchText": "Aumentar o número de DPUs",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mais DPUs realmente encurta a execução — mas continua REPROCESSANDO todo o histórico, só mais rápido e mais caro; processar apenas o incremental desde a última execução é o Glue Job Bookmarks, que marca o que já foi lido."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Job Bookmarks guardam o estado do que já foi processado entre execuções: cada run do Glue lê apenas os arquivos novos do prefixo, cortando custo e duração.",
+            "correct": true
+          },
+          {
+            "text": "Porque o versionamento do bucket guarda o estado do que já foi processado entre execuções: cada run do Glue lê apenas os arquivos novos do prefixo, cortando custo e duração.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Schema Registry guarda o estado do que já foi processado entre execuções: cada run do Glue lê apenas os arquivos novos do prefixo, cortando custo e duração.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar as DPUs guarda o estado do que já foi processado entre execuções: cada run do Glue lê apenas os arquivos novos do prefixo, cortando custo e duração.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-004",
+      "options": [
+        {
+          "matchText": "AWS Lambda com pandas",
+          "stage": "eliminate",
+          "reasonWrong": "Lambda com pandas exige programar — não é a interface visual para analistas de negócio."
+        },
+        {
+          "matchText": "Amazon EMR com notebooks",
+          "stage": "eliminate",
+          "reasonWrong": "EMR com notebooks pressupõe Spark/código — o oposto do 'sem conhecimento de Spark'."
+        },
+        {
+          "matchText": "AWS Glue DataBrew, com transformações visuais prontas",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Escrever jobs PySpark no Glue Studio",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque jobs PySpark no Glue Studio também limpam e normalizam os dados — mas exigem escrever código Spark, e o requisito é para analistas SEM conhecimento de Spark, com interface VISUAL; limpeza por transformações visuais prontas, sem código, é o Glue DataBrew."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue DataBrew oferece uma interface visual com transformações prontas (remover duplicatas, padronizar datas, tratar nulos) — os analistas limpam os dados sem escrever nenhuma linha de Spark.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Lambda com pandas oferece uma interface visual com transformações prontas (remover duplicatas, padronizar datas, tratar nulos) — os analistas limpam os dados sem escrever Spark.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EMR com notebooks oferece uma interface visual com transformações prontas (remover duplicatas, padronizar datas, tratar nulos) — os analistas limpam os dados sem escrever Spark.",
+            "correct": false
+          },
+          {
+            "text": "Porque o PySpark no Glue Studio oferece uma interface visual com transformações prontas (remover duplicatas, padronizar datas, tratar nulos) — os analistas limpam os dados sem escrever Spark.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-005",
+      "options": [
+        {
+          "matchText": "Full load único no fim de semana",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o full load único migra os dados de fato — mas é carga ESTÁTICA: como o banco recebe escrita CONTÍNUA, o destino fica desatualizado até o cutover (downtime de horas); replicar as mudanças até virar é o full load + CDC."
+        },
+        {
+          "matchText": "Full load + CDC (change data capture), replicando as mudanças continuamente até o momento do cutover",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Exportar dump SQL e importar manualmente",
+          "stage": "eliminate",
+          "reasonWrong": "Dump SQL manual é carga única e demorada — mesmo problema de defasagem e downtime longo."
+        },
+        {
+          "matchText": "Snapshot do storage restaurado na AWS",
+          "stage": "eliminate",
+          "reasonWrong": "Snapshot do storage restaurado é ponto fixo no tempo — não captura as escritas contínuas até o cutover."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o full load + CDC carrega o banco inicial e depois replica continuamente as mudanças até o cutover — a virada ocorre com downtime de poucos minutos, apesar da escrita contínua.",
+            "correct": true
+          },
+          {
+            "text": "Porque o full load único carrega o banco inicial e depois replica continuamente as mudanças até o cutover — a virada ocorre com downtime de poucos minutos, apesar da escrita contínua.",
+            "correct": false
+          },
+          {
+            "text": "Porque o dump SQL carrega o banco inicial e depois replica continuamente as mudanças até o cutover — a virada ocorre com downtime de poucos minutos, apesar da escrita contínua.",
+            "correct": false
+          },
+          {
+            "text": "Porque o snapshot do storage carrega o banco inicial e depois replica continuamente as mudanças até o cutover — a virada ocorre com downtime de poucos minutos, apesar da escrita contínua.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-006",
+      "options": [
+        {
+          "matchText": "Mover o HDFS para volumes maiores",
+          "stage": "eliminate",
+          "reasonWrong": "HDFS em volumes maiores muda o armazenamento — não elimina o custo do cluster ligado o dia todo."
+        },
+        {
+          "matchText": "Agendar o job para o horário comercial",
+          "stage": "eliminate",
+          "reasonWrong": "Mudar o horário do job não desliga o cluster — as horas ociosas seguem sendo cobradas."
+        },
+        {
+          "matchText": "Adotar clusters TRANSIENTES: criar o cluster para o job (dados no S3 via EMRFS) e encerrá-lo automaticamente ao final",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Dobrar o tamanho dos nós para o job terminar mais rápido",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque nós maiores fazem o job terminar mais rápido — mas o cluster CONTINUA ligado 24/7, pagando as ~22h ociosas; o corte de custo vem de encerrar o cluster ao fim do job (cluster transiente, dados no S3 via EMRFS), não de acelerar as 2h."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o cluster transiente é criado só para as 2h do job (dados no S3 via EMRFS) e encerrado ao final — paga-se apenas o tempo de execução, sem as ~22h ociosas de antes.",
+            "correct": true
+          },
+          {
+            "text": "Porque mover o HDFS para volumes maiores cria o cluster só para as 2h do job (dados no S3 via EMRFS) e o encerra ao final — paga-se apenas o tempo de execução, sem as horas ociosas.",
+            "correct": false
+          },
+          {
+            "text": "Porque agendar o job para o horário comercial cria o cluster só para as 2h (dados no S3 via EMRFS) e o encerra ao final — paga-se apenas o tempo de execução, sem as horas ociosas.",
+            "correct": false
+          },
+          {
+            "text": "Porque dobrar o tamanho dos nós cria o cluster só para as 2h do job (dados no S3 via EMRFS) e o encerra ao final — paga-se apenas o tempo de execução, sem as ~22h ociosas de antes.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-007",
+      "options": [
+        {
+          "matchText": "Amazon Managed Service for Apache Flink",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon Athena",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Athena também AGREGA (SUM por período) — mas em consultas SQL sob demanda sobre dados EM REPOUSO no S3, não em processamento CONTÍNUO de stream com estado e janelas de 1 minuto em tempo real; janelas contínuas sobre stream são o Managed Service for Apache Flink."
+        },
+        {
+          "matchText": "AWS Glue Crawler",
+          "stage": "eliminate",
+          "reasonWrong": "Glue Crawler cataloga schema/partições — não processa stream nem calcula janelas."
+        },
+        {
+          "matchText": "Amazon QuickSight",
+          "stage": "eliminate",
+          "reasonWrong": "QuickSight é a camada de dashboard — consome o resultado, não faz o processamento em janelas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Managed Service for Apache Flink processa o stream continuamente com estado e janelas de 1 minuto, emitindo as agregações em tempo real para os dashboards — exatamente o requisito.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Athena processa o stream continuamente com estado e janelas de 1 minuto, emitindo as agregações em tempo real para os dashboards — exatamente o requisito de vendas por minuto.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glue Crawler processa o stream continuamente com estado e janelas de 1 minuto, emitindo as agregações em tempo real para os dashboards — exatamente o requisito de vendas por minuto.",
+            "correct": false
+          },
+          {
+            "text": "Porque o QuickSight processa o stream continuamente com estado e janelas de 1 minuto, emitindo as agregações em tempo real para os dashboards — exatamente o requisito de vendas por minuto.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-008",
+      "options": [
+        {
+          "matchText": "Amazon S3 Versioning",
+          "stage": "eliminate",
+          "reasonWrong": "S3 Versioning guarda versões de OBJETOS — não valida nem versiona schemas de mensagens."
+        },
+        {
+          "matchText": "AWS Glue Schema Registry",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Glue Data Quality",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Glue Data Quality também é da família Glue e protege o pipeline — mas ele valida REGRAS DE QUALIDADE dos dados (nulos, faixas, unicidade), não a EVOLUÇÃO e a compatibilidade de SCHEMAS Avro; versionar schemas e controlar a compatibilidade das mudanças é o Glue Schema Registry."
+        },
+        {
+          "matchText": "AWS Config",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Config audita configuração de recursos AWS — nada a ver com schemas de eventos Avro."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue Schema Registry versiona os schemas Avro centralmente e impõe regras de compatibilidade nas mudanças — a evolução do schema deixa de quebrar os consumidores silenciosamente.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Glue Data Quality versiona os schemas Avro centralmente e impõe regras de compatibilidade nas mudanças — a evolução do schema deixa de quebrar os consumidores silenciosamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Versioning versiona os schemas Avro centralmente e impõe regras de compatibilidade nas mudanças — a evolução do schema deixa de quebrar os consumidores silenciosamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Config versiona os schemas Avro centralmente e impõe regras de compatibilidade nas mudanças — a evolução do schema deixa de quebrar os consumidores silenciosamente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-009",
+      "options": [
+        {
+          "matchText": "Athena não suporta Parquet",
+          "stage": "eliminate",
+          "reasonWrong": "Falso: o Athena suporta Parquet nativamente — o enunciado diz que já se usa Parquet."
+        },
+        {
+          "matchText": "O S3 limita a quantidade de arquivos por bucket",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um teto de arquivos por bucket explicaria lentidão de forma plausível — mas o S3 NÃO limita a quantidade de objetos; o gargalo real é o overhead POR OBJETO ao abrir milhões de arquivos minúsculos (small files), resolvido compactando em arquivos maiores."
+        },
+        {
+          "matchText": "Falta ativar o Transfer Acceleration",
+          "stage": "eliminate",
+          "reasonWrong": "Transfer Acceleration acelera uploads via edge — não tem efeito no tempo de consulta do Athena."
+        },
+        {
+          "matchText": "O problema dos SMALL FILES: excesso de arquivos minúsculos gera overhead por objeto; a correção é compactar/agrupar em arquivos maiores (ex.: 128 MB+) via buffer do Firehose ou jobs de compaction",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o problema é o excesso de small files: o overhead por objeto domina a consulta; compactar/agrupar em arquivos de 128 MB+ (buffer do Firehose ou jobs de compaction) restaura a performance.",
+            "correct": true
+          },
+          {
+            "text": "Porque o limite de arquivos por bucket é o excesso de small files: o overhead por objeto domina a consulta; compactar/agrupar em arquivos de 128 MB+ restaura a performance do Athena.",
+            "correct": false
+          },
+          {
+            "text": "Porque a falta de Parquet é o excesso de small files: o overhead por objeto domina a consulta; compactar/agrupar em arquivos de 128 MB+ restaura a performance do Athena.",
+            "correct": false
+          },
+          {
+            "text": "Porque a falta de Transfer Acceleration é o excesso de small files: o overhead por objeto domina a consulta; compactar/agrupar em arquivos de 128 MB+ restaura a performance do Athena.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-010",
+      "options": [
+        {
+          "matchText": "Kinesis Data Streams com retenção estendida para 7 dias, permitindo múltiplos consumidores e replay",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Kinesis Data Firehose com backup habilitado",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Firehose com backup também grava os eventos de forma durável — mas ele é ENTREGA gerenciada para um destino, sem múltiplos consumidores independentes lendo o mesmo stream nem REPLAY dos últimos 7 dias; leitura por vários consumidores com replay é o Kinesis Data Streams com retenção estendida."
+        },
+        {
+          "matchText": "SQS Standard com DLQ",
+          "stage": "eliminate",
+          "reasonWrong": "SQS entrega cada mensagem a UM consumidor e a remove após processada — não permite reler nem múltiplos consumidores independentes."
+        },
+        {
+          "matchText": "SNS com replay ativado",
+          "stage": "eliminate",
+          "reasonWrong": "SNS é pub/sub de entrega no momento — não guarda histórico para replay de 7 dias."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Kinesis Data Streams com retenção de 7 dias mantém os eventos no shard: o consumidor em tempo real lê agora e novos consumidores podem reprocessar os últimos 7 dias de forma independente.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Firehose com backup mantém os eventos no shard: o consumidor em tempo real lê agora e novos consumidores podem reprocessar os últimos 7 dias de forma independente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SQS com DLQ mantém os eventos no shard: o consumidor em tempo real lê agora e novos consumidores podem reprocessar os últimos 7 dias de forma independente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SNS com replay mantém os eventos no shard: o consumidor em tempo real lê agora e novos consumidores podem reprocessar os últimos 7 dias de forma independente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-011",
+      "options": [
+        {
+          "matchText": "Multipart upload paralelo",
+          "stage": "eliminate",
+          "reasonWrong": "Multipart paralelo continua preso aos 200 Mbps do link — não muda o teto de banda física."
+        },
+        {
+          "matchText": "AWS DataSync pela internet",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o DataSync realmente transfere grandes volumes para o S3 — mas pela INTERNET, limitado aos 200 Mbps: mover 400 TB nessa banda levaria muito mais que 3 semanas; quando a rede não cabe no prazo, o transporte físico é o Snowball Edge."
+        },
+        {
+          "matchText": "Dispositivos AWS Snowball Edge (transferência física)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "S3 Transfer Acceleration",
+          "stage": "eliminate",
+          "reasonWrong": "Transfer Acceleration acelera via edge, mas segue dependendo da mesma internet de origem — insuficiente para 400 TB no prazo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a 200 Mbps mover 400 TB pela rede estoura o prazo de 3 semanas: o Snowball Edge transporta os dados fisicamente, cabendo na janela quando a internet não comporta o volume.",
+            "correct": true
+          },
+          {
+            "text": "Porque a 200 Mbps o DataSync pela internet estoura o prazo de 3 semanas: mover os dados assim cabe na janela mesmo com a internet limitada ao link de origem.",
+            "correct": false
+          },
+          {
+            "text": "Porque a 200 Mbps o multipart paralelo estoura o prazo de 3 semanas: dividir em partes cabe na janela mesmo com a internet limitada ao link de 200 Mbps de origem.",
+            "correct": false
+          },
+          {
+            "text": "Porque a 200 Mbps o Transfer Acceleration estoura o prazo de 3 semanas: acelerar via edge cabe na janela mesmo com a internet limitada ao link de 200 Mbps de origem.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-012",
+      "options": [
+        {
+          "matchText": "EMR para o primeiro; Athena para o segundo",
+          "stage": "eliminate",
+          "reasonWrong": "EMR para o primeiro contraria o 'sem administrar clusters'; e Athena é consulta SQL, não motor de ETL Spark."
+        },
+        {
+          "matchText": "Lambda para o primeiro; Glue para o segundo",
+          "stage": "eliminate",
+          "reasonWrong": "Lambda não roda ETL Spark de grande porte (limite de 15 min/recursos); e Glue não dá o controle de runtime/Spot da segunda carga."
+        },
+        {
+          "matchText": "AWS Glue para o primeiro caso; Amazon EMR para o segundo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Glue para os dois casos",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Glue serve muito bem o PRIMEIRO caso (ETL Spark serverless, sem administrar cluster) — mas não cobre o SEGUNDO: bibliotecas nativas customizadas, controle do runtime e instâncias específicas com Spot exigem o EMR; usar Glue para os dois não atende à segunda carga."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue cobre o primeiro caso (ETL Spark serverless, sem gerir cluster) e o EMR cobre o segundo (bibliotecas nativas, controle de runtime e instâncias específicas com Spot) — cada serviço no seu perfil.",
+            "correct": true
+          },
+          {
+            "text": "Porque o EMR cobre o primeiro caso (ETL Spark serverless, sem gerir cluster) e o Athena cobre o segundo (bibliotecas nativas, controle de runtime e instâncias com Spot) — cada serviço no seu perfil.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Lambda cobre o primeiro caso (ETL Spark serverless, sem gerir cluster) e o Glue cobre o segundo (bibliotecas nativas, controle de runtime e instâncias com Spot) — cada serviço no seu perfil.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glue cobre o primeiro caso (ETL Spark serverless, sem gerir cluster) e o Glue cobre o segundo (bibliotecas nativas, controle de runtime e instâncias com Spot) — o mesmo serviço nos dois perfis.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-013",
+      "options": [
+        {
+          "matchText": "DISTSTYLE KEY nas duas tabelas, usando cliente_id como chave de distribuição",
+          "stage": "correct"
+        },
+        {
+          "matchText": "DISTSTYLE EVEN nas duas tabelas",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque DISTSTYLE EVEN distribui os dados de forma balanceada — mas balanceamento NÃO co-localiza o JOIN: como as linhas ficam em nós diferentes por cliente_id, o Redshift REDISTRIBUI dados na hora do join (o shuffle que se quer evitar); distribuir por KEY em cliente_id põe as linhas correspondentes no mesmo nó."
+        },
+        {
+          "matchText": "DISTSTYLE ALL na tabela fato",
+          "stage": "eliminate",
+          "reasonWrong": "DISTSTYLE ALL replica a tabela inteira em todos os nós — inviável para uma tabela FATO gigante."
+        },
+        {
+          "matchText": "DISTSTYLE AUTO desativado",
+          "stage": "eliminate",
+          "reasonWrong": "'AUTO desativado' não é um estilo de distribuição — não define a chave que elimina o shuffle."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque DISTSTYLE KEY em cliente_id nas duas tabelas coloca as linhas correspondentes no MESMO nó: o JOIN é local e a redistribuição de dados entre nós desaparece.",
+            "correct": true
+          },
+          {
+            "text": "Porque DISTSTYLE EVEN nas duas tabelas coloca as linhas correspondentes no mesmo nó: o JOIN é local e a redistribuição de dados entre nós desaparece nas consultas.",
+            "correct": false
+          },
+          {
+            "text": "Porque DISTSTYLE ALL na fato coloca as linhas correspondentes no mesmo nó: o JOIN é local e a redistribuição de dados entre nós desaparece nas consultas do cluster.",
+            "correct": false
+          },
+          {
+            "text": "Porque desativar o DISTSTYLE AUTO coloca as linhas correspondentes no mesmo nó: o JOIN é local e a redistribuição de dados entre nós desaparece nas consultas do cluster.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-014",
+      "options": [
+        {
+          "matchText": "Tabelas fato com bilhões de linhas",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque associar DISTSTYLE a JOIN e distribuição parece caber numa fato — mas ALL COPIA a tabela INTEIRA para TODOS os nós: numa fato com bilhões de linhas isso explode o armazenamento e a manutenção; ALL é para tabelas de DIMENSÃO pequenas e estáveis, acelerando os JOINs."
+        },
+        {
+          "matchText": "Qualquer tabela com escrita intensa",
+          "stage": "eliminate",
+          "reasonWrong": "Escrita intensa é pior com ALL — cada gravação precisa replicar em todos os nós."
+        },
+        {
+          "matchText": "Tabelas temporárias de staging",
+          "stage": "eliminate",
+          "reasonWrong": "Staging temporário não se beneficia de replicar em todos os nós — ALL não é para isso."
+        },
+        {
+          "matchText": "Tabelas de DIMENSÃO pequenas e pouco alteradas, copiadas integralmente para todos os nós para acelerar JOINs",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o DISTSTYLE ALL replica a tabela em todos os nós: ideal para DIMENSÕES pequenas e pouco alteradas, deixando o JOIN local sem redistribuir a fato — sem estourar armazenamento.",
+            "correct": true
+          },
+          {
+            "text": "Porque o DISTSTYLE ALL replica a tabela em todos os nós: ideal para fatos de bilhões de linhas, deixando o JOIN local sem redistribuir a dimensão — sem estourar o armazenamento do cluster.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DISTSTYLE ALL replica a tabela em todos os nós: ideal para qualquer tabela de escrita intensa, deixando o JOIN local sem redistribuir os dados — sem estourar o armazenamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DISTSTYLE ALL replica a tabela em todos os nós: ideal para staging temporário, deixando o JOIN local sem redistribuir os dados — sem estourar o armazenamento do cluster.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-015",
+      "options": [
+        {
+          "matchText": "Reiniciar o cluster nas segundas",
+          "stage": "eliminate",
+          "reasonWrong": "Reiniciar o cluster não adiciona capacidade para consultas simultâneas — não resolve a concorrência."
+        },
+        {
+          "matchText": "Elastic Resize permanente",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque dobrar os nós (Elastic Resize) resolveria o pico de segunda — mas de forma PERMANENTE: paga-se a capacidade extra a semana toda, e o requisito é NÃO pagar cluster maior o tempo todo; adicionar capacidade transitória só nos picos é o Concurrency Scaling."
+        },
+        {
+          "matchText": "Migrar tudo para RDS",
+          "stage": "eliminate",
+          "reasonWrong": "Migrar para RDS troca o data warehouse por um banco transacional — inadequado para BI analítico."
+        },
+        {
+          "matchText": "Concurrency Scaling, adicionando clusters transitórios automáticos nos picos de concorrência",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Concurrency Scaling adiciona clusters transitórios automaticamente nos picos de consultas simultâneas das manhãs de segunda e os remove depois — sem pagar um cluster maior o resto da semana.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Elastic Resize permanente adiciona capacidade automaticamente nos picos de consultas simultâneas das manhãs de segunda e a remove depois — sem pagar um cluster maior o resto da semana.",
+            "correct": false
+          },
+          {
+            "text": "Porque reiniciar o cluster adiciona capacidade transitória automaticamente nos picos de consultas simultâneas das manhãs de segunda e a remove depois — sem pagar um cluster maior a semana toda.",
+            "correct": false
+          },
+          {
+            "text": "Porque migrar para RDS adiciona capacidade transitória automaticamente nos picos de consultas simultâneas das manhãs de segunda e a remove depois — sem pagar um cluster maior a semana toda.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-016",
+      "options": [
+        {
+          "matchText": "Cluster dc2 sempre ligado",
+          "stage": "eliminate",
+          "reasonWrong": "Cluster dc2 sempre ligado paga 24/7 — o oposto de 'só pelo uso' para cargas esporádicas."
+        },
+        {
+          "matchText": "Cluster provisionado ra3 com reserva de 3 anos",
+          "stage": "eliminate",
+          "reasonWrong": "Cluster ra3 com reserva de 3 anos é compromisso de capacidade contínua — inadequado para uso de poucas horas por semana."
+        },
+        {
+          "matchText": "Redshift Spectrum sozinho, sem warehouse",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Redshift Spectrum consulta dados no S3 e soa 'serverless' — mas ele EXIGE um cluster Redshift (ou endpoint Serverless) para rodar as consultas: sozinho não é warehouse; pagar só pelo processamento consumido sem administrar cluster é o Redshift Serverless."
+        },
+        {
+          "matchText": "Amazon Redshift Serverless, cobrado por RPU-hora durante o uso",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Redshift Serverless cobra por RPU-hora só durante as consultas e não exige administrar cluster — o encaixe exato para cargas analíticas esporádicas e imprevisíveis, com semanas ociosas sem custo.",
+            "correct": true
+          },
+          {
+            "text": "Porque o cluster dc2 sempre ligado cobra por RPU-hora só durante as consultas e não exige administrar cluster — o encaixe para cargas esporádicas e imprevisíveis, com semanas ociosas sem custo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cluster ra3 reservado cobra por RPU-hora só durante as consultas e não exige administrar cluster — o encaixe para cargas esporádicas e imprevisíveis, com semanas ociosas sem custo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Redshift Spectrum sozinho cobra por RPU-hora só durante as consultas e não exige administrar cluster — o encaixe para cargas esporádicas e imprevisíveis, com semanas ociosas sem custo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-017",
+      "options": [
+        {
+          "matchText": "UNLOAD do Redshift",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o UNLOAD também materializa um resultado em Parquet no S3 — mas é comando do REDSHIFT, e o requisito é usar o PRÓPRIO ATHENA; materializar um SELECT em Parquet particionado dentro do Athena é o CTAS (CREATE TABLE AS SELECT)."
+        },
+        {
+          "matchText": "VACUUM",
+          "stage": "eliminate",
+          "reasonWrong": "VACUUM reorganiza/recupera espaço em tabelas — não materializa resultado de consulta."
+        },
+        {
+          "matchText": "Um trigger do DynamoDB",
+          "stage": "eliminate",
+          "reasonWrong": "Trigger do DynamoDB reage a mudanças de itens — nada a ver com materializar agregação do Athena."
+        },
+        {
+          "matchText": "CREATE TABLE AS SELECT (CTAS), definindo formato Parquet e particionamento na criação",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o CTAS do Athena grava o resultado do SELECT já em Parquet particionado no S3 na própria criação — o recorte agregado fica materializado, sem escanear os 2 TB de JSON a cada consulta.",
+            "correct": true
+          },
+          {
+            "text": "Porque o UNLOAD do Redshift grava o resultado do SELECT já em Parquet particionado no S3 na própria criação — o recorte agregado fica materializado, sem escanear os 2 TB de JSON a cada consulta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o VACUUM grava o resultado do SELECT já em Parquet particionado no S3 na própria criação — o recorte agregado fica materializado, sem escanear os 2 TB de JSON a cada consulta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o trigger do DynamoDB grava o resultado do SELECT já em Parquet particionado no S3 na própria criação — o recorte agregado fica materializado, sem escanear os 2 TB de JSON a cada consulta.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-018",
+      "options": [
+        {
+          "matchText": "S3 Requester Pays",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Requester Pays também é controle de CUSTO no S3 — mas ele transfere a conta de transferência para quem baixa; não impõe LIMITE de bytes escaneados por consulta no Athena nem separa métricas por equipe; teto de scan e métricas por grupo são os Workgroups."
+        },
+        {
+          "matchText": "Aumentar o timeout das consultas",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o timeout deixa consultas rodarem mais — não limita o custo nem separa métricas."
+        },
+        {
+          "matchText": "Workgroups, com limites de bytes escaneados e métricas por grupo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Athena Federated Query",
+          "stage": "eliminate",
+          "reasonWrong": "Federated Query consulta fontes externas (RDS, DynamoDB) — não impõe limite de custo nem métricas por equipe."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Workgroups impõem um limite de bytes escaneados por consulta e isolam as métricas de uso por grupo (marketing, financeiro) — contêm o custo e separam o consumo de cada time.",
+            "correct": true
+          },
+          {
+            "text": "Porque o S3 Requester Pays impõe um limite de bytes escaneados por consulta e isola as métricas de uso por grupo (marketing, financeiro) — contém o custo e separa o consumo de cada time.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o timeout impõe um limite de bytes escaneados por consulta e isola as métricas de uso por grupo (marketing, financeiro) — contém o custo e separa o consumo de cada time.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Federated Query impõe um limite de bytes escaneados por consulta e isola as métricas de uso por grupo (marketing, financeiro) — contém o custo e separa o consumo de cada time.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-019",
+      "options": [
+        {
+          "matchText": "Usar o export nativo do DynamoDB para o S3 (a partir do PITR, sem consumir RCUs) e consultar com Athena",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Rodar Scans massivos direto na tabela",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um Scan realmente lê a tabela inteira para análise — mas CONSOME os RCUs de produção (o que o requisito veta) e não integra ao data lake para SQL complexo; exportar do PITR para o S3 sem gastar RCU e consultar com Athena atende os dois pontos."
+        },
+        {
+          "matchText": "Transformar a tabela em Global Table",
+          "stage": "eliminate",
+          "reasonWrong": "Global Table replica entre regiões para disponibilidade — não é para análise SQL sem consumir capacidade."
+        },
+        {
+          "matchText": "Criar réplicas de leitura do DynamoDB",
+          "stage": "eliminate",
+          "reasonWrong": "DynamoDB não tem 'réplicas de leitura' como o RDS — o conceito não se aplica."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o export nativo do DynamoDB (a partir do PITR) grava no S3 sem consumir RCUs da tabela, e o Athena roda o SQL complexo junto ao data lake — sem tocar na capacidade de produção.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Scan massivo grava no S3 sem consumir RCUs da tabela, e o Athena roda o SQL complexo junto ao data lake — sem tocar na capacidade de produção da tabela em uso.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Global Table grava no S3 sem consumir RCUs da tabela, e o Athena roda o SQL complexo junto ao data lake — sem tocar na capacidade de produção da tabela em uso.",
+            "correct": false
+          },
+          {
+            "text": "Porque a réplica de leitura grava no S3 sem consumir RCUs da tabela, e o Athena roda o SQL complexo junto ao data lake — sem tocar na capacidade de produção da tabela em uso.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-020",
+      "options": [
+        {
+          "matchText": "Exportar para planilhas",
+          "stage": "eliminate",
+          "reasonWrong": "Exportar para planilhas tira os dados do warehouse — não é pré-computação gerenciada interna."
+        },
+        {
+          "matchText": "Aumentar o número de nós",
+          "stage": "eliminate",
+          "reasonWrong": "Mais nós acelera a recomputação — não pré-computa nem armazena o resultado agregado."
+        },
+        {
+          "matchText": "Materialized Views, com REFRESH incremental quando possível",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Views comuns",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma view comum também encapsula a agregação — mas ela é apenas uma consulta SALVA: recomputa tudo a cada execução, sem pré-computar nem armazenar; pré-computar dentro do warehouse com atualização gerenciada é a Materialized View."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Materialized View pré-computa e ARMAZENA a agregação dentro do warehouse, com REFRESH (incremental quando possível) — os dashboards leem o resultado pronto em vez de recomputar sempre.",
+            "correct": true
+          },
+          {
+            "text": "Porque exportar para planilhas pré-computa e armazena a agregação dentro do warehouse, com REFRESH incremental — os dashboards leem o resultado pronto em vez de recomputar sempre.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar os nós pré-computa e armazena a agregação dentro do warehouse, com REFRESH incremental — os dashboards leem o resultado pronto em vez de recomputar sempre.",
+            "correct": false
+          },
+          {
+            "text": "Porque a view comum pré-computa e armazena a agregação dentro do warehouse, com REFRESH incremental — os dashboards leem o resultado pronto em vez de recomputar sempre.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-021",
+      "options": [
+        {
+          "matchText": "Ambos são formatos de compressão, não de arquivo",
+          "stage": "eliminate",
+          "reasonWrong": "Avro e Parquet são formatos de ARQUIVO/serialização — não meros algoritmos de compressão."
+        },
+        {
+          "matchText": "Avro é colunar e Parquet é linha a linha",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque toca na distinção linha×coluna que É o cerne — mas INVERTE os papéis: Avro é baseado em LINHAS (não colunar) e Parquet é COLUNAR (não linha a linha); a diferença correta é Avro para transporte/streaming e evolução de schema, Parquet para armazenamento analítico."
+        },
+        {
+          "matchText": "Parquet é sempre superior em todos os casos",
+          "stage": "eliminate",
+          "reasonWrong": "'Parquet sempre superior' é falso — cada formato vence em cenários diferentes (transporte vs análise)."
+        },
+        {
+          "matchText": "Avro (baseado em LINHAS, com schema embutido) é forte para transporte/streaming e evolução de schema; Parquet (COLUNAR) é forte para armazenamento analítico e consultas",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Avro é baseado em LINHAS com schema embutido (forte para transporte/streaming e evolução de schema) e o Parquet é COLUNAR (forte para armazenamento analítico e consultas) — papéis complementares.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Avro é COLUNAR (forte para transporte/streaming e evolução de schema) e o Parquet é linha a linha (forte para armazenamento analítico e consultas) — papéis complementares no pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Avro e o Parquet são só compressão (fortes para transporte/streaming e para armazenamento analítico) — papéis complementares no pipeline de dados, não formatos de arquivo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Parquet é sempre superior ao Avro (forte para transporte/streaming e para armazenamento analítico) — papel único que dispensa o Avro no pipeline de dados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-022",
+      "options": [
+        {
+          "matchText": "Usar DISTSTYLE ALL",
+          "stage": "eliminate",
+          "reasonWrong": "DISTSTYLE ALL replica a tabela em todos os nós — não reduz blocos lidos por filtro de data."
+        },
+        {
+          "matchText": "Definir data_venda como DISTKEY",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a DISTKEY também é uma escolha de design físico ligada a data_venda — mas ela controla a DISTRIBUIÇÃO entre nós (para JOINs), não a ORDENAÇÃO física que permite pular blocos por faixa; reduzir blocos lidos num filtro por data é a SORT KEY, que habilita o zone map."
+        },
+        {
+          "matchText": "Criar um índice B-tree",
+          "stage": "eliminate",
+          "reasonWrong": "Redshift não usa índices B-tree tradicionais — o pruning vem das zone maps da SORT KEY."
+        },
+        {
+          "matchText": "Definir data_venda como SORT KEY da tabela",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a SORT KEY em data_venda ordena os dados fisicamente e alimenta o zone map: o filtro por data pula os blocos fora da faixa, lendo só o necessário nas varreduras.",
+            "correct": true
+          },
+          {
+            "text": "Porque a DISTKEY em data_venda ordena os dados fisicamente e alimenta o zone map: o filtro por data pula os blocos fora da faixa, lendo só o necessário nas varreduras.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DISTSTYLE ALL ordena os dados fisicamente e alimenta o zone map: o filtro por data pula os blocos fora da faixa, lendo só o necessário nas varreduras do cluster.",
+            "correct": false
+          },
+          {
+            "text": "Porque o índice B-tree ordena os dados fisicamente e alimenta o zone map: o filtro por data pula os blocos fora da faixa, lendo só o necessário nas varreduras do cluster.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-023",
+      "options": [
+        {
+          "matchText": "Loop de Lambda chamando a si mesma",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma Lambda chamando a si mesma implementaria as tentativas — mas exige ESCREVER e manter o código de controle (contador, backoff, desvio), justamente o que o requisito veta; o Step Functions faz isso declarativamente com Retry e Catch no próprio estado."
+        },
+        {
+          "matchText": "Aumentar o timeout do estado",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o timeout dá mais tempo a UMA tentativa — não implementa 3 retentativas com backoff nem o desvio."
+        },
+        {
+          "matchText": "Blocos Retry (com BackoffRate e MaxAttempts) e Catch no próprio estado da máquina",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Um cron que reexecuta o pipeline inteiro",
+          "stage": "eliminate",
+          "reasonWrong": "Um cron reexecutando o pipeline inteiro reprocessa tudo — não é a retentativa dirigida do passo com notificação."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os blocos Retry (BackoffRate/MaxAttempts) e Catch no estado do Step Functions fazem as 3 tentativas com intervalo crescente e desviam para o tratamento que notifica — tudo declarativo, sem código.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Lambda chamando a si mesma faz as 3 tentativas com intervalo crescente e desvia para o tratamento que notifica — tudo declarativo, sem escrever código de controle no fluxo.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o timeout do estado faz as 3 tentativas com intervalo crescente e desvia para o tratamento que notifica — tudo declarativo, sem escrever código de controle no fluxo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cron reexecutando o pipeline faz as 3 tentativas com intervalo crescente e desvia para o tratamento que notifica — tudo declarativo, sem escrever código de controle no fluxo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-024",
+      "options": [
+        {
+          "matchText": "Chamar os jobs manualmente pelo console",
+          "stage": "eliminate",
+          "reasonWrong": "Chamar os jobs manualmente pelo console não é orquestração automática nem condicional."
+        },
+        {
+          "matchText": "Glue Workflows com triggers condicionais",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon MWAA",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o MWAA (Airflow gerenciado) também encadeia jobs com dependências condicionais — mas é um ORQUESTRADOR EXTERNO ao Glue, adicionando um serviço a operar; o requisito é manter a orquestração DENTRO do próprio Glue, o que os Glue Workflows com triggers condicionais fazem nativamente."
+        },
+        {
+          "matchText": "AWS Backup",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Backup gerencia backups — não orquestra jobs de ETL do Glue."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Glue Workflows encadeiam crawler → limpeza → agregação com triggers condicionais (só avança se a etapa anterior teve sucesso) — orquestração nativa, sem sair do próprio Glue.",
+            "correct": true
+          },
+          {
+            "text": "Porque o MWAA encadeia crawler → limpeza → agregação com triggers condicionais (só avança se a etapa anterior teve sucesso) — orquestração nativa, sem sair do próprio Glue.",
+            "correct": false
+          },
+          {
+            "text": "Porque chamar os jobs pelo console encadeia crawler → limpeza → agregação com triggers condicionais (só avança se a etapa anterior teve sucesso) — orquestração nativa, sem sair do Glue.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Backup encadeia crawler → limpeza → agregação com triggers condicionais (só avança se a etapa anterior teve sucesso) — orquestração nativa, sem sair do próprio Glue.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-025",
+      "options": [
+        {
+          "matchText": "Regras do EventBridge capturando eventos de falha (job/execution FAILED) e publicando em um tópico SNS que notifica o time",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o número de retries indefinidamente",
+          "stage": "eliminate",
+          "reasonWrong": "Mais retries mascara falhas transitórias — não alerta o time quando o job realmente falha."
+        },
+        {
+          "matchText": "Habilitar o versionamento do S3",
+          "stage": "eliminate",
+          "reasonWrong": "Versionamento do S3 guarda versões de objetos — nada a ver com alertar falhas de jobs."
+        },
+        {
+          "matchText": "Revisar os logs manualmente toda manhã",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque revisar os logs de manhã de fato descobre a falha — mas TARDE, já com os dashboards vazios: não é alerta IMEDIATO; capturar o evento FAILED na hora e notificar é a regra do EventBridge publicando em SNS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a regra do EventBridge captura o evento de FAILED do job/execução no instante da falha e publica em um tópico SNS que notifica o time — o alerta chega antes de o dashboard amanhecer vazio.",
+            "correct": true
+          },
+          {
+            "text": "Porque aumentar os retries captura o evento de FAILED do job/execução no instante da falha e notifica o time — o alerta chega antes de o dashboard amanhecer vazio, sem intervenção.",
+            "correct": false
+          },
+          {
+            "text": "Porque o versionamento do S3 captura o evento de FAILED do job/execução no instante da falha e notifica o time — o alerta chega antes de o dashboard amanhecer vazio, sem intervenção.",
+            "correct": false
+          },
+          {
+            "text": "Porque revisar os logs de manhã captura o evento de FAILED do job/execução no instante da falha e notifica o time — o alerta chega antes de o dashboard amanhecer vazio, sem intervenção.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-026",
+      "options": [
+        {
+          "matchText": "Confiar na validação do consumidor final",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque validar no consumidor final também pega dados ruins — mas TARDE, depois de publicado: não BLOQUEIA a publicação no pipeline; avaliar completude e duplicidade antes de publicar, de forma gerenciada, é o Glue Data Quality (DQDL) condicionando a etapa."
+        },
+        {
+          "matchText": "Regras do AWS Glue Data Quality (DQDL) avaliadas no pipeline, condicionando a etapa de publicação ao resultado",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o buffer do Firehose",
+          "stage": "eliminate",
+          "reasonWrong": "Buffer do Firehose agrupa eventos — não avalia qualidade nem bloqueia publicação."
+        },
+        {
+          "matchText": "Uma planilha de conferência manual",
+          "stage": "eliminate",
+          "reasonWrong": "Planilha de conferência manual é lenta e não integra ao pipeline — não bloqueia automaticamente."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as regras do Glue Data Quality (DQDL) avaliam completude (≥95%) e duplicidade no pipeline e condicionam a publicação ao resultado — o dataset ruim é barrado antes de chegar ao negócio.",
+            "correct": true
+          },
+          {
+            "text": "Porque confiar no consumidor final avalia completude (≥95%) e duplicidade no pipeline e condiciona a publicação ao resultado — o dataset ruim é barrado antes de chegar ao negócio.",
+            "correct": false
+          },
+          {
+            "text": "Porque o buffer do Firehose avalia completude (≥95%) e duplicidade no pipeline e condiciona a publicação ao resultado — o dataset ruim é barrado antes de chegar ao negócio.",
+            "correct": false
+          },
+          {
+            "text": "Porque a planilha manual avalia completude (≥95%) e duplicidade no pipeline e condiciona a publicação ao resultado — o dataset ruim é barrado antes de chegar ao negócio.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-027",
+      "options": [
+        {
+          "matchText": "O Firehose para o stream inteiro até intervenção manual",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque parar tudo até intervenção 'protegeria' os registros — mas não é o comportamento do Firehose e travaria a ingestão inteira por poucos registros ruins; o Firehose isola os que falham na transformação num prefixo de ERRO no S3, sem parar o stream."
+        },
+        {
+          "matchText": "Registros com falha de processamento são entregues em um prefixo de ERRO no bucket S3 (processing-failed), preservando-os para reprocessamento",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Os registros voltam para o produtor",
+          "stage": "eliminate",
+          "reasonWrong": "O Firehose não devolve registros ao produtor — a entrega é unidirecional para o destino."
+        },
+        {
+          "matchText": "O Firehose descarta silenciosamente os registros com erro",
+          "stage": "eliminate",
+          "reasonWrong": "O Firehose NÃO descarta silenciosamente — justamente para não perder dados, ele os grava no prefixo de erro."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Firehose entrega os registros que falharam na transformação num prefixo de ERRO no S3 (processing-failed), preservando-os para análise e reprocessamento — sem parar o stream nem perdê-los.",
+            "correct": true
+          },
+          {
+            "text": "Porque parar o stream entrega os registros que falharam na transformação num prefixo de ERRO no S3, preservando-os para análise e reprocessamento — sem perder nenhum registro malformado.",
+            "correct": false
+          },
+          {
+            "text": "Porque devolver ao produtor entrega os registros que falharam na transformação num prefixo de ERRO no S3, preservando-os para análise e reprocessamento — sem perder nenhum registro malformado.",
+            "correct": false
+          },
+          {
+            "text": "Porque descartar os registros entrega os que falharam na transformação num prefixo de ERRO no S3, preservando-os para análise e reprocessamento — sem perder nenhum registro malformado.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-028",
+      "options": [
+        {
+          "matchText": "MAXERROR para tolerar N erros e as tabelas de sistema (STL_LOAD_ERRORS) para inspecionar as linhas rejeitadas",
+          "stage": "correct"
+        },
+        {
+          "matchText": "IGNOREHEADER 1 resolve qualquer erro",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque IGNOREHEADER também é opção do COPY que evita um erro comum — mas ela só PULA linhas de cabeçalho, não tolera N linhas ruins nem expõe as rejeitadas; tolerar erros e inspecionar depois é MAXERROR + a tabela STL_LOAD_ERRORS."
+        },
+        {
+          "matchText": "Rodar o COPY duas vezes",
+          "stage": "eliminate",
+          "reasonWrong": "Rodar o COPY duas vezes repete a falha (e pode duplicar dados) — não tolera nem inspeciona linhas ruins."
+        },
+        {
+          "matchText": "Desativar a compressão dos arquivos",
+          "stage": "eliminate",
+          "reasonWrong": "Desativar compressão não muda a tolerância a linhas corrompidas — o lote ainda aborta."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o MAXERROR permite tolerar até N linhas ruins sem abortar o lote, e a STL_LOAD_ERRORS registra as linhas rejeitadas para inspeção posterior — carga resiliente e auditável.",
+            "correct": true
+          },
+          {
+            "text": "Porque o IGNOREHEADER permite tolerar até N linhas ruins sem abortar o lote, e registra as linhas rejeitadas para inspeção posterior — carga resiliente e auditável na noite.",
+            "correct": false
+          },
+          {
+            "text": "Porque rodar o COPY duas vezes permite tolerar até N linhas ruins sem abortar o lote, e registra as linhas rejeitadas para inspeção posterior — carga resiliente e auditável.",
+            "correct": false
+          },
+          {
+            "text": "Porque desativar a compressão permite tolerar até N linhas ruins sem abortar o lote, e registra as linhas rejeitadas para inspeção posterior — carga resiliente e auditável.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-029",
+      "options": [
+        {
+          "matchText": "Step Functions é serverless, integra nativamente serviços AWS e brilha em fluxos orientados a eventos; MWAA faz sentido quando o time já domina Airflow/DAGs em Python ou precisa do ecossistema de operadores do Airflow",
+          "stage": "correct"
+        },
+        {
+          "matchText": "MWAA é sempre mais barato que Step Functions",
+          "stage": "eliminate",
+          "reasonWrong": "'MWAA sempre mais barato' é falso — o ambiente MWAA tem custo fixo que pesa em cargas leves/esporádicas."
+        },
+        {
+          "matchText": "Step Functions não suporta tratamento de erros",
+          "stage": "eliminate",
+          "reasonWrong": "Step Functions SUPORTA tratamento de erros (Retry/Catch) — a afirmação é falsa."
+        },
+        {
+          "matchText": "MWAA é serverless e não tem custo fixo",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque compara os dois pelo modelo de custo — mas a afirmação é FALSA: o MWAA NÃO é serverless e TEM custo fixo do ambiente Airflow gerenciado; o critério correto é Step Functions serverless/orientado a eventos vs MWAA quando o time já usa Airflow/DAGs."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Step Functions é serverless e integra nativamente os serviços AWS (forte em fluxos orientados a eventos), enquanto o MWAA cabe quando o time já domina Airflow/DAGs ou precisa dos operadores dele.",
+            "correct": true
+          },
+          {
+            "text": "Porque o MWAA é sempre mais barato que o Step Functions e integra nativamente os serviços AWS, enquanto o Step Functions cabe quando o time já domina Airflow/DAGs ou precisa dos operadores dele.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Step Functions não trata erros e integra nativamente os serviços AWS, enquanto o MWAA cabe quando o time já domina Airflow/DAGs ou precisa dos operadores do Airflow.",
+            "correct": false
+          },
+          {
+            "text": "Porque o MWAA é serverless e sem custo fixo e integra nativamente os serviços AWS, enquanto o Step Functions cabe quando o time já domina Airflow/DAGs ou precisa dos operadores dele.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-030",
+      "options": [
+        {
+          "matchText": "No AWS Config",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Config também guarda 'histórico' — mas de CONFIGURAÇÃO de recursos AWS, não de execuções de consulta; status, erro e bytes escaneados por consulta estão no histórico de consultas do Athena e nas métricas do workgroup no CloudWatch."
+        },
+        {
+          "matchText": "No histórico de consultas do Athena (console/API) e nas métricas do workgroup no CloudWatch",
+          "stage": "correct"
+        },
+        {
+          "matchText": "No S3 Inventory",
+          "stage": "eliminate",
+          "reasonWrong": "S3 Inventory lista objetos do bucket — não registra execuções de consulta do Athena."
+        },
+        {
+          "matchText": "Somente no e-mail do administrador",
+          "stage": "eliminate",
+          "reasonWrong": "Não há garantia de que os detalhes de cada consulta cheguem por e-mail — a fonte oficial é o histórico do Athena."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o histórico de consultas do Athena (console/API) e as métricas do workgroup no CloudWatch trazem status, mensagem de erro e bytes escaneados de CADA execução — a fonte para diagnosticar as falhas.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Config traz status, mensagem de erro e bytes escaneados de cada execução de consulta do Athena — a fonte para diagnosticar as falhas intermitentes dos relatórios agendados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Inventory traz status, mensagem de erro e bytes escaneados de cada execução de consulta do Athena — a fonte para diagnosticar as falhas intermitentes dos relatórios agendados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o e-mail do administrador traz status, mensagem de erro e bytes escaneados de cada execução de consulta do Athena — a fonte para diagnosticar as falhas intermitentes dos relatórios.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-031",
+      "options": [
+        {
+          "matchText": "Criar dois buckets e duplicar os dados",
+          "stage": "eliminate",
+          "reasonWrong": "Dois buckets duplicando dados cria cópias a manter e sincronizar — não é controle de coluna nativo."
+        },
+        {
+          "matchText": "Bucket policy negando as colunas",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a bucket policy controla acesso ao S3 — mas ela opera no nível de OBJETO/prefixo, não de COLUNA: não consegue ocultar cpf e renda de uma tabela mantendo o resto visível; segurança por coluna no Athena/Glue é o Lake Formation (column-level security)."
+        },
+        {
+          "matchText": "Uma view do Excel",
+          "stage": "eliminate",
+          "reasonWrong": "Uma view do Excel está fora do ecossistema Athena/Glue — não governa o acesso no data lake."
+        },
+        {
+          "matchText": "Permissões de COLUNA no AWS Lake Formation (column-level security) por grupo/role",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as permissões de coluna do Lake Formation ocultam cpf e renda para o grupo de marketing e liberam tudo aos engenheiros — controle por coluna nativo no Athena/Glue, sem duplicar dados.",
+            "correct": true
+          },
+          {
+            "text": "Porque a bucket policy oculta cpf e renda para o grupo de marketing e libera tudo aos engenheiros — controle por coluna nativo no Athena/Glue, sem duplicar dados no data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque os dois buckets ocultam cpf e renda para o grupo de marketing e liberam tudo aos engenheiros — controle por coluna nativo no Athena/Glue, sem duplicar dados no data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque a view do Excel oculta cpf e renda para o grupo de marketing e libera tudo aos engenheiros — controle por coluna nativo no Athena/Glue, sem duplicar dados no data lake.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-032",
+      "options": [
+        {
+          "matchText": "Uma IAM policy por tabela",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma IAM policy por tabela também concede acesso — mas é exatamente o modelo tabela a tabela que virou INSUSTENTÁVEL com centenas de tabelas; classificar recursos por tag e conceder às TAGS (LF-Tags) escala a governança sem tocar em cada tabela."
+        },
+        {
+          "matchText": "LF-Tags (tag-based access control): classificar recursos com tags e conceder permissões às TAGS, não a recursos individuais",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Aumentar o número de administradores",
+          "stage": "eliminate",
+          "reasonWrong": "Mais administradores não resolve a escala das concessões — só multiplica quem gerencia o problema."
+        },
+        {
+          "matchText": "Compartilhar as credenciais por área",
+          "stage": "eliminate",
+          "reasonWrong": "Compartilhar credenciais por área destrói a rastreabilidade e a segurança — não é governança."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as LF-Tags classificam bancos e tabelas com tags e concedem permissões às TAGS por área — financeiro/marketing/engenharia recebem acesso consistente sem conceder tabela a tabela.",
+            "correct": true
+          },
+          {
+            "text": "Porque a IAM policy por tabela classifica bancos e tabelas com tags e concede permissões às TAGS por área — financeiro/marketing/engenharia recebem acesso consistente sem conceder tabela a tabela.",
+            "correct": false
+          },
+          {
+            "text": "Porque mais administradores classificam bancos e tabelas com tags e concedem permissões às TAGS por área — financeiro/marketing/engenharia recebem acesso consistente sem conceder tabela a tabela.",
+            "correct": false
+          },
+          {
+            "text": "Porque compartilhar credenciais classifica bancos e tabelas com tags e concede permissões às TAGS por área — financeiro/marketing/engenharia recebem acesso consistente sem conceder tabela a tabela.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-033",
+      "options": [
+        {
+          "matchText": "Criptografia apenas nos snapshots",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque criptografar snapshots também protege dados em repouso — mas só os snapshots, deixando o CLUSTER ativo sem a criptografia em repouso com chave do cliente exigida; criptografar o cluster com uma customer managed key do KMS cobre o cluster e permite auditar cada uso da chave."
+        },
+        {
+          "matchText": "SSL somente nas conexões",
+          "stage": "eliminate",
+          "reasonWrong": "SSL protege as conexões em TRÂNSITO — não é criptografia em repouso."
+        },
+        {
+          "matchText": "Criptografia do cluster com AWS KMS usando uma customer managed key",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Senha forte no usuário admin",
+          "stage": "eliminate",
+          "reasonWrong": "Senha forte no admin é controle de acesso — não criptografa os dados em repouso nem gera trilha de uso de chave."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque criptografar o cluster com uma customer managed key do KMS protege os dados em repouso sob chave do cliente, e o CloudTrail audita cada uso da chave — exatamente a exigência regulatória.",
+            "correct": true
+          },
+          {
+            "text": "Porque criptografar só os snapshots protege os dados em repouso sob chave do cliente, e o CloudTrail audita cada uso da chave — exatamente a exigência regulatória do cluster.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SSL nas conexões protege os dados em repouso sob chave do cliente, e o CloudTrail audita cada uso da chave — exatamente a exigência regulatória do cluster Redshift.",
+            "correct": false
+          },
+          {
+            "text": "Porque a senha forte no admin protege os dados em repouso sob chave do cliente, e o CloudTrail audita cada uso da chave — exatamente a exigência regulatória do cluster Redshift.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-034",
+      "options": [
+        {
+          "matchText": "Bloquear todos os uploads",
+          "stage": "eliminate",
+          "reasonWrong": "Bloquear todos os uploads paralisa o data lake — não é detecção nem remediação de PII."
+        },
+        {
+          "matchText": "Revisão manual semanal dos buckets",
+          "stage": "eliminate",
+          "reasonWrong": "Revisão manual semanal é lenta e não escala — não é a arquitetura gerenciada automatizada pedida."
+        },
+        {
+          "matchText": "GuardDuty com proteção de malware",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o GuardDuty também é serviço de segurança gerenciado com achados — mas ele detecta AMEAÇAS (malware, C&C, comportamento anômalo), não classifica DADOS SENSÍVEIS/PII em buckets; descoberta automatizada de PII com achados acionáveis é o Amazon Macie."
+        },
+        {
+          "matchText": "Amazon Macie com descoberta automatizada + achados enviados ao EventBridge, acionando notificação/remediação",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Macie descobre PII automaticamente nos buckets e envia os achados ao EventBridge, que aciona notificação/remediação — detecção gerenciada e ação sem varredura manual.",
+            "correct": true
+          },
+          {
+            "text": "Porque o GuardDuty descobre PII automaticamente nos buckets e envia os achados ao EventBridge, que aciona notificação/remediação — detecção gerenciada e ação sem varredura manual.",
+            "correct": false
+          },
+          {
+            "text": "Porque bloquear os uploads descobre PII automaticamente nos buckets e envia os achados ao EventBridge, que aciona notificação/remediação — detecção gerenciada e ação sem varredura manual.",
+            "correct": false
+          },
+          {
+            "text": "Porque a revisão semanal descobre PII automaticamente nos buckets e envia os achados ao EventBridge, que aciona notificação/remediação — detecção gerenciada e ação sem varredura manual.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-035",
+      "options": [
+        {
+          "matchText": "Senha em um arquivo .txt no S3 com ACL privada",
+          "stage": "eliminate",
+          "reasonWrong": "Senha em .txt no S3, mesmo com ACL, é credencial em texto sem rotação — prática insegura."
+        },
+        {
+          "matchText": "Guardar a senha no Secrets Manager com rotação automática, e a Glue Connection/job buscando o segredo em runtime via IAM",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Variável de ambiente fixa no job",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma variável de ambiente tira a senha do script — mas ela é FIXA: não rotaciona e fica legível na configuração do job; guardar no Secrets Manager com rotação automática e buscar em runtime via IAM tira do código, criptografa E rotaciona sem quebrar os jobs."
+        },
+        {
+          "matchText": "Codificar a senha em base64 no script",
+          "stage": "eliminate",
+          "reasonWrong": "Base64 é codificação, não criptografia — a senha continua trivialmente legível no script."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Secrets Manager guarda a senha criptografada com rotação automática, e a Glue Connection/job a busca em runtime via IAM — fora do código, cifrada e rotacionada sem quebrar os jobs.",
+            "correct": true
+          },
+          {
+            "text": "Porque a variável de ambiente guarda a senha criptografada com rotação automática, e a Glue Connection/job a busca em runtime via IAM — fora do código, cifrada e rotacionada sem quebrar os jobs.",
+            "correct": false
+          },
+          {
+            "text": "Porque o .txt no S3 guarda a senha criptografada com rotação automática, e a Glue Connection/job a busca em runtime via IAM — fora do código, cifrada e rotacionada sem quebrar os jobs.",
+            "correct": false
+          },
+          {
+            "text": "Porque o base64 no script guarda a senha criptografada com rotação automática, e a Glue Connection/job a busca em runtime via IAM — fora do código, cifrada e rotacionada sem quebrar os jobs.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-med-036",
+      "options": [
+        {
+          "matchText": "Exportar a tabela por e-mail semanalmente",
+          "stage": "eliminate",
+          "reasonWrong": "Exportar por e-mail semanalmente é cópia manual e defasada — não é consulta governada em tempo real."
+        },
+        {
+          "matchText": "Tornar o bucket público com URL secreta",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma URL secreta 'daria acesso' à tabela — mas tornar o bucket público expõe os dados a qualquer um com o link, sem governança, sem escopo de tabela e sem auditoria; compartilhar UMA tabela para outra conta com controle é o cross-account do Lake Formation."
+        },
+        {
+          "matchText": "Compartilhamento cross-account via Lake Formation (grant à conta externa), com a parceira consultando pelo Athena na conta dela",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Enviar access keys da conta dona por e-mail",
+          "stage": "eliminate",
+          "reasonWrong": "Enviar access keys da conta dona por e-mail entrega credenciais da empresa — o oposto de 'sem receber credenciais'."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Lake Formation concede a UMA tabela para a conta da parceira, que consulta pelo Athena na própria conta — acesso governado e auditável, sem entregar credenciais da conta dona dos dados.",
+            "correct": true
+          },
+          {
+            "text": "Porque o bucket público com URL secreta concede a uma tabela para a conta da parceira, que consulta pelo Athena na própria conta — acesso governado e auditável, sem entregar credenciais da conta dona.",
+            "correct": false
+          },
+          {
+            "text": "Porque exportar por e-mail concede a uma tabela para a conta da parceira, que consulta pelo Athena na própria conta — acesso governado e auditável, sem entregar credenciais da conta dona dos dados.",
+            "correct": false
+          },
+          {
+            "text": "Porque enviar as access keys concede a uma tabela para a conta da parceira, que consulta pelo Athena na própria conta — acesso governado e auditável, sem entregar credenciais da conta dona dos dados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-001",
+      "options": [
+        {
+          "matchText": "Reduzir o batch size",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque reduzir o batch size ajusta a leitura de fato — mas os cinco consumidores continuam DIVIDINDO os 2 MB/s de cada shard: a competição e a latência permanecem; taxa dedicada por consumidor com ~70 ms é o Enhanced Fan-Out."
+        },
+        {
+          "matchText": "Enhanced Fan-Out: cada consumidor registrado recebe 2 MB/s dedicados por shard com entrega push via HTTP/2",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Long polling nos consumidores",
+          "stage": "eliminate",
+          "reasonWrong": "Long polling é conceito de SQS — o Kinesis Data Streams não tem esse modo; não dá throughput dedicado por consumidor."
+        },
+        {
+          "matchText": "Aumentar a retenção do stream",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar a retenção guarda os dados por mais tempo — não muda a taxa de leitura compartilhada por shard."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Enhanced Fan-Out registra cada consumidor com 2 MB/s dedicados por shard via push HTTP/2 (~70 ms) — os cinco deixam de competir sem precisar aumentar o número de shards.",
+            "correct": true
+          },
+          {
+            "text": "Porque reduzir o batch size registra cada consumidor com 2 MB/s dedicados por shard via push HTTP/2 (~70 ms) — os cinco deixam de competir sem precisar aumentar o número de shards.",
+            "correct": false
+          },
+          {
+            "text": "Porque o long polling registra cada consumidor com 2 MB/s dedicados por shard via push HTTP/2 (~70 ms) — os cinco deixam de competir sem precisar aumentar o número de shards.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar a retenção registra cada consumidor com 2 MB/s dedicados por shard via push HTTP/2 (~70 ms) — os cinco deixam de competir sem precisar aumentar o número de shards.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-003",
+      "options": [
+        {
+          "matchText": "Diminuir o buffer para 1 segundo",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mexe no BUFFER, que é exatamente o parâmetro certo — mas na direção ERRADA: diminuir para 1 segundo gera arquivos AINDA MENORES e mais numerosos, piorando os small files; como o consumo tolera 10 min, AUMENTAR o buffer produz arquivos grandes e menos numerosos."
+        },
+        {
+          "matchText": "Ativar o versionamento do bucket",
+          "stage": "eliminate",
+          "reasonWrong": "Versionamento do bucket guarda versões de objetos — não muda o tamanho/quantidade dos arquivos entregues."
+        },
+        {
+          "matchText": "Aumentar o buffer do Firehose (ex.: 128 MB / até 900 s), produzindo arquivos maiores e menos numerosos",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Trocar o destino para DynamoDB",
+          "stage": "eliminate",
+          "reasonWrong": "Trocar o destino para DynamoDB muda o pipeline inteiro — não é o ajuste de layout de arquivos no S3."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque aumentar o buffer do Firehose (128 MB / até 900 s) agrupa mais eventos por arquivo: menos arquivos e maiores no S3, dentro dos 10 min tolerados — o Athena volta a performar.",
+            "correct": true
+          },
+          {
+            "text": "Porque diminuir o buffer para 1 segundo agrupa mais eventos por arquivo: menos arquivos e maiores no S3, dentro dos 10 min tolerados — o Athena volta a performar nas consultas.",
+            "correct": false
+          },
+          {
+            "text": "Porque ativar o versionamento agrupa mais eventos por arquivo: menos arquivos e maiores no S3, dentro dos 10 min tolerados — o Athena volta a performar nas consultas do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque trocar o destino para DynamoDB agrupa mais eventos por arquivo: menos arquivos e maiores no S3, dentro dos 10 min tolerados — o Athena volta a performar nas consultas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-004",
+      "options": [
+        {
+          "matchText": "Converter o job para Python shell",
+          "stage": "eliminate",
+          "reasonWrong": "Python shell não roda Spark distribuído — não é ajuste para um job Spark com shuffle pesado."
+        },
+        {
+          "matchText": "Desativar os Job Bookmarks",
+          "stage": "eliminate",
+          "reasonWrong": "Desativar Job Bookmarks muda o incremental — não tem relação com a memória do shuffle."
+        },
+        {
+          "matchText": "Trocar o worker type para um de maior memória (ex.: G.1X → G.2X) e ajustar o número de workers",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Reduzir o número de workers para economizar",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mexer no número de workers é o eixo certo de tuning — mas REDUZIR workers concentra ainda mais dados por executor e AGRAVA o OutOfMemory; atacar o OOM sem reescrever o job é usar worker type de MAIOR memória (G.1X→G.2X) e ajustar a quantidade."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque trocar para um worker type de maior memória (G.1X→G.2X) e ajustar o número de workers dá mais RAM por executor — o shuffle pesado cabe na memória e o OutOfMemory desaparece, sem reescrever o job.",
+            "correct": true
+          },
+          {
+            "text": "Porque converter para Python shell dá mais RAM por executor — o shuffle pesado cabe na memória e o OutOfMemory desaparece, sem reescrever o job Spark do Glue.",
+            "correct": false
+          },
+          {
+            "text": "Porque desativar os Job Bookmarks dá mais RAM por executor — o shuffle pesado cabe na memória e o OutOfMemory desaparece, sem reescrever o job Spark do Glue.",
+            "correct": false
+          },
+          {
+            "text": "Porque reduzir o número de workers dá mais RAM por executor — o shuffle pesado cabe na memória e o OutOfMemory desaparece, sem reescrever o job Spark do Glue.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-005",
+      "options": [
+        {
+          "matchText": "Migrar todo o lake para RDS",
+          "stage": "eliminate",
+          "reasonWrong": "Migrar todo o lake para RDS abandona o data lake em Parquet no S3 — reengenharia, não a evolução pedida."
+        },
+        {
+          "matchText": "Usar apenas versionamento do S3 como 'transação'",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o versionamento do S3 guarda versões e parece dar 'histórico/transação' — mas ele opera por OBJETO, sem ACID, sem UPDATE/DELETE em nível de LINHA nem time travel de tabela; ACID, upserts/deletes e viagem no tempo sobre o S3 são um formato aberto como o Apache Iceberg."
+        },
+        {
+          "matchText": "Reescrever manualmente os arquivos Parquet afetados a cada correção",
+          "stage": "eliminate",
+          "reasonWrong": "Reescrever Parquet à mão a cada correção é manual, sem ACID nem time travel — o problema que o Iceberg resolve."
+        },
+        {
+          "matchText": "Adotar um formato de tabela aberto como Apache Iceberg sobre o S3, que suporta ACID, upserts/deletes e time travel nos engines integrados",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque um formato de tabela aberto como o Apache Iceberg sobre o S3 traz ACID, upserts/deletes em nível de linha e time travel — mantendo as consultas via Athena e Spark, sem sair do data lake.",
+            "correct": true
+          },
+          {
+            "text": "Porque o versionamento do S3 traz ACID, upserts/deletes em nível de linha e time travel — mantendo as consultas via Athena e Spark, sem sair do data lake em Parquet.",
+            "correct": false
+          },
+          {
+            "text": "Porque migrar para o RDS traz ACID, upserts/deletes em nível de linha e time travel — mantendo as consultas via Athena e Spark, sem sair do data lake em Parquet no S3.",
+            "correct": false
+          },
+          {
+            "text": "Porque reescrever os Parquet à mão traz ACID, upserts/deletes em nível de linha e time travel — mantendo as consultas via Athena e Spark, sem sair do data lake em Parquet no S3.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-007",
+      "options": [
+        {
+          "matchText": "Alarmes do CloudWatch sobre as métricas de latência da task do DMS (CDCLatencySource/CDCLatencyTarget)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Conferir manualmente a contagem de linhas uma vez por dia",
+          "stage": "eliminate",
+          "reasonWrong": "Conferir contagem de linhas uma vez por dia é lento e indireto — não detecta rapidamente a latência passando de 5 min."
+        },
+        {
+          "matchText": "Ler os logs do bucket de destino",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque ler o bucket de destino também dá pistas do CDC — mas exige inspeção manual e não expõe a LATÊNCIA de replicação diretamente nem alerta rápido; o DMS publica métricas de latência (CDCLatencySource/Target) no CloudWatch, sobre as quais um alarme dispara ao passar de 5 min."
+        },
+        {
+          "matchText": "Ativar o Trusted Advisor",
+          "stage": "eliminate",
+          "reasonWrong": "Trusted Advisor dá recomendações de boas práticas — não monitora a latência de uma task do DMS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as métricas CDCLatencySource/CDCLatencyTarget da task do DMS expõem a latência de replicação no CloudWatch: um alarme dispara assim que ela passa de 5 minutos — detecção automática e rápida.",
+            "correct": true
+          },
+          {
+            "text": "Porque conferir a contagem de linhas expõe a latência de replicação no CloudWatch: um alarme dispara assim que ela passa de 5 minutos — detecção automática e rápida da task do DMS.",
+            "correct": false
+          },
+          {
+            "text": "Porque ler os logs do destino expõe a latência de replicação no CloudWatch: um alarme dispara assim que ela passa de 5 minutos — detecção automática e rápida da task do DMS.",
+            "correct": false
+          },
+          {
+            "text": "Porque ativar o Trusted Advisor expõe a latência de replicação no CloudWatch: um alarme dispara assim que ela passa de 5 minutos — detecção automática e rápida da task do DMS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-009",
+      "options": [
+        {
+          "matchText": "Ativar Transfer Acceleration",
+          "stage": "eliminate",
+          "reasonWrong": "Transfer Acceleration acelera uploads — não muda o tamanho nem consolida os micro-arquivos."
+        },
+        {
+          "matchText": "Job periódico de COMPACTION (Glue/Spark ou OPTIMIZE em tabelas Iceberg) reescrevendo os micro-arquivos da janela em arquivos grandes na camada curada",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Bloquear a ingestão até acumular arquivos grandes",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque acumular arquivos até ficarem grandes de fato resolveria os micro-arquivos — mas PARANDO a ingestão, o que o requisito veta (não pode parar); compactar em segundo plano os micro-arquivos da janela na camada curada, sem interromper o raw, é o job periódico de compaction."
+        },
+        {
+          "matchText": "Aumentar a classe de armazenamento para Glacier",
+          "stage": "eliminate",
+          "reasonWrong": "Glacier é classe de arquivamento frio — não compacta arquivos nem serve consulta analítica quente."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque um job periódico de compaction (Glue/Spark ou OPTIMIZE no Iceberg) reescreve os micro-arquivos da janela em Parquet de ~256 MB particionados na camada curada — sem parar a ingestão no raw.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Transfer Acceleration reescreve os micro-arquivos da janela em Parquet de ~256 MB particionados na camada curada — sem parar a ingestão no raw do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque bloquear a ingestão reescreve os micro-arquivos da janela em Parquet de ~256 MB particionados na camada curada — sem parar a ingestão no raw do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque mudar para Glacier reescreve os micro-arquivos da janela em Parquet de ~256 MB particionados na camada curada — sem parar a ingestão no raw do data lake.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-010",
+      "options": [
+        {
+          "matchText": "Trocar o formato do fato para CSV",
+          "stage": "eliminate",
+          "reasonWrong": "Trocar o fato para CSV piora leitura e compressão — não elimina o shuffle do join."
+        },
+        {
+          "matchText": "Aumentar o número de partições do fato",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mexer nas partições do fato é tuning de shuffle plausível — mas aumentar as partições do fato NÃO elimina a redistribuição do JOIN: os dois lados ainda embaralham por chave; com uma dimensão de só 40 MB, o clássico é o BROADCAST join, enviando a dimensão a todos os executores para join local."
+        },
+        {
+          "matchText": "Broadcast join: enviar a dimensão pequena para todos os executores, fazendo o join local (o Spark faz automaticamente abaixo do limiar, ou via hint/broadcast explícito)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Repartir a dimensão em mil partições",
+          "stage": "eliminate",
+          "reasonWrong": "Repartir a dimensão em mil partições espalha os 40 MB desnecessariamente — aumenta overhead, não elimina o shuffle."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o broadcast join envia a dimensão de 40 MB a todos os executores e faz o join local, sem redistribuir os 2 TB do fato — o Spark faz isso abaixo do limiar ou via hint explícito.",
+            "correct": true
+          },
+          {
+            "text": "Porque aumentar as partições do fato envia a dimensão de 40 MB a todos os executores e faz o join local, sem redistribuir os 2 TB do fato — via hint explícito de broadcast.",
+            "correct": false
+          },
+          {
+            "text": "Porque trocar o fato para CSV envia a dimensão de 40 MB a todos os executores e faz o join local, sem redistribuir os 2 TB do fato — via hint explícito de broadcast do Spark.",
+            "correct": false
+          },
+          {
+            "text": "Porque repartir a dimensão em mil partições envia a dimensão de 40 MB a todos os executores e faz o join local, sem redistribuir os 2 TB do fato — via hint explícito de broadcast.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-011",
+      "options": [
+        {
+          "matchText": "Reduzir o paralelismo para 1",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque reduzir o paralelismo a 1 mexe no event source mapping — mas NÃO destrava o registro venenoso: o shard continua preso reprocessando o lote ruim em loop; destravar com segurança exige limitar retries, DIVIDIR o lote para isolar o registro (bisectBatchOnFunctionError) e mandar os descartados a um destino de falha."
+        },
+        {
+          "matchText": "Aumentar o timeout da função",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o timeout dá mais tempo à falha — o lote venenoso continua falhando e travando o shard."
+        },
+        {
+          "matchText": "Excluir e recriar o stream",
+          "stage": "eliminate",
+          "reasonWrong": "Excluir e recriar o stream perde dados e não resolve a causa — o registro ruim voltaria a travar."
+        },
+        {
+          "matchText": "Configurar maximumRetryAttempts, bisectBatchOnFunctionError (divide o lote para isolar o registro ruim) e um destino de falha (on-failure) para os registros descartados",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque maximumRetryAttempts limita o loop, bisectBatchOnFunctionError divide o lote para isolar o registro ruim e o destino on-failure captura os descartados — o shard destrava sem perder o resto.",
+            "correct": true
+          },
+          {
+            "text": "Porque reduzir o paralelismo a 1 limita o loop, divide o lote para isolar o registro ruim e captura os descartados num destino de falha — o shard destrava sem perder o resto do lote.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o timeout limita o loop, divide o lote para isolar o registro ruim e captura os descartados num destino de falha — o shard destrava sem perder o resto do lote.",
+            "correct": false
+          },
+          {
+            "text": "Porque recriar o stream limita o loop, divide o lote para isolar o registro ruim e captura os descartados num destino de falha — o shard destrava sem perder o resto do lote.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-012",
+      "options": [
+        {
+          "matchText": "Rodar mais crawlers em paralelo",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mais crawlers acelerariam o registro das partições — mas continuam DEPENDENDO de registrar cada partição no metastore, que é justamente o gargalo com centenas de milhares delas; eliminar essa dependência é o Partition Projection, que CALCULA as partições por regras."
+        },
+        {
+          "matchText": "Aumentar o limite de partições",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o limite de partições só adia o problema — o planejamento continua consultando o metastore inchado."
+        },
+        {
+          "matchText": "Partition Projection: o Athena CALCULA as partições a partir de regras configuradas (intervalos/formatos), sem consultá-las no metastore",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Remover o particionamento",
+          "stage": "eliminate",
+          "reasonWrong": "Remover o particionamento faz o Athena escanear tudo — piora o custo e a latência das consultas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Partition Projection calcula as partições a partir de regras (intervalos/formatos) sem consultá-las no metastore — o planejamento acelera e o MSCK REPAIR deixa de ser necessário.",
+            "correct": true
+          },
+          {
+            "text": "Porque rodar mais crawlers calcula as partições a partir de regras sem consultá-las no metastore — o planejamento acelera e o MSCK REPAIR deixa de ser necessário no Athena.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o limite de partições calcula as partições a partir de regras sem consultá-las no metastore — o planejamento acelera e o MSCK REPAIR deixa de ser necessário no Athena.",
+            "correct": false
+          },
+          {
+            "text": "Porque remover o particionamento calcula as partições a partir de regras sem consultá-las no metastore — o planejamento acelera e o MSCK REPAIR deixa de ser necessário no Athena.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-013",
+      "options": [
+        {
+          "matchText": "Workload Management (WLM), com filas separadas (ou Auto WLM com query priorities) para BI e ETL",
+          "stage": "correct"
+        },
+        {
+          "matchText": "VACUUM diário",
+          "stage": "eliminate",
+          "reasonWrong": "VACUUM recupera espaço/reordena — não isola cargas concorrentes."
+        },
+        {
+          "matchText": "Criar dois usuários com senhas diferentes",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque separar usuários dá alguma organização — mas usuário/senha NÃO isola RECURSOS: BI e ETL continuam disputando CPU/memória do cluster; isolar cargas com filas, prioridades e limites é o Workload Management (WLM), com filas separadas ou Auto WLM."
+        },
+        {
+          "matchText": "Sort keys em todas as tabelas",
+          "stage": "eliminate",
+          "reasonWrong": "Sort keys aceleram scans por faixa — não separam nem priorizam BI vs ETL."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o WLM cria filas separadas (ou Auto WLM com query priorities) para BI e ETL, com limites e prioridades — as cargas deixam de disputar os recursos do cluster nos horários de pico.",
+            "correct": true
+          },
+          {
+            "text": "Porque criar dois usuários cria filas separadas para BI e ETL, com limites e prioridades — as cargas deixam de disputar os recursos do cluster nos horários de pico de carga.",
+            "correct": false
+          },
+          {
+            "text": "Porque o VACUUM diário cria filas separadas para BI e ETL, com limites e prioridades — as cargas deixam de disputar os recursos do cluster nos horários de pico de carga.",
+            "correct": false
+          },
+          {
+            "text": "Porque as sort keys criam filas separadas para BI e ETL, com limites e prioridades — as cargas deixam de disputar os recursos do cluster nos horários de pico de carga.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-014",
+      "options": [
+        {
+          "matchText": "UNLOAD diário para o S3",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o UNLOAD diário para o S3 também expõe os dados a outro cluster — mas COPIA os dados e entrega um retrato DEFASADO (não ao vivo), com pipeline de exportação a manter; leitura AO VIVO entre clusters sem mover dados é o Redshift Data Sharing."
+        },
+        {
+          "matchText": "Redshift Data Sharing: compartilhar schemas/tabelas entre clusters (datashare), com leitura ao vivo e sem movimentação de dados",
+          "stage": "correct"
+        },
+        {
+          "matchText": "DMS entre os clusters",
+          "stage": "eliminate",
+          "reasonWrong": "DMS replica dados entre bancos — copia e mantém pipeline, o oposto de 'sem copiar'."
+        },
+        {
+          "matchText": "Snapshot restaurado semanalmente",
+          "stage": "eliminate",
+          "reasonWrong": "Snapshot restaurado semanalmente é cópia periódica e defasada — não é acesso ao vivo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Redshift Data Sharing compartilha schemas/tabelas entre clusters via datashare: a outra unidade lê os dados AO VIVO do warehouse de produção, sem copiar nem montar pipeline de exportação.",
+            "correct": true
+          },
+          {
+            "text": "Porque o UNLOAD diário compartilha schemas/tabelas entre clusters: a outra unidade lê os dados ao vivo do warehouse de produção, sem copiar nem montar pipeline de exportação.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DMS compartilha schemas/tabelas entre clusters: a outra unidade lê os dados ao vivo do warehouse de produção, sem copiar nem montar pipeline de exportação de dados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o snapshot restaurado compartilha schemas/tabelas entre clusters: a outra unidade lê os dados ao vivo do warehouse de produção, sem copiar nem montar pipeline de exportação.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-015",
+      "options": [
+        {
+          "matchText": "Partition Projection",
+          "stage": "eliminate",
+          "reasonWrong": "Partition Projection acelera partições no S3 — não conecta a uma fonte externa como o RDS."
+        },
+        {
+          "matchText": "CTAS",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CTAS combina dados numa nova tabela — mas ele MATERIALIZA (copia) o resultado, e o requisito é cruzar S3 com o RDS numa consulta SEM replicar o banco; consultar a fonte externa em tempo de query é o Athena Federated Query, via conector Lambda."
+        },
+        {
+          "matchText": "Athena Federated Query, usando um conector (Lambda) para a fonte externa",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Workgroups",
+          "stage": "eliminate",
+          "reasonWrong": "Workgroups controlam custo/limites de consulta — não conectam o Athena ao PostgreSQL."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Athena Federated Query usa um conector (Lambda) para o RDS PostgreSQL e cruza a tabela de referência com o data lake numa única consulta SQL — sem replicar o banco para o lake.",
+            "correct": true
+          },
+          {
+            "text": "Porque o CTAS usa um conector para o RDS PostgreSQL e cruza a tabela de referência com o data lake numa única consulta SQL — sem replicar o banco para o lake do S3.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Partition Projection usa um conector para o RDS PostgreSQL e cruza a tabela de referência com o data lake numa única consulta SQL — sem replicar o banco para o lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Workgroups usam um conector para o RDS PostgreSQL e cruzam a tabela de referência com o data lake numa única consulta SQL — sem replicar o banco para o lake.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-016",
+      "options": [
+        {
+          "matchText": "S3 Intelligent-Tiering, que move os objetos automaticamente entre camadas conforme o padrão de acesso",
+          "stage": "correct"
+        },
+        {
+          "matchText": "S3 One Zone-IA",
+          "stage": "eliminate",
+          "reasonWrong": "One Zone-IA reduz durabilidade (uma AZ) e cobra retrieval — arriscado para dados que voltam a ser quentes."
+        },
+        {
+          "matchText": "S3 Standard com lifecycle fixo para Glacier em 30 dias",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque lifecycle para Glacier em 30 dias também otimiza custo — mas é regra FIXA por idade e o Glacier cobra RECUPERAÇÃO com latência: datasets que voltam a ser consultados intensamente pagariam taxa e esperariam; sem taxa, sem degradação e sem gestão manual é o Intelligent-Tiering."
+        },
+        {
+          "matchText": "S3 Glacier Deep Archive",
+          "stage": "eliminate",
+          "reasonWrong": "Glacier Deep Archive é arquivamento com recuperação de horas — inviável para reacesso intenso imprevisível."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Intelligent-Tiering move cada objeto entre as camadas pelo padrão de acesso real, sem taxa de recuperação nem degradação de latência e sem gestão manual — exato para acesso imprevisível.",
+            "correct": true
+          },
+          {
+            "text": "Porque o One Zone-IA move cada objeto entre as camadas pelo padrão de acesso real, sem taxa de recuperação nem degradação de latência e sem gestão manual — exato para acesso imprevisível.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Standard com lifecycle para Glacier move cada objeto pelo padrão de acesso real, sem taxa de recuperação nem degradação de latência e sem gestão manual — exato para acesso imprevisível.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glacier Deep Archive move cada objeto entre as camadas pelo padrão de acesso real, sem taxa de recuperação nem degradação de latência e sem gestão manual — exato para acesso imprevisível.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-017",
+      "options": [
+        {
+          "matchText": "INSERT INTO EXTERNAL",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque INSERT INTO EXTERNAL (via Spectrum) também grava do Redshift para o S3 — mas é caminho limitado e menos eficiente para exportação em massa; o comando NATIVO que escreve em paralelo, em Parquet particionado, é o UNLOAD ... FORMAT AS PARQUET PARTITION BY."
+        },
+        {
+          "matchText": "pg_dump",
+          "stage": "eliminate",
+          "reasonWrong": "pg_dump é ferramenta do PostgreSQL — não exporta do Redshift em Parquet particionado para o S3."
+        },
+        {
+          "matchText": "COPY",
+          "stage": "eliminate",
+          "reasonWrong": "COPY CARREGA dados PARA o Redshift a partir do S3 — é o sentido inverso da exportação pedida."
+        },
+        {
+          "matchText": "UNLOAD ... FORMAT AS PARQUET PARTITION BY, escrevendo em paralelo no S3",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o UNLOAD ... FORMAT AS PARQUET PARTITION BY escreve o resultado da consulta em paralelo no S3, já em Parquet particionado — pronto para consumo por Athena e Spark na camada curada.",
+            "correct": true
+          },
+          {
+            "text": "Porque o INSERT INTO EXTERNAL escreve o resultado da consulta em paralelo no S3, já em Parquet particionado — pronto para consumo por Athena e Spark na camada curada do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque o pg_dump escreve o resultado da consulta em paralelo no S3, já em Parquet particionado — pronto para consumo por Athena e Spark na camada curada do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque o COPY escreve o resultado da consulta em paralelo no S3, já em Parquet particionado — pronto para consumo por Athena e Spark na camada curada do data lake.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-018",
+      "options": [
+        {
+          "matchText": "Reduzir o tamanho dos itens",
+          "stage": "eliminate",
+          "reasonWrong": "Reduzir o tamanho dos itens economiza um pouco de capacidade — não impede o throttling num pico de 20x."
+        },
+        {
+          "matchText": "Dobrar o provisionamento fixo",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque dobrar o provisionamento fixo reduz o throttling — mas para picos de 20x IMPREVISÍVEIS ainda estoura (e paga o dobro o tempo todo); a prioridade é NUNCA throttlear com custo variável, o que o modo On-Demand entrega absorvendo picos súbitos sem provisionar."
+        },
+        {
+          "matchText": "Adicionar um GSI",
+          "stage": "eliminate",
+          "reasonWrong": "Um GSI adiciona um índice (e mais consumo) — não resolve o throttling da tabela nos picos."
+        },
+        {
+          "matchText": "Modo de capacidade ON-DEMAND, que absorve picos súbitos sem provisionamento",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o modo On-Demand absorve picos súbitos de 20x sem provisionamento nem atraso de auto scaling: nunca throttlea e cobra pelo uso real — exatamente a prioridade das datas promocionais imprevisíveis.",
+            "correct": true
+          },
+          {
+            "text": "Porque dobrar o provisionamento fixo absorve picos súbitos de 20x sem provisionamento nem atraso: nunca throttlea e cobra pelo uso real — exatamente a prioridade das datas promocionais imprevisíveis.",
+            "correct": false
+          },
+          {
+            "text": "Porque reduzir o tamanho dos itens absorve picos súbitos de 20x sem provisionamento nem atraso: nunca throttlea e cobra pelo uso real — exatamente a prioridade das datas promocionais imprevisíveis.",
+            "correct": false
+          },
+          {
+            "text": "Porque adicionar um GSI absorve picos súbitos de 20x sem provisionamento nem atraso: nunca throttlea e cobra pelo uso real — exatamente a prioridade das datas promocionais imprevisíveis.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-019",
+      "options": [
+        {
+          "matchText": "VACUUM (reordenar/recuperar espaço de linhas deletadas) e ANALYZE (atualizar estatísticas do otimizador)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "DROP e recriação de todos os schemas",
+          "stage": "eliminate",
+          "reasonWrong": "DROP e recriar todos os schemas é destrutivo e desnecessário — a manutenção rotineira resolve."
+        },
+        {
+          "matchText": "Reiniciar o cluster",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque reiniciar o cluster parece 'renovar' a performance — mas não RECUPERA o espaço das linhas deletadas nem atualiza estatísticas: a degradação volta; reordenar/recuperar espaço e atualizar o otimizador é VACUUM + ANALYZE."
+        },
+        {
+          "matchText": "Trocar a senha do admin",
+          "stage": "eliminate",
+          "reasonWrong": "Trocar a senha do admin é controle de acesso — nada tem a ver com performance ou espaço."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o VACUUM reordena as linhas e recupera o espaço das deletadas, e o ANALYZE atualiza as estatísticas do otimizador — a performance e o storage do cluster voltam ao normal.",
+            "correct": true
+          },
+          {
+            "text": "Porque o DROP e recriação reordena as linhas e recupera o espaço das deletadas, e atualiza as estatísticas do otimizador — a performance e o storage do cluster voltam ao normal.",
+            "correct": false
+          },
+          {
+            "text": "Porque reiniciar o cluster reordena as linhas e recupera o espaço das deletadas, e atualiza as estatísticas do otimizador — a performance e o storage do cluster voltam ao normal.",
+            "correct": false
+          },
+          {
+            "text": "Porque trocar a senha do admin reordena as linhas e recupera o espaço das deletadas, e atualiza as estatísticas do otimizador — a performance e o storage do cluster voltam ao normal.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-020",
+      "options": [
+        {
+          "matchText": "O estado MAP (ou Distributed Map para grande escala), iterando sobre a lista de partições com MaxConcurrency=10 e Retry/Catch por iteração",
+          "stage": "correct"
+        },
+        {
+          "matchText": "300 estados Task encadeados manualmente",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque 300 estados Task 'processariam' as partições — mas encadeá-los à mão é inviável de manter, sem paralelismo controlado nem tolerância por item; iterar sobre a lista com concorrência limitada e Retry/Catch por iteração é o estado MAP (Distributed Map em grande escala)."
+        },
+        {
+          "matchText": "Uma única execução com timeout de 1 ano",
+          "stage": "eliminate",
+          "reasonWrong": "Uma execução única com timeout de 1 ano não paraleliza nem isola falhas por partição — só espera."
+        },
+        {
+          "matchText": "Um Wait de 24 horas",
+          "stage": "eliminate",
+          "reasonWrong": "Um Wait de 24h apenas pausa o fluxo — não processa as 300 partições."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o estado MAP (ou Distributed Map) itera sobre as 300 partições com MaxConcurrency=10 e Retry/Catch por iteração — paralelismo controlado e tolerância a falha por item, de forma elegante.",
+            "correct": true
+          },
+          {
+            "text": "Porque 300 estados Task encadeados iteram sobre as partições com MaxConcurrency=10 e Retry/Catch por iteração — paralelismo controlado e tolerância a falha por item, de forma elegante.",
+            "correct": false
+          },
+          {
+            "text": "Porque a execução única com timeout de 1 ano itera sobre as 300 partições com MaxConcurrency=10 e Retry/Catch por iteração — paralelismo controlado e tolerância a falha por item.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Wait de 24h itera sobre as 300 partições com MaxConcurrency=10 e Retry/Catch por iteração — paralelismo controlado e tolerância a falha por item, de forma elegante.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-021",
+      "options": [
+        {
+          "matchText": "Aceitar duplicatas e tratá-las no dashboard",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque tratar no dashboard 'esconde' as duplicatas — mas não as PREVINE na origem: a reexecução continua gravando linhas repetidas, e todo consumidor a jusante precisa lidar com isso; o princípio correto é IDEMPOTÊNCIA, para que reexecutar produza o mesmo estado final."
+        },
+        {
+          "matchText": "Executar os jobs somente uma vez por semana",
+          "stage": "eliminate",
+          "reasonWrong": "Rodar 1x por semana não elimina duplicata numa reexecução após falha parcial — só reduz a frequência."
+        },
+        {
+          "matchText": "Idempotência: reexecuções produzem o mesmo estado final — ex.: sobrescrever a partição-alvo inteira (INSERT OVERWRITE), usar MERGE/upsert por chave, ou chaves de deduplicação",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Desativar retries em tudo",
+          "stage": "eliminate",
+          "reasonWrong": "Desativar retries deixa falhas parciais sem recuperação — troca duplicata por perda de dados."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a idempotência faz a reexecução produzir o mesmo estado final: sobrescrever a partição-alvo (INSERT OVERWRITE), usar MERGE/upsert por chave ou chaves de deduplicação elimina os registros duplicados.",
+            "correct": true
+          },
+          {
+            "text": "Porque aceitar e tratar no dashboard faz a reexecução produzir o mesmo estado final: sobrescrever a partição-alvo, usar MERGE/upsert por chave ou chaves de deduplicação elimina os duplicados.",
+            "correct": false
+          },
+          {
+            "text": "Porque rodar 1x por semana faz a reexecução produzir o mesmo estado final: sobrescrever a partição-alvo, usar MERGE/upsert por chave ou chaves de deduplicação elimina os registros duplicados.",
+            "correct": false
+          },
+          {
+            "text": "Porque desativar retries faz a reexecução produzir o mesmo estado final: sobrescrever a partição-alvo, usar MERGE/upsert por chave ou chaves de deduplicação elimina os registros duplicados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-022",
+      "options": [
+        {
+          "matchText": "Trocar para SELECT *",
+          "stage": "eliminate",
+          "reasonWrong": "SELECT * lê MAIS colunas — aumenta o escaneamento em vez de cortar o desperdício."
+        },
+        {
+          "matchText": "Habilitar o Query Result Reuse (reutilização de resultados) com idade máxima adequada, servindo o resultado em cache",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Partition projection",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a Partition Projection reduz o custo de consulta de fato — mas ela acelera o PLANEJAMENTO das partições, não evita reescanear os dados quando a MESMA consulta repete sobre dados estáticos; servir o resultado do cache sem reescanear é o Query Result Reuse."
+        },
+        {
+          "matchText": "Aumentar o workgroup",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o workgroup não existe como ajuste de custo — workgroup separa métricas/limites, não cacheia resultados."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Query Result Reuse serve o resultado em cache quando a mesma consulta repete dentro da idade máxima — como os dados mudam 1x/dia, os dashboards param de reescanear tudo a cada execução.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Partition Projection serve o resultado em cache quando a mesma consulta repete dentro da idade máxima — como os dados mudam 1x/dia, os dashboards param de reescanear tudo a cada execução.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SELECT * serve o resultado em cache quando a mesma consulta repete dentro da idade máxima — como os dados mudam 1x/dia, os dashboards param de reescanear tudo a cada execução.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o workgroup serve o resultado em cache quando a mesma consulta repete dentro da idade máxima — como os dados mudam 1x/dia, os dashboards param de reescanear tudo a cada execução.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-023",
+      "options": [
+        {
+          "matchText": "Dois alarmes separados por e-mail",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque dois alarmes por e-mail cobrem os dois sinais — mas disparam ISOLADAMENTE, gerando o ruído que se quer evitar e sem a lógica 'ambos juntos'; combinar alarmes-filho com AND numa única ação é o Composite Alarm."
+        },
+        {
+          "matchText": "Logs Insights agendado",
+          "stage": "eliminate",
+          "reasonWrong": "Logs Insights agendado consulta logs periodicamente — não combina alarmes com lógica AND em tempo real."
+        },
+        {
+          "matchText": "Composite Alarm, combinando alarmes-filho com operadores lógicos (AND/OR) e uma única ação",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Um dashboard colorido",
+          "stage": "eliminate",
+          "reasonWrong": "Um dashboard mostra o estado — não dispara alerta condicional combinando dois alarmes."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Composite Alarm combina o alarme de falha do Glue E o de atraso do Firehose com AND numa única ação — dispara só quando os dois ocorrem juntos, sem o ruído de alertas isolados.",
+            "correct": true
+          },
+          {
+            "text": "Porque dois alarmes por e-mail combinam a falha do Glue E o atraso do Firehose com AND numa única ação — disparam só quando os dois ocorrem juntos, sem o ruído de alertas isolados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Logs Insights agendado combina a falha do Glue E o atraso do Firehose com AND numa única ação — dispara só quando os dois ocorrem juntos, sem o ruído de alertas isolados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o dashboard colorido combina a falha do Glue E o atraso do Firehose com AND numa única ação — dispara só quando os dois ocorrem juntos, sem o ruído de alertas isolados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-025",
+      "options": [
+        {
+          "matchText": "Falta de espaço no S3",
+          "stage": "eliminate",
+          "reasonWrong": "Falta de espaço no S3 causaria erro de escrita — não um executor sobrecarregado enquanto os demais ociam."
+        },
+        {
+          "matchText": "DATA SKEW: uma chave/partição concentra os dados; corrigir com re-particionamento, salting da chave ou tratamento separado da chave dominante",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O bucket está em outra Região",
+          "stage": "eliminate",
+          "reasonWrong": "Bucket em outra região adiciona latência uniforme — não concentra a carga num único executor."
+        },
+        {
+          "matchText": "Os bookmarks estão ativados",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque os bookmarks são configuração real do Glue — mas eles controlam o INCREMENTAL, não a distribuição da carga entre executores; um executor trabalhando sozinho por horas enquanto os outros ociam é o sintoma clássico de DATA SKEW (chave concentrando dados)."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o diagnóstico é data skew: uma chave/partição concentra os dados num executor; corrige-se com re-particionamento, salting da chave ou tratando a chave dominante à parte.",
+            "correct": true
+          },
+          {
+            "text": "Porque o diagnóstico é falta de espaço no S3: os dados concentram num executor; corrige-se com re-particionamento, salting da chave ou tratando a chave dominante à parte.",
+            "correct": false
+          },
+          {
+            "text": "Porque o diagnóstico é o bucket em outra região: os dados concentram num executor; corrige-se com re-particionamento, salting da chave ou tratando a chave dominante à parte.",
+            "correct": false
+          },
+          {
+            "text": "Porque o diagnóstico são os bookmarks ativados: os dados concentram num executor; corrige-se com re-particionamento, salting da chave ou tratando a chave dominante à parte.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-026",
+      "options": [
+        {
+          "matchText": "Confiança na memória do time",
+          "stage": "eliminate",
+          "reasonWrong": "Confiar na memória do time não é rastreabilidade — falha e não escala."
+        },
+        {
+          "matchText": "Um canal de chat para perguntar quem mexeu",
+          "stage": "eliminate",
+          "reasonWrong": "Um chat para perguntar quem mexeu é anedótico — não é linhagem estruturada e auditável."
+        },
+        {
+          "matchText": "Apenas backups frequentes",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque backups preservam DADOS e parecem ajudar na rastreabilidade — mas backup é RECUPERAÇÃO, não LINHAGEM: não diz de quais tabelas/jobs/fontes o dado veio; a linhagem vem do catálogo central (Glue Data Catalog) + rastreamento de jobs/execuções + convenção de camadas raw→curated→serving."
+        },
+        {
+          "matchText": "Catálogo central (Glue Data Catalog) como fonte de verdade de tabelas + rastreamento de jobs/execuções (Glue/Step Functions) + convenção de camadas raw→curated→serving com nomenclatura padronizada",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue Data Catalog como fonte de verdade, o rastreamento de jobs/execuções (Glue/Step Functions) e a convenção raw→curated→serving reconstroem de quais tabelas, jobs e fontes o dado do dashboard veio.",
+            "correct": true
+          },
+          {
+            "text": "Porque a memória do time como fonte de verdade, o rastreamento de jobs/execuções e a convenção raw→curated→serving reconstroem de quais tabelas, jobs e fontes o dado do dashboard veio.",
+            "correct": false
+          },
+          {
+            "text": "Porque o canal de chat como fonte de verdade, o rastreamento de jobs/execuções e a convenção raw→curated→serving reconstroem de quais tabelas, jobs e fontes o dado do dashboard veio.",
+            "correct": false
+          },
+          {
+            "text": "Porque os backups como fonte de verdade, o rastreamento de jobs/execuções e a convenção raw→curated→serving reconstroem de quais tabelas, jobs e fontes o dado do dashboard veio.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-027",
+      "options": [
+        {
+          "matchText": "WHERE obrigatório combinado verbalmente",
+          "stage": "eliminate",
+          "reasonWrong": "WHERE combinado 'verbalmente' não é controle técnico — qualquer consulta sem o filtro veria tudo."
+        },
+        {
+          "matchText": "Uma cópia da tabela por região",
+          "stage": "eliminate",
+          "reasonWrong": "Uma cópia por região duplica dados e a manutenção — o oposto de 'sem duplicar'."
+        },
+        {
+          "matchText": "Bucket policy por prefixo de região",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma bucket policy por prefixo de região restringiria acesso a arquivos — mas só funciona se os dados estiverem FISICAMENTE separados por região e opera no nível de OBJETO, não de LINHA na mesma tabela; filtrar linhas por região na mesma tabela via Athena é o row-level security do Lake Formation."
+        },
+        {
+          "matchText": "Data filters (row-level security) do AWS Lake Formation associados aos principals",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os data filters (row-level security) do Lake Formation associados aos principals fazem cada gerente ver só as linhas da própria região na MESMA tabela, via Athena — sem duplicar dados.",
+            "correct": true
+          },
+          {
+            "text": "Porque a bucket policy por prefixo faz cada gerente ver só as linhas da própria região na mesma tabela, via Athena — sem duplicar dados do data lake entre as regiões.",
+            "correct": false
+          },
+          {
+            "text": "Porque o WHERE combinado verbalmente faz cada gerente ver só as linhas da própria região na mesma tabela, via Athena — sem duplicar dados do data lake entre as regiões.",
+            "correct": false
+          },
+          {
+            "text": "Porque a cópia por região faz cada gerente ver só as linhas da própria região na mesma tabela, via Athena — sem duplicar dados do data lake entre as regiões.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-028",
+      "options": [
+        {
+          "matchText": "A KEY POLICY da CMK não concede kms:Decrypt à conta/role parceira — a permissão do bucket não basta quando os objetos são SSE-KMS",
+          "stage": "correct"
+        },
+        {
+          "matchText": "SSE-KMS não suporta acesso cross-account",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque aponta para o SSE-KMS, que é onde está o problema — mas a afirmação é FALSA: SSE-KMS SUPORTA acesso cross-account; o que falta é a KEY POLICY da CMK conceder kms:Decrypt à conta/role parceira, pois a permissão do bucket sozinha não decifra objetos SSE-KMS."
+        },
+        {
+          "matchText": "O bucket precisa ser público",
+          "stage": "eliminate",
+          "reasonWrong": "Tornar o bucket público é inseguro e desnecessário — o acesso cross-account é feito por política, não expondo o bucket."
+        },
+        {
+          "matchText": "A parceira precisa de um usuário IAM na conta dona",
+          "stage": "eliminate",
+          "reasonWrong": "Não é preciso criar usuário IAM na conta dona — a parceira acessa com a própria role, desde que a key policy a autorize."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque objetos SSE-KMS exigem kms:Decrypt na KEY POLICY da CMK para a conta/role parceira: a bucket policy autoriza o objeto, mas sem a permissão na chave a leitura dá AccessDenied.",
+            "correct": true
+          },
+          {
+            "text": "Porque o SSE-KMS não suporta cross-account: a bucket policy autoriza o objeto, mas a leitura da conta parceira dá AccessDenied de qualquer forma nos objetos criptografados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o bucket precisa ser público para SSE-KMS: a bucket policy autoriza o objeto, mas sem a exposição pública a leitura da conta parceira dá AccessDenied.",
+            "correct": false
+          },
+          {
+            "text": "Porque a parceira precisa de um usuário IAM na conta dona: a bucket policy autoriza o objeto, mas sem esse usuário a leitura dos objetos SSE-KMS dá AccessDenied.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-029",
+      "options": [
+        {
+          "matchText": "Criptografar a coluna e distribuir a chave ao time de risco",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque criptografar a coluna e dar a chave ao time de risco também controla quem vê o CPF cru — mas é grosseiro: quebra consultas/joins sobre a coluna e não entrega a VISÃO mascarada por role na mesma tabela; mascarar por usuário/role nativamente é o Dynamic Data Masking."
+        },
+        {
+          "matchText": "Dynamic Data Masking (políticas de mascaramento aplicadas por role/usuário)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Remover a coluna do warehouse",
+          "stage": "eliminate",
+          "reasonWrong": "Remover a coluna tira o CPF de todos — inclusive do time de risco que precisa do valor completo."
+        },
+        {
+          "matchText": "Exportar duas versões da tabela",
+          "stage": "eliminate",
+          "reasonWrong": "Exportar duas versões duplica a tabela — o oposto de 'sem duplicação'."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Dynamic Data Masking aplica políticas por role/usuário na MESMA tabela: o suporte vê o CPF mascarado e o risco vê o valor completo — sem duplicar dados nem quebrar a coluna.",
+            "correct": true
+          },
+          {
+            "text": "Porque criptografar a coluna aplica políticas por role/usuário na mesma tabela: o suporte vê o CPF mascarado e o risco vê o valor completo — sem duplicar dados nem quebrar a coluna.",
+            "correct": false
+          },
+          {
+            "text": "Porque remover a coluna aplica políticas por role/usuário na mesma tabela: o suporte vê o CPF mascarado e o risco vê o valor completo — sem duplicar dados nem quebrar a coluna.",
+            "correct": false
+          },
+          {
+            "text": "Porque exportar duas versões aplica políticas por role/usuário na mesma tabela: o suporte vê o CPF mascarado e o risco vê o valor completo — sem duplicar dados nem quebrar a coluna.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-030",
+      "options": [
+        {
+          "matchText": "AWS Config",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Config registra CONFIGURAÇÃO de recursos — não quem leu quais objetos do bucket."
+        },
+        {
+          "matchText": "GuardDuty",
+          "stage": "eliminate",
+          "reasonWrong": "GuardDuty detecta ameaças por comportamento — não é a trilha de auditoria de GetObject por usuário."
+        },
+        {
+          "matchText": "CloudTrail padrão (management events) já cobre",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CloudTrail é de fato a ferramenta de trilha — mas os MANAGEMENT EVENTS padrão cobrem só ações administrativas (criar/excluir bucket, mudar política), NÃO leituras de objeto (GetObject); registrar quem leu quais objetos exige habilitar os DATA EVENTS do S3 (ou os server access logs)."
+        },
+        {
+          "matchText": "Habilitar DATA EVENTS do S3 no CloudTrail (ou S3 server access logs) para o bucket, registrando as operações em nível de objeto",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque habilitar os DATA EVENTS do S3 no CloudTrail (ou os server access logs) registra as operações em nível de OBJETO — a trilha mostra quem executou GetObject em quais objetos do bucket.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Config registra as operações em nível de objeto — a trilha mostra quem executou GetObject em quais objetos do bucket, além das ações administrativas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o GuardDuty registra as operações em nível de objeto — a trilha mostra quem executou GetObject em quais objetos do bucket, além das ações administrativas.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CloudTrail padrão (management events) registra as operações em nível de objeto — a trilha mostra quem executou GetObject em quais objetos do bucket.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-avc-032",
+      "options": [
+        {
+          "matchText": "Conceder permissões cross-account do Lake Formation (via AWS RAM) sobre bancos/tabelas, e as contas consumidoras criarem RESOURCE LINKS locais apontando para o catálogo central",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Replicar os crawlers em cada conta consumidora",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque crawlers em cada conta populariam catálogos locais — mas isso REPLICA metadados e trabalho por conta, sem um catálogo CENTRAL como fonte de verdade; o desenho recomendado é conceder permissões cross-account do Lake Formation (via RAM) e as consumidoras criarem resource links ao catálogo central."
+        },
+        {
+          "matchText": "Dar acesso de administrador do Glue a todas as contas",
+          "stage": "eliminate",
+          "reasonWrong": "Dar admin do Glue a todas as contas remove a governança — o oposto de acesso por permissão."
+        },
+        {
+          "matchText": "Exportar o catálogo em CSV mensalmente para cada conta",
+          "stage": "eliminate",
+          "reasonWrong": "Exportar o catálogo em CSV mensalmente é cópia manual e defasada — não é descoberta/consulta governada ao vivo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque conceder permissões cross-account do Lake Formation via RAM e criar resource links locais dá às consumidoras descoberta e consulta do catálogo central conforme as permissões — sem copiar metadados.",
+            "correct": true
+          },
+          {
+            "text": "Porque replicar os crawlers em cada conta dá às consumidoras descoberta e consulta do catálogo central conforme as permissões — sem copiar metadados manualmente entre as contas.",
+            "correct": false
+          },
+          {
+            "text": "Porque dar admin do Glue a todas as contas dá às consumidoras descoberta e consulta do catálogo central conforme as permissões — sem copiar metadados manualmente entre as contas.",
+            "correct": false
+          },
+          {
+            "text": "Porque exportar o catálogo em CSV dá às consumidoras descoberta e consulta do catálogo central conforme as permissões — sem copiar metadados manualmente entre as contas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-002",
+      "options": [
+        {
+          "matchText": "Apenas bancos relacionais como RDS e Aurora",
+          "stage": "eliminate",
+          "reasonWrong": "O Firehose não entrega nativamente a RDS/Aurora — bancos relacionais não são destinos gerenciados dele."
+        },
+        {
+          "matchText": "Apenas Amazon S3",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o S3 é de fato um destino nativo do Firehose — mas 'APENAS S3' está incompleto: o Firehose também entrega nativamente ao Redshift, ao OpenSearch e a endpoints HTTP de parceiros; a resposta completa inclui todos esses."
+        },
+        {
+          "matchText": "Amazon S3, Amazon Redshift, Amazon OpenSearch Service e endpoints HTTP de parceiros",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Somente o Amazon DynamoDB",
+          "stage": "eliminate",
+          "reasonWrong": "DynamoDB não é destino nativo do Firehose — a lista de destinos gerenciados é outra."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Firehose entrega nativamente a Amazon S3, Amazon Redshift, Amazon OpenSearch Service e endpoints HTTP de parceiros — sem escrever código de integração para nenhum deles.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Firehose entrega nativamente apenas ao Amazon S3, além de Redshift, OpenSearch e endpoints HTTP de parceiros — sem escrever código de integração para nenhum deles.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Firehose entrega nativamente a bancos relacionais como RDS e Aurora, além de Redshift e OpenSearch — sem escrever código de integração para nenhum deles.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Firehose entrega nativamente somente ao Amazon DynamoDB, além de Redshift e OpenSearch — sem escrever código de integração para nenhum desses destinos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-004",
+      "options": [
+        {
+          "matchText": "Um broker de mensagens compatível com Kafka",
+          "stage": "eliminate",
+          "reasonWrong": "Broker compatível com Kafka é o MSK — não o Glue."
+        },
+        {
+          "matchText": "Um serviço de fila para desacoplar microsserviços",
+          "stage": "eliminate",
+          "reasonWrong": "Serviço de fila para desacoplar microsserviços é o SQS — não o Glue."
+        },
+        {
+          "matchText": "Um serviço de ETL serverless baseado em Apache Spark, com catálogo de metadados integrado",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Um data warehouse colunar para consultas analíticas",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Glue vive no mundo analítico e é fácil confundi-lo com o warehouse — mas ele não ARMAZENA nem consulta dados colunarmente (isso é o Redshift); o Glue é o serviço de ETL serverless sobre Spark, com catálogo de metadados integrado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue é um serviço de ETL serverless baseado em Apache Spark, com catálogo de metadados integrado — ele transforma os dados do pipeline, não os armazena para consulta.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Glue é um data warehouse colunar para consultas analíticas, baseado em Spark, com catálogo integrado — ele transforma os dados do pipeline, não os armazena para consulta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glue é um broker de mensagens compatível com Kafka, baseado em Spark, com catálogo integrado — ele transforma os dados do pipeline, não os armazena para consulta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glue é um serviço de fila para desacoplar microsserviços, baseado em Spark, com catálogo integrado — ele transforma os dados do pipeline, não os armazena para consulta.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-006",
+      "options": [
+        {
+          "matchText": "AWS DMS",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o DMS também move dados para a AWS — mas ele replica BANCOS DE DADOS (homogêneos/heterogêneos), não aplicações SaaS como o Salesforce; ingestão sem código de fontes SaaS é o Amazon AppFlow."
+        },
+        {
+          "matchText": "Amazon AppFlow",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Transfer Family",
+          "stage": "eliminate",
+          "reasonWrong": "Transfer Family expõe SFTP/FTPS para transferência de arquivos — não integra a APIs de SaaS."
+        },
+        {
+          "matchText": "Amazon MSK",
+          "stage": "eliminate",
+          "reasonWrong": "MSK é streaming Kafka gerenciado — não é conector de aplicações SaaS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon AppFlow conecta a aplicações SaaS como o Salesforce e traz os registros ao S3 em um fluxo agendado — ingestão gerenciada, sem escrever código de integração.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS DMS conecta a aplicações SaaS como o Salesforce e traz os registros ao S3 em um fluxo agendado — ingestão gerenciada, sem escrever código de integração.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Transfer Family conecta a aplicações SaaS como o Salesforce e traz os registros ao S3 em um fluxo agendado — ingestão gerenciada, sem escrever código de integração.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon MSK conecta a aplicações SaaS como o Salesforce e traz os registros ao S3 em um fluxo agendado — ingestão gerenciada, sem escrever código de integração.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-007",
+      "options": [
+        {
+          "matchText": "Amazon Kinesis Data Streams",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Kinesis Data Streams é o streaming da AWS e resolve casos parecidos com o Kafka — mas tem API e ecossistema PRÓPRIOS: migrar mantendo as APIs e o ecossistema Kafka existentes exige o Amazon MSK, que roda o Kafka gerenciado."
+        },
+        {
+          "matchText": "Amazon EventBridge",
+          "stage": "eliminate",
+          "reasonWrong": "EventBridge é barramento de eventos — não é compatível com as APIs do Kafka."
+        },
+        {
+          "matchText": "Amazon SQS FIFO",
+          "stage": "eliminate",
+          "reasonWrong": "SQS FIFO é fila de mensagens — não roda o ecossistema Kafka nem suas APIs."
+        },
+        {
+          "matchText": "Amazon MSK (Managed Streaming for Apache Kafka)",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon MSK roda o Apache Kafka gerenciado, preservando as APIs e o ecossistema existentes — a migração acontece sem reescrever os pipelines baseados em Kafka.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Kinesis Data Streams roda o Apache Kafka gerenciado, preservando as APIs e o ecossistema existentes — a migração acontece sem reescrever os pipelines baseados em Kafka.",
+            "correct": false
+          },
+          {
+            "text": "Porque o EventBridge roda o Apache Kafka gerenciado, preservando as APIs e o ecossistema existentes — a migração acontece sem reescrever os pipelines baseados em Kafka.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SQS FIFO roda o Apache Kafka gerenciado, preservando as APIs e o ecossistema existentes — a migração acontece sem reescrever os pipelines baseados em Kafka.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-009",
+      "options": [
+        {
+          "matchText": "São sinônimos, sem diferença prática",
+          "stage": "eliminate",
+          "reasonWrong": "ETL e ELT NÃO são sinônimos — diferem na ordem entre transformar e carregar."
+        },
+        {
+          "matchText": "ELT não permite transformações de dados",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque toca na transformação, que É o cerne da diferença — mas está ERRADA: o ELT TRANSFORMA os dados sim, só que DEPOIS de carregá-los, dentro do destino; a diferença real é a ORDEM (transformar antes vs depois da carga)."
+        },
+        {
+          "matchText": "ETL transforma os dados ANTES de carregá-los no destino; ELT carrega os dados brutos primeiro e transforma DENTRO do destino (ex.: no data warehouse)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "ETL é sempre mais rápido que ELT",
+          "stage": "eliminate",
+          "reasonWrong": "'ETL sempre mais rápido' é falso — o desempenho depende do caso; não é o critério que os distingue."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o ETL transforma os dados ANTES de carregá-los no destino, e o ELT carrega os dados brutos primeiro e transforma DENTRO do destino (ex.: no data warehouse) — a diferença é a ordem.",
+            "correct": true
+          },
+          {
+            "text": "Porque o ETL transforma os dados antes de carregá-los e o ELT não permite transformação alguma no destino — a diferença está em o ELT apenas mover os dados brutos sem processá-los.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ETL e o ELT são sinônimos sem diferença prática, ambos transformando os dados antes de carregá-los no destino — a ordem entre carga e transformação é a mesma nos dois.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ETL é sempre mais rápido que o ELT ao transformar antes de carregar, e o ELT carrega os brutos primeiro — a diferença essencial está na velocidade, não na ordem das etapas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-011",
+      "options": [
+        {
+          "matchText": "Um formato de compressão de dados",
+          "stage": "eliminate",
+          "reasonWrong": "Shard não é formato de compressão — é a unidade de throughput do stream."
+        },
+        {
+          "matchText": "A unidade de capacidade do stream: cada shard suporta 1 MB/s (ou 1.000 registros/s) de escrita e 2 MB/s de leitura",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O período máximo de retenção dos dados",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a retenção também é um parâmetro do stream — mas ela define por QUANTO TEMPO os dados ficam disponíveis, não a CAPACIDADE; o shard é a unidade de capacidade (1 MB/s ou 1.000 reg/s de escrita, 2 MB/s de leitura)."
+        },
+        {
+          "matchText": "Um tipo de consumidor gerenciado",
+          "stage": "eliminate",
+          "reasonWrong": "Shard não é um tipo de consumidor — consumidores leem DOS shards, mas o shard é a unidade de capacidade."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o shard é a unidade de capacidade do stream: cada um suporta 1 MB/s (ou 1.000 registros/s) de escrita e 2 MB/s de leitura — dimensionar o stream é escolher o número de shards.",
+            "correct": true
+          },
+          {
+            "text": "Porque o shard é o período máximo de retenção do stream: cada um suporta 1 MB/s de escrita e 2 MB/s de leitura — dimensionar o stream é escolher por quanto tempo os dados ficam.",
+            "correct": false
+          },
+          {
+            "text": "Porque o shard é um formato de compressão do stream: cada um suporta 1 MB/s de escrita e 2 MB/s de leitura — dimensionar o stream é escolher o algoritmo de compactação dos dados.",
+            "correct": false
+          },
+          {
+            "text": "Porque o shard é um tipo de consumidor gerenciado do stream: cada um suporta 1 MB/s de escrita e 2 MB/s de leitura — dimensionar o stream é escolher quantos consumidores conectar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-012",
+      "options": [
+        {
+          "matchText": "AWS Glue",
+          "stage": "eliminate",
+          "reasonWrong": "Glue é ETL sobre Spark — não é o serviço especializado em transferir arquivos de um NFS."
+        },
+        {
+          "matchText": "Amazon Kinesis Data Firehose",
+          "stage": "eliminate",
+          "reasonWrong": "Firehose entrega STREAMS a destinos como S3 — não transfere arquivos de um servidor NFS on-premises."
+        },
+        {
+          "matchText": "AWS DMS",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o DMS também transfere dados de forma agendada para a AWS — mas ele replica BANCOS DE DADOS (tabelas, CDC), não milhões de ARQUIVOS de um NFS; transferência de arquivos com agendamento e validação de integridade é o AWS DataSync."
+        },
+        {
+          "matchText": "AWS DataSync",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS DataSync é especializado em transferir arquivos: move milhões deles de um NFS on-premises para o S3 de forma agendada e com validação de integridade — exatamente o caso.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS DMS é especializado em transferir arquivos: move milhões deles de um NFS on-premises para o S3 de forma agendada e com validação de integridade — exatamente o caso.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Glue é especializado em transferir arquivos: move milhões deles de um NFS on-premises para o S3 de forma agendada e com validação de integridade — exatamente o caso.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Kinesis Data Firehose é especializado em transferir arquivos: move milhões deles de um NFS on-premises para o S3 de forma agendada e com validação de integridade — exatamente o caso.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-013",
+      "options": [
+        {
+          "matchText": "Data lake é sempre mais caro que warehouse",
+          "stage": "eliminate",
+          "reasonWrong": "Custo não é a diferença essencial — depende do uso; o que distingue é o tipo de dado e o schema."
+        },
+        {
+          "matchText": "O data lake armazena dados brutos e variados (estruturados ou não) com schema-on-read; o warehouse armazena dados estruturados e modelados com schema-on-write, otimizados para BI",
+          "stage": "correct"
+        },
+        {
+          "matchText": "São o mesmo conceito com nomes diferentes",
+          "stage": "eliminate",
+          "reasonWrong": "Data lake e warehouse NÃO são o mesmo conceito — diferem em schema, tipo de dado e propósito."
+        },
+        {
+          "matchText": "O warehouse aceita qualquer formato de arquivo, o lake só aceita Parquet",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque fala de formatos, que é parte da distinção — mas INVERTE: o DATA LAKE é que aceita dados variados (estruturados ou não) com schema-on-read; o WAREHOUSE guarda dados estruturados e modelados com schema-on-write para BI."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o data lake guarda dados brutos e variados (estruturados ou não) com schema-on-read, e o warehouse guarda dados estruturados e modelados com schema-on-write, otimizados para BI.",
+            "correct": true
+          },
+          {
+            "text": "Porque o data lake é sempre mais caro que o warehouse, guardando dados brutos com schema-on-read enquanto o warehouse modela dados estruturados com schema-on-write para BI.",
+            "correct": false
+          },
+          {
+            "text": "Porque o data lake e o warehouse são o mesmo conceito, guardando dados brutos com schema-on-read e dados estruturados com schema-on-write, ambos otimizados para BI analítico.",
+            "correct": false
+          },
+          {
+            "text": "Porque o warehouse aceita qualquer formato com schema-on-read e o data lake só aceita Parquet com schema-on-write, sendo o lake o modelado para BI analítico da empresa.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-015",
+      "options": [
+        {
+          "matchText": "Porque consultas com filtro nas colunas de partição leem SOMENTE as pastas relevantes (partition pruning), reduzindo dados escaneados, tempo e custo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Porque aumenta a durabilidade dos objetos",
+          "stage": "eliminate",
+          "reasonWrong": "Prefixos de partição não aumentam a durabilidade — a durabilidade do S3 é a mesma independentemente da organização."
+        },
+        {
+          "matchText": "Porque o S3 exige essa estrutura para funcionar",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a estrutura de prefixos parece uma exigência técnica — mas o S3 NÃO exige esse layout para funcionar; ele é uma CONVENÇÃO de particionamento que habilita o partition pruning no Athena, lendo só as pastas relevantes."
+        },
+        {
+          "matchText": "Porque permite mais de 5 TB por objeto",
+          "stage": "eliminate",
+          "reasonWrong": "O limite de 5 TB por objeto independe de particionamento — não é o motivo do ganho nas consultas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque uma consulta que filtra pelas colunas de partição lê SOMENTE as pastas relevantes (partition pruning) — menos dados escaneados significa menos tempo e menos custo no Athena.",
+            "correct": true
+          },
+          {
+            "text": "Porque a estrutura de partição aumenta a durabilidade dos objetos e faz a consulta ler só as pastas relevantes — menos dados escaneados significa menos tempo e menos custo no Athena.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 exige essa estrutura para funcionar e faz a consulta ler só as pastas relevantes — menos dados escaneados significa menos tempo e menos custo no Athena nas buscas.",
+            "correct": false
+          },
+          {
+            "text": "Porque a partição permite objetos acima de 5 TB e faz a consulta ler só as pastas relevantes — menos dados escaneados significa menos tempo e menos custo no Athena nas buscas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-017",
+      "options": [
+        {
+          "matchText": "O comando COPY, que carrega os arquivos em paralelo pelos nós do cluster",
+          "stage": "correct"
+        },
+        {
+          "matchText": "INSERTs individuais linha a linha",
+          "stage": "eliminate",
+          "reasonWrong": "INSERTs linha a linha serializam a carga e ignoram o paralelismo dos nós — o anti-padrão de ingestão em massa."
+        },
+        {
+          "matchText": "Copiar via S3 Transfer Acceleration",
+          "stage": "eliminate",
+          "reasonWrong": "Transfer Acceleration acelera transferências com o S3 — não carrega dados nas tabelas do Redshift."
+        },
+        {
+          "matchText": "Exportar com UNLOAD",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o UNLOAD também move dados entre Redshift e S3 — mas no sentido INVERSO: ele EXPORTA do cluster para o S3, não CARREGA arquivos do S3 para tabelas; a ingestão paralela e eficiente de arquivos para o Redshift é o comando COPY."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o comando COPY lê os arquivos do S3 em paralelo por todos os nós do cluster — a forma nativa e mais eficiente de carregar grandes volumes no Redshift.",
+            "correct": true
+          },
+          {
+            "text": "Porque os INSERTs individuais leem os arquivos do S3 em paralelo por todos os nós do cluster — a forma nativa e mais eficiente de carregar grandes volumes no Redshift.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Transfer Acceleration lê os arquivos do S3 em paralelo por todos os nós do cluster — a forma nativa e mais eficiente de carregar grandes volumes no Redshift.",
+            "correct": false
+          },
+          {
+            "text": "Porque o UNLOAD lê os arquivos do S3 em paralelo por todos os nós do cluster — a forma nativa e mais eficiente de carregar grandes volumes no Redshift.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-020",
+      "options": [
+        {
+          "matchText": "Acelerar a rede entre os nós do cluster",
+          "stage": "eliminate",
+          "reasonWrong": "Acelerar a rede entre nós não é função do Spectrum — ele estende a consulta ao S3."
+        },
+        {
+          "matchText": "Executar consultas do Redshift diretamente sobre dados no S3, via tabelas externas, sem carregá-los no cluster",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Replicar o cluster para outra Região",
+          "stage": "eliminate",
+          "reasonWrong": "Replicar o cluster para outra região é outro recurso (snapshots cross-region) — não o Spectrum."
+        },
+        {
+          "matchText": "Criar índices secundários no Redshift",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque índices secundários soam como um recurso de performance do Redshift — mas o Redshift não os usa (o ganho vem de dist/sort keys), e não é isso que o Spectrum faz; o Spectrum executa consultas do Redshift diretamente sobre dados no S3, via tabelas externas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Redshift Spectrum executa consultas do cluster diretamente sobre dados no S3, via tabelas externas, sem carregá-los — o warehouse alcança o data lake sem ingestão prévia.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Spectrum acelera a rede entre os nós e executa consultas sobre dados no S3, via tabelas externas, sem carregá-los — o warehouse alcança o data lake sem ingestão prévia.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Spectrum replica o cluster para outra região e executa consultas sobre dados no S3, via tabelas externas, sem carregá-los — o warehouse alcança o data lake sem ingestão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Spectrum cria índices secundários e executa consultas sobre dados no S3, via tabelas externas, sem carregá-los — o warehouse alcança o data lake sem ingestão prévia.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-021",
+      "options": [
+        {
+          "matchText": "DynamoDB Streams",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Point-in-Time Recovery",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o PITR também acompanha as mudanças da tabela ao longo do tempo — mas para RESTAURAR a um ponto no tempo, não para EMITIR um fluxo de alterações que um pipeline consome item a item; o fluxo ordenado de mudanças é o DynamoDB Streams."
+        },
+        {
+          "matchText": "DynamoDB Accelerator (DAX)",
+          "stage": "eliminate",
+          "reasonWrong": "DAX é cache de leitura em memória — não emite as alterações dos itens."
+        },
+        {
+          "matchText": "Global Tables",
+          "stage": "eliminate",
+          "reasonWrong": "Global Tables replica a tabela entre regiões — não é o fluxo de mudanças para reação por evento."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o DynamoDB Streams emite um fluxo ordenado com as inserções, atualizações e exclusões dos itens — um pipeline (ex.: Lambda) reage a cada mudança em tempo quase real.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Point-in-Time Recovery emite um fluxo ordenado com as inserções, atualizações e exclusões dos itens — um pipeline reage a cada mudança em tempo quase real.",
+            "correct": false
+          },
+          {
+            "text": "Porque o DAX emite um fluxo ordenado com as inserções, atualizações e exclusões dos itens — um pipeline reage a cada mudança em tempo quase real da tabela.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Global Tables emite um fluxo ordenado com as inserções, atualizações e exclusões dos itens — um pipeline reage a cada mudança em tempo quase real da tabela.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-023",
+      "options": [
+        {
+          "matchText": "Amazon EMR",
+          "stage": "eliminate",
+          "reasonWrong": "EMR roda Spark/Hadoop — não é o serviço gerenciado de Airflow."
+        },
+        {
+          "matchText": "Amazon MWAA (Managed Workflows for Apache Airflow)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Glue Studio",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Glue Studio também é ferramenta de orquestração/ETL visual — mas ele não roda DAGs do Apache Airflow; executar dezenas de DAGs Airflow existentes sem administrar os servidores é o Amazon MWAA (Airflow gerenciado)."
+        },
+        {
+          "matchText": "AWS CodePipeline",
+          "stage": "eliminate",
+          "reasonWrong": "CodePipeline orquestra CI/CD de software — não executa DAGs do Airflow."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon MWAA roda o Apache Airflow gerenciado: os DAGs existentes executam na AWS sem a equipe administrar os servidores do Airflow — exatamente o pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon EMR roda o Apache Airflow gerenciado: os DAGs existentes executam na AWS sem a equipe administrar os servidores do Airflow — exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Glue Studio roda o Apache Airflow gerenciado: os DAGs existentes executam na AWS sem a equipe administrar os servidores do Airflow — exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CodePipeline roda o Apache Airflow gerenciado: os DAGs existentes executam na AWS sem a equipe administrar os servidores do Airflow — exatamente o pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-025",
+      "options": [
+        {
+          "matchText": "Amazon SNS",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o SNS também dispara ações — mas por PUBLICAÇÃO de mensagens (pub/sub), não por AGENDAMENTO cron; disparar um pipeline todo dia às 02h de forma serverless é o EventBridge Scheduler."
+        },
+        {
+          "matchText": "AWS DataSync",
+          "stage": "eliminate",
+          "reasonWrong": "DataSync transfere arquivos — não agenda a execução de pipelines no estilo cron."
+        },
+        {
+          "matchText": "Amazon Athena",
+          "stage": "eliminate",
+          "reasonWrong": "Athena executa consultas SQL — não é o agendador serverless de tarefas."
+        },
+        {
+          "matchText": "Amazon EventBridge Scheduler (regras de agendamento)",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o EventBridge Scheduler cria regras de agendamento no estilo cron de forma serverless: o pipeline dispara automaticamente todo dia às 02h, sem servidor para manter.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon SNS cria regras de agendamento no estilo cron de forma serverless: o pipeline dispara automaticamente todo dia às 02h, sem servidor para manter.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS DataSync cria regras de agendamento no estilo cron de forma serverless: o pipeline dispara automaticamente todo dia às 02h, sem servidor para manter.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Athena cria regras de agendamento no estilo cron de forma serverless: o pipeline dispara automaticamente todo dia às 02h, sem servidor para manter.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-026",
+      "options": [
+        {
+          "matchText": "Definir e avaliar REGRAS de qualidade (ex.: completude, unicidade, valores dentro de faixa) sobre datasets, reprovando dados fora do padrão",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Criptografar os dados no S3",
+          "stage": "eliminate",
+          "reasonWrong": "Criptografar dados no S3 é segurança em repouso — não avalia a qualidade dos dados."
+        },
+        {
+          "matchText": "Comprimir os dados em Parquet",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque comprimir em Parquet também é uma operação sobre o dataset no pipeline — mas é TRANSFORMAÇÃO de formato, não VALIDAÇÃO de qualidade; definir e avaliar regras (completude, unicidade, faixa) reprovando dados fora do padrão é o Glue Data Quality."
+        },
+        {
+          "matchText": "Criar dashboards de BI",
+          "stage": "eliminate",
+          "reasonWrong": "Criar dashboards de BI é visualização (QuickSight) — não é a validação de regras de qualidade."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Glue Data Quality define e avalia REGRAS (completude, unicidade, valores em faixa) sobre os datasets, reprovando os dados fora do padrão — controle de qualidade dentro do pipeline.",
+            "correct": true
+          },
+          {
+            "text": "Porque criptografar no S3 define e avalia regras (completude, unicidade, valores em faixa) sobre os datasets, reprovando os dados fora do padrão — controle de qualidade dentro do pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque comprimir em Parquet define e avalia regras (completude, unicidade, valores em faixa) sobre os datasets, reprovando os dados fora do padrão — controle de qualidade dentro do pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque criar dashboards de BI define e avalia regras (completude, unicidade, valores em faixa) sobre os datasets, reprovando os dados fora do padrão — controle de qualidade dentro do pipeline.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-027",
+      "options": [
+        {
+          "matchText": "Por TB de dados ESCANEADOS por consulta; a implicação é otimizar formato, compressão e particionamento para escanear menos",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Por número de usuários conectados",
+          "stage": "eliminate",
+          "reasonWrong": "O Athena não cobra por número de usuários conectados — a cobrança é por dados escaneados."
+        },
+        {
+          "matchText": "Mensalidade fixa ilimitada",
+          "stage": "eliminate",
+          "reasonWrong": "Não há mensalidade fixa ilimitada — cada consulta paga pelos TB que escaneia."
+        },
+        {
+          "matchText": "Por hora de cluster ligado; a implicação é desligar o cluster à noite",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque cobrança por hora com 'desligar à noite' é o modelo de warehouses com cluster (Redshift) — mas o Athena é SERVERLESS: não há cluster para ligar/desligar; ele cobra por TB ESCANEADOS por consulta, e a implicação é escanear menos."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Athena cobra por TB ESCANEADOS por consulta: a implicação prática é otimizar formato (Parquet), compressão e particionamento para escanear menos dados e pagar menos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Athena cobra por número de usuários conectados: a implicação prática é otimizar formato, compressão e particionamento para escanear menos dados e pagar menos por consulta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Athena cobra uma mensalidade fixa ilimitada: a implicação prática é otimizar formato, compressão e particionamento para escanear menos dados e pagar menos por consulta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Athena cobra por hora de cluster ligado: a implicação prática é otimizar formato, compressão e particionamento para escanear menos dados e pagar menos por consulta.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-028",
+      "options": [
+        {
+          "matchText": "CPUUtilization",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque CPUUtilization é uma métrica de monitoramento legítima — mas mede uso de CPU de instâncias, não o ATRASO de consumo do stream; o lag do consumidor em relação à escrita é o IteratorAgeMilliseconds (idade do iterador)."
+        },
+        {
+          "matchText": "IteratorAgeMilliseconds (idade do iterador)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "BucketSizeBytes",
+          "stage": "eliminate",
+          "reasonWrong": "BucketSizeBytes é métrica de tamanho de bucket S3 — nada a ver com atraso de consumo do Kinesis."
+        },
+        {
+          "matchText": "FreeStorageSpace",
+          "stage": "eliminate",
+          "reasonWrong": "FreeStorageSpace é métrica de armazenamento livre (ex.: RDS) — não mede o lag do stream."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o IteratorAgeMilliseconds mede a idade do último registro lido: quanto maior, mais o consumidor está atrasado em relação à escrita — o indicador direto de lag no Kinesis.",
+            "correct": true
+          },
+          {
+            "text": "Porque o CPUUtilization mede a idade do último registro lido: quanto maior, mais o consumidor está atrasado em relação à escrita — o indicador direto de lag no Kinesis Data Streams.",
+            "correct": false
+          },
+          {
+            "text": "Porque o BucketSizeBytes mede a idade do último registro lido: quanto maior, mais o consumidor está atrasado em relação à escrita — o indicador direto de lag no Kinesis Data Streams.",
+            "correct": false
+          },
+          {
+            "text": "Porque o FreeStorageSpace mede a idade do último registro lido: quanto maior, mais o consumidor está atrasado em relação à escrita — o indicador direto de lag no Kinesis Data Streams.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-030",
+      "options": [
+        {
+          "matchText": "Amazon Macie",
+          "stage": "eliminate",
+          "reasonWrong": "Macie descobre dados sensíveis (PII) — não centraliza permissões do data lake."
+        },
+        {
+          "matchText": "AWS IAM sozinho",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o IAM controla permissões de fato — mas sozinho ele não faz o controle fino de data lake por banco/tabela/COLUNA integrado a Athena/Glue/Redshift Spectrum; essa governança centralizada é o AWS Lake Formation."
+        },
+        {
+          "matchText": "AWS Lake Formation",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Firewall Manager",
+          "stage": "eliminate",
+          "reasonWrong": "Firewall Manager gerencia regras de WAF/rede na organização — não governa acesso a tabelas do data lake."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Lake Formation centraliza as permissões do data lake por banco, tabela e coluna para cada equipe, integrado a Athena, Glue e Redshift Spectrum — governança fina num só lugar.",
+            "correct": true
+          },
+          {
+            "text": "Porque o IAM sozinho centraliza as permissões do data lake por banco, tabela e coluna para cada equipe, integrado a Athena, Glue e Redshift Spectrum — governança fina num só lugar.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Macie centraliza as permissões do data lake por banco, tabela e coluna para cada equipe, integrado a Athena, Glue e Redshift Spectrum — governança fina num só lugar.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Firewall Manager centraliza as permissões do data lake por banco, tabela e coluna para cada equipe, integrado a Athena, Glue e Redshift Spectrum — governança fina num só lugar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-031",
+      "options": [
+        {
+          "matchText": "Amazon Macie",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Shield",
+          "stage": "eliminate",
+          "reasonWrong": "Shield protege contra DDoS — não descobre dados sensíveis em buckets."
+        },
+        {
+          "matchText": "Amazon GuardDuty",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o GuardDuty também é serviço de segurança gerenciado com ML — mas ele detecta AMEAÇAS por comportamento (rede, contas, malware), não CLASSIFICA dados sensíveis em buckets; descobrir CPFs, cartões e e-mails no S3 com ML é o Amazon Macie."
+        },
+        {
+          "matchText": "Amazon Inspector",
+          "stage": "eliminate",
+          "reasonWrong": "Inspector avalia vulnerabilidades de EC2/contêiner/Lambda — não classifica PII no S3."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon Macie usa ML para descobrir dados sensíveis (CPFs, cartões, e-mails) espalhados pelos buckets S3 — exatamente a varredura de PII que o compliance precisa.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Shield usa ML para descobrir dados sensíveis (CPFs, cartões, e-mails) espalhados pelos buckets S3 — exatamente a varredura de PII que o compliance precisa.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon GuardDuty usa ML para descobrir dados sensíveis (CPFs, cartões, e-mails) espalhados pelos buckets S3 — exatamente a varredura de PII que o compliance precisa.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Inspector usa ML para descobrir dados sensíveis (CPFs, cartões, e-mails) espalhados pelos buckets S3 — exatamente a varredura de PII que o compliance precisa.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-032",
+      "options": [
+        {
+          "matchText": "Compartilhar a senha do console com o job",
+          "stage": "eliminate",
+          "reasonWrong": "Compartilhar a senha do console não concede permissão a um job — e expõe uma credencial humana."
+        },
+        {
+          "matchText": "Tornar os dois buckets públicos",
+          "stage": "eliminate",
+          "reasonWrong": "Tornar os buckets públicos expõe o data lake a qualquer um — o oposto de conceder acesso controlado ao job."
+        },
+        {
+          "matchText": "Colocar access keys de um usuário IAM no código do job",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque access keys no código 'funcionam' para dar acesso ao job — mas são credenciais de longa duração embutidas no fonte (vazam, não rotacionam): prática insegura; o correto é atribuir ao job uma IAM Role com as permissões de leitura/escrita nos buckets."
+        },
+        {
+          "matchText": "Atribuir ao job uma IAM Role com políticas de leitura/escrita nos buckets necessários",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque atribuir ao job uma IAM Role com políticas de leitura/escrita nos buckets concede a permissão via credencial temporária gerenciada — sem chave estática nem exposição pública.",
+            "correct": true
+          },
+          {
+            "text": "Porque colocar access keys no código do job concede a permissão via credencial temporária gerenciada — sem chave estática nem exposição pública dos buckets do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque compartilhar a senha do console concede a permissão ao job via credencial temporária gerenciada — sem chave estática nem exposição pública dos buckets do data lake.",
+            "correct": false
+          },
+          {
+            "text": "Porque tornar os buckets públicos concede a permissão ao job via credencial temporária gerenciada — sem chave estática nem exposição pública dos buckets do data lake.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-033",
+      "options": [
+        {
+          "matchText": "Um arquivo de texto no S3",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um arquivo no S3 tira a senha do script de fato — mas guarda a credencial em TEXTO, sem criptografia gerenciada nem rotação automática; armazenar segredos cifrados com rotação é o AWS Secrets Manager."
+        },
+        {
+          "matchText": "Uma variável no código-fonte versionado no Git",
+          "stage": "eliminate",
+          "reasonWrong": "Variável versionada no Git expõe a senha no histórico do repositório — pior que no script."
+        },
+        {
+          "matchText": "AWS Secrets Manager",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Uma tag no recurso do banco",
+          "stage": "eliminate",
+          "reasonWrong": "Uma tag no recurso é metadado visível — não é lugar para guardar credencial secreta."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Secrets Manager guarda a credencial criptografada com rotação automática, e o job a busca em runtime — a senha sai do script, cifrada e rotacionável sem quebrar o ETL.",
+            "correct": true
+          },
+          {
+            "text": "Porque um arquivo de texto no S3 guarda a credencial criptografada com rotação automática, e o job a busca em runtime — a senha sai do script, cifrada e rotacionável sem quebrar o ETL.",
+            "correct": false
+          },
+          {
+            "text": "Porque uma variável no Git guarda a credencial criptografada com rotação automática, e o job a busca em runtime — a senha sai do script, cifrada e rotacionável sem quebrar o ETL.",
+            "correct": false
+          },
+          {
+            "text": "Porque uma tag no banco guarda a credencial criptografada com rotação automática, e o job a busca em runtime — a senha sai do script, cifrada e rotacionável sem quebrar o ETL.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dea-ini-034",
+      "options": [
+        {
+          "matchText": "S3 Inventory",
+          "stage": "eliminate",
+          "reasonWrong": "S3 Inventory lista objetos e metadados — não bloqueia exposição pública."
+        },
+        {
+          "matchText": "S3 Versioning",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Versioning é recurso de proteção de dados do S3 — mas ele guarda VERSÕES para recuperação de exclusão/sobrescrita, não impede EXPOSIÇÃO PÚBLICA; bloquear acesso público por engano no nível de conta/bucket é o S3 Block Public Access."
+        },
+        {
+          "matchText": "S3 Block Public Access",
+          "stage": "correct"
+        },
+        {
+          "matchText": "S3 Intelligent-Tiering",
+          "stage": "eliminate",
+          "reasonWrong": "Intelligent-Tiering otimiza custo por padrão de acesso — não tem relação com acesso público."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o S3 Block Public Access impede, no nível de conta ou bucket, que qualquer dado do data lake seja exposto publicamente por engano — a trava contra vazamento por configuração errada.",
+            "correct": true
+          },
+          {
+            "text": "Porque o S3 Versioning impede, no nível de conta ou bucket, que qualquer dado do data lake seja exposto publicamente por engano — a trava contra vazamento por configuração errada.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Inventory impede, no nível de conta ou bucket, que qualquer dado do data lake seja exposto publicamente por engano — a trava contra vazamento por configuração errada.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Intelligent-Tiering impede, no nível de conta ou bucket, que qualquer dado do data lake seja exposto publicamente por engano — a trava contra vazamento por configuração errada.",
+            "correct": false
+          }
+        ]
+      }
     }
   ]
 }
