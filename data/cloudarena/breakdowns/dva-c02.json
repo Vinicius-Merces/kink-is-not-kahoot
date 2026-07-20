@@ -16104,6 +16104,2030 @@
           }
         ]
       }
+    },
+    {
+      "questionId": "dva-ini-054",
+      "options": [
+        {
+          "matchText": "Imprimir o token nos logs do build para reutilização",
+          "stage": "eliminate",
+          "reasonWrong": "Imprimir o token nos logs o expõe a quem vê os logs — vazamento, não solução."
+        },
+        {
+          "matchText": "Referenciar o segredo no buildspec a partir do Secrets Manager ou do Parameter Store (SecureString), com a service role do CodeBuild autorizada a lê-lo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Enviar o token por mensagem ao time a cada build",
+          "stage": "eliminate",
+          "reasonWrong": "Enviar o token por mensagem a cada build não o injeta no build de forma segura nem automática — não é a prática."
+        },
+        {
+          "matchText": "Gravar o token no buildspec.yml commitado",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque gravar o token no buildspec o deixa disponível ao build — mas o buildspec é COMMITADO no repositório: o segredo vaza no controle de versão; o correto é referenciá-lo do Secrets Manager/Parameter Store, com a service role do CodeBuild lendo em runtime."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque referenciar o segredo no buildspec a partir do Secrets Manager/Parameter Store (SecureString), com a service role do CodeBuild autorizada, injeta o token em runtime — sem expô-lo no repositório.",
+            "correct": true
+          },
+          {
+            "text": "Porque imprimir o token nos logs referencia o segredo em runtime, com a service role do CodeBuild autorizada, injetando o token — sem expô-lo no repositório do projeto.",
+            "correct": false
+          },
+          {
+            "text": "Porque enviar o token por mensagem referencia o segredo em runtime, com a service role do CodeBuild autorizada, injetando o token — sem expô-lo no repositório do projeto.",
+            "correct": false
+          },
+          {
+            "text": "Porque gravar o token no buildspec referencia o segredo em runtime, com a service role do CodeBuild autorizada, injetando o token — sem expô-lo no repositório do projeto.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-055",
+      "options": [
+        {
+          "matchText": "Uma segunda senha memorizada pelo usuário",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque uma 'segunda senha' também é um fator extra — mas ela ainda é ALGO QUE SE SABE (mesmo tipo da primeira, roubável junto); o MFA adiciona um fator de POSSE (código de autenticador ou chave física), independente da senha."
+        },
+        {
+          "matchText": "Aprovação manual do administrador a cada login",
+          "stage": "eliminate",
+          "reasonWrong": "Aprovação manual do admin a cada login não é MFA — é um processo humano que não escala."
+        },
+        {
+          "matchText": "Um segundo fator de posse (código de aplicativo autenticador ou chave física) exigido além da senha",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Criptografia automática de todos os buckets do usuário",
+          "stage": "eliminate",
+          "reasonWrong": "Criptografia de buckets não tem relação com MFA de login — é outro controle."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o MFA exige um segundo fator de POSSE (código de aplicativo autenticador ou chave física) além da senha — mesmo com a senha roubada, o atacante não entra sem o dispositivo.",
+            "correct": true
+          },
+          {
+            "text": "Porque o MFA exige uma segunda senha memorizada além da primeira — mesmo com a senha roubada, o atacante não entra sem a segunda senha do usuário.",
+            "correct": false
+          },
+          {
+            "text": "Porque o MFA exige aprovação manual do administrador a cada login além da senha — mesmo com a senha roubada, o atacante não entra sem a liberação do admin.",
+            "correct": false
+          },
+          {
+            "text": "Porque o MFA exige criptografia automática dos buckets além da senha — mesmo com a senha roubada, o atacante não entra sem a chave de criptografia dos dados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-056",
+      "options": [
+        {
+          "matchText": "É um erro de exibição do console; os dados estão em texto claro",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque questiona a exibição do console — mas está errada: os dados NÃO estão em texto claro; o DynamoDB CRIPTOGRAFA todas as tabelas em repouso POR PADRÃO (chave gerenciada pela AWS), com opção de trocar para chave do cliente."
+        },
+        {
+          "matchText": "O DynamoDB criptografa todas as tabelas em repouso por padrão, usando chaves gerenciadas pela AWS, com opção de trocar para chaves do cliente",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Outro desenvolvedor ativou manualmente e escondeu a configuração",
+          "stage": "eliminate",
+          "reasonWrong": "Ninguém 'ativou e escondeu' — a criptografia em repouso é o padrão do serviço, não uma ação manual."
+        },
+        {
+          "matchText": "A criptografia só existe nas tabelas com índices secundários",
+          "stage": "eliminate",
+          "reasonWrong": "A criptografia não depende de índices secundários — vale para toda tabela por padrão."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o DynamoDB criptografa todas as tabelas em repouso por padrão, com chaves gerenciadas pela AWS e opção de trocar para chaves do cliente — por isso aparece habilitada sem ninguém configurar.",
+            "correct": true
+          },
+          {
+            "text": "Porque é erro de exibição do console e os dados estão em texto claro, embora o DynamoDB ofereça chaves gerenciadas e opção de chave do cliente — por isso a criptografia aparece ativada.",
+            "correct": false
+          },
+          {
+            "text": "Porque outro desenvolvedor ativou e escondeu a configuração, usando chaves gerenciadas da AWS com opção de chave do cliente — por isso a criptografia aparece habilitada sem registro.",
+            "correct": false
+          },
+          {
+            "text": "Porque a criptografia só existe em tabelas com índices secundários, com chaves gerenciadas da AWS e opção de chave do cliente — por isso essas tabelas aparecem com ela habilitada.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-057",
+      "options": [
+        {
+          "matchText": "Entrada em todas as portas para a VPC inteira",
+          "stage": "eliminate",
+          "reasonWrong": "Entrada em TODAS as portas para a VPC inteira é permissiva demais — expõe o banco além do necessário."
+        },
+        {
+          "matchText": "Entrada na porta 5432 tendo como origem o Security Group das instâncias da aplicação",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Entrada na porta 5432 aberta para 0.0.0.0/0",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque abrir a porta 5432 permite a conexão do banco — mas 0.0.0.0/0 libera para a INTERNET inteira; a boa prática é restringir a origem ao Security Group das instâncias da aplicação, para que só elas alcancem o banco."
+        },
+        {
+          "matchText": "Nenhuma regra de entrada, conectando via porta de saída",
+          "stage": "eliminate",
+          "reasonWrong": "Sem regra de entrada, a aplicação não conecta ao banco — 'via porta de saída' não é como Security Groups funcionam para o RDS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque permitir entrada na 5432 com origem no Security Group das instâncias da aplicação restringe o acesso só a elas — a boa prática de menor exposição para o RDS.",
+            "correct": true
+          },
+          {
+            "text": "Porque permitir entrada na 5432 aberta para 0.0.0.0/0 restringe o acesso só às instâncias da aplicação — a boa prática de menor exposição para o RDS.",
+            "correct": false
+          },
+          {
+            "text": "Porque permitir entrada em todas as portas para a VPC restringe o acesso só às instâncias da aplicação — a boa prática de menor exposição para o RDS.",
+            "correct": false
+          },
+          {
+            "text": "Porque não ter regra de entrada e conectar via saída restringe o acesso só às instâncias da aplicação — a boa prática de menor exposição para o RDS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-058",
+      "options": [
+        {
+          "matchText": "A requisição fica pendente por 24 horas",
+          "stage": "eliminate",
+          "reasonWrong": "A requisição não fica 'pendente 24h' — a decisão é imediata (negada)."
+        },
+        {
+          "matchText": "O IAM pergunta ao administrador em tempo real",
+          "stage": "eliminate",
+          "reasonWrong": "O IAM não pergunta ao administrador em tempo real — avalia as políticas e nega por padrão."
+        },
+        {
+          "matchText": "A requisição é permitida, pois não havia proibição explícita",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque parte da ausência de proibição — mas conclui o OPOSTO do IAM: sem um Allow explícito, a requisição é NEGADA (implicit deny); o IAM não permite 'porque não havia proibição', ele nega tudo que não for explicitamente permitido."
+        },
+        {
+          "matchText": "A requisição é negada: o IAM nega por padrão (implicit deny) tudo o que não for explicitamente permitido",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque, sem nenhum Allow aplicável, a requisição é NEGADA: o IAM nega por padrão (implicit deny) tudo o que não for explicitamente permitido por alguma política.",
+            "correct": true
+          },
+          {
+            "text": "Porque, sem nenhum Allow aplicável, a requisição fica pendente por 24h: o IAM nega por padrão tudo o que não for explicitamente permitido por alguma política.",
+            "correct": false
+          },
+          {
+            "text": "Porque, sem nenhum Allow aplicável, o IAM pergunta ao administrador em tempo real: ele nega por padrão tudo o que não for explicitamente permitido por alguma política.",
+            "correct": false
+          },
+          {
+            "text": "Porque, sem nenhum Allow aplicável, a requisição é PERMITIDA por não haver proibição: o IAM libera por padrão o que não for explicitamente negado por alguma política.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-059",
+      "options": [
+        {
+          "matchText": "Compactar os logs para dificultar a leitura",
+          "stage": "eliminate",
+          "reasonWrong": "Compactar os logs não protege nada — os dados sensíveis continuam lá, só compactados."
+        },
+        {
+          "matchText": "Nunca registrar dados sensíveis: mascarar ou remover segredos, senhas e dados de cartão antes de logar",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Desativar todos os logs da aplicação",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque desativar os logs de fato pararia de gravar os dados sensíveis — mas joga fora TODA a observabilidade (erros, auditoria), o que é excessivo; a prática correta é NUNCA registrar dados sensíveis, mascarando/removendo segredos antes de logar."
+        },
+        {
+          "matchText": "Logar tudo, pois os logs do CloudWatch são secretos por natureza",
+          "stage": "eliminate",
+          "reasonWrong": "Logs do CloudWatch NÃO são 'secretos por natureza' — quem tem acesso os lê; dados sensíveis não devem entrar neles."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a prática é NUNCA registrar dados sensíveis: mascarar ou remover senhas, segredos e números de cartão antes de logar — mantendo a observabilidade sem expor os dados.",
+            "correct": true
+          },
+          {
+            "text": "Porque a prática é compactar os logs para dificultar a leitura, mascarando senhas, segredos e cartões antes de logar — mantendo a observabilidade sem expor os dados sensíveis.",
+            "correct": false
+          },
+          {
+            "text": "Porque a prática é desativar todos os logs, mascarando senhas, segredos e cartões antes de logar — mantendo a observabilidade sem expor os dados sensíveis da aplicação.",
+            "correct": false
+          },
+          {
+            "text": "Porque a prática é logar tudo (os logs do CloudWatch são secretos), mascarando senhas, segredos e cartões antes de logar — mantendo a observabilidade sem expor os dados.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-060",
+      "options": [
+        {
+          "matchText": "Desativar o HTTPS da API",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mexe numa configuração da API — mas desativar o HTTPS não tem relação com CORS (que é política de ORIGEM do navegador) e ainda insegura a API; resolver a origem cruzada é habilitar CORS, retornando os cabeçalhos Access-Control-Allow-Origin para o domínio da SPA."
+        },
+        {
+          "matchText": "Aumentar o timeout da integração",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o timeout de integração não resolve CORS — o bloqueio é do navegador por falta dos cabeçalhos."
+        },
+        {
+          "matchText": "Habilitar CORS na API, retornando os cabeçalhos Access-Control-Allow-Origin (e relacionados) apropriados para o domínio da SPA",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Pedir aos usuários que usem outro navegador",
+          "stage": "eliminate",
+          "reasonWrong": "Pedir para trocar de navegador não resolve — o CORS é padrão de todos os navegadores; a correção é na API."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque habilitar CORS na API, retornando Access-Control-Allow-Origin (e relacionados) para o domínio da SPA (e respondendo ao preflight OPTIONS), faz o navegador liberar as respostas cross-origin.",
+            "correct": true
+          },
+          {
+            "text": "Porque desativar o HTTPS da API, retornando Access-Control-Allow-Origin para o domínio da SPA (e respondendo ao preflight), faz o navegador liberar as respostas cross-origin.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o timeout da integração, retornando Access-Control-Allow-Origin para o domínio da SPA (e respondendo ao preflight), faz o navegador liberar as respostas cross-origin.",
+            "correct": false
+          },
+          {
+            "text": "Porque pedir outro navegador, retornando Access-Control-Allow-Origin para o domínio da SPA (e respondendo ao preflight), faz o navegador liberar as respostas cross-origin.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-061",
+      "options": [
+        {
+          "matchText": "Acesso aberto com validação por IP no código da Lambda",
+          "stage": "eliminate",
+          "reasonWrong": "Acesso aberto com validação por IP no código é frágil e não usa identidade AWS assinada — não é o modelo pedido."
+        },
+        {
+          "matchText": "API key no cabeçalho x-api-key",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a API key identifica o chamador no cabeçalho — mas ela serve para consumo/cotas, NÃO autentica identidade AWS nem exige requisição assinada; aceitar só identidades AWS autorizadas com SigV4 é a autorização IAM (AWS_IAM)."
+        },
+        {
+          "matchText": "Basic Auth com usuário e senha fixos no API Gateway",
+          "stage": "eliminate",
+          "reasonWrong": "Basic Auth com usuário/senha fixos no API Gateway não usa credenciais IAM nem SigV4 — não é a autorização por identidade AWS."
+        },
+        {
+          "matchText": "Autorização IAM (AWS_IAM), exigindo requisições assinadas com SigV4 e permissões execute-api na política do chamador",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a autorização IAM (AWS_IAM) exige cada requisição assinada com SigV4 e permissões execute-api na política do chamador — só identidades AWS autorizadas acessam o endpoint.",
+            "correct": true
+          },
+          {
+            "text": "Porque a API key no x-api-key exige cada requisição assinada com SigV4 e permissões execute-api na política do chamador — só identidades AWS autorizadas acessam o endpoint.",
+            "correct": false
+          },
+          {
+            "text": "Porque a validação por IP no código exige cada requisição assinada com SigV4 e permissões execute-api na política do chamador — só identidades AWS autorizadas acessam o endpoint.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Basic Auth com usuário/senha fixos exige cada requisição assinada com SigV4 e permissões execute-api na política do chamador — só identidades AWS autorizadas acessam o endpoint.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-062",
+      "options": [
+        {
+          "matchText": "Copiar os dados do RDS para o S3 a cada hora",
+          "stage": "eliminate",
+          "reasonWrong": "Copiar os dados para o S3 a cada hora não dá acesso ao banco em tempo real — e ainda duplica os dados fora dele."
+        },
+        {
+          "matchText": "Configurar a função para executar na VPC, associando-a às sub-redes e a um Security Group autorizado no SG do RDS",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Usar o console da AWS como intermediário das queries",
+          "stage": "eliminate",
+          "reasonWrong": "O console da AWS não é intermediário de queries da aplicação — a função precisa de rota de rede até o RDS."
+        },
+        {
+          "matchText": "Tornar o RDS publicamente acessível na internet",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque tornar o RDS público de fato faz a função alcançá-lo — mas expõe o banco à INTERNET inteira, o oposto do acesso pela rede PRIVADA pedido; o correto é rodar a função DENTRO da VPC (sub-redes + Security Group autorizado no SG do RDS)."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque executar a função na VPC (associada às sub-redes privadas e a um Security Group autorizado no SG do RDS) dá a ela rota de rede privada até o banco — sem expor o RDS à internet.",
+            "correct": true
+          },
+          {
+            "text": "Porque copiar os dados para o S3 a cada hora dá à função rota de rede privada até o banco, associada às sub-redes e a um Security Group autorizado no SG do RDS — sem expor o RDS à internet.",
+            "correct": false
+          },
+          {
+            "text": "Porque usar o console como intermediário dá à função rota de rede privada até o banco, associada às sub-redes e a um Security Group autorizado no SG do RDS — sem expor o RDS à internet.",
+            "correct": false
+          },
+          {
+            "text": "Porque tornar o RDS público dá à função rota de rede privada até o banco, associada às sub-redes e a um Security Group autorizado no SG do RDS — sem expor o RDS à internet.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-063",
+      "options": [
+        {
+          "matchText": "Economizar custos, pois permissões amplas são cobradas pela AWS",
+          "stage": "eliminate",
+          "reasonWrong": "Permissões amplas não são cobradas pela AWS — a motivação é segurança, não custo."
+        },
+        {
+          "matchText": "Permitir que todos usem o usuário root em dev",
+          "stage": "eliminate",
+          "reasonWrong": "Usar o usuário root em dev é péssima prática — nunca é a motivação da separação de ambientes."
+        },
+        {
+          "matchText": "Impedir que o pipeline tenha qualquer permissão em produção",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque restringir permissões em produção é o tema — mas exagera: o objetivo NÃO é o pipeline ter ZERO permissão em produção (ele é justamente quem implanta), e sim que só o PROCESSO automatizado e auditável mude produção, tirando a mão do humano."
+        },
+        {
+          "matchText": "Reduzir o risco de mudanças manuais não auditadas em produção: humanos têm permissões amplas só onde o impacto é baixo, e produção muda apenas por processo automatizado e rastreável",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque reduz o risco de mudanças manuais não auditadas em produção: humanos têm permissões amplas só onde o impacto é baixo (dev) e produção muda apenas por processo automatizado e rastreável.",
+            "correct": true
+          },
+          {
+            "text": "Porque economiza custos, já que permissões amplas são cobradas: humanos têm permissões amplas só onde o impacto é baixo (dev) e produção muda apenas por processo automatizado e rastreável.",
+            "correct": false
+          },
+          {
+            "text": "Porque permite que todos usem o usuário root em dev: humanos têm permissões amplas só onde o impacto é baixo e produção muda apenas por processo automatizado e rastreável, sem risco.",
+            "correct": false
+          },
+          {
+            "text": "Porque impede o pipeline de ter qualquer permissão em produção: humanos têm permissões amplas só onde o impacto é baixo e produção muda apenas por processo automatizado e rastreável.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-064",
+      "options": [
+        {
+          "matchText": "Amazon SQS, encadeando filas de build e deploy",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque encadear filas SQS também 'liga' etapas em sequência — mas exige CODIFICAR a coordenação, os gatilhos e o tratamento de erro de cada estágio; orquestrar source→build→deploy como fluxo gerenciado de CI/CD é o CodePipeline."
+        },
+        {
+          "matchText": "AWS CloudTrail, que executa os deploys registrados",
+          "stage": "eliminate",
+          "reasonWrong": "CloudTrail apenas REGISTRA chamadas de API para auditoria — não executa nem orquestra deploys."
+        },
+        {
+          "matchText": "AWS CodePipeline, definindo estágios de source, build e deploy conectados em sequência",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Trusted Advisor",
+          "stage": "eliminate",
+          "reasonWrong": "Trusted Advisor dá recomendações de boas práticas da conta — não é motor de entrega contínua."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS CodePipeline define estágios de source, build e deploy conectados em sequência e os dispara a cada push — orquestrando a entrega contínua sem o time codificar a coordenação.",
+            "correct": true
+          },
+          {
+            "text": "Porque encadear filas SQS define estágios de source, build e deploy conectados em sequência e os dispara a cada push — orquestrando a entrega contínua sem o time codificar a coordenação.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS CloudTrail define estágios de source, build e deploy conectados em sequência e os dispara a cada push — orquestrando a entrega contínua sem o time codificar a coordenação.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Trusted Advisor define estágios de source, build e deploy conectados em sequência e os dispara a cada push — orquestrando a entrega contínua sem o time codificar a coordenação.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-065",
+      "options": [
+        {
+          "matchText": "AWS CodeBuild, com os comandos definidos no buildspec.yml",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Lambda, limitada a builds de 15 minutos",
+          "stage": "eliminate",
+          "reasonWrong": "Lambda não é o serviço de build de CI/CD — buildspec.yml e ambiente de compilação gerenciado são do CodeBuild."
+        },
+        {
+          "matchText": "Amazon EC2 com um servidor de build ligado 24/7",
+          "stage": "eliminate",
+          "reasonWrong": "Uma EC2 de build ligada 24/7 é o oposto do 'ambiente gerenciado sob demanda' — e não usa buildspec padrão."
+        },
+        {
+          "matchText": "AWS CodeDeploy, com os comandos no appspec.yml",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CodeDeploy também usa um arquivo de spec no repositório — mas ele IMPLANTA o artefato (com appspec.yml), não COMPILA/testa/gera o artefato; quem roda build e testes sob demanda com buildspec.yml é o CodeBuild."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS CodeBuild provê o ambiente gerenciado que compila, testa e gera o artefato sob demanda, com os comandos definidos no buildspec.yml do repositório — a etapa de build do pipeline.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Lambda provê o ambiente gerenciado que compila, testa e gera o artefato sob demanda, com os comandos definidos no buildspec.yml do repositório — a etapa de build do pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Amazon EC2 24/7 provê o ambiente gerenciado que compila, testa e gera o artefato sob demanda, com os comandos definidos no buildspec.yml do repositório — a etapa de build do pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS CodeDeploy provê o ambiente gerenciado que compila, testa e gera o artefato sob demanda, com os comandos definidos no buildspec.yml do repositório — a etapa de build do pipeline.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-066",
+      "options": [
+        {
+          "matchText": "Amazon S3 com replicação para as instâncias",
+          "stage": "eliminate",
+          "reasonWrong": "S3 com replicação copia objetos entre buckets — não orquestra hooks de deploy nas instâncias."
+        },
+        {
+          "matchText": "AWS CodeBuild, com os hooks no buildspec.yml",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CodeBuild também usa um arquivo de spec no repositório — mas ele COMPILA/testa (buildspec.yml), não IMPLANTA em frota EC2 com hooks de parar serviço/copiar/reiniciar; quem faz a implantação via appspec.yml é o CodeDeploy."
+        },
+        {
+          "matchText": "AWS CodeDeploy, com o ciclo de implantação descrito no appspec.yml",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Config com regras de implantação",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Config avalia conformidade de recursos — não executa implantações com ciclo de hooks."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS CodeDeploy gerencia a implantação na frota EC2 executando os hooks (parar serviço, copiar, reiniciar) descritos no appspec.yml em cada instância — a etapa de deploy do pipeline.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS CodeBuild gerencia a implantação na frota EC2 executando os hooks (parar serviço, copiar, reiniciar) descritos no appspec.yml em cada instância — a etapa de deploy do pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon S3 com replicação gerencia a implantação na frota EC2 executando os hooks (parar serviço, copiar, reiniciar) descritos no appspec.yml em cada instância — a etapa de deploy do pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Config gerencia a implantação na frota EC2 executando os hooks (parar serviço, copiar, reiniciar) descritos no appspec.yml em cada instância — a etapa de deploy do pipeline.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-067",
+      "options": [
+        {
+          "matchText": "Rolling substitui as instâncias em lotes dentro do mesmo ambiente; blue/green cria um ambiente novo completo e troca o tráfego de uma vez, mantendo o antigo para rollback rápido",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Rolling exige o dobro de infraestrutura; blue/green atualiza no mesmo ambiente",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque associa uma estratégia ao 'dobro de infra' e outra ao 'mesmo ambiente' — mas INVERTE: é o BLUE/GREEN que sobe um ambiente novo completo (dobro temporário); o rolling substitui em lotes no MESMO ambiente, sem duplicá-lo."
+        },
+        {
+          "matchText": "Blue/green só funciona para bancos de dados",
+          "stage": "eliminate",
+          "reasonWrong": "Blue/green não serve 'só para bancos de dados' — vale para qualquer aplicação implantável."
+        },
+        {
+          "matchText": "As duas estratégias derrubam o ambiente inteiro durante a troca",
+          "stage": "eliminate",
+          "reasonWrong": "Nenhuma das duas derruba o ambiente inteiro na troca — ambas visam implantar sem indisponibilidade total."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o rolling substitui as instâncias em lotes no mesmo ambiente, e o blue/green cria um ambiente novo completo e troca o tráfego de uma vez — mantendo o antigo para rollback rápido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o rolling exige o dobro de infra e o blue/green atualiza no mesmo ambiente trocando o tráfego de uma vez — mantendo um dos ambientes disponível para rollback rápido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o blue/green só funciona para bancos de dados criando um ambiente novo completo, e o rolling troca o tráfego de uma vez — mantendo o antigo para rollback rápido.",
+            "correct": false
+          },
+          {
+            "text": "Porque as duas derrubam o ambiente inteiro na troca, com o blue/green criando um ambiente novo e o rolling substituindo em lotes — mantendo o antigo para rollback rápido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-068",
+      "options": [
+        {
+          "matchText": "A nova versão roda apenas em ambiente de testes, sem tráfego real",
+          "stage": "eliminate",
+          "reasonWrong": "Rodar só em testes, sem tráfego real, não é canary — o canary usa tráfego de produção controlado."
+        },
+        {
+          "matchText": "Todo o tráfego muda imediatamente para a nova versão",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque é uma estratégia real de implantação — mas mover TODO o tráfego de uma vez é o 'all-at-once', não o canary; o canary envia só uma PEQUENA porcentagem à nova versão por um período de observação antes de promover o resto."
+        },
+        {
+          "matchText": "Uma pequena porcentagem do tráfego (ex: 10%) vai para a nova versão por um período de observação; se as métricas estiverem saudáveis, o restante é promovido",
+          "stage": "correct"
+        },
+        {
+          "matchText": "As duas versões respondem juntas a cada requisição e comparam resultados",
+          "stage": "eliminate",
+          "reasonWrong": "As duas versões não respondem juntas a cada requisição comparando resultados — isso é shadow/mirroring, não canary."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque uma pequena porcentagem do tráfego (ex.: 10%) vai à nova versão por um período de observação e, se as métricas estiverem saudáveis, o restante é promovido — o comportamento do canary.",
+            "correct": true
+          },
+          {
+            "text": "Porque todo o tráfego muda imediatamente para a nova versão por um período de observação e, se as métricas estiverem saudáveis, ele permanece nela — o comportamento do canary.",
+            "correct": false
+          },
+          {
+            "text": "Porque a nova versão roda só em ambiente de testes por um período de observação e, se as métricas estiverem saudáveis, recebe o tráfego real — o comportamento do canary do Lambda.",
+            "correct": false
+          },
+          {
+            "text": "Porque as duas versões respondem juntas a cada requisição por um período de observação e, se as métricas estiverem saudáveis, uma é promovida — o comportamento do canary do Lambda.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-069",
+      "options": [
+        {
+          "matchText": "Versões publicadas podem ser editadas livremente a qualquer momento",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque fala em editar a versão publicada — mas afirma o OPOSTO do que garante confiabilidade: versões publicadas NÃO podem ser editadas; código e configuração ficam CONGELADOS (imutáveis), e é isso que torna apontar para a versão N sempre reproduzível."
+        },
+        {
+          "matchText": "Apenas três versões podem existir por função",
+          "stage": "eliminate",
+          "reasonWrong": "Não há limite de três versões por função — pode-se publicar muitas versões numeradas."
+        },
+        {
+          "matchText": "Versões antigas são excluídas automaticamente após 30 dias",
+          "stage": "eliminate",
+          "reasonWrong": "Versões antigas não são excluídas automaticamente após 30 dias — permanecem até serem removidas."
+        },
+        {
+          "matchText": "Versões publicadas são imutáveis: código e configuração ficam congelados, garantindo que apontar para a versão N sempre execute exatamente o mesmo artefato",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as versões publicadas são imutáveis: código e configuração ficam congelados, garantindo que apontar para a versão N execute sempre exatamente o mesmo artefato — base de deploys confiáveis.",
+            "correct": true
+          },
+          {
+            "text": "Porque as versões publicadas podem ser editadas livremente a qualquer momento, garantindo que apontar para a versão N execute sempre exatamente o mesmo artefato — base de deploys confiáveis.",
+            "correct": false
+          },
+          {
+            "text": "Porque só três versões podem existir por função, garantindo que apontar para a versão N execute sempre exatamente o mesmo artefato congelado — base de deploys confiáveis do Lambda.",
+            "correct": false
+          },
+          {
+            "text": "Porque versões antigas são excluídas após 30 dias, garantindo que apontar para a versão N execute sempre exatamente o mesmo artefato congelado — base de deploys confiáveis do Lambda.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-070",
+      "options": [
+        {
+          "matchText": "Pedir aos clientes que atualizem o ARN a cada release",
+          "stage": "eliminate",
+          "reasonWrong": "Pedir aos clientes que atualizem o ARN a cada release é o oposto de um ponteiro ESTÁVEL — quebra a proposta."
+        },
+        {
+          "matchText": "Editar a versão 3 substituindo o código pela v4",
+          "stage": "eliminate",
+          "reasonWrong": "Editar a versão 3 substituindo o código pela v4 é impossível: versões publicadas são imutáveis."
+        },
+        {
+          "matchText": "Usar $LATEST diretamente em produção",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque $LATEST também é um nome fixo que os clientes poderiam usar — mas ele aponta para a versão NÃO PUBLICADA (mutável) e não faz transição gradual de tráfego; o ponteiro estável com atualização controlada e divisão de tráfego é um alias."
+        },
+        {
+          "matchText": "Um alias (ex: 'prod') apontando para a versão atual, atualizável e com suporte a divisão de tráfego entre duas versões",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque um alias (ex.: 'prod') é um ponteiro estável no ARN que a equipe reaponta da v3 para a v4 e ainda divide o tráfego entre duas versões — sem os clientes mudarem nada.",
+            "correct": true
+          },
+          {
+            "text": "Porque usar $LATEST é um ponteiro estável no ARN que a equipe reaponta da v3 para a v4 e ainda divide o tráfego entre duas versões — sem os clientes mudarem nada na configuração.",
+            "correct": false
+          },
+          {
+            "text": "Porque pedir aos clientes o novo ARN é um ponteiro estável que a equipe reaponta da v3 para a v4 e ainda divide o tráfego entre duas versões — sem os clientes mudarem nada.",
+            "correct": false
+          },
+          {
+            "text": "Porque editar a versão 3 é um ponteiro estável no ARN que a equipe reaponta da v3 para a v4 e ainda divide o tráfego entre duas versões — sem os clientes mudarem nada na configuração.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-071",
+      "options": [
+        {
+          "matchText": "AWS CloudShell",
+          "stage": "eliminate",
+          "reasonWrong": "CloudShell é um terminal no navegador com a CLI — não é framework de infraestrutura como código."
+        },
+        {
+          "matchText": "AWS Artifact",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Artifact entrega relatórios de conformidade/compliance — nada a ver com definir infraestrutura."
+        },
+        {
+          "matchText": "AWS CDK (Cloud Development Kit)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon CodeWhisperer sozinho",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CodeWhisperer também gera código de programação — mas ele é um ASSISTENTE de sugestão de código, não um framework de IaC que modela funções/filas/tabelas e SINTETIZA CloudFormation; definir infra em TypeScript/Python gerando CloudFormation é o AWS CDK."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS CDK define a infraestrutura serverless em TypeScript/Python (com loops, condições e classes) e sintetiza CloudFormation por baixo — a IaC imperativa que o desenvolvedor prefere.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS CloudShell define a infraestrutura serverless em TypeScript/Python (com loops, condições e classes) e sintetiza CloudFormation por baixo — a IaC imperativa que o desenvolvedor prefere.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Artifact define a infraestrutura serverless em TypeScript/Python (com loops, condições e classes) e sintetiza CloudFormation por baixo — a IaC imperativa que o desenvolvedor prefere.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CodeWhisperer sozinho define a infraestrutura serverless em TypeScript/Python (com loops, condições e classes) e sintetiza CloudFormation por baixo — a IaC imperativa que o desenvolvedor prefere.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-072",
+      "options": [
+        {
+          "matchText": "O log de erros do template",
+          "stage": "eliminate",
+          "reasonWrong": "O log de erros não é a stack — é apenas o registro de eventos de uma operação sobre ela."
+        },
+        {
+          "matchText": "O conjunto de recursos provisionados e gerenciados como uma unidade a partir de um template",
+          "stage": "correct"
+        },
+        {
+          "matchText": "A fila de espera dos deploys da conta",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque associa stack a um processo de deploy — mas ela NÃO é uma 'fila de espera' de deploys; a stack é o CONJUNTO de recursos criados a partir de um template, provisionados e gerenciados como uma unidade (criar/atualizar/excluir juntos)."
+        },
+        {
+          "matchText": "Um tipo de instância EC2 otimizada para infraestrutura",
+          "stage": "eliminate",
+          "reasonWrong": "Não existe 'tipo de instância EC2' chamado stack — é a agregação de recursos do CloudFormation."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a stack é o conjunto de recursos provisionados e gerenciados como uma unidade a partir de um template — criados, atualizados e excluídos juntos pelo CloudFormation.",
+            "correct": true
+          },
+          {
+            "text": "Porque a stack é o log de erros do template, provisionado e gerenciado como uma unidade a partir dele — criado, atualizado e excluído junto pelo CloudFormation.",
+            "correct": false
+          },
+          {
+            "text": "Porque a stack é a fila de espera dos deploys da conta, provisionada e gerenciada como uma unidade a partir do template — criada, atualizada e excluída junto pelo CloudFormation.",
+            "correct": false
+          },
+          {
+            "text": "Porque a stack é um tipo de instância EC2 otimizada, provisionada e gerenciada como uma unidade a partir do template — criada, atualizada e excluída junto pelo CloudFormation.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-073",
+      "options": [
+        {
+          "matchText": "Change sets, que listam as alterações planejadas para revisão antes da execução",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Excluir a stack e recriá-la para ver o que muda",
+          "stage": "eliminate",
+          "reasonWrong": "Excluir e recriar a stack é destrutivo e não é uma 'prévia' — derruba os recursos existentes."
+        },
+        {
+          "matchText": "Outputs da stack",
+          "stage": "eliminate",
+          "reasonWrong": "Outputs expõem valores da stack (ARNs, URLs) — não mostram o que uma futura mudança faria."
+        },
+        {
+          "matchText": "Drift detection, que aplica a mudança e mostra o resultado",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o drift detection também compara o estado da stack — mas ele detecta desvios entre o que ESTÁ implantado e o template (config manual fora do CFN), não prevê o efeito de uma ATUALIZAÇÃO antes de executá-la; a prévia da mudança é o change set."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o change set lista as alterações planejadas (recursos criados, modificados e substituídos) para revisão antes da execução — a prévia segura da atualização da stack.",
+            "correct": true
+          },
+          {
+            "text": "Porque excluir e recriar a stack lista as alterações planejadas (recursos criados, modificados e substituídos) para revisão antes da execução — a prévia segura da atualização da stack.",
+            "correct": false
+          },
+          {
+            "text": "Porque os outputs da stack listam as alterações planejadas (recursos criados, modificados e substituídos) para revisão antes da execução — a prévia segura da atualização da stack.",
+            "correct": false
+          },
+          {
+            "text": "Porque o drift detection lista as alterações planejadas (recursos criados, modificados e substituídos) para revisão antes da execução — a prévia segura da atualização da stack.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-074",
+      "options": [
+        {
+          "matchText": "Executa rollback automático, desfazendo os recursos já criados para não deixar a stack pela metade",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Tenta criar o recurso com falha indefinidamente",
+          "stage": "eliminate",
+          "reasonWrong": "Ele não fica tentando criar o recurso indefinidamente — ao falhar, inicia o rollback."
+        },
+        {
+          "matchText": "Transfere a stack para outra Região automaticamente",
+          "stage": "eliminate",
+          "reasonWrong": "Não transfere a stack para outra Região — CloudFormation é regional e apenas reverte."
+        },
+        {
+          "matchText": "Mantém os recursos criados e ignora os restantes",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque descreve o que acontece com os recursos já criados — mas o padrão NÃO é mantê-los e ignorar o resto; o CloudFormation faz ROLLBACK AUTOMÁTICO, desfazendo os recursos já provisionados para não deixar a stack pela metade."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o padrão é o rollback automático: ao falhar um recurso, o CloudFormation desfaz os já criados para não deixar a stack pela metade — voltando ao estado consistente anterior.",
+            "correct": true
+          },
+          {
+            "text": "Porque o padrão é tentar criar o recurso indefinidamente e, ao falhar, desfazer os já criados para não deixar a stack pela metade — voltando ao estado consistente anterior.",
+            "correct": false
+          },
+          {
+            "text": "Porque o padrão é transferir a stack para outra Região e, ao falhar, desfazer os já criados para não deixar a stack pela metade — voltando ao estado consistente anterior da conta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o padrão é manter os recursos criados e ignorar os restantes, desfazendo os já criados para não deixar a stack pela metade — voltando ao estado consistente anterior.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-075",
+      "options": [
+        {
+          "matchText": "O web server atende requisições HTTP dos usuários; o worker processa tarefas em segundo plano consumindo mensagens de uma fila SQS",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O worker é apenas o ambiente de testes do web server",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque trata o worker como algo secundário ao web server — mas ele NÃO é 'ambiente de testes'; o worker é um tier de PRODUÇÃO que processa tarefas em segundo plano consumindo mensagens de uma fila SQS, enquanto o web server atende HTTP."
+        },
+        {
+          "matchText": "O web server roda Linux e o worker roda apenas Windows",
+          "stage": "eliminate",
+          "reasonWrong": "Web server e worker não se distinguem por sistema operacional — ambos rodam nas mesmas plataformas."
+        },
+        {
+          "matchText": "O web server é pago e o worker é gratuito",
+          "stage": "eliminate",
+          "reasonWrong": "Não há distinção de preço entre os tiers — cobra-se pelos recursos usados, não pelo tipo de tier."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o web server tier atende requisições HTTP dos usuários e o worker tier processa tarefas em segundo plano consumindo mensagens de uma fila SQS — dois papéis distintos de produção.",
+            "correct": true
+          },
+          {
+            "text": "Porque o web server tier atende requisições HTTP e o worker é apenas o ambiente de testes dele, processando tarefas em segundo plano de uma fila SQS — dois papéis distintos de produção.",
+            "correct": false
+          },
+          {
+            "text": "Porque o web server tier (Linux) atende requisições HTTP e o worker (Windows) processa tarefas em segundo plano consumindo mensagens de uma fila SQS — dois papéis distintos de produção.",
+            "correct": false
+          },
+          {
+            "text": "Porque o web server tier (pago) atende requisições HTTP e o worker (gratuito) processa tarefas em segundo plano consumindo mensagens de uma fila SQS — dois papéis distintos de produção.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-076",
+      "options": [
+        {
+          "matchText": "Rolling with additional batch, que adiciona um lote extra de instâncias novas antes de substituir as antigas",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Excluir o ambiente e criar outro com a nova versão",
+          "stage": "eliminate",
+          "reasonWrong": "Excluir o ambiente e criar outro causa indisponibilidade total — o oposto de manter a capacidade."
+        },
+        {
+          "matchText": "All at once, que substitui todas as instâncias simultaneamente",
+          "stage": "eliminate",
+          "reasonWrong": "All at once substitui todas as instâncias de uma vez, derrubando a capacidade inteira no deploy."
+        },
+        {
+          "matchText": "Rolling simples, que atualiza em lotes reduzindo a capacidade durante o processo",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o rolling simples também atualiza em LOTES — mas ele tira instâncias antigas de serviço para atualizar, REDUZINDO a capacidade durante o processo; manter a capacidade cheia exige o 'rolling with additional batch', que sobe um lote EXTRA antes de remover as antigas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o 'rolling with additional batch' adiciona um lote EXTRA de instâncias novas antes de remover as antigas — mantendo a capacidade total disponível durante todo o deploy.",
+            "correct": true
+          },
+          {
+            "text": "Porque excluir e recriar o ambiente adiciona um lote extra de instâncias novas antes de remover as antigas — mantendo a capacidade total disponível durante todo o deploy da aplicação.",
+            "correct": false
+          },
+          {
+            "text": "Porque o 'all at once' adiciona um lote extra de instâncias novas antes de remover as antigas — mantendo a capacidade total disponível durante todo o deploy da aplicação.",
+            "correct": false
+          },
+          {
+            "text": "Porque o rolling simples adiciona um lote extra de instâncias novas antes de remover as antigas — mantendo a capacidade total disponível durante todo o deploy da aplicação.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-077",
+      "options": [
+        {
+          "matchText": "Migra o cluster para outra conta",
+          "stage": "eliminate",
+          "reasonWrong": "O ECS não migra o cluster para outra conta — ele reconcilia as tasks dentro do próprio cluster."
+        },
+        {
+          "matchText": "Lança automaticamente uma nova task para restaurar a contagem desejada de 4 em execução",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Reduz o desired count para 3 e segue normalmente",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque reage à task perdida ajustando a contagem — mas na direção ERRADA: o ECS não baixa o desired count para 3; ele mantém o objetivo de 4 e LANÇA uma nova task para restaurar a contagem desejada."
+        },
+        {
+          "matchText": "Pausa o serviço inteiro até intervenção manual",
+          "stage": "eliminate",
+          "reasonWrong": "Ele não pausa o serviço à espera de intervenção manual — a reconciliação é automática."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o ECS reconcilia continuamente o serviço: ao perder uma task, lança automaticamente uma nova para restaurar a contagem desejada de 4 em execução — sem intervenção manual.",
+            "correct": true
+          },
+          {
+            "text": "Porque o ECS reconcilia o serviço migrando o cluster para outra conta e lançando uma nova task para restaurar a contagem desejada de 4 em execução — sem intervenção manual.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ECS reconcilia o serviço reduzindo o desired count para 3 e lançando uma nova task para restaurar a contagem desejada de 4 em execução — sem intervenção manual.",
+            "correct": false
+          },
+          {
+            "text": "Porque o ECS reconcilia o serviço pausando tudo até intervenção manual e lançando uma nova task para restaurar a contagem desejada de 4 em execução — sem intervenção manual.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-078",
+      "options": [
+        {
+          "matchText": "Autenticar o Docker no ECR, taguear a imagem com o URI do repositório e executar docker push",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Anexar a imagem .tar em um e-mail para a AWS importar",
+          "stage": "eliminate",
+          "reasonWrong": "Anexar a imagem .tar em e-mail para a AWS importar não é um método de publicação de imagem — não existe esse fluxo."
+        },
+        {
+          "matchText": "Fazer upload da imagem pelo console do S3",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque enviar a imagem por uma interface da AWS parece o caminho — mas o ECR é um REGISTRY de contêineres, não se envia imagem pelo console do S3; o fluxo é autenticar o Docker no ECR, taguear com o URI do repositório e docker push."
+        },
+        {
+          "matchText": "Copiar o Dockerfile para dentro da task definition",
+          "stage": "eliminate",
+          "reasonWrong": "Copiar o Dockerfile para dentro da task definition não publica a imagem — a task apenas REFERENCIA a imagem já no ECR."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o fluxo correto é autenticar o Docker no ECR (get-login-password), taguear a imagem com o URI do repositório e executar docker push — deixando a imagem disponível ao ECS.",
+            "correct": true
+          },
+          {
+            "text": "Porque o fluxo correto é anexar a imagem .tar em um e-mail para a AWS, tagueando-a com o URI do repositório e executando push — deixando a imagem disponível ao ECS para o deploy.",
+            "correct": false
+          },
+          {
+            "text": "Porque o fluxo correto é fazer upload da imagem pelo console do S3, tagueando-a com o URI do repositório e executando push — deixando a imagem disponível ao ECS para o deploy.",
+            "correct": false
+          },
+          {
+            "text": "Porque o fluxo correto é copiar o Dockerfile para a task definition, tagueando a imagem com o URI do repositório e executando push — deixando a imagem disponível ao ECS para o deploy.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-079",
+      "options": [
+        {
+          "matchText": "Usar o mesmo banco para os três ambientes",
+          "stage": "eliminate",
+          "reasonWrong": "Usar o mesmo banco para os três ambientes elimina o isolamento — mistura dados de dev com produção."
+        },
+        {
+          "matchText": "Editar o código manualmente no servidor após cada deploy",
+          "stage": "eliminate",
+          "reasonWrong": "Editar o código no servidor após cada deploy quebra a reprodutibilidade e a auditoria — antipadrão."
+        },
+        {
+          "matchText": "Construir um único artefato e externalizar as configurações por ambiente (variáveis de ambiente, Parameter Store), injetadas no deploy",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Compilar um pacote diferente por ambiente com os valores embutidos",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também 'resolve' as diferenças entre ambientes — mas EMBUTIR os valores num pacote por ambiente gera artefatos distintos (o que se queria evitar) e impede promover exatamente o binário testado; o correto é UM artefato com config externalizada."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque construir um único artefato e externalizar as configurações por ambiente (variáveis, Parameter Store) injetadas no deploy promove o MESMO binário testado — sem gerar um pacote por ambiente.",
+            "correct": true
+          },
+          {
+            "text": "Porque usar o mesmo banco nos três ambientes constrói um único artefato e externaliza as configurações por ambiente injetadas no deploy — promovendo o mesmo binário sem gerar um pacote por ambiente.",
+            "correct": false
+          },
+          {
+            "text": "Porque editar o código no servidor após o deploy constrói um único artefato e externaliza as configurações por ambiente injetadas no deploy — promovendo o mesmo binário sem gerar um pacote por ambiente.",
+            "correct": false
+          },
+          {
+            "text": "Porque compilar um pacote por ambiente com valores embutidos constrói um único artefato e externaliza as configurações injetadas no deploy — promovendo o mesmo binário sem gerar um pacote por ambiente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-080",
+      "options": [
+        {
+          "matchText": "Reexecutar o pipeline manualmente quando alguém perceber o problema",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque reexecutar/reverter o deploy quando há problema é o objetivo — mas depender de ALGUÉM PERCEBER e agir à mão é lento e falho; o CodeDeploy reverte SOZINHO ao associar alarmes do CloudWatch ao deployment group."
+        },
+        {
+          "matchText": "Fazer deploys somente em fins de semana",
+          "stage": "eliminate",
+          "reasonWrong": "Fazer deploys só em fins de semana não reverte nada automaticamente — só muda a janela do deploy."
+        },
+        {
+          "matchText": "Rollback automático associado a alarmes do CloudWatch na configuração do deployment group",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Desativar os alarmes durante os deploys",
+          "stage": "eliminate",
+          "reasonWrong": "Desativar os alarmes durante o deploy é o oposto do pedido — remove justamente o gatilho do rollback."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o rollback automático associado a alarmes do CloudWatch no deployment group reverte o deploy sozinho assim que o alarme (ex.: 5xx) dispara — sem depender de alguém perceber.",
+            "correct": true
+          },
+          {
+            "text": "Porque reexecutar o pipeline manualmente associa alarmes do CloudWatch ao deployment group e reverte o deploy assim que o alarme (ex.: 5xx) dispara — sem depender de alguém perceber.",
+            "correct": false
+          },
+          {
+            "text": "Porque fazer deploys só em fins de semana associa alarmes do CloudWatch ao deployment group e reverte o deploy assim que o alarme (ex.: 5xx) dispara — sem depender de alguém perceber.",
+            "correct": false
+          },
+          {
+            "text": "Porque desativar os alarmes durante o deploy associa alarmes do CloudWatch ao deployment group e reverte o deploy assim que o alarme (ex.: 5xx) dispara — sem depender de alguém perceber.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-081",
+      "options": [
+        {
+          "matchText": "No repositório Git, commitados automaticamente",
+          "stage": "eliminate",
+          "reasonWrong": "Os artefatos não são commitados de volta no Git a cada estágio — o transporte é pelo bucket de artefatos."
+        },
+        {
+          "matchText": "Em um bucket S3 de artefatos do pipeline, que transporta as saídas de um estágio como entradas do próximo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Em um volume EBS compartilhado entre os estágios",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um volume compartilhado também 'passaria' dados entre etapas — mas o CodePipeline não usa EBS entre estágios; ele armazena os artefatos em um BUCKET S3 do pipeline, transportando a saída de um estágio como entrada do próximo."
+        },
+        {
+          "matchText": "Na memória RAM do pipeline entre os estágios",
+          "stage": "eliminate",
+          "reasonWrong": "Não há 'memória RAM do pipeline' persistindo artefatos entre estágios — eles ficam no S3."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o CodePipeline guarda os artefatos em um bucket S3 do pipeline, transportando a saída de um estágio como entrada do próximo — o mecanismo padrão de passagem de artefatos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o CodePipeline commita os artefatos no repositório Git, transportando a saída de um estágio como entrada do próximo — o mecanismo padrão de passagem de artefatos entre estágios.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CodePipeline guarda os artefatos em um volume EBS compartilhado, transportando a saída de um estágio como entrada do próximo — o mecanismo padrão de passagem de artefatos entre estágios.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CodePipeline guarda os artefatos na memória RAM do pipeline, transportando a saída de um estágio como entrada do próximo — o mecanismo padrão de passagem de artefatos entre estágios.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-082",
+      "options": [
+        {
+          "matchText": "AWS Device Farm",
+          "stage": "eliminate",
+          "reasonWrong": "Device Farm testa apps em dispositivos móveis reais — não emula funções Lambda."
+        },
+        {
+          "matchText": "Amazon WorkSpaces",
+          "stage": "eliminate",
+          "reasonWrong": "WorkSpaces é desktop virtual gerenciado — não é ferramenta de teste local de serverless."
+        },
+        {
+          "matchText": "AWS CloudShell",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CloudShell também é ambiente de linha de comando da AWS — mas ele é um terminal na NUVEM com a CLI, não emula o runtime do Lambda LOCALMENTE; 'local invoke' e 'local start-api' em contêineres na máquina são do SAM CLI."
+        },
+        {
+          "matchText": "SAM CLI, que emula o ambiente Lambda em contêineres locais",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o SAM CLI emula o ambiente de execução do Lambda em contêineres locais, oferecendo 'sam local invoke' e 'sam local start-api' para testar função e API antes do deploy.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Device Farm emula o ambiente de execução do Lambda em contêineres locais, oferecendo 'local invoke' e 'local start-api' para testar função e API antes do deploy.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon WorkSpaces emula o ambiente de execução do Lambda em contêineres locais, oferecendo 'local invoke' e 'local start-api' para testar função e API antes do deploy.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS CloudShell emula o ambiente de execução do Lambda em contêineres locais, oferecendo 'local invoke' e 'local start-api' para testar função e API antes do deploy.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-083",
+      "options": [
+        {
+          "matchText": "Uma manual approval action entre os estágios, que pausa o pipeline até aprovação (com notificação via SNS)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar o pipeline para rodar apenas uma vez por mês",
+          "stage": "eliminate",
+          "reasonWrong": "Rodar o pipeline uma vez por mês não é um portão de aprovação — só muda a frequência."
+        },
+        {
+          "matchText": "Reduzir a frequência de commits no repositório",
+          "stage": "eliminate",
+          "reasonWrong": "Reduzir a frequência de commits não cria revisão obrigatória antes de produção — não é um gate."
+        },
+        {
+          "matchText": "Remover o estágio de produção do pipeline e implantar manualmente",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também impede o avanço automático para produção — mas remover o estágio e implantar À MÃO joga fora a automação e a rastreabilidade; o portão correto é uma manual approval action que PAUSA o pipeline até a aprovação, mantendo o fluxo automatizado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque uma manual approval action entre os estágios pausa o pipeline até um responsável aprovar (com notificação via SNS) — o portão que impede o deploy final sem revisão explícita.",
+            "correct": true
+          },
+          {
+            "text": "Porque configurar o pipeline para rodar uma vez por mês pausa o pipeline até um responsável aprovar (com notificação via SNS) — o portão que impede o deploy final sem revisão explícita.",
+            "correct": false
+          },
+          {
+            "text": "Porque reduzir a frequência de commits pausa o pipeline até um responsável aprovar (com notificação via SNS) — o portão que impede o deploy final sem revisão explícita do estágio.",
+            "correct": false
+          },
+          {
+            "text": "Porque remover o estágio de produção e implantar à mão pausa o pipeline até um responsável aprovar (com notificação via SNS) — o portão que impede o deploy final sem revisão explícita.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-084",
+      "options": [
+        {
+          "matchText": "Change sets, que mostram alterações manuais em tempo real",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o change set também 'mostra diferenças' de uma stack — mas ele prevê o efeito de uma ATUALIZAÇÃO via template antes de executá-la, NÃO detecta mudanças MANUAIS feitas fora do CloudFormation; isso é o drift detection."
+        },
+        {
+          "matchText": "Stack outputs, que listam os recursos modificados",
+          "stage": "eliminate",
+          "reasonWrong": "Stack outputs apenas expõem valores (ARNs, URLs) — não comparam o estado real com o template."
+        },
+        {
+          "matchText": "Rollback automático, que desfaz a mudança manual imediatamente",
+          "stage": "eliminate",
+          "reasonWrong": "Rollback automático atua durante uma operação de stack que falha — não monitora alterações manuais posteriores."
+        },
+        {
+          "matchText": "Drift detection, que compara o estado real dos recursos com o definido no template e aponta as diferenças",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o drift detection compara o estado REAL dos recursos com o definido no template e aponta as diferenças — detectando a alteração manual feita no Security Group pelo console.",
+            "correct": true
+          },
+          {
+            "text": "Porque os change sets comparam o estado real dos recursos com o definido no template e apontam as diferenças — detectando a alteração manual feita no Security Group pelo console.",
+            "correct": false
+          },
+          {
+            "text": "Porque os stack outputs comparam o estado real dos recursos com o definido no template e apontam as diferenças — detectando a alteração manual feita no Security Group pelo console.",
+            "correct": false
+          },
+          {
+            "text": "Porque o rollback automático compara o estado real dos recursos com o definido no template e aponta as diferenças — detectando a alteração manual feita no Security Group pelo console.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-085",
+      "options": [
+        {
+          "matchText": "Em um arquivo de texto no servidor da função, acessível via SSH",
+          "stage": "eliminate",
+          "reasonWrong": "Não há 'servidor com SSH' por trás do Lambda — é serverless; os logs vão para o CloudWatch."
+        },
+        {
+          "matchText": "No Amazon CloudWatch Logs, no log group da função (/aws/lambda/nome-da-funcao)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Os logs são descartados ao fim de cada execução",
+          "stage": "eliminate",
+          "reasonWrong": "Os logs não são descartados ao fim da execução — ficam retidos no log group do CloudWatch."
+        },
+        {
+          "matchText": "No AWS CloudTrail, junto das chamadas de API",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CloudTrail também guarda registros na AWS — mas ele audita CHAMADAS DE API (quem fez o quê), não as mensagens de console.log/print da sua função; a saída de log da execução vai para o CloudWatch Logs, no log group da função."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as mensagens de console.log/print da função vão para o Amazon CloudWatch Logs, no log group /aws/lambda/nome-da-funcao — onde o desenvolvedor as consulta após as execuções.",
+            "correct": true
+          },
+          {
+            "text": "Porque as mensagens da função vão para um arquivo de texto no servidor acessível via SSH, no log group /aws/lambda/nome-da-funcao — onde o desenvolvedor as consulta após as execuções.",
+            "correct": false
+          },
+          {
+            "text": "Porque as mensagens da função são descartadas ao fim de cada execução, ficando no log group /aws/lambda/nome-da-funcao — onde o desenvolvedor as consulta após as execuções.",
+            "correct": false
+          },
+          {
+            "text": "Porque as mensagens da função vão para o AWS CloudTrail junto das chamadas de API, no log group /aws/lambda/nome-da-funcao — onde o desenvolvedor as consulta após as execuções.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-086",
+      "options": [
+        {
+          "matchText": "Consultar manualmente as métricas a cada hora",
+          "stage": "eliminate",
+          "reasonWrong": "Consultar as métricas à mão a cada hora não é notificação automática — depende de alguém olhar."
+        },
+        {
+          "matchText": "Ativar o AWS Config para enviar o alerta",
+          "stage": "eliminate",
+          "reasonWrong": "O AWS Config avalia conformidade de recursos — não monitora taxa de erros 5xx de API para alertar."
+        },
+        {
+          "matchText": "Um alarme do CloudWatch sobre a métrica de erros, com ação publicando em um tópico SNS assinado pelo e-mail do time",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Um dashboard do CloudWatch que envia e-mails sozinho",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um dashboard também é recurso do CloudWatch ligado às métricas — mas dashboard é VISUALIZAÇÃO, ele NÃO dispara notificação sozinho; alertar por e-mail exige um ALARME sobre a métrica com ação publicando em um tópico SNS assinado pelo time."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque um alarme do CloudWatch sobre a métrica de erros 5xx, com ação publicando num tópico SNS assinado pelo e-mail do time, notifica automaticamente quando o limite de 1% por 5 minutos é ultrapassado.",
+            "correct": true
+          },
+          {
+            "text": "Porque consultar as métricas manualmente a cada hora, com ação publicando num tópico SNS assinado pelo e-mail do time, notifica automaticamente quando o limite de 1% por 5 minutos é ultrapassado.",
+            "correct": false
+          },
+          {
+            "text": "Porque ativar o AWS Config, com ação publicando num tópico SNS assinado pelo e-mail do time, notifica automaticamente quando o limite de 1% por 5 minutos de erros 5xx é ultrapassado.",
+            "correct": false
+          },
+          {
+            "text": "Porque um dashboard do CloudWatch que envia e-mails sozinho, publicando num tópico SNS assinado pelo e-mail do time, notifica automaticamente quando o limite de 1% por 5 minutos é ultrapassado.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-087",
+      "options": [
+        {
+          "matchText": "Falta memória na função, que trava ao alocar variáveis",
+          "stage": "eliminate",
+          "reasonWrong": "A mensagem é 'Task timed out', não erro de memória — o problema é o teto de tempo, não alocação."
+        },
+        {
+          "matchText": "A AWS limita todas as funções a 3 segundos, sem configuração possível",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque cita o número 3s da mensagem — mas afirma que a AWS trava TODAS as funções em 3s sem configuração, o que é FALSO: 3s é apenas o padrão; o timeout é configurável (até 15 min), e basta aumentá-lo para acomodar a API de 8s."
+        },
+        {
+          "matchText": "O timeout configurado da função (3s, o padrão) é menor que o tempo da dependência; deve-se aumentar o timeout para acomodar a chamada (com margem)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "A execution role está sem permissões para a API externa",
+          "stage": "eliminate",
+          "reasonWrong": "Falta de permissão na role geraria AccessDenied, não timeout — o sintoma aqui é tempo esgotado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o timeout configurado (3s, o padrão) é menor que os ~8s da API externa; deve-se aumentar o timeout da função para acomodar a chamada com margem — resolvendo o 'Task timed out'.",
+            "correct": true
+          },
+          {
+            "text": "Porque falta memória e a função trava ao alocar variáveis; deve-se aumentar o timeout da função para acomodar a chamada com margem — resolvendo o 'Task timed out after 3.00 seconds'.",
+            "correct": false
+          },
+          {
+            "text": "Porque a AWS limita todas as funções a 3 segundos sem configuração; deve-se aumentar o timeout da função para acomodar a chamada com margem — resolvendo o 'Task timed out after 3.00 seconds'.",
+            "correct": false
+          },
+          {
+            "text": "Porque a execution role está sem permissão para a API externa; deve-se aumentar o timeout da função para acomodar a chamada com margem — resolvendo o 'Task timed out after 3.00 seconds'.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-088",
+      "options": [
+        {
+          "matchText": "Cold start: quando não há ambiente de execução ativo, o Lambda precisa provisionar o ambiente e inicializar o runtime e o código antes de processar",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O API Gateway desliga à noite para economizar",
+          "stage": "eliminate",
+          "reasonWrong": "O API Gateway não 'desliga à noite' — é gerenciado e sempre disponível; não é a causa."
+        },
+        {
+          "matchText": "Throttling da conta na primeira chamada do dia",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque throttling também aumenta a latência de uma chamada — mas ele ocorre por EXCESSO de concorrência (e retorna 429), não pela PRIMEIRA requisição após inatividade; a demora inicial é o cold start (provisionar ambiente e inicializar runtime/código)."
+        },
+        {
+          "matchText": "Cache DNS expirado no cliente",
+          "stage": "eliminate",
+          "reasonWrong": "Cache DNS expirado no cliente não é fenômeno do Lambda — a latência inicial é o cold start."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque é o cold start: sem ambiente de execução ativo, o Lambda provisiona o ambiente e inicializa runtime e código antes de processar — só a primeira requisição após inatividade paga esse custo.",
+            "correct": true
+          },
+          {
+            "text": "Porque o API Gateway desliga à noite: sem ambiente ativo, o Lambda provisiona o ambiente e inicializa runtime e código antes de processar — só a primeira requisição após inatividade paga esse custo.",
+            "correct": false
+          },
+          {
+            "text": "Porque é throttling da conta na primeira chamada: sem ambiente ativo, o Lambda provisiona o ambiente e inicializa runtime e código antes de processar — só a primeira requisição após inatividade paga isso.",
+            "correct": false
+          },
+          {
+            "text": "Porque é cache DNS expirado no cliente: sem ambiente ativo, o Lambda provisiona o ambiente e inicializa runtime e código antes de processar — só a primeira requisição após inatividade paga esse custo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-089",
+      "options": [
+        {
+          "matchText": "Remover o tratamento de erros para acelerar as escritas",
+          "stage": "eliminate",
+          "reasonWrong": "Remover o tratamento de erros esconde o throttling em vez de resolvê-lo — as escritas ainda falham."
+        },
+        {
+          "matchText": "Garantir retentativas com backoff exponencial no cliente (padrão dos SDKs) e ajustar a capacidade (auto scaling ou modo on-demand) para acompanhar os picos",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Migrar a tabela para o S3",
+          "stage": "eliminate",
+          "reasonWrong": "Migrar a tabela para o S3 troca o modelo de dados inteiro — não é uma resposta ao throttling do DynamoDB."
+        },
+        {
+          "matchText": "Reduzir a capacidade provisionada para forçar menos tráfego",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mexe na capacidade provisionada, o eixo certo — mas na direção OPOSTA: REDUZIR a capacidade agrava o throttling nos picos; o correto é retentar com backoff exponencial e AUMENTAR/adaptar a capacidade (auto scaling ou on-demand)."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque garantir retentativas com backoff exponencial no cliente (padrão dos SDKs) e ajustar a capacidade (auto scaling ou on-demand) para acompanhar os picos absorve e resolve o ProvisionedThroughputExceededException.",
+            "correct": true
+          },
+          {
+            "text": "Porque remover o tratamento de erros para acelerar as escritas e ajustar a capacidade para acompanhar os picos absorve e resolve o ProvisionedThroughputExceededException do DynamoDB nos horários de pico.",
+            "correct": false
+          },
+          {
+            "text": "Porque migrar a tabela para o S3 e ajustar a capacidade para acompanhar os picos absorve e resolve o ProvisionedThroughputExceededException do DynamoDB nos horários de pico das gravações.",
+            "correct": false
+          },
+          {
+            "text": "Porque reduzir a capacidade provisionada para forçar menos tráfego e ajustar a capacidade para acompanhar os picos absorve e resolve o ProvisionedThroughputExceededException do DynamoDB nos picos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-090",
+      "options": [
+        {
+          "matchText": "Hot partition (partição quente): a solução envolve redistribuir o acesso, por exemplo com chaves de maior cardinalidade ou sufixos de sharding na chave",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Star schema: basta normalizar as tabelas",
+          "stage": "eliminate",
+          "reasonWrong": "Star schema é modelagem dimensional de data warehouse — não descreve throttling por chave concentrada."
+        },
+        {
+          "matchText": "Drift: basta rodar a detecção de desvios do CloudFormation",
+          "stage": "eliminate",
+          "reasonWrong": "Drift é divergência de infraestrutura no CloudFormation — nada a ver com distribuição de chave no DynamoDB."
+        },
+        {
+          "matchText": "Cold start: basta aquecer a tabela com requisições de teste",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque cold start é também um termo de performance da AWS — mas ele é a latência de inicialização do LAMBDA, não tem relação com concentração de chave no DynamoDB; o problema aqui é hot partition, resolvido redistribuindo o acesso (mais cardinalidade/sharding)."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque é hot partition: o tráfego concentrado numa única chave de partição a satura mesmo sobrando capacidade total; a solução é redistribuir o acesso (mais cardinalidade ou sufixos de sharding).",
+            "correct": true
+          },
+          {
+            "text": "Porque é star schema: o tráfego concentrado numa única chave de partição a satura mesmo sobrando capacidade total; a solução é redistribuir o acesso (mais cardinalidade ou sufixos de sharding).",
+            "correct": false
+          },
+          {
+            "text": "Porque é drift: o tráfego concentrado numa única chave de partição a satura mesmo sobrando capacidade total; a solução é redistribuir o acesso (mais cardinalidade ou sufixos de sharding na chave).",
+            "correct": false
+          },
+          {
+            "text": "Porque é cold start: o tráfego concentrado numa única chave de partição a satura mesmo sobrando capacidade total; a solução é redistribuir o acesso (mais cardinalidade ou sufixos de sharding na chave).",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-091",
+      "options": [
+        {
+          "matchText": "Amazon Inspector",
+          "stage": "eliminate",
+          "reasonWrong": "Amazon Inspector avalia vulnerabilidades de segurança — não registra ações de API por usuário."
+        },
+        {
+          "matchText": "Amazon CloudWatch Metrics",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CloudWatch também observa a conta — mas Metrics guarda SÉRIES NUMÉRICAS (contagens, latências), não QUEM chamou uma API, quando e de qual IP; o registro de auditoria da chamada DeleteTable com identidade/hora/origem é o CloudTrail."
+        },
+        {
+          "matchText": "AWS CloudTrail, que registra a chamada DeleteTable com a identidade, o horário e o IP de origem",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS X-Ray",
+          "stage": "eliminate",
+          "reasonWrong": "X-Ray faz tracing de latência de requisições da aplicação — não audita quem excluiu um recurso."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS CloudTrail registra a chamada DeleteTable com a identidade do autor, o horário e o IP de origem — exatamente o rastro de auditoria de QUEM excluiu a tabela na sexta.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon Inspector registra a chamada DeleteTable com a identidade do autor, o horário e o IP de origem — exatamente o rastro de auditoria de QUEM excluiu a tabela na sexta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o CloudWatch Metrics registra a chamada DeleteTable com a identidade do autor, o horário e o IP de origem — exatamente o rastro de auditoria de QUEM excluiu a tabela na sexta.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS X-Ray registra a chamada DeleteTable com a identidade do autor, o horário e o IP de origem — exatamente o rastro de auditoria de QUEM excluiu a tabela na sexta-feira.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-092",
+      "options": [
+        {
+          "matchText": "Excluir a fila e criar outra sempre que travar",
+          "stage": "eliminate",
+          "reasonWrong": "Excluir e recriar a fila descarta também as mensagens válidas — e não isola as problemáticas."
+        },
+        {
+          "matchText": "Aumentar o retention period para as mensagens expirarem sozinhas",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o retention só adia a expiração — as malformadas seguem em ciclo enquanto não expiram."
+        },
+        {
+          "matchText": "Reduzir o visibility timeout para acelerar o reprocessamento",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mexe no visibility timeout, ligado ao ciclo de reentrega — mas reduzi-lo só faz a mensagem ruim voltar MAIS RÁPIDO ao loop, piorando; isolar as venenosas exige uma DLQ com maxReceiveCount para movê-las após N tentativas."
+        },
+        {
+          "matchText": "Configurar uma dead-letter queue (DLQ) com maxReceiveCount: após N tentativas, a mensagem é movida para a fila de quarentena",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque configurar uma dead-letter queue com maxReceiveCount move a mensagem para a fila de quarentena após N tentativas falhas — isolando as malformadas sem travar o processamento das válidas.",
+            "correct": true
+          },
+          {
+            "text": "Porque excluir e recriar a fila move a mensagem para a fila de quarentena após N tentativas falhas — isolando as malformadas sem travar o processamento das mensagens válidas restantes.",
+            "correct": false
+          },
+          {
+            "text": "Porque aumentar o retention period move a mensagem para a fila de quarentena após N tentativas falhas — isolando as malformadas sem travar o processamento das mensagens válidas restantes.",
+            "correct": false
+          },
+          {
+            "text": "Porque reduzir o visibility timeout move a mensagem para a fila de quarentena após N tentativas falhas — isolando as malformadas sem travar o processamento das mensagens válidas restantes.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-093",
+      "options": [
+        {
+          "matchText": "A AWS não cobra funções com mais de 512 MB",
+          "stage": "eliminate",
+          "reasonWrong": "A AWS cobra funções acima de 512 MB normalmente — a explicação não é ausência de cobrança."
+        },
+        {
+          "matchText": "O Lambda migrou a função para uma Região mais rápida",
+          "stage": "eliminate",
+          "reasonWrong": "O Lambda não 'migra a função para uma Região mais rápida' ao mudar a memória — o ganho é de CPU local."
+        },
+        {
+          "matchText": "No Lambda, a CPU é alocada proporcionalmente à memória: mais memória significa mais poder de processamento, e a execução mais curta compensa o preço maior por milissegundo",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Foi coincidência; memória não afeta desempenho no Lambda",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque tenta explicar a queda de tempo — mas negar que a memória afete o desempenho é FALSO: no Lambda a CPU é proporcional à memória, então dobrar a memória deu mais CPU e cortou o tempo; não foi coincidência."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque no Lambda a CPU é alocada proporcionalmente à memória: mais memória deu mais processamento e cortou o tempo, e a execução mais curta compensou o preço maior por milissegundo — custo praticamente igual.",
+            "correct": true
+          },
+          {
+            "text": "Porque a AWS não cobra funções acima de 512 MB: mais memória deu mais processamento e cortou o tempo, e a execução mais curta compensou o preço maior por milissegundo — custo praticamente igual.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Lambda migrou a função para uma Região mais rápida: mais memória deu mais processamento e cortou o tempo, e a execução mais curta compensou o preço maior por milissegundo — custo praticamente igual.",
+            "correct": false
+          },
+          {
+            "text": "Porque foi coincidência e memória não afeta desempenho: mais memória deu mais processamento e cortou o tempo, e a execução mais curta compensou o preço maior por milissegundo — custo praticamente igual.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-094",
+      "options": [
+        {
+          "matchText": "Reiniciar a aplicação até o erro desaparecer",
+          "stage": "eliminate",
+          "reasonWrong": "Reiniciar a aplicação não muda permissões do IAM/S3 — o AccessDenied persistirá."
+        },
+        {
+          "matchText": "Trocar a Região do bucket",
+          "stage": "eliminate",
+          "reasonWrong": "Trocar a Região do bucket não é diagnóstico de permissão — e AccessDenied não é erro de Região."
+        },
+        {
+          "matchText": "Tornar o bucket público para eliminar o erro",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque tornar o bucket público realmente FARIA o AccessDenied sumir — mas resolve expondo os dados a qualquer um (falha grave de segurança); o correto é diagnosticar as camadas de permissão, lembrando que um Deny explícito em qualquer uma prevalece."
+        },
+        {
+          "matchText": "Revisar a política da identidade que chama (role/usuário), a política do bucket e configurações como Block Public Access/criptografia exigida, lembrando que um Deny explícito em qualquer camada prevalece",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque revisar a política da identidade que chama, a política do bucket e configurações como Block Public Access/criptografia exigida — lembrando que um Deny explícito em qualquer camada prevalece — localiza a causa do AccessDenied.",
+            "correct": true
+          },
+          {
+            "text": "Porque reiniciar a aplicação até o erro sumir, revisando a política da identidade, a do bucket e o Block Public Access/criptografia — lembrando que um Deny explícito prevalece — localiza a causa do AccessDenied.",
+            "correct": false
+          },
+          {
+            "text": "Porque trocar a Região do bucket, revisando a política da identidade, a do bucket e o Block Public Access/criptografia — lembrando que um Deny explícito em qualquer camada prevalece — localiza a causa do AccessDenied.",
+            "correct": false
+          },
+          {
+            "text": "Porque tornar o bucket público, revisando a política da identidade, a do bucket e o Block Public Access/criptografia — lembrando que um Deny explícito em qualquer camada prevalece — localiza a causa do AccessDenied.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-095",
+      "options": [
+        {
+          "matchText": "Aumentar o timeout da função",
+          "stage": "eliminate",
+          "reasonWrong": "Aumentar o timeout dá mais tempo por execução — não garante slots concorrentes quando a cota estoura."
+        },
+        {
+          "matchText": "Adicionar mais memória à função",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque mais memória dá 'mais recurso' à função — mas memória afeta CPU por execução, NÃO garante SLOTS de concorrência sob throttling; reservar capacidade de execução exclusiva para a função crítica é a reserved concurrency."
+        },
+        {
+          "matchText": "Publicar mais versões da função",
+          "stage": "eliminate",
+          "reasonWrong": "Publicar mais versões só cria snapshots do código — não reserva capacidade de execução alguma."
+        },
+        {
+          "matchText": "Reserved concurrency, reservando uma fatia da concorrência da conta exclusivamente para essa função",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a reserved concurrency reserva uma fatia da concorrência da conta exclusivamente para a função crítica — garantindo que ela sempre tenha slots de execução, mesmo com o restante em throttling.",
+            "correct": true
+          },
+          {
+            "text": "Porque aumentar o timeout reserva uma fatia da concorrência da conta exclusivamente para a função crítica — garantindo que ela sempre tenha slots de execução, mesmo com o restante em throttling.",
+            "correct": false
+          },
+          {
+            "text": "Porque adicionar mais memória reserva uma fatia da concorrência da conta exclusivamente para a função crítica — garantindo que ela sempre tenha slots de execução, mesmo com o restante em throttling.",
+            "correct": false
+          },
+          {
+            "text": "Porque publicar mais versões reserva uma fatia da concorrência da conta exclusivamente para a função crítica — garantindo que ela sempre tenha slots de execução, mesmo com o restante em throttling.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-096",
+      "options": [
+        {
+          "matchText": "Baixar os logs e procurar manualmente em um editor de texto",
+          "stage": "eliminate",
+          "reasonWrong": "Baixar e procurar à mão num editor não escala nem agrega por campo — o oposto de consulta interativa."
+        },
+        {
+          "matchText": "Amazon Inspector",
+          "stage": "eliminate",
+          "reasonWrong": "Amazon Inspector avalia vulnerabilidades — não é ferramenta de consulta de logs."
+        },
+        {
+          "matchText": "CloudWatch Logs Insights, com consultas interativas (filter, parse, stats) sobre os log groups",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS X-Ray Analytics",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o X-Ray Analytics também consulta dados de observabilidade de forma interativa — mas ele analisa TRACES (latência de requisições distribuídas), não os LOGS textuais dos log groups; consultar logs com filter/parse/stats é o CloudWatch Logs Insights."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o CloudWatch Logs Insights executa consultas interativas (filter, parse, stats) sobre os log groups da função — filtrando por conteúdo, agregando por campo e recortando períodos para achar o padrão.",
+            "correct": true
+          },
+          {
+            "text": "Porque baixar os logs e procurar num editor executa consultas interativas (filter, parse, stats) sobre os log groups da função — filtrando por conteúdo, agregando por campo e recortando períodos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Inspector executa consultas interativas (filter, parse, stats) sobre os log groups da função — filtrando por conteúdo, agregando por campo e recortando períodos para achar o padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS X-Ray Analytics executa consultas interativas (filter, parse, stats) sobre os log groups da função — filtrando por conteúdo, agregando por campo e recortando períodos para achar o padrão.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-098",
+      "options": [
+        {
+          "matchText": "Não é possível; o CloudWatch só aceita métricas dos serviços AWS",
+          "stage": "eliminate",
+          "reasonWrong": "É falso que o CloudWatch só aceite métricas de serviços AWS — ele aceita métricas customizadas da aplicação."
+        },
+        {
+          "matchText": "Criar uma trilha no CloudTrail para o indicador",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CloudTrail também 'registra' eventos na conta — mas ele audita CHAMADAS DE API, não publica uma MÉTRICA de negócio com gráficos e alarmes; expor 'pedidos por minuto' no CloudWatch é enviar métricas customizadas via PutMetricData (ou EMF)."
+        },
+        {
+          "matchText": "Gravar os números em uma planilha no S3",
+          "stage": "eliminate",
+          "reasonWrong": "Gravar os números numa planilha no S3 não os torna métricas do CloudWatch — não há gráficos nem alarmes sobre isso."
+        },
+        {
+          "matchText": "Enviando métricas customizadas via API PutMetricData (ou pelo formato de logs EMF), tornando-as disponíveis para dashboards e alarmes",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque enviar métricas customizadas via API PutMetricData (ou pelo formato de logs EMF) publica 'pedidos por minuto' no CloudWatch — disponibilizando o indicador para dashboards e alarmes.",
+            "correct": true
+          },
+          {
+            "text": "Porque criar uma trilha no CloudTrail para o indicador publica 'pedidos por minuto' no CloudWatch via métrica customizada — disponibilizando o indicador para dashboards e alarmes da aplicação.",
+            "correct": false
+          },
+          {
+            "text": "Porque é impossível (o CloudWatch só aceitaria métricas AWS), então publicar 'pedidos por minuto' via métrica customizada — disponibilizando o indicador para dashboards e alarmes — não valeria.",
+            "correct": false
+          },
+          {
+            "text": "Porque gravar os números numa planilha no S3 publica 'pedidos por minuto' no CloudWatch via métrica customizada — disponibilizando o indicador para dashboards e alarmes da aplicação de negócio.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-099",
+      "options": [
+        {
+          "matchText": "AWS Health Dashboard, que mostra eventos e incidentes dos serviços, incluindo a visão personalizada do que afeta seus recursos",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Pricing Calculator",
+          "stage": "eliminate",
+          "reasonWrong": "O Pricing Calculator estima custos — não informa incidentes operacionais dos serviços."
+        },
+        {
+          "matchText": "Fazer um post em redes sociais perguntando a outros usuários",
+          "stage": "eliminate",
+          "reasonWrong": "Perguntar em redes sociais não é fonte oficial nem confiável do status dos serviços da AWS."
+        },
+        {
+          "matchText": "Amazon Route 53 Resolver logs",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque os Route 53 Resolver logs são diagnóstico de infraestrutura da AWS — mas eles registram CONSULTAS DNS da sua VPC, não o estado dos SERVIÇOS da AWS; confirmar um incidente em andamento que afeta a conta é o AWS Health Dashboard."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Health Dashboard mostra eventos e incidentes dos serviços da AWS, incluindo a visão personalizada do que afeta seus recursos — confirmando rapidamente um problema na infraestrutura da Região.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Pricing Calculator mostra eventos e incidentes dos serviços da AWS, incluindo a visão personalizada do que afeta seus recursos — confirmando rapidamente um problema na infraestrutura da Região.",
+            "correct": false
+          },
+          {
+            "text": "Porque um post em redes sociais mostra eventos e incidentes dos serviços da AWS, incluindo a visão personalizada do que afeta seus recursos — confirmando rapidamente um problema na infraestrutura da Região.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Route 53 Resolver logs mostram eventos e incidentes dos serviços da AWS, incluindo a visão personalizada do que afeta seus recursos — confirmando rapidamente um problema na infraestrutura da Região.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "dva-ini-100",
+      "options": [
+        {
+          "matchText": "Uma lista alfabética dos buckets da conta",
+          "stage": "eliminate",
+          "reasonWrong": "Uma lista de buckets não tem relação com tracing de microsserviços — não mostra latência nem erros."
+        },
+        {
+          "matchText": "O service map: um grafo dos serviços e suas dependências com latências e taxas de erro em cada nó e aresta",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O diagrama de rede da VPC",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o diagrama da VPC também é uma visão gráfica da arquitetura — mas ele mostra a topologia de REDE (sub-redes, gateways), não a saúde da cadeia de chamadas; identificar o componente lento/com erro é o service map do X-Ray, com latências e taxas de erro por nó."
+        },
+        {
+          "matchText": "A fatura detalhada por microsserviço",
+          "stage": "eliminate",
+          "reasonWrong": "A fatura por microsserviço mostra custo, não desempenho — não aponta o componente lento na cadeia."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o service map do X-Ray desenha um grafo dos serviços e dependências com latências e taxas de erro em cada nó e aresta — revelando de imediato qual componente está lento ou falhando na cadeia.",
+            "correct": true
+          },
+          {
+            "text": "Porque uma lista alfabética dos buckets desenha um grafo dos serviços e dependências com latências e taxas de erro em cada nó e aresta — revelando qual componente está lento ou falhando na cadeia.",
+            "correct": false
+          },
+          {
+            "text": "Porque o diagrama de rede da VPC desenha um grafo dos serviços e dependências com latências e taxas de erro em cada nó e aresta — revelando qual componente está lento ou falhando na cadeia.",
+            "correct": false
+          },
+          {
+            "text": "Porque a fatura detalhada por microsserviço desenha um grafo dos serviços e dependências com latências e taxas de erro em cada nó e aresta — revelando qual componente está lento ou falhando na cadeia.",
+            "correct": false
+          }
+        ]
+      }
     }
   ]
 }
