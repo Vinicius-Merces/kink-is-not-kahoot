@@ -281,6 +281,40 @@
                 return;
             }
 
+            // Conclui um login iniciado por redirect (mobile / fallback de popup):
+            // ao retornar do provedor Google, o Firebase entrega o resultado aqui.
+            try {
+                const redirectResult = await auth.getRedirectResult();
+                if (redirectResult && redirectResult.user) {
+                    const u = redirectResult.user;
+                    if (redirectResult.additionalUserInfo && redirectResult.additionalUserInfo.isNewUser && typeof db !== 'undefined') {
+                        try {
+                            await db.collection('users').doc(u.uid).set({
+                                uid: u.uid,
+                                name: u.displayName,
+                                email: u.email,
+                                photoURL: u.photoURL,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                quizzesCreated: 0,
+                                totalPlays: 0
+                            });
+                        } catch (_) { /* doc opcional — segue o fluxo */ }
+                    }
+                    let target = 'my-quizzes.html';
+                    try {
+                        target = sessionStorage.getItem('cp_login_redirect') || target;
+                        sessionStorage.removeItem('cp_login_redirect');
+                    } catch (_) {}
+                    window.location.href = target;
+                    return;
+                }
+            } catch (error) {
+                console.error('Erro ao concluir login por redirect:', error);
+                if (error.code === 'auth/unauthorized-domain') {
+                    alert('Domínio não autorizado. Contate o administrador.\nDomínio atual: ' + window.location.hostname);
+                }
+            }
+
             // Elementos
             const loginModal = document.getElementById('loginModal');
             const hostBtn = document.getElementById('hostBtn');
@@ -292,14 +326,39 @@
             // Para onde ir após o login (depende de qual botão abriu o modal)
             let loginRedirectTarget = 'my-quizzes.html';
 
+            // Detecta ambiente mobile/touch, onde popups de OAuth costumam ser
+            // bloqueados (iOS Safari, navegadores in-app, PWA em standalone).
+            // Nesses casos usamos o fluxo de redirect, confiável em todo navegador.
+            function isMobileEnv() {
+                return window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
+                    || /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent || '');
+            }
+
+            function startRedirectLogin(provider) {
+                try { sessionStorage.setItem('cp_login_redirect', loginRedirectTarget); } catch (_) {}
+                return auth.signInWithRedirect(provider);
+            }
+
             // Função de login com Google
             async function loginWithGoogle() {
                 if (!auth) return;
 
-                try {
-                    const provider = new firebase.auth.GoogleAuthProvider();
-                    provider.setCustomParameters({ prompt: 'select_account' });
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
 
+                // Mobile: vai direto ao redirect (o popup falha nesses navegadores).
+                if (isMobileEnv()) {
+                    try {
+                        await startRedirectLogin(provider);
+                    } catch (error) {
+                        console.error('Erro no login (redirect):', error);
+                        alert('Erro ao iniciar o login: ' + (error.message || error.code));
+                    }
+                    return; // a página será recarregada pelo provedor
+                }
+
+                // Desktop: popup, com fallback automático para redirect se bloqueado.
+                try {
                     const result = await auth.signInWithPopup(provider);
 
                     if (typeof Utils !== 'undefined') {
@@ -315,13 +374,23 @@
                 } catch (error) {
                     console.error('Erro no login:', error);
 
-                    if (error.code === 'auth/popup-blocked') {
-                        alert('Pop-up bloqueado! Permita pop-ups para este site e tente novamente.');
-                    } else if (error.code === 'auth/unauthorized-domain') {
-                        alert('Domínio não autorizado. Contate o administrador.\nDomínio atual: ' + window.location.hostname);
-                    } else {
-                        alert('Erro: ' + error.message);
+                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                        return; // usuário cancelou — não faz nada
                     }
+                    if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment') {
+                        try {
+                            await startRedirectLogin(provider);
+                            return;
+                        } catch (_) {
+                            alert('Não foi possível abrir o login. Permita pop-ups ou tente em outro navegador.');
+                            return;
+                        }
+                    }
+                    if (error.code === 'auth/unauthorized-domain') {
+                        alert('Domínio não autorizado. Contate o administrador.\nDomínio atual: ' + window.location.hostname);
+                        return;
+                    }
+                    alert('Erro: ' + error.message);
                 }
             }
 
