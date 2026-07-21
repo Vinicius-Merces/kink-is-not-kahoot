@@ -16236,6 +16236,3262 @@
           }
         ]
       }
+    },
+    {
+      "questionId": "clf-avc-169",
+      "options": [
+        {
+          "matchText": "Ativar o controle de versões (S3 Versioning) em um bucket contendo arquivos vazios de metadados lógicos.",
+          "stage": "eliminate",
+          "reasonWrong": "Ativar versionamento em si não é uma cobrança de rede — o custo viria do armazenamento das versões, não de transferência de dados."
+        },
+        {
+          "matchText": "A replicação automatizada de objetos entre buckets localizados dentro da mesma Zona de Disponibilidade física usando chaves do KMS gerenciadas pela AWS.",
+          "stage": "eliminate",
+          "reasonWrong": "Replicação e chaves KMS têm custos próprios (armazenamento, requisições), mas a pergunta é sobre custo VARIÁVEL DE REDE — que é a saída de dados para a internet."
+        },
+        {
+          "matchText": "A transferência de dados de saída (Data Transfer Out) enviando arquivos de um bucket do S3 para usuários finais localizados na internet pública.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O tráfego de dados de entrada (Data Transfer In) realizando uploads de mídias de relatórios originados em computadores locais.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também é movimentação de dados no S3 — mas o Data Transfer IN (uploads para o bucket) é gratuito nas tabelas padrão; o que gera custo variável de rede é o Data Transfer OUT, enviando arquivos do bucket para a internet."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a transferência de dados de saída (Data Transfer Out) para usuários na internet é cobrada nas tabelas padrão do S3 — o custo variável de rede que a pergunta pede, além do armazenamento por GB.",
+            "correct": true
+          },
+          {
+            "text": "Porque ativar o versionamento num bucket de arquivos vazios é cobrado nas tabelas padrão do S3 como transferência de saída — o custo variável de rede que a pergunta pede, além do armazenamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque a replicação entre buckets na mesma AZ com KMS é cobrada nas tabelas padrão do S3 como transferência de saída — o custo variável de rede que a pergunta pede, além do armazenamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque o tráfego de entrada (Data Transfer In) dos uploads é cobrado nas tabelas padrão do S3 como transferência de saída — o custo variável de rede que a pergunta pede, além do armazenamento por GB.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-170",
+      "options": [
+        {
+          "matchText": "AWS Outposts Rack Storage.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Outposts também estende a AWS ao data center local — mas ele instala racks INTEIROS da AWS no local (compute + storage), não é a ponte de BLOCO via iSCSI com cache local para estender capacidade; isso é o Storage Gateway (Volume Gateway)."
+        },
+        {
+          "matchText": "AWS Direct Connect.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Direct Connect é um link de rede dedicado até a AWS — não fornece o armazenamento de bloco iSCSI com cache local para as aplicações on-premises."
+        },
+        {
+          "matchText": "AWS Storage Gateway (especificamente o Volume Gateway).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon S3 Glacier Flexible Retrieval.",
+          "stage": "eliminate",
+          "reasonWrong": "S3 Glacier Flexible Retrieval é arquivamento de objetos com recuperação lenta — não é o armazenamento de bloco iSCSI de alta performance com cache local."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Storage Gateway (Volume Gateway) conecta as aplicações locais a armazenamento de bloco na AWS via iSCSI, com cache local dos arquivos mais acessados — estendendo a capacidade e mitigando a latência.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Outposts Rack Storage conecta as aplicações locais a armazenamento de bloco na AWS via iSCSI, com cache local dos arquivos mais acessados — estendendo a capacidade e mitigando a latência.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Direct Connect conecta as aplicações locais a armazenamento de bloco na AWS via iSCSI, com cache local dos arquivos mais acessados — estendendo a capacidade e mitigando a latência.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon S3 Glacier Flexible Retrieval conecta as aplicações locais a armazenamento de bloco na AWS via iSCSI, com cache local dos arquivos mais acessados — estendendo a capacidade e mitigando a latência.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-171",
+      "options": [
+        {
+          "matchText": "Instâncias Otimizadas para Computação (família C).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Instâncias de Propósito Geral expansíveis (família T).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a família T também roda aplicações web de propósito geral — mas ela é baseada em CRÉDITOS de CPU (burst), com desempenho que pode ser limitado sob carga constante; performance de vCPU dedicada e estável para computação intensa é a família C (otimizada para computação)."
+        },
+        {
+          "matchText": "Instâncias Otimizadas para Memória (família R).",
+          "stage": "eliminate",
+          "reasonWrong": "A família R é otimizada para memória (muita RAM) — não para o processamento intenso de vCPU descrito."
+        },
+        {
+          "matchText": "Instâncias Otimizadas para Armazenamento (família I).",
+          "stage": "eliminate",
+          "reasonWrong": "A família I é otimizada para armazenamento (alto I/O de disco) — não para a computação flutuante paralela de alta velocidade."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as instâncias otimizadas para computação (família C) entregam vCPU dedicada de alta velocidade e estável, sem gargalos de créditos — sob medida para a computação flutuante paralela e os algoritmos de engenharia.",
+            "correct": true
+          },
+          {
+            "text": "Porque as instâncias de propósito geral expansíveis (família T) entregam vCPU dedicada de alta velocidade e estável, sem gargalos de créditos — sob medida para a computação flutuante paralela descrita.",
+            "correct": false
+          },
+          {
+            "text": "Porque as instâncias otimizadas para memória (família R) entregam vCPU dedicada de alta velocidade e estável, sem gargalos de créditos — sob medida para a computação flutuante paralela e os algoritmos de engenharia.",
+            "correct": false
+          },
+          {
+            "text": "Porque as instâncias otimizadas para armazenamento (família I) entregam vCPU dedicada de alta velocidade e estável, sem gargalos de créditos — sob medida para a computação flutuante paralela descrita.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-172",
+      "options": [
+        {
+          "matchText": "Ativar o recurso de Bloqueio de Acesso Público do Amazon S3 (S3 Block Public Access).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Block Public Access também é um controle de segurança do S3 — mas ele impede ACESSO PÚBLICO ao bucket, não a exclusão/reescrita por usuários internos autorizados; travar os objetos contra qualquer alteração por 5 anos, à prova de admin/Root, é o S3 Object Lock em modo Compliance."
+        },
+        {
+          "matchText": "Ativar chaves de criptografia gerenciadas pelo cliente (Customer managed keys) com o AWS KMS.",
+          "stage": "eliminate",
+          "reasonWrong": "As customer managed keys criptografam os dados (confidencialidade) — não impedem que os objetos sejam deletados ou reescritos."
+        },
+        {
+          "matchText": "Mover os objetos lógicos de forma imediata para a classe de arquivamento S3 Glacier Deep Archive.",
+          "stage": "eliminate",
+          "reasonWrong": "Mover para o Glacier Deep Archive muda a classe de armazenamento (custo) — não impõe imutabilidade WORM contra exclusão pelo administrador."
+        },
+        {
+          "matchText": "Amazon S3 Object Lock no modo de Conformidade (Compliance Mode).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o S3 Object Lock em modo Compliance trava os objetos como imutáveis pelo período definido: nem o administrador ou o Root podem deletá-los ou reescrevê-los por 5 anos — exatamente a regra trabalhista exigida.",
+            "correct": true
+          },
+          {
+            "text": "Porque o S3 Block Public Access trava os objetos como imutáveis pelo período definido: nem o administrador ou o Root podem deletá-los ou reescrevê-los por 5 anos — exatamente a regra trabalhista exigida.",
+            "correct": false
+          },
+          {
+            "text": "Porque as customer managed keys travam os objetos como imutáveis pelo período definido: nem o administrador ou o Root podem deletá-los ou reescrevê-los por 5 anos — exatamente a regra trabalhista exigida.",
+            "correct": false
+          },
+          {
+            "text": "Porque mover para o Glacier Deep Archive trava os objetos como imutáveis pelo período definido: nem o administrador ou o Root podem deletá-los ou reescrevê-los por 5 anos — exatamente a regra trabalhista exigida.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-173",
+      "options": [
+        {
+          "matchText": "O tráfego será criptografado de forma simétrica compulsória através de playbooks do AWS Systems Manager.",
+          "stage": "eliminate",
+          "reasonWrong": "O tráfego não é criptografado 'por playbooks do Systems Manager' — o Security Group apenas decide liberar ou não o retorno da conexão."
+        },
+        {
+          "matchText": "O tráfego de resposta será liberado automaticamente, pois os Security Groups operam de forma stateful e gerenciam as sessões de conexões estabelecidas de entrada.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O tráfego de resposta sofrerá um bloqueio instantâneo, a menos que o engenheiro cadastre manualmente uma regra de saída (Outbound) explícita liberando a porta 443 na tabela.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque descreve o comportamento STATELESS (exigir regra de saída) — mas isso é da NACL; o Security Group é STATEFUL, então o tráfego de resposta na porta 443 é liberado AUTOMATICAMENTE, sem cadastrar regra de Outbound."
+        },
+        {
+          "matchText": "A porta de saída mudará de forma randômica por inteligência perimetral do AWS Shield Advanced para evitar rastreamentos de pacotes.",
+          "stage": "eliminate",
+          "reasonWrong": "A porta de saída não muda randomicamente pelo Shield Advanced — o Security Group devolve a resposta pela conexão estabelecida."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Security Groups são stateful e gerenciam as sessões de conexões de entrada estabelecidas — o tráfego de resposta na porta 443 é liberado automaticamente na saída, sem regra de Outbound manual.",
+            "correct": true
+          },
+          {
+            "text": "Porque o tráfego de resposta é criptografado por playbooks do Systems Manager, já que os Security Groups gerenciam as sessões de entrada estabelecidas e liberam o retorno na porta 443 automaticamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque o tráfego de resposta é bloqueado a menos que uma regra de Outbound na 443 seja cadastrada, já que os Security Groups não gerenciam as sessões de entrada para liberar o retorno automaticamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a porta de saída muda randomicamente pelo Shield Advanced, já que os Security Groups gerenciam as sessões de entrada estabelecidas e liberam o retorno na porta 443 automaticamente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-174",
+      "options": [
+        {
+          "matchText": "Você paga uma taxa inicial de configuração baseada no tamanho da AMI (Amazon Machine Image) selecionada no catálogo da AWS.",
+          "stage": "eliminate",
+          "reasonWrong": "Não há 'taxa inicial de configuração baseada no tamanho da AMI' no On-Demand — cobra-se pelo tempo de execução."
+        },
+        {
+          "matchText": "Você paga estritamente pelos segundos em que a instância EC2 permanece ligada (estado Running), com um mínimo cobrado de 60 segundos por ciclo de ativação.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "A AWS continua cobrando o valor total de processamento de vCPU e memória RAM da instância mesmo quando ela é colocada em estado parado (Stopped) pelo console.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque trata da cobrança conforme o estado da instância — mas está errada: uma instância PARADA (Stopped) NÃO gera cobrança de vCPU/RAM (só de armazenamento EBS); On-Demand cobra por segundo enquanto ela está Running, com mínimo de 60s."
+        },
+        {
+          "matchText": "A cobrança ocorre em pacotes fixos mensais imutáveis, independente da máquina ser desligada (estado Stopped) ou deletada no dia seguinte.",
+          "stage": "eliminate",
+          "reasonWrong": "A cobrança On-Demand não é em pacotes fixos mensais imutáveis — é por segundo de uso, parando quando a instância é desligada."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque no On-Demand (Linux) você paga pelos segundos em que a instância fica Running, com mínimo de 60 segundos por ativação — sem taxa inicial e sem cobrança de compute quando ela está parada.",
+            "correct": true
+          },
+          {
+            "text": "Porque no On-Demand você paga uma taxa inicial baseada no tamanho da AMI, além dos segundos em Running com mínimo de 60s — sem cobrança de compute quando a instância está parada.",
+            "correct": false
+          },
+          {
+            "text": "Porque no On-Demand a AWS cobra vCPU e RAM mesmo com a instância parada, além dos segundos em Running com mínimo de 60s — no modelo de faturamento por tempo de execução do EC2.",
+            "correct": false
+          },
+          {
+            "text": "Porque no On-Demand a cobrança é em pacotes fixos mensais imutáveis, independentemente dos segundos em Running com mínimo de 60s — no modelo de faturamento por tempo de execução do EC2.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-175",
+      "options": [
+        {
+          "matchText": "Amazon Elastic File System (Amazon EFS).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o EFS também é um sistema de arquivos compartilhado, gerenciado e montável por muitas instâncias — mas ele usa NFS para LINUX; um file system compartilhado para servidores WINDOWS (protocolo SMB) é o Amazon FSx for Windows File Server."
+        },
+        {
+          "matchText": "Amazon Elastic Block Store (Amazon EBS).",
+          "stage": "eliminate",
+          "reasonWrong": "O EBS é armazenamento de bloco anexado a uma instância por vez — não é o file system de rede compartilhado por centenas de instâncias."
+        },
+        {
+          "matchText": "Amazon EC2 Instance Store NVMe.",
+          "stage": "eliminate",
+          "reasonWrong": "O Instance Store NVMe é disco temporário local de uma única instância — não é compartilhado nem persistente entre servidores."
+        },
+        {
+          "matchText": "Amazon FSx for Windows File Server.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon FSx for Windows File Server é o file system de rede compartilhado (SMB), escalável e altamente disponível, montável por centenas de instâncias Windows simultaneamente — exatamente a arquitetura do ERP.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon EFS é o file system de rede compartilhado (SMB), escalável e altamente disponível, montável por centenas de instâncias Windows simultaneamente — exatamente a arquitetura do ERP corporativo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon EBS é o file system de rede compartilhado (SMB), escalável e altamente disponível, montável por centenas de instâncias Windows simultaneamente — exatamente a arquitetura do ERP corporativo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon EC2 Instance Store NVMe é o file system de rede compartilhado (SMB), escalável e altamente disponível, montável por centenas de instâncias Windows simultaneamente — exatamente a arquitetura do ERP.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-176",
+      "options": [
+        {
+          "matchText": "Virtual Private Gateway.",
+          "stage": "eliminate",
+          "reasonWrong": "O Virtual Private Gateway é o lado AWS de uma VPN até on-premises — não é a borda para a internet pública aberta."
+        },
+        {
+          "matchText": "NAT Gateway.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o NAT Gateway também dá acesso à internet para a VPC — mas só de SAÍDA para recursos privados (unidirecional); permitir a comunicação BIDIRECIONAL do portal web público com a internet é o Internet Gateway."
+        },
+        {
+          "matchText": "AWS Direct Connect Location.",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Direct Connect Location' é ponto de presença de link dedicado — não é o componente que liga a sub-rede pública à internet aberta."
+        },
+        {
+          "matchText": "Internet Gateway.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Internet Gateway, associado à tabela de rotas da sub-rede pública, permite o fluxo bidirecional de pacotes entre o portal web e a internet pública — exatamente a conectividade perimetral pedida.",
+            "correct": true
+          },
+          {
+            "text": "Porque o NAT Gateway, associado à tabela de rotas da sub-rede pública, permite o fluxo bidirecional de pacotes entre o portal web e a internet pública — exatamente a conectividade perimetral pedida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Virtual Private Gateway, associado à tabela de rotas da sub-rede pública, permite o fluxo bidirecional de pacotes entre o portal web e a internet pública — exatamente a conectividade perimetral pedida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Direct Connect Location, associado à tabela de rotas da sub-rede pública, permite o fluxo bidirecional de pacotes entre o portal web e a internet pública — exatamente a conectividade perimetral pedida.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-177",
+      "options": [
+        {
+          "matchText": "S3 Intelligent-Tiering Data Store.",
+          "stage": "eliminate",
+          "reasonWrong": "Intelligent-Tiering move objetos automaticamente entre camadas por padrão de acesso — não é a classe de arquivamento com atraso de recuperação assumido de antemão."
+        },
+        {
+          "matchText": "S3 Glacier Flexible Retrieval (antigo S3 Glacier Standard).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "S3 One Zone-Infrequent Access (S3 One Zone-IA).",
+          "stage": "eliminate",
+          "reasonWrong": "One Zone-IA mantém recuperação imediata e guarda em uma única AZ (menos durável) — não reduz custo ao nível do arquivamento com atraso de horas."
+        },
+        {
+          "matchText": "S3 Standard-Infrequent Access (S3 Standard-IA).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Standard-IA também é para acesso infrequente com custo reduzido — mas ele mantém recuperação IMEDIATA (milissegundos); aceitar atraso de minutos a horas para maximizar a economia é o Glacier Flexible Retrieval."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o S3 Glacier Flexible Retrieval aceita recuperação de minutos a horas em troca do menor custo de armazenamento em repouso — exatamente o perfil dos backups fiscais após os 30 dias regulatórios.",
+            "correct": true
+          },
+          {
+            "text": "Porque o S3 Intelligent-Tiering Data Store aceita recuperação de minutos a horas em troca do menor custo de armazenamento em repouso — exatamente o perfil dos backups fiscais após os 30 dias regulatórios.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 One Zone-IA aceita recuperação de minutos a horas em troca do menor custo de armazenamento em repouso — exatamente o perfil dos backups fiscais após os 30 dias regulatórios.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Standard-IA aceita recuperação de minutos a horas em troca do menor custo de armazenamento em repouso — exatamente o perfil dos backups fiscais após os 30 dias regulatórios.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-178",
+      "options": [
+        {
+          "matchText": "Amazon DynamoDB Serverless Store.",
+          "stage": "eliminate",
+          "reasonWrong": "DynamoDB é NoSQL de chave-valor — não é o motor relacional (SQL Server) que o CIO quer migrar."
+        },
+        {
+          "matchText": "Amazon ElastiCache Redis Cluster.",
+          "stage": "eliminate",
+          "reasonWrong": "ElastiCache Redis é cache em memória — não é um banco de dados relacional persistente."
+        },
+        {
+          "matchText": "Instâncias do Amazon EC2 configuradas com volumes de criptografia EBS.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o EC2 com EBS criptografado também roda um banco relacional na AWS — mas nele o CLIENTE provisiona o servidor, aplica patches e configura o Multi-AZ manualmente; delegar tudo isso ao provedor é o Amazon RDS."
+        },
+        {
+          "matchText": "Amazon Relational Database Service (Amazon RDS).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon RDS delega ao provedor o provisionamento, os patches automáticos e o espelhamento Multi-AZ, deixando ao cliente só as queries e tabelas — exatamente o escopo de banco relacional gerenciado descrito.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon DynamoDB Serverless Store delega ao provedor o provisionamento, os patches e o espelhamento Multi-AZ, deixando ao cliente só as queries e tabelas — exatamente o escopo descrito.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon ElastiCache Redis Cluster delega ao provedor o provisionamento, os patches e o espelhamento Multi-AZ, deixando ao cliente só as queries e tabelas — exatamente o escopo descrito.",
+            "correct": false
+          },
+          {
+            "text": "Porque instâncias EC2 com volumes EBS criptografados delegam ao provedor o provisionamento, os patches e o espelhamento Multi-AZ, deixando ao cliente só as queries e tabelas — exatamente o escopo descrito.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-179",
+      "options": [
+        {
+          "matchText": "Application Load Balancer Periphery.",
+          "stage": "eliminate",
+          "reasonWrong": "'Application Load Balancer Periphery' não é um componente de segurança de rede real — não filtra tráfego por CIDR na fronteira da sub-rede."
+        },
+        {
+          "matchText": "Security Group (Grupo de Segurança).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Security Group também bloqueia tráfego indesejado — mas ele é STATEFUL e atua na interface de CADA instância, não isola a fronteira de sub-redes INTEIRAS com tabelas numeradas; isso é a Network ACL."
+        },
+        {
+          "matchText": "AWS Key Management Service Endpoint.",
+          "stage": "eliminate",
+          "reasonWrong": "O KMS Endpoint é um VPC Endpoint para acessar o serviço de chaves — não filtra tráfego de rede por bloco de IP."
+        },
+        {
+          "matchText": "Network Access Control List (Network ACL).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Network ACL isola de forma stateless as sub-redes inteiras com regras numeradas, bloqueando explicitamente o bloco CIDR malicioso — exatamente a barreira perimetral rígida descrita.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Application Load Balancer Periphery isola de forma stateless as sub-redes inteiras com regras numeradas, bloqueando explicitamente o bloco CIDR malicioso — exatamente a barreira perimetral rígida descrita.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Security Group isola de forma stateless as sub-redes inteiras com regras numeradas, bloqueando explicitamente o bloco CIDR malicioso — exatamente a barreira perimetral rígida descrita.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS KMS Endpoint isola de forma stateless as sub-redes inteiras com regras numeradas, bloqueando explicitamente o bloco CIDR malicioso — exatamente a barreira perimetral rígida descrita.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-180",
+      "options": [
+        {
+          "matchText": "Utilizar o Application Load Balancer (ALB), que possui suporte nativo ao protocolo WebSockets em conexões HTTP/HTTPS.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Provisionar o Classic Load Balancer (CLB) ativando o modo de roteamento compulsório 'Strict Web Session'.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o CLB também é um balanceador legado do ELB — mas ele não tem o suporte nativo e moderno a WebSockets do ALB (e 'Strict Web Session' não existe); o balanceador com suporte nativo a WebSockets na Camada 7 é o Application Load Balancer."
+        },
+        {
+          "matchText": "Configurar o Amazon Route 53 com tabelas de políticas de roteamento geoproporcionais síncronas.",
+          "stage": "eliminate",
+          "reasonWrong": "Route 53 é DNS — não faz balanceamento de conexões persistentes bidirecionais de WebSockets."
+        },
+        {
+          "matchText": "Substituir a camada de balanceamento utilizando tópicos do Amazon SNS associados a sub-redes stateless.",
+          "stage": "eliminate",
+          "reasonWrong": "Tópicos do SNS são para notificações pub/sub — não substituem um balanceador de carga para conexões WebSockets."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Application Load Balancer tem suporte nativo ao protocolo WebSockets em conexões HTTP/HTTPS — sustentando as conexões bidirecionais persistentes do chat na Camada 7, como exigido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Classic Load Balancer, com o modo 'Strict Web Session', tem suporte nativo ao protocolo WebSockets — sustentando as conexões bidirecionais persistentes do chat na Camada 7, como exigido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Route 53, com roteamento geoproporcional síncrono, tem suporte nativo ao protocolo WebSockets — sustentando as conexões bidirecionais persistentes do chat na Camada 7, como exigido.",
+            "correct": false
+          },
+          {
+            "text": "Porque os tópicos do Amazon SNS associados a sub-redes stateless têm suporte nativo ao protocolo WebSockets — sustentando as conexões bidirecionais persistentes do chat na Camada 7, como exigido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-181",
+      "options": [
+        {
+          "matchText": "Mover os dados analíticos temporariamente para tabelas globais do Amazon DynamoDB usando o AWS Artifact.",
+          "stage": "eliminate",
+          "reasonWrong": "Mover dados para tabelas globais do DynamoDB via 'AWS Artifact' não faz sentido (Artifact é relatórios de conformidade) — não é uma estratégia de escala do RDS."
+        },
+        {
+          "matchText": "Configurar o banco para converter os dados relacionais em fita magnética fria com o Amazon S3 Glacier Flexible Retrieval.",
+          "stage": "eliminate",
+          "reasonWrong": "Converter dados relacionais em 'fita magnética fria' no Glacier inviabiliza consultas SQL de BI — não é uma estratégia válida."
+        },
+        {
+          "matchText": "Criar uma ou mais réplicas de leitura (Read Replicas) do RDS e direcionar o tráfego das ferramentas de BI para os endpoints delas.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Direcionar as queries de BI para o nó standby secundário que faz parte da arquitetura do Multi-AZ.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o nó standby do Multi-AZ também é uma cópia do banco — mas ele existe SÓ para failover (a AWS não recomenda nem expõe consultas diretas nele); escalar leituras de BI pesadas sem afetar as escritas é usar Read Replicas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque criar Read Replicas do RDS e direcionar as consultas de BI para os endpoints delas absorve a carga pesada sem degradar as transações de escrita no banco principal — a estratégia correta para o cenário.",
+            "correct": true
+          },
+          {
+            "text": "Porque mover os dados para tabelas globais do DynamoDB via AWS Artifact absorve a carga pesada sem degradar as transações de escrita no banco principal — a estratégia correta para o cenário do banco digital.",
+            "correct": false
+          },
+          {
+            "text": "Porque converter os dados relacionais em fita magnética fria no Glacier absorve a carga pesada sem degradar as transações de escrita no banco principal — a estratégia correta para o cenário do banco digital.",
+            "correct": false
+          },
+          {
+            "text": "Porque direcionar as queries de BI para o nó standby do Multi-AZ absorve a carga pesada sem degradar as transações de escrita no banco principal — a estratégia correta para o cenário do banco digital.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-182",
+      "options": [
+        {
+          "matchText": "Zonas hospedadas públicas (Public Hosted Zones).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também é um tipo de zona hospedada do Route 53 — mas a zona PÚBLICA publica os registros para toda a internet; deixar os registros DNS visíveis SÓ dentro da VPC privada exige uma zona hospedada PRIVADA."
+        },
+        {
+          "matchText": "Políticas de roteamento de geolocalização travadas em modo interno.",
+          "stage": "eliminate",
+          "reasonWrong": "'Roteamento de geolocalização travado em modo interno' não é um recurso real do Route 53 para isolar DNS à VPC."
+        },
+        {
+          "matchText": "Mapeamentos estáticos de tabelas de roteamento stateless de Internet Gateways.",
+          "stage": "eliminate",
+          "reasonWrong": "'Mapeamentos estáticos em tabelas de Internet Gateway' não existem como recurso de DNS — Internet Gateway é roteamento de rede, não resolução de nomes."
+        },
+        {
+          "matchText": "Zonas hospedadas privadas (Private Hosted Zones).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as zonas hospedadas privadas do Route 53 mantêm os registros DNS visíveis e resolvíveis apenas dentro da VPC privada — inacessíveis para qualquer usuário ou robô fora dela, exatamente o exigido.",
+            "correct": true
+          },
+          {
+            "text": "Porque as zonas hospedadas públicas do Route 53 mantêm os registros DNS visíveis e resolvíveis apenas dentro da VPC privada — inacessíveis para qualquer usuário ou robô fora dela, exatamente o exigido.",
+            "correct": false
+          },
+          {
+            "text": "Porque as políticas de geolocalização travadas em modo interno mantêm os registros DNS visíveis apenas dentro da VPC privada — inacessíveis para qualquer usuário ou robô fora dela, exatamente o exigido.",
+            "correct": false
+          },
+          {
+            "text": "Porque os mapeamentos estáticos em tabelas de Internet Gateway mantêm os registros DNS visíveis apenas dentro da VPC privada — inacessíveis para qualquer usuário ou robô fora dela, exatamente o exigido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-183",
+      "options": [
+        {
+          "matchText": "Ativar réplicas de leitura síncronas Multi-AZ no console do DynamoDB.",
+          "stage": "eliminate",
+          "reasonWrong": "'Réplicas de leitura síncronas Multi-AZ' não existe como recurso do DynamoDB — esse conceito é do RDS."
+        },
+        {
+          "matchText": "Amazon DynamoDB Accelerator (DAX).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon ElastiCache Memcached Cluster.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o ElastiCache Memcached também é cache em memória gerenciado — mas ele é um serviço GENÉRICO e independente que exige reescrever a lógica de acesso; o cache NATIVO do DynamoDB, sem reescrever o código, é o DAX."
+        },
+        {
+          "matchText": "Mover as variáveis estáveis para o AWS Systems Manager Parameter Store.",
+          "stage": "eliminate",
+          "reasonWrong": "Mover variáveis estáveis para o Parameter Store guarda configuração — não é um cache de leituras de dados da tabela."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon DynamoDB Accelerator (DAX) é o cache em memória nativo e totalmente gerenciado do DynamoDB, reduzindo leituras a microssegundos sem reescrever a lógica de acesso da aplicação — exatamente o pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque as réplicas de leitura síncronas Multi-AZ são o cache em memória nativo do DynamoDB, reduzindo leituras a microssegundos sem reescrever a lógica de acesso da aplicação — exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon ElastiCache Memcached Cluster é o cache em memória nativo do DynamoDB, reduzindo leituras a microssegundos sem reescrever a lógica de acesso da aplicação — exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque mover as variáveis estáveis para o Parameter Store é o cache em memória nativo do DynamoDB, reduzindo leituras a microssegundos sem reescrever a lógica de acesso da aplicação — exatamente o pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-184",
+      "options": [
+        {
+          "matchText": "Network Load Balancer (NLB).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o NLB também pode ficar na frente de funções (via alvo Lambda) — mas ele opera na Camada 4, sem inspeção de payload, chaves de API, throttling nem mapeamento amigável de URLs; essa governança de API completa é o Amazon API Gateway."
+        },
+        {
+          "matchText": "AWS Systems Manager OpsCenter.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Systems Manager OpsCenter agrega itens operacionais para investigação — não é a porta de entrada de uma API."
+        },
+        {
+          "matchText": "Amazon Route 53 Traffic Flow.",
+          "stage": "eliminate",
+          "reasonWrong": "Route 53 Traffic Flow é roteamento de DNS avançado — não valida payloads nem gerencia chaves de API ou throttling."
+        },
+        {
+          "matchText": "Amazon API Gateway.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon API Gateway valida payloads na Camada 7, gerencia chaves de parceiros, aplica throttling e mapeia URLs amigáveis — a porta de entrada única para as funções Lambda que a governança exige.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Network Load Balancer valida payloads na Camada 7, gerencia chaves de parceiros, aplica throttling e mapeia URLs amigáveis — a porta de entrada única para as funções Lambda que a governança exige.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Systems Manager OpsCenter valida payloads na Camada 7, gerencia chaves de parceiros, aplica throttling e mapeia URLs amigáveis — a porta de entrada única para as funções Lambda que a governança exige.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Route 53 Traffic Flow valida payloads na Camada 7, gerencia chaves de parceiros, aplica throttling e mapeia URLs amigáveis — a porta de entrada única para as funções Lambda que a governança exige.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-185",
+      "options": [
+        {
+          "matchText": "AWS Elastic Beanstalk Edge Mode.",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Elastic Beanstalk Edge Mode' não existe — o Beanstalk implanta aplicações em servidores de uma Região, não roda código na borda mundial."
+        },
+        {
+          "matchText": "AWS Lambda@Edge (ou CloudFront Functions).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon Route 53 Latency Tables.",
+          "stage": "eliminate",
+          "reasonWrong": "'Route 53 Latency Tables' não é um recurso real de execução de código — o Route 53 apenas resolve DNS."
+        },
+        {
+          "matchText": "AWS Fargate Serverless Cluster.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Fargate também roda código gerenciado sem servidor — mas ele executa CONTÊINERES em uma Região específica, não funções curtas replicadas em CADA ponto de presença global; computação perimetral nas Edge Locations é o Lambda@Edge/CloudFront Functions."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Lambda@Edge (ou CloudFront Functions) executa o código diretamente nas Edge Locations, o mais próximo possível dos usuários mundiais — sem a requisição viajar até os servidores principais, exatamente o pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Elastic Beanstalk Edge Mode executa o código diretamente nas Edge Locations, o mais próximo possível dos usuários mundiais — sem a requisição viajar até os servidores principais, exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Route 53 Latency Tables executa o código diretamente nas Edge Locations, o mais próximo possível dos usuários mundiais — sem a requisição viajar até os servidores principais, exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Fargate Serverless Cluster executa o código diretamente nas Edge Locations, o mais próximo possível dos usuários mundiais — sem a requisição viajar até os servidores principais, exatamente o pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-186",
+      "options": [
+        {
+          "matchText": "Ativar as regras lógicas de criptografia simétrica no AWS Artifact Enterprise.",
+          "stage": "eliminate",
+          "reasonWrong": "'Regras de criptografia no AWS Artifact' não existe — o Artifact fornece relatórios de conformidade, não é ferramenta de backup ou criptografia."
+        },
+        {
+          "matchText": "Migrar o banco relacional para volumes efêmeros locais do tipo Instance Store em servidores paralelos.",
+          "stage": "eliminate",
+          "reasonWrong": "Instance Store é armazenamento EFÊMERO local de uma instância — perde os dados ao parar/terminar, o oposto de resiliência de longo prazo."
+        },
+        {
+          "matchText": "Habilitar a replicação automatizada de snapshots do RDS para uma Região AWS geograficamente distinta e distante.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar uma implantação do tipo Multi-AZ padrão com nós standby compartilhados.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Multi-AZ também protege contra falha de data center — mas as AZs ficam DENTRO da MESMA Região (a poucas dezenas de km); sobreviver a um desastre CONTINENTAL exige replicar os snapshots para uma Região AWS geograficamente distante."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque replicar os snapshots do RDS automaticamente para uma Região AWS geograficamente distinta e distante protege os backups mesmo diante da perda de múltiplos data centers num desastre continental — o menor esforço operacional para esse alcance.",
+            "correct": true
+          },
+          {
+            "text": "Porque ativar criptografia simétrica no AWS Artifact Enterprise protege os backups mesmo diante da perda de múltiplos data centers num desastre continental — o menor esforço operacional para esse alcance.",
+            "correct": false
+          },
+          {
+            "text": "Porque migrar o banco para volumes Instance Store efêmeros protege os backups mesmo diante da perda de múltiplos data centers num desastre continental — o menor esforço operacional para esse alcance.",
+            "correct": false
+          },
+          {
+            "text": "Porque configurar uma implantação Multi-AZ padrão protege os backups mesmo diante da perda de múltiplos data centers num desastre continental — o menor esforço operacional para esse alcance.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-187",
+      "options": [
+        {
+          "matchText": "Assinar o plano do CloudFront Security Bundle através do AWS Marketplace.",
+          "stage": "eliminate",
+          "reasonWrong": "'CloudFront Security Bundle' não é um recurso de desconto de tráfego — não existe esse produto no Marketplace para essa finalidade."
+        },
+        {
+          "matchText": "AWS Savings Plans de computação para a rede de borda.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque Savings Plans também dão desconto por compromisso — mas eles cobrem COMPUTAÇÃO (EC2/Fargate/Lambda), não as taxas de transferência de dados do CloudFront; desconto negociado por volume de tráfego de saída é o CloudFront Custom Discount via suporte comercial."
+        },
+        {
+          "matchText": "Configurar o faturamento unificado de custos operacionais utilizando chaves simétricas do AWS KMS.",
+          "stage": "eliminate",
+          "reasonWrong": "'Faturamento unificado com chaves do KMS' não faz sentido — KMS é criptografia, não tem relação com desconto de transferência de dados."
+        },
+        {
+          "matchText": "Contratar o CloudFront Custom Discount (Preço Personalizado) por meio do suporte comercial da AWS com base em compromissos de volume.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o CloudFront Custom Discount, negociado via suporte comercial com base em compromisso de volume, dá previsibilidade financeira e desconto na transferência de dados de saída — exatamente o pedido do Diretor.",
+            "correct": true
+          },
+          {
+            "text": "Porque o CloudFront Security Bundle do Marketplace dá previsibilidade financeira e desconto na transferência de dados de saída — exatamente o pedido do Diretor de Infraestrutura para as campanhas sazonais.",
+            "correct": false
+          },
+          {
+            "text": "Porque os AWS Savings Plans de computação para a rede de borda dão previsibilidade financeira e desconto na transferência de dados de saída — exatamente o pedido do Diretor de Infraestrutura.",
+            "correct": false
+          },
+          {
+            "text": "Porque o faturamento unificado com chaves do KMS dá previsibilidade financeira e desconto na transferência de dados de saída — exatamente o pedido do Diretor de Infraestrutura para as campanhas sazonais.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-188",
+      "options": [
+        {
+          "matchText": "Forçar as instâncias de computação a consultarem tabelas de logs relacionais no Amazon RDS via queries síncronas em Bash.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque consultar dados relacionados ao evento parece um jeito de reagir ao upload — mas fazer queries SÍNCRONAS via Bash ACOPLA os componentes e não notifica múltiplas pontas simultaneamente; o fan-out assíncrono a Lambda/SQS é feito pelo Amazon SNS."
+        },
+        {
+          "matchText": "Configurar o AWS Config para gerar playbooks de remediação automatizados na interface de rede da VPC.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Config avalia conformidade de configuração de recursos — não orquestra o processamento assíncrono de um upload no S3."
+        },
+        {
+          "matchText": "Utilizar o Amazon SNS para receber o evento do S3 e distribuir (Fan-out) a mensagem para múltiplos assinantes, incluindo funções Lambda e filas do Amazon SQS que alimentam os containers.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Conectar o S3 a uma sub-rede pública protegida por chaves assimétricas do AWS Systems Manager Parameter Store.",
+          "stage": "eliminate",
+          "reasonWrong": "'Chaves assimétricas do Parameter Store' não fazem sentido — Parameter Store guarda parâmetros, não orquestra mensageria de fan-out."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon SNS recebe o evento do S3 e faz fan-out da mensagem para múltiplos assinantes (Lambda, SQS alimentando os containers) — cada ponta processa de forma independente e assíncrona, sem acoplamento.",
+            "correct": true
+          },
+          {
+            "text": "Porque forçar as instâncias a consultarem tabelas relacionais via queries síncronas em Bash faz fan-out da mensagem para múltiplos assinantes — cada ponta processa de forma independente e assíncrona, sem acoplamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque configurar o AWS Config para gerar playbooks de remediação faz fan-out da mensagem para múltiplos assinantes — cada ponta processa de forma independente e assíncrona, sem acoplamento.",
+            "correct": false
+          },
+          {
+            "text": "Porque conectar o S3 a uma sub-rede pública protegida por chaves do Parameter Store faz fan-out da mensagem para múltiplos assinantes — cada ponta processa de forma independente e assíncrona, sem acoplamento.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-189",
+      "options": [
+        {
+          "matchText": "A ativação de qualquer regra de entrada em uma NACL desativa de forma compulsória o roteamento lógico do Internet Gateway associado.",
+          "stage": "eliminate",
+          "reasonWrong": "Uma regra de entrada na NACL não desativa o Internet Gateway — os dois são componentes independentes."
+        },
+        {
+          "matchText": "As NACLs são stateless; portanto, as regras de saída (Outbound) também devem ser cadastradas de forma explícita na tabela para permitir o tráfego de retorno nas portas efêmeras.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "As NACLs operam de maneira stateful, o que significa que elas bloqueiam automaticamente a porta de saída se a CPU das instâncias EC2 ultrapassar as cotas padrão.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também descreve um comportamento de estado da NACL — mas está invertida: a NACL é STATELESS, não stateful, e a queda de serviço não tem relação com cota de CPU; é preciso cadastrar a regra de Outbound explicitamente."
+        },
+        {
+          "matchText": "As NACLs exigem chaves criptográficas assimétricas emitidas pelo AWS Certificate Manager para autorizar qualquer pacote de saída.",
+          "stage": "eliminate",
+          "reasonWrong": "As NACLs não exigem certificados do ACM para autorizar pacotes de saída — elas filtram por regras numeradas de IP/porta/protocolo, não por certificado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as NACLs são stateless: sem uma regra de Outbound explícita liberando as portas efêmeras, o tráfego de retorno é bloqueado mesmo com a entrada na 80 liberada — causando o timeout observado.",
+            "correct": true
+          },
+          {
+            "text": "Porque a ativação de qualquer regra de entrada desativa o roteamento do Internet Gateway, mesmo com a entrada na 80 liberada — causando o timeout observado nos servidores.",
+            "correct": false
+          },
+          {
+            "text": "Porque as NACLs operam de forma stateful e bloqueiam a porta de saída se a CPU ultrapassar cotas, mesmo com a entrada na 80 liberada — causando o timeout observado nos servidores.",
+            "correct": false
+          },
+          {
+            "text": "Porque as NACLs exigem certificados do ACM para autorizar pacotes de saída, mesmo com a entrada na 80 liberada — causando o timeout observado nos servidores de aplicação.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-190",
+      "options": [
+        {
+          "matchText": "Utilizar criptografia assimétrica gerida nativamente por playbooks do AWS Systems Manager OpsCenter.",
+          "stage": "eliminate",
+          "reasonWrong": "'Criptografia assimétrica via playbooks do OpsCenter' não existe como categoria de chave do KMS."
+        },
+        {
+          "matchText": "Chaves gerenciadas pelo cliente (Customer managed keys) no AWS KMS.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Chaves de propriedade da AWS (AWS owned keys) configuradas no AWS Artifact.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque as AWS owned keys também criptografam os dados do DynamoDB — mas elas são de PROPRIEDADE e controle EXCLUSIVOS da AWS, sem política de IAM nem auditoria configurável pelo cliente; o controle total do ciclo de vida é das customer managed keys."
+        },
+        {
+          "matchText": "Chaves gerenciadas da AWS (AWS managed keys) nativas com criptografia de material externo.",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS managed keys com material externo' mistura conceitos — as AWS managed keys não permitem importar material nem dão controle total ao cliente."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as customer managed keys no AWS KMS dão ao cliente o controle total do ciclo de vida, das políticas de acesso via IAM e da auditoria detalhada de uso — exatamente a exigência regulatória severa descrita.",
+            "correct": true
+          },
+          {
+            "text": "Porque a criptografia assimétrica via playbooks do OpsCenter dá ao cliente o controle total do ciclo de vida, das políticas de acesso via IAM e da auditoria detalhada de uso — exatamente a exigência regulatória.",
+            "correct": false
+          },
+          {
+            "text": "Porque as AWS owned keys configuradas no AWS Artifact dão ao cliente o controle total do ciclo de vida, das políticas de acesso via IAM e da auditoria detalhada de uso — exatamente a exigência regulatória.",
+            "correct": false
+          },
+          {
+            "text": "Porque as AWS managed keys com material externo dão ao cliente o controle total do ciclo de vida, das políticas de acesso via IAM e da auditoria detalhada de uso — exatamente a exigência regulatória severa descrita.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-191",
+      "options": [
+        {
+          "matchText": "Um máximo de 30 minutos (1800 segundos).",
+          "stage": "eliminate",
+          "reasonWrong": "30 minutos excede o limite real do Lambda — o timeout máximo configurável é de 15 minutos."
+        },
+        {
+          "matchText": "Um máximo de 5 minutos (300 segundos).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque 5 minutos foi historicamente um limite citado do Lambda — mas o teto ATUAL de execução por invocação é de 15 minutos (900 segundos), não 5."
+        },
+        {
+          "matchText": "Um máximo de 15 minutos (900 segundos).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Um limite dinâmico ilimitado que varia conforme o tamanho da memória RAM selecionada no console.",
+          "stage": "eliminate",
+          "reasonWrong": "O timeout não é 'ilimitado conforme a memória' — memória e CPU escalam juntas, mas o teto de tempo por invocação é fixo em 15 minutos."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Lambda impõe um timeout mandatório de no máximo 15 minutos (900 segundos) por invocação, encerrando a execução de forma compulsória após esse teto — o limite real da plataforma.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Lambda impõe um timeout mandatório de no máximo 30 minutos (1800 segundos) por invocação, encerrando a execução de forma compulsória após esse teto — o limite real da plataforma.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Lambda impõe um timeout mandatório de no máximo 5 minutos (300 segundos) por invocação, encerrando a execução de forma compulsória após esse teto — o limite real da plataforma.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Lambda impõe um timeout dinâmico ilimitado que varia conforme a memória RAM selecionada, encerrando a execução de forma compulsória após esse teto — o limite real da plataforma.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-192",
+      "options": [
+        {
+          "matchText": "Classic Load Balancer (CLB).",
+          "stage": "eliminate",
+          "reasonWrong": "O Classic Load Balancer é a geração legada com roteamento básico — não tem o roteamento avançado por caminho de URL do ALB."
+        },
+        {
+          "matchText": "Gateway Load Balancer (GWLB).",
+          "stage": "eliminate",
+          "reasonWrong": "O Gateway Load Balancer direciona tráfego a appliances de segurança virtuais — não roteia por caminho de URL da aplicação."
+        },
+        {
+          "matchText": "Network Load Balancer (NLB).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o NLB também é um balanceador moderno de alto desempenho — mas ele opera na Camada 4 (TCP/UDP), sem ler caminhos de URL; rotear por padrões de caminho HTTP ('/imagens/*') na Camada 7 é o Application Load Balancer."
+        },
+        {
+          "matchText": "Application Load Balancer (ALB).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Application Load Balancer roteia na Camada 7 avaliando strings de caminhos de URL — encaminhando '/imagens/*' a um Target Group específico de servidores de mídia, exatamente o roteamento avançado pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Classic Load Balancer roteia na Camada 7 avaliando strings de caminhos de URL — encaminhando '/imagens/*' a um Target Group específico de servidores de mídia, exatamente o roteamento avançado pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Gateway Load Balancer roteia na Camada 7 avaliando strings de caminhos de URL — encaminhando '/imagens/*' a um Target Group específico de servidores de mídia, exatamente o roteamento avançado pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Network Load Balancer roteia na Camada 7 avaliando strings de caminhos de URL — encaminhando '/imagens/*' a um Target Group específico de servidores de mídia, exatamente o roteamento avançado pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-193",
+      "options": [
+        {
+          "matchText": "Mecanismos de replicação síncrona controlados pelo AWS Artifact.",
+          "stage": "eliminate",
+          "reasonWrong": "'Replicação síncrona controlada pelo AWS Artifact' não existe — o Artifact fornece relatórios de conformidade, não replica dados."
+        },
+        {
+          "matchText": "Ativar o Amazon ElastiCache Redis Cluster nas sub-redes da VPC europeia.",
+          "stage": "eliminate",
+          "reasonWrong": "ElastiCache Redis é cache em memória — não é o mecanismo de replicação multi-região nativo do DynamoDB."
+        },
+        {
+          "matchText": "Criar backups agendados diários apontando para buckets com S3 Same-Region Replication.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque backups agendados também movem dados entre locais — mas eles são CÓPIAS PONTUAIS assíncronas para RECUPERAÇÃO, não uma tabela viva com leitura/escrita local em milissegundos e sincronização automática bidirecional; isso é o recurso de Tabelas Globais."
+        },
+        {
+          "matchText": "Tabelas globais (Global Tables).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as Tabelas Globais do DynamoDB replicam os dados automaticamente e de forma bidirecional entre Regiões, com leituras e escritas locais de baixa latência — exatamente a arquitetura multi-região do e-commerce.",
+            "correct": true
+          },
+          {
+            "text": "Porque os mecanismos de replicação síncrona do AWS Artifact replicam os dados automaticamente e de forma bidirecional entre Regiões, com leituras e escritas locais de baixa latência — exatamente a arquitetura pedida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon ElastiCache Redis Cluster replica os dados automaticamente e de forma bidirecional entre Regiões, com leituras e escritas locais de baixa latência — exatamente a arquitetura multi-região do e-commerce.",
+            "correct": false
+          },
+          {
+            "text": "Porque backups diários com S3 Same-Region Replication replicam os dados automaticamente e de forma bidirecional entre Regiões, com leituras e escritas locais de baixa latência — exatamente a arquitetura pedida.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-194",
+      "options": [
+        {
+          "matchText": "NAT Gateway.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Virtual Private Gateway.",
+          "stage": "eliminate",
+          "reasonWrong": "O Virtual Private Gateway é o lado AWS de uma VPN até on-premises — não é o caminho de saída para a internet pública dos servidores privados."
+        },
+        {
+          "matchText": "Internet Gateway.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Internet Gateway também dá acesso à internet — mas ele permite tráfego BIDIRECIONAL (inclusive entrada não solicitada); dar aos servidores privados só a saída segura, sem aceitar entrada, é rotear para um NAT Gateway na sub-rede pública."
+        },
+        {
+          "matchText": "VPC Endpoint Services.",
+          "stage": "eliminate",
+          "reasonWrong": "VPC Endpoint Services conecta a VPC a serviços da AWS de forma privada — não dá acesso geral à internet pública."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as tabelas de rotas da sub-rede privada devem direcionar o tráfego ao NAT Gateway na sub-rede pública — permitindo saída segura para baixar pacotes, sem aceitar conexões de entrada da internet.",
+            "correct": true
+          },
+          {
+            "text": "Porque as tabelas de rotas da sub-rede privada devem direcionar o tráfego ao Virtual Private Gateway na sub-rede pública — permitindo saída segura para baixar pacotes, sem aceitar conexões de entrada.",
+            "correct": false
+          },
+          {
+            "text": "Porque as tabelas de rotas da sub-rede privada devem direcionar o tráfego ao Internet Gateway na sub-rede pública — permitindo saída segura para baixar pacotes, sem aceitar conexões de entrada da internet.",
+            "correct": false
+          },
+          {
+            "text": "Porque as tabelas de rotas da sub-rede privada devem direcionar o tráfego ao VPC Endpoint Services na sub-rede pública — permitindo saída segura para baixar pacotes, sem aceitar conexões de entrada.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-195",
+      "options": [
+        {
+          "matchText": "Armazenamento do Amazon EC2 Instance Store.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Instance Store também é armazenamento de baixa latência anexado à instância — mas ele é EFÊMERO: perde os dados se a instância for parada (Stopped); manter os dados persistidos mesmo parada é o volume Amazon EBS."
+        },
+        {
+          "matchText": "Classe de ciclo de vida do Amazon S3 Glacier Deep Archive.",
+          "stage": "eliminate",
+          "reasonWrong": "S3 Glacier Deep Archive é arquivamento de objetos com recuperação lenta — não é um disco anexado a uma instância EC2."
+        },
+        {
+          "matchText": "Sistemas de diretórios compartilhados do Amazon Elastic File System (Amazon EFS).",
+          "stage": "eliminate",
+          "reasonWrong": "O EFS é um sistema de arquivos compartilhado por VÁRIAS instâncias via rede — não o disco de bloco dedicado a uma única instância como pedido."
+        },
+        {
+          "matchText": "Volume do Amazon Elastic Block Store (Amazon EBS).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o volume do Amazon EBS mantém os dados persistidos mesmo com a instância parada para manutenção, comportando-se como um disco rígido de baixa latência anexado a ela — exatamente a característica exigida.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon EC2 Instance Store mantém os dados persistidos mesmo com a instância parada para manutenção, comportando-se como um disco rígido de baixa latência anexado a ela — exatamente a característica exigida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Glacier Deep Archive mantém os dados persistidos mesmo com a instância parada para manutenção, comportando-se como um disco rígido de baixa latência anexado a ela — exatamente a característica exigida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon EFS mantém os dados persistidos mesmo com a instância parada para manutenção, comportando-se como um disco rígido de baixa latência anexado a ela — exatamente a característica exigida.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-196",
+      "options": [
+        {
+          "matchText": "Política de Escalabilidade Manual Programada (Scheduled Scaling).",
+          "stage": "eliminate",
+          "reasonWrong": "Escalabilidade Manual Programada exige horários fixos definidos manualmente — não é reativa a uma métrica de CPU em tempo real."
+        },
+        {
+          "matchText": "Políticas de roteamento baseadas em pesos das tabelas de Network ACLs.",
+          "stage": "eliminate",
+          "reasonWrong": "'Roteamento por pesos em Network ACLs' não existe — NACLs filtram tráfego de rede, não são política de Auto Scaling."
+        },
+        {
+          "matchText": "Política de Escalabilidade Preditiva (Predictive Scaling).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a Escalabilidade Preditiva também ajusta a frota automaticamente — mas ela antecipa picos com base em HISTÓRICO, sem manter uma métrica travada num valor-alvo constante; manter a CPU EXATAMENTE em 60% reagindo em tempo real é o Target Tracking Scaling."
+        },
+        {
+          "matchText": "Política de Escalabilidade por Rastreamento de Destino (Target Tracking Scaling).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Política de Escalabilidade por Rastreamento de Destino mantém a CPU média do cluster travada em 60%, adicionando ou removendo instâncias automaticamente conforme a métrica se desvia — exatamente o comportamento pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Política de Escalabilidade Manual Programada mantém a CPU média do cluster travada em 60%, adicionando ou removendo instâncias automaticamente conforme a métrica se desvia — exatamente o comportamento pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque as políticas de roteamento por pesos das NACLs mantêm a CPU média do cluster travada em 60%, adicionando ou removendo instâncias automaticamente conforme a métrica se desvia — exatamente o comportamento pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Política de Escalabilidade Preditiva mantém a CPU média do cluster travada em 60%, adicionando ou removendo instâncias automaticamente conforme a métrica se desvia — exatamente o comportamento pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-197",
+      "options": [
+        {
+          "matchText": "Fila de mensagens mortas (Dead-Letter Queue - DLQ).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Regras de conformidade do histórico do AWS Config.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Config avalia conformidade de configuração de recursos — não isola mensagens problemáticas de uma fila SQS."
+        },
+        {
+          "matchText": "Tópicos de Fan-out do Amazon SNS.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o SNS também é mensageria que desacopla componentes — mas ele faz PUSH imediato a assinantes, sem reter nem isolar mensagens problemáticas após tentativas falhas; a fila de quarentena após N tentativas é a Dead-Letter Queue do SQS."
+        },
+        {
+          "matchText": "Cofre criptográfico seguro do AWS Secrets Manager.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Secrets Manager guarda e rotaciona segredos — não tem relação com isolar mensagens que falham repetidamente no processamento."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Dead-Letter Queue (DLQ) isola automaticamente as mensagens problemáticas após um número definido de tentativas mal-sucedidas — interrompendo o loop infinito de reprocessamento na fila padrão.",
+            "correct": true
+          },
+          {
+            "text": "Porque as regras de conformidade do AWS Config isolam automaticamente as mensagens problemáticas após um número definido de tentativas mal-sucedidas — interrompendo o loop infinito na fila padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque os tópicos de Fan-out do SNS isolam automaticamente as mensagens problemáticas após um número definido de tentativas mal-sucedidas — interrompendo o loop infinito na fila padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cofre do AWS Secrets Manager isola automaticamente as mensagens problemáticas após um número definido de tentativas mal-sucedidas — interrompendo o loop infinito na fila padrão.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-198",
+      "options": [
+        {
+          "matchText": "Configurar as regras de portas e tráfegos lícitos permitidos nas tabelas internas de Security Groups anexados às máquinas lógicas.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque configurar Security Groups é uma tarefa de segurança operacional real — mas ela é do CLIENTE (segurança NA nuvem); a destruição física de mídias e discos danificados dentro do data center é governança EXCLUSIVA da AWS (segurança DA nuvem)."
+        },
+        {
+          "matchText": "Ativar e impor autenticação multifator (MFA) nos perfis de logins lógicos de funcionários criados dentro do IAM local.",
+          "stage": "eliminate",
+          "reasonWrong": "Ativar MFA nos usuários IAM é responsabilidade do cliente — não uma tarefa sob governança total da AWS."
+        },
+        {
+          "matchText": "Garantir a destruição física e desmagnetização segura de discos rígidos e mídias de armazenamento danificados descartados dentro das instalações dos data centers.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Criptografar os payloads e dados transacionais em trânsito antes de trafegá-los por redes de comunicações públicas de internet.",
+          "stage": "eliminate",
+          "reasonWrong": "Criptografar payloads em trânsito antes de enviá-los é responsabilidade do cliente sobre sua aplicação — não uma tarefa da AWS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque garantir a destruição física e a desmagnetização segura de discos e mídias danificados dentro dos data centers é uma atividade de segurança sob governança total e exclusiva da AWS — a segurança DA nuvem.",
+            "correct": true
+          },
+          {
+            "text": "Porque configurar as regras de Security Groups anexados às instâncias é uma atividade de segurança sob governança total e exclusiva da AWS — a segurança DA nuvem, sem envolvimento do cliente.",
+            "correct": false
+          },
+          {
+            "text": "Porque ativar e impor MFA nos perfis de login do IAM é uma atividade de segurança sob governança total e exclusiva da AWS — a segurança DA nuvem, sem envolvimento do cliente.",
+            "correct": false
+          },
+          {
+            "text": "Porque criptografar os payloads em trânsito antes de trafegá-los pela internet é uma atividade de segurança sob governança total e exclusiva da AWS — a segurança DA nuvem, sem envolvimento do cliente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-199",
+      "options": [
+        {
+          "matchText": "AWS Storage Gateway.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Storage Gateway integra armazenamento local à nuvem — não roda instâncias EC2 nativas dentro do prédio do cliente."
+        },
+        {
+          "matchText": "Amazon Wavelength.",
+          "stage": "eliminate",
+          "reasonWrong": "Amazon Wavelength leva a AWS às bordas de redes 5G das operadoras — não coloca a infraestrutura dentro do data center privado da multinacional."
+        },
+        {
+          "matchText": "AWS Outposts.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Local Zones.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque as Local Zones também aproximam a AWS de um local específico com baixa latência — mas elas ficam em instalações da AWS, não DENTRO do prédio industrial do cliente; rodar EC2 nativo no próprio data center, com as mesmas APIs, é o AWS Outposts."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Outposts instala hardware nativo da AWS (incluindo EC2) dentro do próprio prédio industrial, gerenciado pelas mesmas APIs e consoles da nuvem pública — a topologia híbrida com latência local exigida pelo compliance.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Storage Gateway instala hardware nativo da AWS (incluindo EC2) dentro do próprio prédio industrial, gerenciado pelas mesmas APIs e consoles da nuvem pública — a topologia híbrida exigida.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Wavelength instala hardware nativo da AWS (incluindo EC2) dentro do próprio prédio industrial, gerenciado pelas mesmas APIs e consoles da nuvem pública — a topologia híbrida exigida.",
+            "correct": false
+          },
+          {
+            "text": "Porque as AWS Local Zones instalam hardware nativo da AWS (incluindo EC2) dentro do próprio prédio industrial, gerenciado pelas mesmas APIs e consoles da nuvem pública — a topologia híbrida exigida.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-200",
+      "options": [
+        {
+          "matchText": "Políticas de Controle de Serviço (SCPs).",
+          "stage": "eliminate",
+          "reasonWrong": "Uma SCP define o teto máximo de permissões da conta na organização — não é a forma de conceder credenciais ao pipeline do CloudFormation."
+        },
+        {
+          "matchText": "IAM Role (Função).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "IAM User (Usuário).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque um IAM User também é uma identidade com permissões que o pipeline poderia usar — mas ele usa credenciais de LONGA duração (Access Keys estáticas); identidade TEMPORÁRIA que expira sozinha é a IAM Role."
+        },
+        {
+          "matchText": "IAM Group (Grupo).",
+          "stage": "eliminate",
+          "reasonWrong": "Um IAM Group apenas agrupa usuários para aplicar políticas em lote — não é assumido por um serviço para obter credenciais temporárias."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque uma IAM Role fornece identidades temporárias e dinâmicas que expiram sozinhas, permitindo ao CloudFormation executar as ações necessárias sem chaves estáticas — o privilégio mínimo pedido pelo pipeline.",
+            "correct": true
+          },
+          {
+            "text": "Porque uma Política de Controle de Serviço (SCP) fornece identidades temporárias e dinâmicas que expiram sozinhas, permitindo ao CloudFormation executar as ações necessárias sem chaves estáticas — o privilégio mínimo pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque um IAM User fornece identidades temporárias e dinâmicas que expiram sozinhas, permitindo ao CloudFormation executar as ações necessárias sem chaves estáticas — o privilégio mínimo pedido pelo pipeline.",
+            "correct": false
+          },
+          {
+            "text": "Porque um IAM Group fornece identidades temporárias e dinâmicas que expiram sozinhas, permitindo ao CloudFormation executar as ações necessárias sem chaves estáticas — o privilégio mínimo pedido pelo pipeline.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-201",
+      "options": [
+        {
+          "matchText": "Tabelas lógicas numeradas de Network ACLs da sub-rede pública.",
+          "stage": "eliminate",
+          "reasonWrong": "Network ACLs filtram tráfego de rede por IP/porta — não impedem a criação de recursos fora de uma região por política de IAM."
+        },
+        {
+          "matchText": "Service Control Policies (SCPs).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Identity Center Permissions Sets.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Identity Center também gerencia acesso centralizado em várias contas — mas Permission Sets concedem QUAIS ações um usuário PODE fazer via SSO, sem impor um teto que barre até quem já tem AdministratorAccess local; esse filtro supremo é a SCP."
+        },
+        {
+          "matchText": "Políticas Inline baseadas em recursos (Resource-based Policies).",
+          "stage": "eliminate",
+          "reasonWrong": "Políticas baseadas em recurso são anexadas a um recurso específico (ex.: bucket) — não impõem um teto de permissões sobre todas as contas da organização."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as Service Control Policies (SCPs) impõem o teto máximo de permissões a todas as contas-membro — impedindo criar recursos fora da Virgínia do Norte mesmo para quem tem AdministratorAccess local.",
+            "correct": true
+          },
+          {
+            "text": "Porque as Tabelas de Network ACLs impõem o teto máximo de permissões a todas as contas-membro — impedindo criar recursos fora da Virgínia do Norte mesmo para quem tem AdministratorAccess local.",
+            "correct": false
+          },
+          {
+            "text": "Porque os AWS Identity Center Permissions Sets impõem o teto máximo de permissões a todas as contas-membro — impedindo criar recursos fora da Virgínia do Norte mesmo para quem tem AdministratorAccess local.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Políticas Inline baseadas em recursos impõem o teto máximo de permissões a todas as contas-membro — impedindo criar recursos fora da Virgínia do Norte mesmo para quem tem AdministratorAccess local.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-202",
+      "options": [
+        {
+          "matchText": "Amazon Lightsail Instances Store.",
+          "stage": "eliminate",
+          "reasonWrong": "'Lightsail Instances Store' não é um orquestrador de contêineres — Lightsail é servidor virtual simplificado."
+        },
+        {
+          "matchText": "Amazon Elastic Kubernetes Service (Amazon EKS).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o EKS também orquestra contêineres em escala na AWS — mas ele expõe as APIs ABERTAS do Kubernetes (que o time quer evitar aprender); o orquestrador PROPRIETÁRIO e mais simples da AWS é o Amazon ECS."
+        },
+        {
+          "matchText": "Amazon Elastic Container Service (Amazon ECS).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS CloudFormation Templates.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS CloudFormation Templates provisiona infraestrutura por IaC — não é o serviço que orquestra a execução dos contêineres."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon ECS é o orquestrador proprietário e nativo da AWS, integrado a CI/CD, sem exigir aprender as APIs abertas complexas do Kubernetes — exatamente a premissa de simplicidade da startup.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon EKS é o orquestrador proprietário e nativo da AWS, integrado a CI/CD, sem exigir aprender as APIs abertas complexas do Kubernetes — exatamente a premissa de simplicidade da startup.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Lightsail Instances Store é o orquestrador proprietário e nativo da AWS, integrado a CI/CD, sem exigir aprender as APIs do Kubernetes — exatamente a premissa de simplicidade da startup.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS CloudFormation Templates é o orquestrador proprietário e nativo da AWS, integrado a CI/CD, sem exigir aprender as APIs do Kubernetes — exatamente a premissa de simplicidade da startup.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-203",
+      "options": [
+        {
+          "matchText": "Ele opera sob um modelo de publicação/assinatura (Pub/Sub) do tipo 'Push', propagando e entregando as mensagens instantaneamente para múltiplos assinantes cadastrados paralelos.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Ele armazena as mensagens de forma persistente em buffers duráveis por até 14 dias aguardando requisições periódicas de leituras (pull) dos consumidores.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque descreve corretamente o comportamento de UMA fila durável de mensagens — mas isso é do Amazon SQS (pull, buffer por até 14 dias); o SNS opera por PUSH imediato a múltiplos assinantes (pub/sub), sem reter mensagens para leitura posterior."
+        },
+        {
+          "matchText": "Ele funciona de forma stateless exigindo que o desenvolvedor cadastre manualmente as regras lógicas de saídas em tabelas numeradas de sub-redes.",
+          "stage": "eliminate",
+          "reasonWrong": "SNS não é 'stateless exigindo regras em NACLs' — isso descreve componentes de rede da VPC, sem relação com o modelo de mensageria do SNS."
+        },
+        {
+          "matchText": "Ele gerencia de forma compulsória a aplicação de patches e atualizações de kernels de servidores Linux das instâncias ativas.",
+          "stage": "eliminate",
+          "reasonWrong": "SNS não gerencia patches de kernel de instâncias — isso é tarefa do cliente sobre o SO das suas EC2, sem relação com o serviço de notificações."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o SNS opera sob o modelo Pub/Sub do tipo Push, propagando e entregando as mensagens instantaneamente a múltiplos assinantes cadastrados em paralelo — a operação padrão de entrega do serviço.",
+            "correct": true
+          },
+          {
+            "text": "Porque o SNS armazena as mensagens de forma persistente em buffers duráveis por até 14 dias aguardando leituras periódicas dos consumidores — a operação padrão de entrega do serviço.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SNS funciona de forma stateless exigindo o cadastro manual de regras de saída em tabelas numeradas de sub-redes — a operação padrão de entrega do serviço de notificações.",
+            "correct": false
+          },
+          {
+            "text": "Porque o SNS gerencia de forma compulsória a aplicação de patches e atualizações de kernel Linux das instâncias ativas — a operação padrão de entrega do serviço de notificações.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-204",
+      "options": [
+        {
+          "matchText": "AWS Fargate.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Systems Manager Run Command.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Systems Manager Run Command executa comandos remotos em instâncias — não é um motor de computação serverless para contêineres."
+        },
+        {
+          "matchText": "Frotas de Instâncias EC2 Spot (Spot Fleet).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a Spot Fleet também roda cargas a baixo custo na AWS — mas ela ainda são INSTÂNCIAS EC2 que exigem escolher tipo, gerenciar SO e patches; eliminar totalmente essa gestão para rodar contêineres é o AWS Fargate."
+        },
+        {
+          "matchText": "Amazon EC2 Dedicated Hosts.",
+          "stage": "eliminate",
+          "reasonWrong": "EC2 Dedicated Hosts entregam servidor físico dedicado que o cliente gerencia (SO, patches) — o oposto do serverless sem gestão de instâncias."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Fargate elimina totalmente a necessidade de escolher tipos de instância, gerenciar SO ou aplicar patches nos nós subjacentes — o motor serverless que roda os contêineres Docker diretamente.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Systems Manager Run Command elimina totalmente a necessidade de escolher tipos de instância, gerenciar SO ou aplicar patches — o motor serverless que roda os contêineres Docker diretamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Frota de Instâncias EC2 Spot elimina totalmente a necessidade de escolher tipos de instância, gerenciar SO ou aplicar patches — o motor serverless que roda os contêineres Docker diretamente.",
+            "correct": false
+          },
+          {
+            "text": "Porque os EC2 Dedicated Hosts eliminam totalmente a necessidade de escolher tipos de instância, gerenciar SO ou aplicar patches — o motor serverless que roda os contêineres Docker diretamente.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-205",
+      "options": [
+        {
+          "matchText": "Amazon EC2 Instance Store NVMe.",
+          "stage": "eliminate",
+          "reasonWrong": "O Instance Store é disco temporário local de uma única instância — não é compartilhado nem persistente entre servidores."
+        },
+        {
+          "matchText": "Amazon Elastic File System (Amazon EFS).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon S3 Glacier Flexible Retrieval.",
+          "stage": "eliminate",
+          "reasonWrong": "S3 Glacier Flexible Retrieval é arquivamento de objetos com recuperação lenta — não é um sistema de arquivos de rede para leitura/gravação concorrente de Big Data."
+        },
+        {
+          "matchText": "Amazon Elastic Block Store (Amazon EBS).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o EBS também é armazenamento gerenciado de alta performance — mas um volume EBS é anexado a UMA instância por vez (bloco), não permite múltiplos servidores Linux lendo/gravando concorrentemente via rede; o sistema de arquivos compartilhado e elástico é o EFS."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon EFS é o sistema de arquivos de rede compartilhado e elástico, com taxas extremas de leitura/gravação paralela de múltiplos servidores Linux e distribuição síncrona entre AZs — exatamente a topologia da fintech.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon EC2 Instance Store NVMe é o sistema de arquivos de rede compartilhado e elástico, com taxas extremas de leitura/gravação paralela de múltiplos servidores Linux — exatamente a topologia da fintech.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon S3 Glacier Flexible Retrieval é o sistema de arquivos de rede compartilhado e elástico, com taxas extremas de leitura/gravação paralela de múltiplos servidores Linux — exatamente a topologia da fintech.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon EBS é o sistema de arquivos de rede compartilhado e elástico, com taxas extremas de leitura/gravação paralela de múltiplos servidores Linux — exatamente a topologia da fintech.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-206",
+      "options": [
+        {
+          "matchText": "O console da AWS emitirá um alerta de vulnerabilidade forense bloqueando o login de Single Sign-On do usuário Root da conta.",
+          "stage": "eliminate",
+          "reasonWrong": "Não há 'alerta forense bloqueando o SSO do Root' — esquecer o delete é um comportamento normal do ciclo de vida da mensagem, sem relação com segurança do Root."
+        },
+        {
+          "matchText": "A mensagem sofre uma conversão simétrica compulsória sendo arquivada em fitas frias magnéticas do S3 Glacier Deep Archive pelo AWS KMS.",
+          "stage": "eliminate",
+          "reasonWrong": "A mensagem não é arquivada no Glacier automaticamente pelo KMS — ela permanece na própria fila SQS, apenas invisível durante o timeout."
+        },
+        {
+          "matchText": "A mensagem é deletada fisicamente de forma instantânea de todos os data centers da AWS no milissegundo exato em que a primeira requisição de leitura (pull) é recebida.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque a mensagem realmente sai de circulação em algum momento — mas ela NÃO é deletada de imediato no pull; sem o comando explícito de delete, ela fica INVISÍVEL durante o Visibility Timeout e VOLTA a ficar visível quando ele expira."
+        },
+        {
+          "matchText": "A mensagem permanecerá salva na fila e ficará novamente visível para processamento de outros consumidores assim que a janela do Visibility Timeout (Tempo de Limite de Visibilidade) expirar.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque, sem o comando de delete, a mensagem permanece na fila e volta a ficar visível para outros consumidores quando o Visibility Timeout expira — o comportamento padrão do ciclo de vida do SQS.",
+            "correct": true
+          },
+          {
+            "text": "Porque, sem o comando de delete, o console emite um alerta forense bloqueando o SSO do Root, e a mensagem volta a ficar visível quando o Visibility Timeout expira — o comportamento padrão do SQS.",
+            "correct": false
+          },
+          {
+            "text": "Porque, sem o comando de delete, a mensagem é arquivada em fitas frias do Glacier Deep Archive pelo KMS, e volta a ficar visível quando o Visibility Timeout expira — o comportamento padrão do SQS.",
+            "correct": false
+          },
+          {
+            "text": "Porque, sem o comando de delete, a mensagem é deletada fisicamente de todos os data centers no mesmo milissegundo do pull, e volta a ficar visível quando o Visibility Timeout expira — o comportamento padrão do SQS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-207",
+      "options": [
+        {
+          "matchText": "AWS Lambda@Edge Container Tracker.",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Lambda@Edge Container Tracker' não é recurso do Auto Scaling — mistura Lambda@Edge com contêineres, sem relação com pool de instâncias EC2."
+        },
+        {
+          "matchText": "Warm Pools.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Cold Backups Groups.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque 'Cold Backups Groups' soa como um pool reserva de máquinas — mas esse recurso não existe no Auto Scaling; o pool de instâncias pré-inicializadas (paradas, prontas em segundos) é o Warm Pool."
+        },
+        {
+          "matchText": "Target Tracking Rules Matrix.",
+          "stage": "eliminate",
+          "reasonWrong": "'Target Tracking Rules Matrix' não existe — Target Tracking é uma política de escala por métrica, não um pool de instâncias pré-inicializadas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Warm Pools mantêm um pool reserva de instâncias já inicializadas em estado Stopped, prontas para entrar em produção em segundos — contornando os minutos de boot das AMIs pesadas nos picos repentinos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Lambda@Edge Container Tracker mantém um pool reserva de instâncias já inicializadas em estado Stopped, prontas para entrar em produção em segundos — contornando os minutos de boot das AMIs pesadas.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Cold Backups Groups mantêm um pool reserva de instâncias já inicializadas em estado Stopped, prontas para entrar em produção em segundos — contornando os minutos de boot das AMIs pesadas.",
+            "correct": false
+          },
+          {
+            "text": "Porque a Target Tracking Rules Matrix mantém um pool reserva de instâncias já inicializadas em estado Stopped, prontas para entrar em produção em segundos — contornando os minutos de boot das AMIs pesadas.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-208",
+      "options": [
+        {
+          "matchText": "A transferência de dados de saída (Data Transfer Out) enviando cópias de mídias de relatórios do S3 para usuários anônimos na internet.",
+          "stage": "eliminate",
+          "reasonWrong": "Data Transfer Out do S3 para a internet é cobrado nas tabelas padrão — não é gratuito."
+        },
+        {
+          "matchText": "A replicação assíncrona de grandes massas de bancos de dados transacionais cruzando fronteiras de Regiões AWS internacionais distantes.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque replicação entre Regiões também é movimentação de dados relevante — mas ela é SAÍDA entre Regiões e É COBRADA; a movimentação gratuita nas tabelas padrão é o Data Transfer IN (upload) para dentro de um bucket S3."
+        },
+        {
+          "matchText": "A transferência de dados de entrada (Data Transfer In) realizando uploads de arquivos locais via internet pública para dentro de um bucket do Amazon S3.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "A movimentação de arquivos brutos entre servidores lógicos localizados em Zonas de Disponibilidade distintas utilizando rotas de internet pública.",
+          "stage": "eliminate",
+          "reasonWrong": "Tráfego entre AZs distintas via internet pública é cobrado como transferência de dados — não é a movimentação gratuita descrita."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a transferência de dados de entrada (Data Transfer In), fazendo upload de arquivos locais via internet pública para dentro de um bucket S3, tem tarifa de rede igual a zero nos padrões de faturamento da AWS.",
+            "correct": true
+          },
+          {
+            "text": "Porque a transferência de dados de saída (Data Transfer Out) do S3 para usuários anônimos tem tarifa de rede igual a zero nos padrões de faturamento da AWS.",
+            "correct": false
+          },
+          {
+            "text": "Porque a replicação assíncrona de bancos de dados cruzando fronteiras de Regiões internacionais tem tarifa de rede igual a zero nos padrões de faturamento da AWS.",
+            "correct": false
+          },
+          {
+            "text": "Porque a movimentação de arquivos entre servidores em AZs distintas via internet pública tem tarifa de rede igual a zero nos padrões de faturamento da AWS.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-209",
+      "options": [
+        {
+          "matchText": "Volume do Amazon Elastic Block Store (Amazon EBS) General Purpose SSD.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o EBS General Purpose também é armazenamento de bloco de baixa latência para EC2 — mas ele trafega pela REDE até um storage separado, não é o disco fisicamente ANEXADO ao mesmo servidor físico; esse throughput extremo local é o Instance Store."
+        },
+        {
+          "matchText": "Amazon EC2 Instance Store.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Download de relatórios estáticos retrospectivos gerados pelo AWS Artifact.",
+          "stage": "eliminate",
+          "reasonWrong": "Baixar relatórios do AWS Artifact é consulta de conformidade — não é armazenamento de bloco para treinamento de ML."
+        },
+        {
+          "matchText": "Sistemas de arquivos compartilhados do Amazon Elastic File System (Amazon EFS).",
+          "stage": "eliminate",
+          "reasonWrong": "O EFS é um sistema de arquivos de REDE compartilhado — não o disco de bloco fisicamente acoplado ao mesmo hardware da instância."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon EC2 Instance Store entrega discos de bloco fisicamente conectados ao mesmo servidor físico da instância, com throughput e IOPS extremos de baixa latência — ideal já que a aplicação gerencia sua própria replicação.",
+            "correct": true
+          },
+          {
+            "text": "Porque o volume EBS General Purpose SSD entrega discos de bloco fisicamente conectados ao mesmo servidor físico da instância, com throughput e IOPS extremos de baixa latência — ideal para essa aplicação.",
+            "correct": false
+          },
+          {
+            "text": "Porque baixar relatórios do AWS Artifact entrega discos de bloco fisicamente conectados ao mesmo servidor físico da instância, com throughput e IOPS extremos de baixa latência — ideal para essa aplicação.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon EFS entrega discos de bloco fisicamente conectados ao mesmo servidor físico da instância, com throughput e IOPS extremos de baixa latência — ideal para essa aplicação de treinamento de ML.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-210",
+      "options": [
+        {
+          "matchText": "Instâncias Reservadas Padrão (Standard Reserved Instances).",
+          "stage": "eliminate",
+          "reasonWrong": "Instâncias Reservadas Padrão prendem o desconto a atributos fixos (família/Região/tamanho) — menos flexíveis do que o pedido de mudar ao longo do contrato."
+        },
+        {
+          "matchText": "EC2 Instance Savings Plans.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o EC2 Instance Savings Plans também dá desconto por compromisso de 3 anos — mas ele PRENDE o desconto a uma família de instância e Região específicas; manter flexibilidade de família, tamanho e Região ao longo do contrato é o Compute Savings Plans."
+        },
+        {
+          "matchText": "Compute Savings Plans.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Instâncias Spot (Spot Instances) com persistência Multi-AZ.",
+          "stage": "eliminate",
+          "reasonWrong": "Instâncias Spot são capacidade ociosa interrompível — inadequadas para o consumo mínimo constante e previsível descrito no cenário."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Compute Savings Plans dá desconto por compromisso de gasto por hora, com flexibilidade total para mudar tamanho, família de instância e Região da carga ao longo do contrato de 3 anos — exatamente o pedido do FinOps.",
+            "correct": true
+          },
+          {
+            "text": "Porque as Instâncias Reservadas Padrão dão desconto por compromisso de gasto por hora, com flexibilidade total para mudar tamanho, família e Região ao longo do contrato de 3 anos — exatamente o pedido do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque os EC2 Instance Savings Plans dão desconto por compromisso de gasto por hora, com flexibilidade total para mudar tamanho, família e Região ao longo do contrato de 3 anos — exatamente o pedido do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Instâncias Spot com persistência Multi-AZ dão desconto por compromisso de gasto por hora, com flexibilidade total para mudar tamanho, família e Região ao longo do contrato — exatamente o pedido do FinOps.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-211",
+      "options": [
+        {
+          "matchText": "S3 Standard-Infrequent Access (S3 Standard-IA).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "S3 Glacier Flexible Retrieval.",
+          "stage": "eliminate",
+          "reasonWrong": "Glacier Flexible Retrieval tem recuperação em minutos/horas — não oferece o acesso imediato em milissegundos exigido para as auditorias repentinas."
+        },
+        {
+          "matchText": "S3 Glacier Instant Retrieval.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Glacier Instant Retrieval também tem recuperação imediata a baixo custo — mas ele é voltado a arquivamento de acesso RARÍSSIMO (menos de uma vez por trimestre) e cobra taxa de recuperação alta; o menor custo para acesso infrequente COM picos de auditoria é o Standard-IA."
+        },
+        {
+          "matchText": "S3 One Zone-Infrequent Access (S3 One Zone-IA).",
+          "stage": "eliminate",
+          "reasonWrong": "One Zone-IA guarda em uma única AZ (menos durável) — arriscado para metadados críticos de auditoria, mesmo sendo mais barato."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o S3 Standard-IA tem o menor custo de armazenamento para acesso infrequente, mantendo download imediato em milissegundos e sem taxa de monitoramento por chave — atendendo à restrição do FinOps sobre volume de microarquivos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o S3 Glacier Flexible Retrieval tem o menor custo de armazenamento para acesso infrequente, mantendo download imediato em milissegundos e sem taxa de monitoramento por chave — atendendo à restrição do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 Glacier Instant Retrieval tem o menor custo de armazenamento para acesso infrequente, mantendo download imediato em milissegundos e sem taxa de monitoramento por chave — atendendo à restrição do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque o S3 One Zone-IA tem o menor custo de armazenamento para acesso infrequente, mantendo download imediato em milissegundos e sem taxa de monitoramento por chave — atendendo à restrição do FinOps.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-212",
+      "options": [
+        {
+          "matchText": "Anexar um Transit Gateway no centro da sub-rede privada para gerenciar o encapsulamento de pacotes IP.",
+          "stage": "eliminate",
+          "reasonWrong": "Um Transit Gateway conecta várias VPCs/redes entre si — desnecessário e complexo demais para duas instâncias na mesma VPC."
+        },
+        {
+          "matchText": "O tráfego flui nativamente de forma privada através da rota local padrão (Local Route) automática da tabela de rotas da VPC, que interconecta todas as sub-redes internamente.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Configurar uma conexão de VPC Peering interna ligando as tabelas de rotas das sub-redes de forma stateless.",
+          "stage": "eliminate",
+          "reasonWrong": "VPC Peering conecta VPCs DIFERENTES entre si — não é necessário nem aplicável para duas sub-redes dentro da MESMA VPC."
+        },
+        {
+          "matchText": "Criar um endpoint lógico do tipo AWS PrivateLink ligando as interfaces de rede (ENI) das sub-redes privadas através de conexões de hardware.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o PrivateLink também conecta recursos privadamente sem passar por gateways públicos — mas ele é feito para acessar SERVIÇOS (como um endpoint de API), não é necessário para duas instâncias na MESMA VPC; elas já se comunicam pela rota local automática da tabela de rotas."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o tráfego entre as instâncias flui nativamente pela rota local padrão (Local Route) da tabela de rotas da VPC, que já interconecta todas as sub-redes internamente — sem depender de Internet Gateway ou NAT Gateway.",
+            "correct": true
+          },
+          {
+            "text": "Porque anexar um Transit Gateway no centro da sub-rede privada faz o tráfego fluir nativamente pela rota local, interconectando as sub-redes internamente — sem depender de Internet Gateway ou NAT Gateway.",
+            "correct": false
+          },
+          {
+            "text": "Porque configurar um VPC Peering interno faz o tráfego fluir nativamente pela rota local, interconectando as sub-redes internamente — sem depender de Internet Gateway ou NAT Gateway.",
+            "correct": false
+          },
+          {
+            "text": "Porque criar um endpoint do AWS PrivateLink faz o tráfego fluir nativamente pela rota local, interconectando as sub-redes internamente — sem depender de Internet Gateway ou NAT Gateway.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-213",
+      "options": [
+        {
+          "matchText": "AWS Budgets",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Budgets monitora e alerta sobre limites de orçamento definidos — não gera previsões por ML nem recomendações de redimensionamento."
+        },
+        {
+          "matchText": "AWS Pricing Calculator",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Pricing Calculator também ajuda a estimar custos — mas ele SIMULA arquiteturas hipotéticas AINDA NÃO existentes na conta, sem usar histórico real nem recomendar downsizing de instâncias já ativas; previsão com ML e rightsizing de recursos existentes é o Cost Explorer."
+        },
+        {
+          "matchText": "AWS Cost Explorer",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Billing Conductor",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Billing Conductor cria visões de rateio de custo customizadas — não é a ferramenta de previsão e rightsizing baseada em ML."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Cost Explorer usa machine learning sobre o histórico de consumo para prever custos futuros e recomenda quais instâncias EC2 podem ser redimensionadas — atendendo aos dois requisitos do FinOps.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Budgets usa machine learning sobre o histórico de consumo para prever custos futuros e recomenda quais instâncias EC2 podem ser redimensionadas — atendendo aos dois requisitos do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Pricing Calculator usa machine learning sobre o histórico de consumo para prever custos futuros e recomenda quais instâncias EC2 podem ser redimensionadas — atendendo aos dois requisitos do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Billing Conductor usa machine learning sobre o histórico de consumo para prever custos futuros e recomenda quais instâncias EC2 podem ser redimensionadas — atendendo aos dois requisitos do FinOps.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-214",
+      "options": [
+        {
+          "matchText": "AWS Trusted Advisor",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Trusted Advisor avalia recursos já ativos na conta — não modela custos de uma arquitetura que ainda nem existe."
+        },
+        {
+          "matchText": "AWS Cost Explorer",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Cost Explorer também estima e analisa custos — mas ele projeta com base no HISTÓRICO de uso REAL de uma conta já existente; simular cenários hipotéticos ANTES de criar a conta ou provisionar qualquer recurso é o AWS Pricing Calculator."
+        },
+        {
+          "matchText": "AWS Pricing Calculator",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Budgets",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Budgets monitora e alerta sobre gastos já em andamento — não simula custos de uma arquitetura hipotética antes da criação da conta."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Pricing Calculator simula cenários combinando EC2, DynamoDB e S3 antes de criar a conta ou provisionar qualquer recurso — a modelagem financeira prévia exatamente pedida pela startup.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Trusted Advisor simula cenários combinando EC2, DynamoDB e S3 antes de criar a conta ou provisionar qualquer recurso — a modelagem financeira prévia exatamente pedida pela startup.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Cost Explorer simula cenários combinando EC2, DynamoDB e S3 antes de criar a conta ou provisionar qualquer recurso — a modelagem financeira prévia exatamente pedida pela startup.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Budgets simula cenários combinando EC2, DynamoDB e S3 antes de criar a conta ou provisionar qualquer recurso — a modelagem financeira prévia exatamente pedida pela startup.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-215",
+      "options": [
+        {
+          "matchText": "Alertas de custo real no AWS Cost Explorer",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Cost Explorer também expõe dados de custo — mas ele mostra gastos JÁ OCORRIDOS (histórico), sem alertar PREDITIVAMENTE quando uma PROJEÇÃO cruza um limiar; esse controle preditivo por e-mail é o Forecasted Alert do AWS Budgets."
+        },
+        {
+          "matchText": "Alertas baseados em previsões (Forecasted Alerts) no AWS Budgets",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Regras de automação do AWS Cost Anomaly Detection",
+          "stage": "eliminate",
+          "reasonWrong": "Cost Anomaly Detection identifica gastos ANÔMALOS fora do padrão — não é o alerta configurado sobre um teto orçamentário definido."
+        },
+        {
+          "matchText": "Relatórios de Custo e Uso da AWS (AWS Cost and Usage Reports)",
+          "stage": "eliminate",
+          "reasonWrong": "O Cost and Usage Report entrega dados granulares de cobrança — não envia alertas automáticos por e-mail quando uma previsão cruza um limite."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Alertas baseados em previsões (Forecasted Alerts) no AWS Budgets enviam e-mail quando o gasto PROJETADO para o fim do mês cruza 80% do teto orçamentário — o controle preditivo exatamente pedido pelo Diretor.",
+            "correct": true
+          },
+          {
+            "text": "Porque os alertas de custo real no AWS Cost Explorer enviam e-mail quando o gasto projetado para o fim do mês cruza 80% do teto orçamentário — o controle preditivo exatamente pedido pelo Diretor.",
+            "correct": false
+          },
+          {
+            "text": "Porque as regras de automação do AWS Cost Anomaly Detection enviam e-mail quando o gasto projetado para o fim do mês cruza 80% do teto orçamentário — o controle preditivo exatamente pedido pelo Diretor.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Relatórios de Custo e Uso da AWS enviam e-mail quando o gasto projetado para o fim do mês cruza 80% do teto orçamentário — o controle preditivo exatamente pedido pelo Diretor de TI.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-216",
+      "options": [
+        {
+          "matchText": "A AWS cobra uma taxa de penalidade financeira por ociosidade que anula o faturamento consolidado de toda a holding.",
+          "stage": "eliminate",
+          "reasonWrong": "A AWS não cobra 'taxa de penalidade' por RI ociosa — o benefício simplesmente é redirecionado a outra conta elegível."
+        },
+        {
+          "matchText": "O benefício de preço diferenciado é automaticamente aplicado ao uso de instâncias EC2 elegíveis e idênticas em qualquer outra conta-membro pertencente à mesma organização.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "O desconto da Instância Reservada permanece restrito à conta-membro que realizou a compra, gerando desperdício financeiro na fatura mensal da holding.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque nomeia corretamente o risco (desconto ocioso) — mas descreve o resultado ERRADO: com o faturamento consolidado, o desconto NÃO fica preso à conta compradora; ele é COMPARTILHADO automaticamente com instâncias elegíveis de qualquer conta-membro da organização."
+        },
+        {
+          "matchText": "O AWS Organizations suspende temporariamente a conta-membro adquirente até que os servidores sejam reinicializados.",
+          "stage": "eliminate",
+          "reasonWrong": "O Organizations não suspende contas por RIs ociosas — isso não existe como mecanismo de consolidated billing."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque, com o faturamento consolidado, o benefício de preço das Instâncias Reservadas ociosas é automaticamente aplicado ao uso de instâncias EC2 elegíveis e idênticas em qualquer outra conta-membro da organização.",
+            "correct": true
+          },
+          {
+            "text": "Porque a AWS cobra uma taxa de penalidade por ociosidade que anula o faturamento consolidado, já que o benefício é automaticamente aplicado a instâncias elegíveis em qualquer conta-membro da organização.",
+            "correct": false
+          },
+          {
+            "text": "Porque o desconto permanece restrito à conta-membro que comprou, gerando desperdício, já que o benefício deveria ser automaticamente aplicado a instâncias elegíveis em qualquer conta-membro da organização.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Organizations suspende temporariamente a conta adquirente, já que o benefício é automaticamente aplicado ao uso de instâncias elegíveis em qualquer outra conta-membro da organização.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-217",
+      "options": [
+        {
+          "matchText": "AWS Enterprise Support",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Enterprise Support também garante resposta rápida e chat/telefone 24/7 — mas ele inclui um TAM DEDICADO (mais caro), que o cenário explicitamente diz não precisar; o plano mais econômico com esses SLAs sem TAM é o Business Support."
+        },
+        {
+          "matchText": "AWS Business Support",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Basic Support",
+          "stage": "eliminate",
+          "reasonWrong": "Basic Support é gratuito e não oferece suporte técnico 24/7 nem SLA de resposta — insuficiente para produção crítica."
+        },
+        {
+          "matchText": "AWS Developer Support",
+          "stage": "eliminate",
+          "reasonWrong": "Developer Support atende só em horário comercial por e-mail — sem chat/telefone 24/7 nem SLA de 1 hora para produção."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Business Support garante resposta em menos de 1 hora para produção crítica e chat/telefone 24/7, sem o custo extra de um TAM dedicado — o plano mais econômico que atende aos requisitos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Enterprise Support garante resposta em menos de 1 hora para produção crítica e chat/telefone 24/7, sem o custo extra de um TAM dedicado — o plano mais econômico que atende aos requisitos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Basic Support garante resposta em menos de 1 hora para produção crítica e chat/telefone 24/7, sem o custo extra de um TAM dedicado — o plano mais econômico que atende aos requisitos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Developer Support garante resposta em menos de 1 hora para produção crítica e chat/telefone 24/7, sem o custo extra de um TAM dedicado — o plano mais econômico que atende aos requisitos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-218",
+      "options": [
+        {
+          "matchText": "Instâncias Reservadas de Capacidade do EC2 (Capacity Reservations)",
+          "stage": "eliminate",
+          "reasonWrong": "Capacity Reservations garantem capacidade reservada de EC2 (sem desconto amplo) — não cobrem Fargate/Lambda nem dão o desconto por compromisso de gasto."
+        },
+        {
+          "matchText": "Compute Savings Plans",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Instâncias Spot (Spot Instances)",
+          "stage": "eliminate",
+          "reasonWrong": "Instâncias Spot são capacidade ociosa interrompível, sem compromisso financeiro — o oposto do compromisso estável de longo prazo pedido."
+        },
+        {
+          "matchText": "Instâncias Reservadas Conversíveis do EC2 (Convertible RIs)",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque as Convertible RIs também dão desconto de longo prazo com alguma flexibilidade — mas elas se prendem a instâncias EC2 e permitem trocar atributos com restrições; cobrir EC2, Fargate e Lambda com um compromisso de gasto por hora totalmente flexível é o Compute Savings Plans."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Compute Savings Plans aplica um compromisso de gasto por hora (ex.: $10/h) que cobre EC2, Fargate e Lambda de forma flexível e automatizada em qualquer Região — exatamente a meta do FinOps.",
+            "correct": true
+          },
+          {
+            "text": "Porque as Capacity Reservations do EC2 aplicam um compromisso de gasto por hora que cobre EC2, Fargate e Lambda de forma flexível e automatizada em qualquer Região — exatamente a meta do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Instâncias Spot aplicam um compromisso de gasto por hora que cobre EC2, Fargate e Lambda de forma flexível e automatizada em qualquer Região — exatamente a meta do FinOps.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Instâncias Reservadas Conversíveis aplicam um compromisso de gasto por hora que cobre EC2, Fargate e Lambda de forma flexível e automatizada em qualquer Região — exatamente a meta do FinOps.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-219",
+      "options": [
+        {
+          "matchText": "Descontos por Volume Agregado (Volume Discounts)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Isenção de taxas de transferência de rede inter-regiões",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também é um benefício financeiro do faturamento consolidado — mas isenção de tráfego inter-regiões não existe como tal; o preço por GB caindo com o VOLUME AGREGADO de todas as contas somadas é o desconto por Volume Agregado."
+        },
+        {
+          "matchText": "Compartilhamento compulsório de material criptográfico do AWS KMS",
+          "stage": "eliminate",
+          "reasonWrong": "'Compartilhamento compulsório de material do KMS' não existe nem tem relação com desconto de preço por volume armazenado."
+        },
+        {
+          "matchText": "Subsídio cruzado financeiro de créditos de instâncias Spot",
+          "stage": "eliminate",
+          "reasonWrong": "'Subsídio cruzado de créditos Spot' não é um benefício real do Organizations — não explica a queda de preço por GB armazenado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Descontos por Volume Agregado somam o uso de S3 de todas as 15 contas-membro, fazendo o preço por GB cair de patamar ao ultrapassar limites de Terabytes — o benefício de precificação do faturamento consolidado.",
+            "correct": true
+          },
+          {
+            "text": "Porque a isenção de taxas de transferência inter-regiões soma o uso de S3 de todas as contas, fazendo o preço por GB cair de patamar ao ultrapassar limites de Terabytes — o benefício do faturamento consolidado.",
+            "correct": false
+          },
+          {
+            "text": "Porque o compartilhamento compulsório de material do KMS soma o uso de S3 de todas as contas, fazendo o preço por GB cair de patamar ao ultrapassar limites de Terabytes — o benefício do faturamento consolidado.",
+            "correct": false
+          },
+          {
+            "text": "Porque o subsídio cruzado de créditos Spot soma o uso de S3 de todas as contas, fazendo o preço por GB cair de patamar ao ultrapassar limites de Terabytes — o benefício do faturamento consolidado.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-220",
+      "options": [
+        {
+          "matchText": "AWS Solutions Architect On-Demand",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Solutions Architect On-Demand' não é a figura dedicada do plano Enterprise Support — não existe com esse nome no catálogo de suporte."
+        },
+        {
+          "matchText": "Technical Account Manager (TAM)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Concierge Support Team",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque soa como um time de suporte dedicado do Enterprise Support — mas 'AWS Concierge Support Team' não é o nome oficial da figura de consultoria técnica proativa; esse papel específico é o Technical Account Manager (TAM)."
+        },
+        {
+          "matchText": "AWS Trusted Advisor Premium Agent",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Trusted Advisor Premium Agent' não é uma pessoa nem um papel do plano Enterprise — Trusted Advisor é uma ferramenta automatizada, não um consultor dedicado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Technical Account Manager (TAM) é a figura oficial do Enterprise Support que atua como consultor técnico primário dedicado, ajudando proativamente na prevenção de riscos, otimização de custos e governança.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Solutions Architect On-Demand é a figura oficial do Enterprise Support que atua como consultor técnico primário dedicado, ajudando proativamente na prevenção de riscos, otimização de custos e governança.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Concierge Support Team é a figura oficial do Enterprise Support que atua como consultor técnico primário dedicado, ajudando proativamente na prevenção de riscos, otimização de custos e governança.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Trusted Advisor Premium Agent é a figura oficial do Enterprise Support que atua como consultor técnico primário dedicado, ajudando proativamente na prevenção de riscos, otimização de custos e governança.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-221",
+      "options": [
+        {
+          "matchText": "Dedicated Hosts (Hosts Dedicados)",
+          "stage": "eliminate",
+          "reasonWrong": "Dedicated Hosts entregam servidor físico dedicado e custam MAIS — o oposto da máxima redução de custo para processamento tolerante a interrupção."
+        },
+        {
+          "matchText": "Instâncias Reservadas Padrão (Standard RIs)",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque as Reservadas também reduzem muito o custo — mas exigem COMPROMISSO de 1-3 anos com uso previsível contínuo; aproveitar até 90% de desconto usando capacidade OCIOSA interrompível, tolerando falhas, é o modelo Spot."
+        },
+        {
+          "matchText": "Instâncias Spot (Spot Instances)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Instâncias On-Demand (Sob Demanda)",
+          "stage": "eliminate",
+          "reasonWrong": "On-Demand paga o preço cheio por hora sem desconto — não chega perto dos 90% de redução pedidos."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as Instâncias Spot dão até 90% de desconto usando a capacidade ociosa da AWS, aceitando interrupções — ideal para o processamento em lote tolerante a falhas que pode ser reiniciado sem impacto comercial.",
+            "correct": true
+          },
+          {
+            "text": "Porque os Dedicated Hosts dão até 90% de desconto usando a capacidade ociosa da AWS, aceitando interrupções — ideal para o processamento em lote tolerante a falhas que pode ser reiniciado sem impacto comercial.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Instâncias Reservadas Padrão dão até 90% de desconto usando a capacidade ociosa da AWS, aceitando interrupções — ideal para o processamento em lote tolerante a falhas que pode ser reiniciado sem impacto.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Instâncias On-Demand dão até 90% de desconto usando a capacidade ociosa da AWS, aceitando interrupções — ideal para o processamento em lote tolerante a falhas que pode ser reiniciado sem impacto comercial.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-222",
+      "options": [
+        {
+          "matchText": "As contas-membro continuam restritas ao plano Basic gratuito de suporte, a menos que cada filial pague uma taxa mensal individual isolada separada.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque fala do nível de suporte das contas-membro — mas afirma o OPOSTO do benefício real: elas NÃO ficam restritas ao Basic; o Enterprise contratado na conta pagadora se APLICA AUTOMATICAMENTE a todas, com custo agregado pelo consumo total."
+        },
+        {
+          "matchText": "A AWS cancela o faturamento consolidado e emite notas fiscais separadas por conta-membro caso o suporte Enterprise seja ativado.",
+          "stage": "eliminate",
+          "reasonWrong": "A AWS não cancela o faturamento consolidado ao ativar o Enterprise Support — pelo contrário, os dois convivem e se somam."
+        },
+        {
+          "matchText": "O Technical Account Manager (TAM) assume as senhas de Root de todas as contas filhas removendo os acessos dos engenheiros locais.",
+          "stage": "eliminate",
+          "reasonWrong": "O TAM não assume senhas de Root das contas filhas — ele atua como consultor, sem tomar controle de credenciais."
+        },
+        {
+          "matchText": "O suporte Enterprise aplica-se automaticamente a todas as contas-membro da organização, e os custos de suporte são calculados de forma agregada com base no consumo total combinado de todas as contas.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o suporte Enterprise se aplica automaticamente a todas as contas-membro da organização, com os custos calculados de forma agregada pelo consumo total combinado — o impacto real do faturamento consolidado.",
+            "correct": true
+          },
+          {
+            "text": "Porque as contas-membro continuam restritas ao Basic gratuito a menos que paguem taxa individual, já que o Enterprise se aplica automaticamente com custo agregado pelo consumo total combinado.",
+            "correct": false
+          },
+          {
+            "text": "Porque a AWS cancela o faturamento consolidado ao ativar o Enterprise, já que ele se aplica automaticamente a todas as contas-membro com custo agregado pelo consumo total combinado.",
+            "correct": false
+          },
+          {
+            "text": "Porque o TAM assume as senhas de Root das contas filhas, já que o suporte Enterprise se aplica automaticamente a todas com custo agregado pelo consumo total combinado da organização.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-223",
+      "options": [
+        {
+          "matchText": "Relatórios de Custo e Uso da AWS (AWS Cost and Usage Reports)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Trusted Advisor Cost Summary",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Trusted Advisor também toca em custos e recomendações — mas ele entrega RESUMOS e recomendações pontuais, não o arquivo BRUTO e granular por recurso/hora com tags; esse relatório massivo para BI é o AWS Cost and Usage Report (CUR)."
+        },
+        {
+          "matchText": "AWS Pricing Calculator Engine",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Pricing Calculator estima custos de arquiteturas hipotéticas — não gera um relatório mensal detalhado dos recursos já ativos na conta."
+        },
+        {
+          "matchText": "AWS Billing Dashboard Graphs",
+          "stage": "eliminate",
+          "reasonWrong": "O Billing Dashboard mostra gráficos visuais resumidos — não é o arquivo bruto e granular para cruzar em ferramentas de BI."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Cost and Usage Report (CUR) entrega mensalmente um arquivo bruto e granular, detalhando cada recurso por hora com as tags de alocação de custos — para cruzamento em ferramentas locais de BI, como pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Trusted Advisor Cost Summary entrega mensalmente um arquivo bruto e granular, detalhando cada recurso por hora com as tags de alocação de custos — para cruzamento em ferramentas de BI, como pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Pricing Calculator Engine entrega mensalmente um arquivo bruto e granular, detalhando cada recurso por hora com as tags de alocação de custos — para cruzamento em ferramentas de BI, como pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Billing Dashboard Graphs entrega mensalmente um arquivo bruto e granular, detalhando cada recurso por hora com as tags de alocação de custos — para cruzamento em ferramentas de BI, como pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-224",
+      "options": [
+        {
+          "matchText": "Até 15 minutos por telefone 24/7 de emergência.",
+          "stage": "eliminate",
+          "reasonWrong": "Resposta em 15 minutos por telefone 24/7 é do nível mais crítico do Business/Enterprise — o Developer não tem esse SLA nem canal de telefone de emergência."
+        },
+        {
+          "matchText": "Imediato, com intervenção automatizada de robôs via AWS CodeStar.",
+          "stage": "eliminate",
+          "reasonWrong": "Não há 'intervenção automatizada via CodeStar' como SLA de suporte — o Developer Support atende por e-mail em horário comercial."
+        },
+        {
+          "matchText": "Até 1 hora útil com atendimento de um Technical Account Manager (TAM) dedicado local.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Developer Support também dá SLA de resposta rápida — mas com TAM dedicado local em 1h é do Enterprise; o Developer Support não tem TAM, e o SLA para 'System impairment' (não crítico) é de até 12 horas úteis por e-mail."
+        },
+        {
+          "matchText": "Até 12 horas úteis para chamados abertos via e-mail corporativo.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Developer Support garante até 12 horas úteis de resposta para chamados de 'System impairment' abertos por e-mail — o SLA correto desse plano para o ambiente de homologação não produtivo.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Developer Support garante até 15 minutos de resposta por telefone 24/7 de emergência — o SLA correto desse plano para o ambiente de homologação não produtivo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Developer Support garante resposta imediata com intervenção automatizada via AWS CodeStar — o SLA correto desse plano para o ambiente de homologação não produtivo.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Developer Support garante até 1 hora útil com atendimento de um TAM dedicado local — o SLA correto desse plano para o ambiente de homologação não produtivo.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-225",
+      "options": [
+        {
+          "matchText": "Contrato de 3 anos, modalidade de Pagamento Integral Antecipado (All Upfront).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Contrato de 1 ano, modalidade Sem Pagamento Antecipado (No Upfront).",
+          "stage": "eliminate",
+          "reasonWrong": "Contrato de 1 ano sem pagamento antecipado dá o MENOR desconto entre as modalidades — o oposto do máximo pedido."
+        },
+        {
+          "matchText": "Contrato de 3 anos, modalidade de Compra de Instâncias Spot Agendadas.",
+          "stage": "eliminate",
+          "reasonWrong": "'Compra de Instâncias Spot Agendadas' não é uma modalidade de Reserved Instance — Spot é outro modelo de compra, sem o compromisso de 3 anos."
+        },
+        {
+          "matchText": "Contrato de 1 ano, modalidade de Pagamento Parcial Antecipado (Partial Upfront) conversível.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também é uma modalidade de RI conversível com pagamento antecipado — mas ela é de 1 ANO (menor desconto) e ainda é PARCIAL, não integral; o desconto MÁXIMO (até 72%) exige o contrato de 3 anos com pagamento All Upfront."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o contrato de 3 anos com Pagamento Integral Antecipado (All Upfront) dá o maior desconto possível (até 72%) sobre o On-Demand — o nível máximo de economia para quem tem capital disponível.",
+            "correct": true
+          },
+          {
+            "text": "Porque o contrato de 1 ano Sem Pagamento Antecipado dá o maior desconto possível (até 72%) sobre o On-Demand — o nível máximo de economia para quem tem capital disponível.",
+            "correct": false
+          },
+          {
+            "text": "Porque o contrato de 3 anos com Compra de Instâncias Spot Agendadas dá o maior desconto possível (até 72%) sobre o On-Demand — o nível máximo de economia para quem tem capital disponível.",
+            "correct": false
+          },
+          {
+            "text": "Porque o contrato de 1 ano com Pagamento Parcial Antecipado conversível dá o maior desconto possível (até 72%) sobre o On-Demand — o nível máximo de economia para quem tem capital disponível.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-226",
+      "options": [
+        {
+          "matchText": "Equipe do AWS Concierge (AWS Concierge Support Team)",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o AWS Concierge também é um time humano de suporte ligado a faturamento — mas ele é EXCLUSIVO do Business e Enterprise ON-RAMP/Enterprise para questões de CONTA em geral; o time especificamente treinado para mediar dúvidas de fatura, cobrança e tags é o AWS Billing and Account Support."
+        },
+        {
+          "matchText": "AWS Pricing Calculator Operations Center",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Pricing Calculator Operations Center' não existe — o Pricing Calculator é uma ferramenta de estimativa, não um time de atendimento."
+        },
+        {
+          "matchText": "Technical Account Manager (TAM) de Faturamento Virtual",
+          "stage": "eliminate",
+          "reasonWrong": "'TAM de Faturamento Virtual' não é uma figura real — o TAM é consultor técnico geral do Enterprise Support, não um cargo de faturamento."
+        },
+        {
+          "matchText": "Suporte de Faturamento e Contas da AWS (AWS Billing and Account Support)",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Suporte de Faturamento e Contas da AWS é o time humano especializado disponível no Business Support para mediar dúvidas contábeis, faturas e o uso de tags de alocação de custos — exatamente o pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque a Equipe do AWS Concierge é o time humano especializado disponível no Business Support para mediar dúvidas contábeis, faturas e o uso de tags de alocação de custos — exatamente o pedido do time financeiro.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Pricing Calculator Operations Center é o time humano especializado disponível no Business Support para mediar dúvidas contábeis, faturas e o uso de tags de custos — exatamente o pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o TAM de Faturamento Virtual é o time humano especializado disponível no Business Support para mediar dúvidas contábeis, faturas e o uso de tags de alocação de custos — exatamente o pedido do time financeiro.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-227",
+      "options": [
+        {
+          "matchText": "AWS Pricing Calculator API Streams",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Pricing Calculator API Streams' não existe — Pricing Calculator estima custos, não envia notificações em tempo real."
+        },
+        {
+          "matchText": "Amazon Simple Notification Service (Amazon SNS)",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Trusted Advisor Event Engine",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque soa como um mecanismo de eventos ligado ao Trusted Advisor — mas 'AWS Trusted Advisor Event Engine' não existe; o serviço que integra e distribui alertas de anomalia de custo a canais como Slack/Teams é o Amazon SNS."
+        },
+        {
+          "matchText": "AWS Artifact Enterprise Hub",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Artifact fornece relatórios de conformidade — não é o mecanismo de notificação de alertas de anomalia de custo."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon SNS integra o Cost Anomaly Detection a canais de comunicação (Slack, Teams) via tópicos e assinantes, entregando os alertas de gastos anômalos em tempo real — exatamente o mecanismo pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Pricing Calculator API Streams integra o Cost Anomaly Detection a canais de comunicação (Slack, Teams), entregando os alertas de gastos anômalos em tempo real — exatamente o mecanismo pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Trusted Advisor Event Engine integra o Cost Anomaly Detection a canais de comunicação (Slack, Teams), entregando os alertas de gastos anômalos em tempo real — exatamente o mecanismo pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Artifact Enterprise Hub integra o Cost Anomaly Detection a canais de comunicação (Slack, Teams), entregando os alertas de gastos anômalos em tempo real — exatamente o mecanismo pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-228",
+      "options": [
+        {
+          "matchText": "Reiniciar as instâncias do Amazon EC2 para que o hipervisor limpe os metadados e envie os dados ao plano de controle.",
+          "stage": "eliminate",
+          "reasonWrong": "Reiniciar as instâncias não tem relação com o mecanismo de indexação de tags de custo — as tags já existem no recurso, falta só habilitá-las como dimensão financeira."
+        },
+        {
+          "matchText": "Vincular as tags a um template declarativo de automação utilizando o AWS Systems Manager Automation.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque parece um passo de automação de infraestrutura — mas o Systems Manager Automation executa runbooks operacionais, não é o que ativa tags como dimensão de custo; o passo obrigatório é ativá-las em Cost Allocation Tags no AWS Billing."
+        },
+        {
+          "matchText": "Abrir um chamado técnico no suporte com classificação de severidade crítica para solicitar a indexação manual.",
+          "stage": "eliminate",
+          "reasonWrong": "Não é preciso abrir chamado de suporte para 'indexação manual' — a ativação de Cost Allocation Tags é self-service no console de Billing."
+        },
+        {
+          "matchText": "Ativar explicitamente as tags desejadas no painel de Cost Allocation Tags dentro do console do AWS Billing.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque ativar explicitamente as tags desejadas no painel de Cost Allocation Tags do console do AWS Billing é o passo obrigatório para que elas apareçam como filtros válidos no Cost Explorer.",
+            "correct": true
+          },
+          {
+            "text": "Porque reiniciar as instâncias EC2 para o hipervisor limpar os metadados é o passo obrigatório para que as tags apareçam como filtros válidos no Cost Explorer.",
+            "correct": false
+          },
+          {
+            "text": "Porque vincular as tags a um template do Systems Manager Automation é o passo obrigatório para que elas apareçam como filtros válidos no Cost Explorer.",
+            "correct": false
+          },
+          {
+            "text": "Porque abrir um chamado técnico crítico no suporte para indexação manual é o passo obrigatório para que as tags apareçam como filtros válidos no Cost Explorer.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-229",
+      "options": [
+        {
+          "matchText": "A AWS cobrará o valor total sob demanda (On-Demand) das três instâncias, pois o Free Tier é restrito estritamente a apenas uma única máquina ligada por conta.",
+          "stage": "eliminate",
+          "reasonWrong": "O Free Tier não é restrito a 'uma única máquina por conta' de forma absoluta — o limite é de HORAS agregadas (750h/mês), que uma instância full-time já consome sozinha."
+        },
+        {
+          "matchText": "Apenas uma instância será gratuita (equivalente a cerca de 744 horas em um mês de 31 dias) e as outras duas instâncias terão suas horas de execução faturadas integralmente na tabela padrão sob demanda.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "A AWS suspenderá o tráfego de rede da VPC da startup assim que o relógio computacional somado ultrapassar 750 horas lógicas no mês.",
+          "stage": "eliminate",
+          "reasonWrong": "A AWS não suspende o tráfego de rede ao ultrapassar 750 horas — ela apenas passa a cobrar as horas excedentes na tabela padrão."
+        },
+        {
+          "matchText": "As três instâncias serão totalmente gratuitas durante todo o primeiro ano, pois o Free Tier se expande elasticamente para cobrir ambientes de testes automatizados.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Free Tier realmente dura 12 meses — mas ele NÃO 'se expande' para cobrir múltiplas instâncias simultâneas; o teto de 750h/mês vale para UMA instância elegível, e as demais rodando em paralelo são cobradas integralmente On-Demand."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque apenas uma instância (cerca de 744h em 31 dias) fica dentro do teto gratuito de 750h/mês, e as outras duas rodando em paralelo têm suas horas cobradas integralmente na tabela On-Demand padrão.",
+            "correct": true
+          },
+          {
+            "text": "Porque a AWS cobra o valor total On-Demand das três instâncias, já que apenas uma fica dentro do teto gratuito de 750h/mês e as outras duas são cobradas integralmente na tabela padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque a AWS suspende o tráfego de rede da VPC ao ultrapassar 750h no mês, já que apenas uma instância fica dentro do teto gratuito e as outras duas são cobradas integralmente na tabela padrão.",
+            "correct": false
+          },
+          {
+            "text": "Porque as três instâncias ficam gratuitas durante todo o primeiro ano, já que apenas uma fica dentro do teto gratuito de 750h/mês e as outras duas são cobradas integralmente na tabela padrão.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-230",
+      "options": [
+        {
+          "matchText": "Modelagem de elasticidade de Throughput pelo AWS Billing Conductor.",
+          "stage": "eliminate",
+          "reasonWrong": "'Modelagem de elasticidade de Throughput' não é um conceito financeiro de comparação de custos — Billing Conductor cria visões de rateio, não TCO."
+        },
+        {
+          "matchText": "Cálculo de TCO (Total Cost of Ownership - Custo Total de Propriedade).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Mapeamento forense de logs de auditoria pelo AWS CloudTrail.",
+          "stage": "eliminate",
+          "reasonWrong": "CloudTrail audita chamadas de API para segurança — não tem relação com comparação de custos totais entre ambientes."
+        },
+        {
+          "matchText": "Cálculo de margem de contribuição líquida via AWS Cost Explorer.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também soa como um conceito de análise financeira ligado à AWS — mas 'margem de contribuição líquida' é um indicador de lucratividade de produto, não a comparação de custos totais entre on-premises e nuvem; isso é o TCO."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o cálculo de TCO (Total Cost of Ownership) compara os custos totais do on-premises (hardware, facilities, manutenção, refrigeração) com os da nuvem — a análise financeira exatamente descrita para a diretoria.",
+            "correct": true
+          },
+          {
+            "text": "Porque a modelagem de elasticidade de Throughput pelo Billing Conductor compara os custos totais do on-premises com os da nuvem — a análise financeira exatamente descrita para a diretoria.",
+            "correct": false
+          },
+          {
+            "text": "Porque o mapeamento forense de logs pelo CloudTrail compara os custos totais do on-premises com os da nuvem — a análise financeira exatamente descrita para a diretoria financeira.",
+            "correct": false
+          },
+          {
+            "text": "Porque o cálculo de margem de contribuição líquida via Cost Explorer compara os custos totais do on-premises com os da nuvem — a análise financeira exatamente descrita para a diretoria.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-231",
+      "options": [
+        {
+          "matchText": "AWS Marketplace.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon Lightsail App Store.",
+          "stage": "eliminate",
+          "reasonWrong": "'Amazon Lightsail App Store' não existe como catálogo de software de terceiros — Lightsail é um serviço de servidores simplificados."
+        },
+        {
+          "matchText": "AWS Cost and Usage Reports Directory.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Cost and Usage Reports é um relatório de cobrança — não é um catálogo de compra de software de parceiros."
+        },
+        {
+          "matchText": "AWS Systems Manager Service Catalog.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Service Catalog também disponibiliza produtos prontos para implantar na AWS — mas ele publica um catálogo INTERNO curado pela própria empresa; comprar SOFTWARE de fornecedores TERCEIROS com cobrança na fatura da AWS é o AWS Marketplace."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Marketplace permite pesquisar, testar, comprar e implantar softwares de parceiros independentes (SOs, firewalls, plataformas de dados) com faturamento centralizado na conta da AWS — exatamente o catálogo pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o Amazon Lightsail App Store permite pesquisar, testar, comprar e implantar softwares de parceiros independentes com faturamento centralizado na conta da AWS — exatamente o catálogo pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Cost and Usage Reports Directory permite pesquisar, testar, comprar e implantar softwares de parceiros independentes com faturamento centralizado na conta da AWS — exatamente o catálogo pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Systems Manager Service Catalog permite pesquisar, testar, comprar e implantar softwares de parceiros independentes com faturamento centralizado na conta da AWS — exatamente o catálogo pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-232",
+      "options": [
+        {
+          "matchText": "Tipos de uso e operações de APIs (Usage Types e Operations).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Laudos de auditorias retrospectivas emitidos pelo AWS Artifact.",
+          "stage": "eliminate",
+          "reasonWrong": "Laudos de auditoria do AWS Artifact são relatórios de conformidade da AWS — não são uma categoria de dados de faturamento do CUR."
+        },
+        {
+          "matchText": "Identificadores de chaves simétricas do AWS KMS.",
+          "stage": "eliminate",
+          "reasonWrong": "Identificadores de chaves do KMS são metadados de criptografia — não são a categoria do CUR que discrimina custo de operações de API do S3."
+        },
+        {
+          "matchText": "Métricas de performance de IOPS de blocos de discos EBS.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque métricas de IOPS também são dados técnicos granulares de um recurso de armazenamento — mas elas medem DESEMPENHO de disco EBS, não CUSTO de chamadas de API do S3; a categoria do CUR que discrimina o custo de PUT/GET é Tipos de Uso e Operações."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a categoria de Tipos de Uso e Operações (Usage Types e Operations) do CUR discrimina exatamente os custos gerados pelas chamadas de API (PUT, GET) aplicadas aos objetos do bucket, como o Diretor de FinOps precisa mapear.",
+            "correct": true
+          },
+          {
+            "text": "Porque os Laudos de auditorias retrospectivas do AWS Artifact discriminam exatamente os custos gerados pelas chamadas de API (PUT, GET) aplicadas aos objetos do bucket, como o Diretor de FinOps precisa mapear.",
+            "correct": false
+          },
+          {
+            "text": "Porque os Identificadores de chaves simétricas do KMS discriminam exatamente os custos gerados pelas chamadas de API (PUT, GET) aplicadas aos objetos do bucket, como o Diretor de FinOps precisa mapear.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Métricas de performance de IOPS de blocos EBS discriminam exatamente os custos gerados pelas chamadas de API (PUT, GET) aplicadas aos objetos do bucket, como o Diretor de FinOps precisa mapear.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-233",
+      "options": [
+        {
+          "matchText": "Custos de Instâncias Spot e Custos de Hosts Dedicados.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque cita tipos de instância ligados a custo — mas 'Custos de Spot' e 'Custos de Dedicated Hosts' não são as métricas de rastreamento do Budgets; as duas métricas reais são Custos Reais (o que já foi gasto) e Custos Previstos (o que se projeta gastar)."
+        },
+        {
+          "matchText": "Custos Reativos (Reactive) e Custos Passivos (Passive).",
+          "stage": "eliminate",
+          "reasonWrong": "'Custos Reativos e Passivos' não são termos usados pelo AWS Budgets — as métricas reais são Actual e Forecasted."
+        },
+        {
+          "matchText": "Custos Criptografados (Encrypted) e Custos Públicos (Public).",
+          "stage": "eliminate",
+          "reasonWrong": "'Custos Criptografados e Públicos' não são categorias de rastreamento de orçamento — são atributos de segurança, não de gasto financeiro."
+        },
+        {
+          "matchText": "Custos Reais (Actual) e Custos Previstos (Forecasted).",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Budgets rastreia Custos Reais (Actual, já incorridos) e Custos Previstos (Forecasted, projetados) — as duas métricas distintas que disparam os alertas de e-mail configurados pelo engenheiro.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Budgets rastreia Custos de Instâncias Spot e Custos de Hosts Dedicados — as duas métricas distintas que disparam os alertas de e-mail configurados pelo engenheiro.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Budgets rastreia Custos Reativos e Custos Passivos — as duas métricas distintas que disparam os alertas de e-mail configurados pelo engenheiro de segurança.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Budgets rastreia Custos Criptografados e Custos Públicos — as duas métricas distintas que disparam os alertas de e-mail configurados pelo engenheiro de segurança.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-234",
+      "options": [
+        {
+          "matchText": "Eles removem e apagam fisicamente os buckets e dados gravados do cliente se a conta ficar mais de uma semana sem receber logins.",
+          "stage": "eliminate",
+          "reasonWrong": "A AWS não apaga buckets/dados por inatividade de login de uma semana — isso não é uma regra do Free Tier."
+        },
+        {
+          "matchText": "Eles permanecem disponíveis mensalmente de forma vitalícia para todas as contas lícitas ativas, mesmo após o término do período inicial de 12 meses do cadastro da conta.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Eles expiram de forma compulsória e irreversível exatamente no último dia do primeiro mês de criação do ambiente na nuvem.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque fala em expiração de benefício gratuito — mas isso descreve os recursos de 12 MESES, não os 'Always Free'; a categoria Sempre Gratuito continua disponível vitaliciamente para toda conta ativa, mesmo após o 1º ano."
+        },
+        {
+          "matchText": "Eles exigem a contratação obrigatória de um plano de suporte do nível Enterprise Support para manter as isenções ativas.",
+          "stage": "eliminate",
+          "reasonWrong": "Os recursos Always Free não exigem contratar o Enterprise Support — eles são gratuitos independentemente do plano de suporte contratado."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os recursos da categoria 'Sempre Gratuitos' (Always Free) permanecem disponíveis mensalmente de forma vitalícia para todas as contas ativas, mesmo após o término dos 12 meses iniciais do cadastro.",
+            "correct": true
+          },
+          {
+            "text": "Porque os recursos Always Free removem e apagam fisicamente os buckets e dados se a conta ficar mais de uma semana sem login, mesmo após o término dos 12 meses iniciais do cadastro.",
+            "correct": false
+          },
+          {
+            "text": "Porque os recursos Always Free expiram de forma compulsória e irreversível no último dia do primeiro mês de criação do ambiente, mesmo após o término dos 12 meses iniciais do cadastro.",
+            "correct": false
+          },
+          {
+            "text": "Porque os recursos Always Free exigem a contratação obrigatória do plano Enterprise Support para manter as isenções ativas, mesmo após o término dos 12 meses iniciais do cadastro.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-235",
+      "options": [
+        {
+          "matchText": "Atribuir tags a uma instância EC2 desativa automaticamente o modelo de compra de instâncias Spot associado ao hardware.",
+          "stage": "eliminate",
+          "reasonWrong": "Atribuir tags a uma EC2 não desativa o modelo de compra Spot associado — tags e modelo de compra são independentes."
+        },
+        {
+          "matchText": "O limite máximo permitido pela AWS é de apenas 3 tags associadas por recurso físico criado na conta corporativa.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque limites numéricos são restrições reais de tags na AWS — mas o teto é de 50 tags por recurso (não 3); a restrição técnica padrão relevante aqui é que as CHAVES são case-sensitive ('Ambiente' ≠ 'ambiente')."
+        },
+        {
+          "matchText": "As chaves das tags de custos devem ser salvas e validadas de forma obrigatória em formato de certificados criptográficos digitais emitidos pelo ACM.",
+          "stage": "eliminate",
+          "reasonWrong": "As chaves de tags são texto simples — não precisam ser certificados criptográficos emitidos pelo ACM."
+        },
+        {
+          "matchText": "As tags diferenciam letras maiúsculas de minúsculas (case-sensitive); portanto, as chaves 'Ambiente' e 'ambiente' serão processadas como duas tags contábeis totalmente distintas.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque as tags diferenciam maiúsculas de minúsculas (case-sensitive): 'Ambiente' e 'ambiente' são processadas como duas tags contábeis distintas — a restrição técnica que o Engenheiro de FinOps deve respeitar ao etiquetar.",
+            "correct": true
+          },
+          {
+            "text": "Porque atribuir tags a uma instância EC2 desativa automaticamente o modelo de compra Spot associado — a restrição técnica que o Engenheiro de FinOps deve respeitar ao etiquetar os recursos.",
+            "correct": false
+          },
+          {
+            "text": "Porque o limite máximo permitido é de apenas 3 tags por recurso físico criado na conta — a restrição técnica que o Engenheiro de FinOps deve respeitar ao etiquetar os recursos.",
+            "correct": false
+          },
+          {
+            "text": "Porque as chaves das tags devem ser validadas em formato de certificados criptográficos do ACM — a restrição técnica que o Engenheiro de FinOps deve respeitar ao etiquetar os recursos.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-236",
+      "options": [
+        {
+          "matchText": "AWS Systems Manager OpsCenter.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Systems Manager OpsCenter agrega itens operacionais para investigação — não estima nem exporta relatórios de custo de uma migração planejada."
+        },
+        {
+          "matchText": "AWS Pricing Calculator.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "AWS Cost Explorer Tool.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o Cost Explorer também gera relatórios e gráficos de custo — mas ele analisa o HISTÓRICO de uma conta JÁ EXISTENTE; simular uma migração hipotética em larga escala ANTES de contratar os recursos, com exportação estruturada para apresentação, é o AWS Pricing Calculator."
+        },
+        {
+          "matchText": "AWS Billing Conductor.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Billing Conductor cria visões de rateio de custos já incorridos — não simula uma migração que ainda não aconteceu."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS Pricing Calculator simula a estimativa de mil EC2, Fargate e Aurora Multi-AZ e exporta um relatório estruturado com gráficos e faturamentos parciais por departamento — antes mesmo de contratar os recursos.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Systems Manager OpsCenter simula a estimativa de mil EC2, Fargate e Aurora Multi-AZ e exporta um relatório estruturado com gráficos e faturamentos parciais por departamento — antes de contratar.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Cost Explorer Tool simula a estimativa de mil EC2, Fargate e Aurora Multi-AZ e exporta um relatório estruturado com gráficos e faturamentos parciais por departamento — antes de contratar.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Billing Conductor simula a estimativa de mil EC2, Fargate e Aurora Multi-AZ e exporta um relatório estruturado com gráficos e faturamentos parciais por departamento — antes de contratar.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-237",
+      "options": [
+        {
+          "matchText": "Conversão síncrona de volumes EBS em fitas de arquivamento Glacier pelo KMS.",
+          "stage": "eliminate",
+          "reasonWrong": "Converter volumes EBS em Glacier pelo KMS não tem relação com agrupar o consumo de rede de várias contas para desconto."
+        },
+        {
+          "matchText": "Isenção tributária compulsória para transferências de dados intercontinentais.",
+          "stage": "eliminate",
+          "reasonWrong": "Não existe isenção tributária automática por transferência intercontinental no faturamento consolidado — isso não é um mecanismo real da AWS."
+        },
+        {
+          "matchText": "Agregação de uso para descontos em camadas (Tiered Pricing Aggregation).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Substituição automática de instâncias sob demanda por hardware Spot.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque também é um mecanismo do faturamento consolidado — mas 'substituir On-Demand por Spot automaticamente' não existe; o que soma o uso entre contas para alcançar faixas de desconto por volume é a Agregação de uso em camadas (Tiered Pricing Aggregation)."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a Agregação de uso para descontos em camadas (Tiered Pricing Aggregation) soma o consumo de dados de todas as contas vinculadas, aplicando os descontos por volume da fatura consolidada — o mecanismo real descrito.",
+            "correct": true
+          },
+          {
+            "text": "Porque a conversão síncrona de volumes EBS em Glacier pelo KMS soma o consumo de dados de todas as contas vinculadas, aplicando os descontos por volume da fatura consolidada — o mecanismo real descrito.",
+            "correct": false
+          },
+          {
+            "text": "Porque a isenção tributária compulsória para transferências intercontinentais soma o consumo de dados de todas as contas vinculadas, aplicando os descontos por volume da fatura consolidada — o mecanismo real descrito.",
+            "correct": false
+          },
+          {
+            "text": "Porque a substituição automática de instâncias On-Demand por Spot soma o consumo de dados de todas as contas vinculadas, aplicando os descontos por volume da fatura consolidada — o mecanismo real descrito.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-238",
+      "options": [
+        {
+          "matchText": "Orçamentos do Free Tier da AWS (AWS Free Tier Budgets).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Alertas de conformidade de inventários históricos emitidos pelo AWS Config.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o AWS Config também gera alertas de conformidade — mas ele avalia CONFIGURAÇÃO de recursos, não CONSUMO do Free Tier; o orçamento simplificado que monitora especificamente a franquia gratuita é o Free Tier Budget do AWS Budgets."
+        },
+        {
+          "matchText": "Laudos técnicos estruturados gerados sob demanda pelo AWS Artifact.",
+          "stage": "eliminate",
+          "reasonWrong": "AWS Artifact fornece relatórios de conformidade da AWS — não monitora o consumo do Free Tier de uma conta."
+        },
+        {
+          "matchText": "Mapeamentos lógicos de chaves criptográficas assimétricas do AWS KMS.",
+          "stage": "eliminate",
+          "reasonWrong": "O KMS gerencia chaves de criptografia — não tem relação com monitorar o uso da franquia gratuita da conta."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque os Orçamentos do Free Tier da AWS (AWS Free Tier Budgets) enviam e-mails imediatos de alerta quando o uso ultrapassa 100% dos limites da franquia gratuita — o monitoramento simplificado que o analista precisa.",
+            "correct": true
+          },
+          {
+            "text": "Porque os alertas de conformidade de inventários do AWS Config enviam e-mails imediatos de alerta quando o uso ultrapassa 100% dos limites da franquia gratuita — o monitoramento simplificado que o analista precisa.",
+            "correct": false
+          },
+          {
+            "text": "Porque os laudos técnicos do AWS Artifact enviam e-mails imediatos de alerta quando o uso ultrapassa 100% dos limites da franquia gratuita — o monitoramento simplificado que o analista precisa.",
+            "correct": false
+          },
+          {
+            "text": "Porque os mapeamentos de chaves do KMS enviam e-mails imediatos de alerta quando o uso ultrapassa 100% dos limites da franquia gratuita — o monitoramento simplificado que o analista precisa.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-239",
+      "options": [
+        {
+          "matchText": "O AWS CUR emite as identidades e chaves criptográficas de segurança das IAM Roles temporárias da conta filha.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque menciona identidades e a conta filha — mas o CUR não emite chaves de IAM Roles; o diferencial real do CUR é entregar os dados de custo mais GRANULARES em arquivos (CSV/Parquet) no S3, enquanto o Cost Explorer é para dashboards visuais rápidos."
+        },
+        {
+          "matchText": "O AWS CUR instala obrigatoriamente agentes de softwares pesados dentro do kernel do Linux de servidores para auditar processos locais.",
+          "stage": "eliminate",
+          "reasonWrong": "O CUR não instala agentes no kernel do Linux — ele é um relatório de faturamento gerado pela AWS, sem tocar nas instâncias do cliente."
+        },
+        {
+          "matchText": "O AWS CUR remove e apaga fisicamente os recursos subutilizados identificados fora de conformidade na nuvem.",
+          "stage": "eliminate",
+          "reasonWrong": "O CUR não remove nem apaga recursos subutilizados — ele apenas reporta dados de custo e uso, sem ação automática sobre os recursos."
+        },
+        {
+          "matchText": "O AWS CUR gera os logs e dados brutos de custos mais detalhados e granulares disponíveis na AWS, salvando arquivos formatados (CSV/Parquet) em buckets S3 para análises de Big Data, enquanto o Cost Explorer foca em dashboards visuais rápidos.",
+          "stage": "correct"
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o AWS CUR gera os dados de custo mais detalhados e granulares disponíveis, salvando arquivos CSV/Parquet no S3 para Big Data, enquanto o Cost Explorer foca em dashboards visuais rápidos — o diferencial correto.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS CUR emite as identidades e chaves criptográficas das IAM Roles temporárias da conta filha, enquanto o Cost Explorer foca em dashboards visuais rápidos — o diferencial correto entre os dois.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS CUR instala agentes de software pesados no kernel do Linux para auditar processos locais, enquanto o Cost Explorer foca em dashboards visuais rápidos — o diferencial correto entre os dois.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS CUR remove e apaga fisicamente os recursos subutilizados fora de conformidade, enquanto o Cost Explorer foca em dashboards visuais rápidos — o diferencial correto entre os dois.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-240",
+      "options": [
+        {
+          "matchText": "AWS Key Management Service (AWS KMS).",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque o KMS também é um serviço de segurança integrável — mas ele gerencia CHAVES de criptografia, não propaga alertas de anomalia de custo para Webhooks de comunicação; esse serviço de mensageria é o Amazon SNS."
+        },
+        {
+          "matchText": "AWS Artifact Enterprise Engine.",
+          "stage": "eliminate",
+          "reasonWrong": "'AWS Artifact Enterprise Engine' não existe — o Artifact fornece relatórios de conformidade, não é serviço de mensageria."
+        },
+        {
+          "matchText": "Amazon Simple Notification Service (Amazon SNS).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Amazon Route 53 Traffic Flow.",
+          "stage": "eliminate",
+          "reasonWrong": "Amazon Route 53 Traffic Flow é roteamento de DNS avançado — não propaga alertas de anomalia de custo para canais de comunicação."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque o Amazon SNS realiza nativamente a propagação em tempo real dos alertas do Cost Anomaly Detection para Webhooks de canais de comunicação dos engenheiros — o serviço de mensageria exatamente pedido.",
+            "correct": true
+          },
+          {
+            "text": "Porque o AWS Key Management Service realiza nativamente a propagação em tempo real dos alertas do Cost Anomaly Detection para Webhooks de canais de comunicação — o serviço de mensageria exatamente pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o AWS Artifact Enterprise Engine realiza nativamente a propagação em tempo real dos alertas do Cost Anomaly Detection para Webhooks de canais de comunicação — o serviço de mensageria exatamente pedido.",
+            "correct": false
+          },
+          {
+            "text": "Porque o Amazon Route 53 Traffic Flow realiza nativamente a propagação em tempo real dos alertas do Cost Anomaly Detection para Webhooks de canais de comunicação — o serviço de mensageria exatamente pedido.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-241",
+      "options": [
+        {
+          "matchText": "Unidades Organizacionais Stateless (Stateless OUs).",
+          "stage": "eliminate",
+          "reasonWrong": "'Unidades Organizacionais Stateless' não existe como termo — OUs são do AWS Organizations, não uma feature do Pricing Calculator."
+        },
+        {
+          "matchText": "Grupos (Groups).",
+          "stage": "correct"
+        },
+        {
+          "matchText": "Tabelas de conformidades do AWS Artifact.",
+          "stage": "eliminate",
+          "reasonWrong": "Tabelas de conformidade do AWS Artifact são relatórios de auditoria — não organizam estimativas de preço por centro de custo."
+        },
+        {
+          "matchText": "Políticas de Controle de Serviço (SCPs) de Simulação.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque SCPs também organizam e restringem por unidade organizacional — mas elas são POLÍTICAS de PERMISSÃO no Organizations, não uma estrutura de organização de ESTIMATIVA DE PREÇO na calculadora; separar custos por centro de custo no Pricing Calculator é a função Groups."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a funcionalidade de Grupos (Groups) do AWS Pricing Calculator organiza os serviços estimados em estruturas independentes nomeadas — segregando o custo de Marketing do de RH na apresentação final.",
+            "correct": true
+          },
+          {
+            "text": "Porque as Unidades Organizacionais Stateless do AWS Pricing Calculator organizam os serviços estimados em estruturas independentes nomeadas — segregando o custo de Marketing do de RH na apresentação final.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Tabelas de conformidade do AWS Artifact organizam os serviços estimados em estruturas independentes nomeadas — segregando o custo de Marketing do de RH na apresentação final.",
+            "correct": false
+          },
+          {
+            "text": "Porque as Políticas de Controle de Serviço de Simulação organizam os serviços estimados em estruturas independentes nomeadas — segregando o custo de Marketing do de RH na apresentação final.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "questionId": "clf-avc-242",
+      "options": [
+        {
+          "matchText": "Cada conta-membro filha continua recebendo faturas separadas via e-mail e deve pagar seus próprios impostos de forma isolada e desvinculada.",
+          "stage": "trap",
+          "reasonWrong": "É a mais próxima porque menciona faturas e pagamento de impostos das filiais — mas isso é o OPOSTO do faturamento consolidado: as contas-membro NÃO recebem fatura separada nem pagam isoladamente; a conta PAGADORA assume toda a responsabilidade financeira agregada."
+        },
+        {
+          "matchText": "A conta pagadora principal assume a responsabilidade total pelo faturamento financeiro e quitação dos valores de consumo agregados de todo o cluster de contas associadas na organização.",
+          "stage": "correct"
+        },
+        {
+          "matchText": "A ativação do faturamento consolidado delega as obrigações e cobranças de cartões de crédito inteiramente para a equipe técnica de suporte do AWS Marketplace.",
+          "stage": "eliminate",
+          "reasonWrong": "O faturamento consolidado não delega cobranças de cartão ao suporte do Marketplace — a responsabilidade fica com a conta de gerenciamento (pagadora)."
+        },
+        {
+          "matchText": "O faturamento consolidado obriga a AWS a converter síncronamente todas as instâncias sob demanda em máquinas virtuais do tipo t2.micro gratuitas.",
+          "stage": "eliminate",
+          "reasonWrong": "O consolidated billing não obriga conversão de instâncias para t2.micro gratuitas — isso não é um efeito real desse modelo de faturamento."
+        }
+      ],
+      "finalBlow": {
+        "justifications": [
+          {
+            "text": "Porque a conta pagadora principal assume a responsabilidade total pelo faturamento e quitação dos valores de consumo agregados de todo o cluster de contas — a regra central do faturamento consolidado.",
+            "correct": true
+          },
+          {
+            "text": "Porque cada conta-membro filha continua recebendo faturas separadas e paga seus próprios impostos isoladamente — a regra central do faturamento consolidado da rede varejista.",
+            "correct": false
+          },
+          {
+            "text": "Porque o faturamento consolidado delega as cobranças de cartão de crédito à equipe de suporte do Marketplace — a regra central do faturamento consolidado da rede varejista.",
+            "correct": false
+          },
+          {
+            "text": "Porque o faturamento consolidado obriga a AWS a converter todas as instâncias em t2.micro gratuitas — a regra central do faturamento consolidado da rede varejista.",
+            "correct": false
+          }
+        ]
+      }
     }
   ]
 }
