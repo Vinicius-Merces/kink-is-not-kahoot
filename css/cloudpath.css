@@ -236,11 +236,25 @@ select:focus-visible,
 @media (max-width: 900px) {
     .nav-toggle { display: flex; }
 
-    /* A navbar é sticky+z-index (components.css), o que cria um contexto de
-       empilhamento. A gaveta (.nav-menu) é filha dela, então precisa que a
-       navbar fique ACIMA do scrim (que vive no <body>). Sem isto, o scrim
-       (z-index 140) cobre a gaveta e os toques caem nele — o menu "não abre". */
-    .navbar { z-index: 200; }
+    /* CAUSA-RAIZ do overflow-x no mobile: `backdrop-filter` faz da .navbar o
+       CONTAINING BLOCK dos descendentes `position: fixed`. Com ele, a gaveta
+       (.nav-menu, filha da navbar) deixa de ser presa ao viewport e passa a
+       integrar a área rolável do documento — seu `translateX(105%)` (fora da
+       tela) cria ~320px de scroll horizontal, quebrando o viewport e
+       deslocando o music player e o narrador (ambos `position: fixed`).
+       Sem backdrop-filter a gaveta volta a ser realmente fixa ao viewport e
+       não gera overflow. O vidro é compensado com um fundo mais opaco —
+       imperceptível numa barra fina, e mais leve para GPU mobile.
+
+       O z-index acima do scrim (140) também é necessário: a navbar cria
+       contexto de empilhamento e a gaveta é filha dela, então sem isto o
+       scrim cobriria o menu e os toques cairiam nele. */
+    .navbar {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: linear-gradient(180deg, rgba(8, 16, 30, 0.98), rgba(10, 22, 40, 0.96));
+        z-index: 200;
+    }
 
     .nav-menu {
         position: fixed;
