@@ -1235,3 +1235,62 @@ table.decision tbody td code {
         contain-intrinsic-size: auto 2400px;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Progresso de leitura — barra no topo + capítulo atual no índice
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* A sidebar já mostra "PROGRESSO DA LEITURA" com percentual no desktop.
+   Abaixo de 960px ela vira gaveta oculta — é só aí que a barra do topo
+   deixa de ser redundante e passa a ser a única pista de onde você está. */
+.leitura-barra {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 210;           /* acima da navbar (200), abaixo de modais */
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+}
+
+@media (max-width: 960px) {
+    .leitura-barra { display: block; }
+}
+
+.leitura-barra span {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--cp-teal), #7fe3dc);
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.55);
+}
+
+/* transição só quando o movimento é permitido; sem ela a barra "arrasta" */
+.leitura-barra.anima span { transition: width 0.12s linear; }
+
+/* Capítulo sendo lido, no índice lateral */
+.trilha-sidebar a.lendo {
+    color: var(--cp-teal);
+    background: rgba(78, 205, 196, 0.10);
+    border-radius: 8px;
+}
+
+.trilha-sidebar a.lendo::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 1.1em;
+    border-radius: 0 3px 3px 0;
+    background: var(--cp-teal);
+}
+
+.trilha-sidebar a { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+    .leitura-barra span { transition: none; }
+}
