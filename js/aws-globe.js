@@ -75,8 +75,11 @@
         }
 
         const cena = new THREE.Scene();
+        // Câmera afastada de propósito: o globo ocupa ~70% da moldura, então a
+        // atmosfera tem espaço para desvanecer ANTES da borda do canvas. Antes
+        // ela batia no limite quadrado e desenhava um contorno reto.
         const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-        camera.position.set(0, 0, 3.4);
+        camera.position.set(0, 0, 4.5);
 
         let renderer;
         try {
@@ -97,15 +100,35 @@
         const globo = new THREE.Group();
         eixo.add(globo);
 
+        // Junta vários caminhos num único objeto de linhas. Cada contorno
+        // como um objeto separado custaria uma chamada de desenho por quadro
+        // — com 128 ilhas isso derruba o FPS. Mesclado, é uma chamada só.
+        function juntarLinhas(caminhos, fecharAnel) {
+            const pos = [];
+            caminhos.forEach(pts => {
+                for (let i = 0; i < pts.length - 1; i++) {
+                    pos.push(pts[i].x, pts[i].y, pts[i].z, pts[i + 1].x, pts[i + 1].y, pts[i + 1].z);
+                }
+                if (fecharAnel && pts.length > 2) {
+                    const a = pts[pts.length - 1], b = pts[0];
+                    pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+                }
+            });
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            return g;
+        }
+
         // ── 1. Núcleo ──────────────────────────────────────────────────
+        // Segmentação generosa: é a silhueta que o olho lê como "redondo".
         globo.add(new THREE.Mesh(
-            new THREE.SphereGeometry(R * 0.995, 64, 48),
+            new THREE.SphereGeometry(R * 0.995, 96, 64),
             new THREE.MeshBasicMaterial({ color: 0x081226 })
         ));
 
         // ── 2. Malha lat/long (bem discreta) ───────────────────────────
-        const matMalha = new THREE.LineBasicMaterial({ color: TEAL, transparent: true, opacity: 0.085 });
         const SEG = 96;
+        const caminhosMalha = [];
         for (let i = 1; i < 8; i++) {
             const lat = -90 + (i * 180) / 8;
             const r = Math.cos(lat * Math.PI / 180) * R * 1.001;
@@ -115,7 +138,7 @@
                 const a = (s / SEG) * Math.PI * 2;
                 pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
             }
-            globo.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matMalha));
+            caminhosMalha.push(pts);
         }
         for (let m = 0; m < 12; m++) {
             const ang = (m / 12) * Math.PI * 2;
@@ -128,8 +151,12 @@
                     Math.cos(t) * Math.sin(ang) * R * 1.001
                 ));
             }
-            globo.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matMalha));
+            caminhosMalha.push(pts);
         }
+        globo.add(new THREE.LineSegments(
+            juntarLinhas(caminhosMalha, false),
+            new THREE.LineBasicMaterial({ color: TEAL, transparent: true, opacity: 0.085 })
+        ));
 
         // ── 3. Terra pontilhada ────────────────────────────────────────
         // A nuvem de pontos lê como visualização de dados — a mesma
@@ -146,15 +173,18 @@
             transparent: true, opacity: 0.62, depthWrite: false,
         })));
 
-        // ── 4. Linhas de costa ─────────────────────────────────────────
-        const matCosta = new THREE.LineBasicMaterial({ color: TEAL, transparent: true, opacity: 0.5 });
-        geo.COSTAS.forEach(anel => {
+        // ── 4. Linhas de costa (128 ilhas num único objeto) ────────────
+        const caminhosCosta = geo.COSTAS.map(anel => {
             const pts = [];
             for (let i = 0; i < anel.length; i += 2) {
                 pts.push(vet(THREE, anel[i + 1], anel[i], R * 1.006));
             }
-            globo.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), matCosta));
+            return pts;
         });
+        globo.add(new THREE.LineSegments(
+            juntarLinhas(caminhosCosta, true),
+            new THREE.LineBasicMaterial({ color: TEAL, transparent: true, opacity: 0.5 })
+        ));
 
         // ── 5. Nós das Regiões ─────────────────────────────────────────
         const saoPaulo = REGIOES.find(r => r.destaque);
@@ -197,59 +227,120 @@
             }
         });
 
-        // ── 6. Arcos saindo de sa-east-1 ───────────────────────────────
-        const destinos = ['us-east-1', 'eu-west-1', 'ap-southeast-1', 'af-south-1', 'us-west-2'];
-        const origem = vet(THREE, saoPaulo.lat, saoPaulo.lon, R * 1.01);
+        // ── 6. Malha de tráfego entre Regiões ──────────────────────────
+        // Rotas que saem de sa-east-1 vêm em coral e mais fortes (é a Região
+        // do público daqui); o resto do backbone fica em teal, discreto, para
+        // sugerir a rede global sem virar teia.
+        const ROTAS = [
+            ['sa-east-1', 'us-east-1'],
+            ['sa-east-1', 'eu-west-1'],
+            ['sa-east-1', 'af-south-1'],
+            ['sa-east-1', 'us-west-2'],
+            ['us-east-1', 'eu-west-1'],
+            ['us-east-1', 'ca-central-1'],
+            ['eu-west-1', 'eu-central-1'],
+            ['eu-central-1', 'me-south-1'],
+            ['me-south-1', 'ap-south-1'],
+            ['ap-south-1', 'ap-southeast-1'],
+            ['ap-southeast-1', 'ap-northeast-1'],
+            ['ap-southeast-1', 'ap-southeast-2'],
+            ['us-west-2', 'ap-northeast-1'],
+            ['af-south-1', 'ap-south-1'],
+        ];
+
         const pulsos = [];
+        const posDe = id => {
+            const r = REGIOES.find(x => x.id === id);
+            return r ? vet(THREE, r.lat, r.lon, R * 1.01) : null;
+        };
 
-        destinos.forEach(id => {
-            const alvo = REGIOES.find(r => r.id === id);
-            if (!alvo) return;
-            const fim = vet(THREE, alvo.lat, alvo.lon, R * 1.01);
-            const dist = origem.distanceTo(fim);
-            const meio = origem.clone().add(fim).multiplyScalar(0.5)
-                .normalize().multiplyScalar(R * (1 + dist * 0.24));
-            const curva = new THREE.QuadraticBezierCurve3(origem, meio, fim);
+        // arcos agrupados por cor: duas chamadas de desenho no total
+        const arcosSP = [], arcosRede = [];
 
-            globo.add(new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints(curva.getPoints(64)),
-                new THREE.LineBasicMaterial({ color: CORAL, transparent: true, opacity: 0.30 })
-            ));
+        ROTAS.forEach(([a, b], i) => {
+            const ini = posDe(a), fim = posDe(b);
+            if (!ini || !fim) return;
 
-            // pulso viajando pelo arco: dá vida sem poluir
+            const daSP = (a === 'sa-east-1' || b === 'sa-east-1');
+
+            // quanto mais longa a rota, mais alto o arco sobe
+            const dist = ini.distanceTo(fim);
+            const meio = ini.clone().add(fim).multiplyScalar(0.5)
+                .normalize().multiplyScalar(R * (1 + dist * 0.22));
+            const curva = new THREE.QuadraticBezierCurve3(ini, meio, fim);
+
+            (daSP ? arcosSP : arcosRede).push(curva.getPoints(56));
+
+            // pulso viajando: é o que dá a leitura de "tráfego"
             const pulso = new THREE.Mesh(
-                new THREE.SphereGeometry(0.012, 8, 8),
-                new THREE.MeshBasicMaterial({ color: 0xffb3a0 })
+                new THREE.SphereGeometry(daSP ? 0.013 : 0.010, 8, 8),
+                new THREE.MeshBasicMaterial({
+                    color: daSP ? 0xffb3a0 : 0x9ff0e8,
+                    transparent: true, opacity: daSP ? 1 : 0.75,
+                })
             );
-            pulso.userData = { curva, t: Math.random() };
+            pulso.userData = {
+                curva,
+                t: (i * 0.37) % 1,               // fases espalhadas
+                vel: 0.0042 + (i % 4) * 0.0009,  // velocidades diferentes
+            };
             globo.add(pulso);
             pulsos.push(pulso);
         });
 
+        globo.add(new THREE.LineSegments(juntarLinhas(arcosSP, false),
+            new THREE.LineBasicMaterial({ color: CORAL, transparent: true, opacity: 0.32 })));
+        globo.add(new THREE.LineSegments(juntarLinhas(arcosRede, false),
+            new THREE.LineBasicMaterial({ color: TEAL, transparent: true, opacity: 0.16 })));
+
         // ── 7. Atmosfera (fresnel) ─────────────────────────────────────
-        const atmosfera = new THREE.Mesh(
-            new THREE.SphereGeometry(R * 1.16, 64, 48),
-            new THREE.ShaderMaterial({
-                transparent: true,
-                side: THREE.BackSide,
-                depthWrite: false,
-                uniforms: { cor: { value: new THREE.Color(TEAL) } },
-                vertexShader: `
-                    varying vec3 vN;
-                    void main() {
-                        vN = normalize(normalMatrix * normal);
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }`,
-                fragmentShader: `
-                    uniform vec3 cor;
-                    varying vec3 vN;
-                    void main() {
-                        float i = pow(0.62 - dot(vN, vec3(0.0, 0.0, 1.0)), 2.6);
-                        gl_FragColor = vec4(cor, 1.0) * i * 0.9;
-                    }`,
-            })
-        );
-        eixo.add(atmosfera);
+        // Duas cascas: a interna dá o "anel" nítido rente ao planeta; a
+        // externa é um halo largo e fraco, que se dissolve no fundo do site.
+        function fazerAtmosfera(raio, forca, expoente, opacidade) {
+            return new THREE.Mesh(
+                // malha modesta: o halo é um degradê suave, quem faz a borda
+                // parecer redonda é a queda do alpha, não a tesselação
+                new THREE.SphereGeometry(raio, 48, 32),
+                new THREE.ShaderMaterial({
+                    transparent: true,
+                    side: THREE.BackSide,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                    uniforms: {
+                        cor: { value: new THREE.Color(TEAL) },
+                        forca: { value: forca },
+                        expoente: { value: expoente },
+                        opacidade: { value: opacidade },
+                    },
+                    vertexShader: `
+                        varying vec3 vN;
+                        varying vec3 vP;
+                        void main() {
+                            vN = normalize(normalMatrix * normal);
+                            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                            vP = -mv.xyz;
+                            gl_Position = projectionMatrix * mv;
+                        }`,
+                    fragmentShader: `
+                        uniform vec3 cor;
+                        uniform float forca;
+                        uniform float expoente;
+                        uniform float opacidade;
+                        varying vec3 vN;
+                        varying vec3 vP;
+                        void main() {
+                            // fresnel pela direção real de visão: o brilho
+                            // acompanha a curvatura em vez de um eixo fixo
+                            float f = 1.0 - abs(dot(normalize(vN), normalize(vP)));
+                            float i = pow(clamp(f * forca, 0.0, 1.0), expoente);
+                            gl_FragColor = vec4(cor * i * opacidade, i * opacidade);
+                        }`,
+                })
+            );
+        }
+
+        eixo.add(fazerAtmosfera(R * 1.055, 1.25, 2.2, 0.55)); // anel rente
+        eixo.add(fazerAtmosfera(R * 1.34,  1.05, 2.8, 0.32)); // halo difuso
 
         // ── 8. Poeira estelar ──────────────────────────────────────────
         const nPart = 420;
@@ -353,9 +444,9 @@
                     a.material.opacity = 0.5 * (1 - f);
                 });
 
-                // pulsos correndo pelos arcos
+                // pulsos correndo pelas rotas, cada um no seu ritmo
                 pulsos.forEach(pu => {
-                    pu.userData.t = (pu.userData.t + 0.0055) % 1;
+                    pu.userData.t = (pu.userData.t + pu.userData.vel) % 1;
                     pu.position.copy(pu.userData.curva.getPoint(pu.userData.t));
                 });
 
