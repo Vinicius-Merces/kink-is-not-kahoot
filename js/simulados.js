@@ -1024,10 +1024,42 @@
     });
 
     // ============================================
+    // Toggle lista/blocos das alternativas (mesma ideia da CloudArena).
+    // A preferência é de UI do aparelho — fica só no localStorage.
+    // ============================================
+    const SIM_OPT_KEY = 'cloudpath_simulado_optlayout_v1';
+    function simOptLayout() {
+        try { return localStorage.getItem(SIM_OPT_KEY) === 'grid' ? 'grid' : 'list'; }
+        catch (e) { return 'list'; }
+    }
+    function applyOptLayout(layout) {
+        // A classe fica no container #examOptions, que persiste entre perguntas
+        // (só o innerHTML é trocado a cada questão), então a preferência não se perde.
+        const cont = document.getElementById('examOptions');
+        if (cont) cont.classList.toggle('opt-grid', layout === 'grid');
+        document.querySelectorAll('.olt-btn[data-sim-layout]').forEach(b => {
+            const on = b.dataset.simLayout === layout;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', String(on));
+        });
+    }
+    function initOptLayoutToggle() {
+        applyOptLayout(simOptLayout());
+        document.querySelectorAll('.olt-btn[data-sim-layout]').forEach(b => {
+            b.addEventListener('click', () => {
+                const layout = b.dataset.simLayout;
+                try { localStorage.setItem(SIM_OPT_KEY, layout); } catch (e) { /* noop */ }
+                applyOptLayout(layout);
+            });
+        });
+    }
+
+    // ============================================
     // Inicialização
     // ============================================
     loadCertifications();
     renderResumeBanner();
+    initOptLayoutToggle();
 
     // O SDK do Firebase pode carregar depois deste script: re-tenta por alguns
     // segundos até conseguir registrar o listener de login (mesma abordagem do
