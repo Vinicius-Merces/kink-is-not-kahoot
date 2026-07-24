@@ -57,23 +57,99 @@
     const PAUSE_KEY = 'cloudpath_simulado_paused_v1';
     const PAUSE_TTL_MS = 2 * 60 * 60 * 1000;
 
+    // ── Sincronização do save point com a conta (cross-device) ──────────
+    // localStorage segue como cache rápido/offline; o Firestore (via
+    // /api/simulado/paused) é a fonte da verdade quando há usuário logado,
+    // para que pausar no PC e retomar no celular funcione.
+    let pauseSyncTimer = null;
+
+    function firebaseUser() {
+        try {
+            return (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+        } catch (e) { return null; }
+    }
+
+    async function pushPausedState(payload) {
+        const user = firebaseUser();
+        if (!user) return;
+        try {
+            const token = await user.getIdToken();
+            await fetch('/api/simulado/paused', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ state: payload }),
+            });
+        } catch (e) { /* offline — o localStorage já guardou; tenta na próxima */ }
+    }
+
+    function schedulePauseSync(payload) {
+        if (!firebaseUser()) return;
+        clearTimeout(pauseSyncTimer);
+        pauseSyncTimer = setTimeout(() => pushPausedState(payload), 2000);
+    }
+
+    async function pushClearPaused() {
+        const user = firebaseUser();
+        if (!user) return;
+        clearTimeout(pauseSyncTimer);
+        try {
+            const token = await user.getIdToken();
+            await fetch('/api/simulado/paused', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+        } catch (e) { /* noop */ }
+    }
+
+    // Puxa o save point da conta e mantém o mais recente entre local e remoto.
+    async function pullPausedState(user) {
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch('/api/simulado/paused', {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (!data.success || !data.state || !data.state.simulado) return;
+
+            const remote = data.state;
+            if (Date.now() - (remote.savedAt || 0) > PAUSE_TTL_MS) return; // expirado
+
+            const local = loadPausedState();
+            if (local && (local.savedAt || 0) >= (remote.savedAt || 0)) {
+                // o local é mais novo — publica ele e mantém a tela como está
+                pushPausedState(local);
+                return;
+            }
+            try { localStorage.setItem(PAUSE_KEY, JSON.stringify(remote)); } catch (e) { /* noop */ }
+            renderResumeBanner(); // mostra "Continuar" com o progresso do outro aparelho
+        } catch (e) { /* segue com o estado local */ }
+    }
+
+    function initPauseSync() {
+        if (typeof firebase === 'undefined' || !firebase.auth) return false;
+        firebase.auth().onAuthStateChanged(user => { if (user) pullPausedState(user); });
+        return true;
+    }
+
     function savePausedState() {
         if (!currentSimulado) return;
+        const payload = {
+            savedAt: Date.now(),
+            simulado: currentSimulado,
+            userAnswers,
+            questionFeedback,
+            currentQuestionIndex,
+            examRealActive,
+            marked: [...markedQuestions],
+            feedbackMode: selectedFeedbackMode,
+            remainingSeconds: examRealActive
+                ? Math.max(0, Math.round((examDeadline - Date.now()) / 1000))
+                : null,
+        };
         try {
-            localStorage.setItem(PAUSE_KEY, JSON.stringify({
-                savedAt: Date.now(),
-                simulado: currentSimulado,
-                userAnswers,
-                questionFeedback,
-                currentQuestionIndex,
-                examRealActive,
-                marked: [...markedQuestions],
-                feedbackMode: selectedFeedbackMode,
-                remainingSeconds: examRealActive
-                    ? Math.max(0, Math.round((examDeadline - Date.now()) / 1000))
-                    : null,
-            }));
+            localStorage.setItem(PAUSE_KEY, JSON.stringify(payload));
         } catch (e) { /* localStorage indisponível — pausa segue só em memória */ }
+        schedulePauseSync(payload);
     }
 
     function loadPausedState() {
@@ -92,6 +168,7 @@
 
     function clearPausedState() {
         try { localStorage.removeItem(PAUSE_KEY); } catch (e) { /* noop */ }
+        pushClearPaused(); // some também nos outros dispositivos
         renderResumeBanner();
     }
 
@@ -951,4 +1028,15 @@
     // ============================================
     loadCertifications();
     renderResumeBanner();
+
+    // O SDK do Firebase pode carregar depois deste script: re-tenta por alguns
+    // segundos até conseguir registrar o listener de login (mesma abordagem do
+    // CloudArena) para puxar o save point salvo em outro dispositivo.
+    (function bootPauseSync() {
+        if (initPauseSync()) return;
+        let tries = 0;
+        const timer = setInterval(() => {
+            if (initPauseSync() || ++tries > 20) clearInterval(timer);
+        }, 500);
+    })();
 })();

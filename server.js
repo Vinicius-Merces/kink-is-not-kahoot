@@ -825,6 +825,81 @@ app.post('/api/cloudarena/state', progressLimiter, async (req, res) => {
     }
 });
 
+// ============================================
+// Simulado pausado: save point sincronizado com a conta
+// Mesmo padrão do CloudArena/trilhas. A sessão em si (com gabarito) vive no
+// servidor em activeSimulados; aqui guardamos só o estado do CLIENTE
+// (respostas, índice atual, marcadas, tempo restante) para permitir retomar
+// o simulado de outro dispositivo. localStorage continua como cache/offline.
+// ============================================
+const devSimuladoPaused = new Map(); // uid -> state (fallback sem Firebase Admin)
+
+app.get('/api/simulado/paused', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    try {
+        if (db) {
+            const doc = await db.collection('users').doc(user.uid).collection('meta').doc('simuladoPaused').get();
+            return res.json({ success: true, state: doc.exists ? (doc.data().state || null) : null });
+        }
+        return res.json({ success: true, state: devSimuladoPaused.get(user.uid) || null });
+    } catch (error) {
+        console.error('Erro ao carregar simulado pausado:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao carregar estado' });
+    }
+});
+
+app.post('/api/simulado/paused', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    const state = req.body && req.body.state;
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+        return res.status(400).json({ success: false, error: 'Estado inválido' });
+    }
+    let raw;
+    try { raw = JSON.stringify(state); } catch (e) { raw = null; }
+    // O payload carrega as questões da sessão (sem gabarito) — teto mais folgado
+    if (!raw || raw.length > 400000) {
+        return res.status(413).json({ success: false, error: 'Estado inválido ou grande demais' });
+    }
+    try {
+        if (db) {
+            await db.collection('users').doc(user.uid).collection('meta').doc('simuladoPaused').set({
+                state,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+        } else {
+            devSimuladoPaused.set(user.uid, state);
+        }
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Erro ao salvar simulado pausado:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao salvar estado' });
+    }
+});
+
+app.delete('/api/simulado/paused', progressLimiter, async (req, res) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return res.status(401).json({ success: false, error: 'Faça login para sincronizar o progresso' });
+    }
+    try {
+        if (db) {
+            await db.collection('users').doc(user.uid).collection('meta').doc('simuladoPaused').delete();
+        } else {
+            devSimuladoPaused.delete(user.uid);
+        }
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Erro ao limpar simulado pausado:', error);
+        return res.status(500).json({ success: false, error: 'Erro ao limpar estado' });
+    }
+});
+
 // Verifica a resposta de UMA pergunta (Modo Estudo: feedback imediato sem afetar a correção final)
 app.post('/api/simulado/:id/check', simuladoCheckLimiter, async (req, res) => {
     const user = await getAuthenticatedUser(req);
