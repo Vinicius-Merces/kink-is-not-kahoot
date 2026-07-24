@@ -422,14 +422,8 @@
             // Para onde ir após o login (depende de qual botão abriu o modal)
             let loginRedirectTarget = 'my-quizzes.html';
 
-            // Detecta ambiente mobile/touch, onde popups de OAuth costumam ser
-            // bloqueados (iOS Safari, navegadores in-app, PWA em standalone).
-            // Nesses casos usamos o fluxo de redirect, confiável em todo navegador.
-            function isMobileEnv() {
-                return window.matchMedia('(max-width: 900px), (pointer: coarse)').matches
-                    || /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent || '');
-            }
-
+            // Redirect é só o ÚLTIMO recurso (popup bloqueado). Guarda o destino
+            // para retomar quando a página recarregar de volta do provedor.
             function startRedirectLogin(provider) {
                 try { sessionStorage.setItem('cp_login_redirect', loginRedirectTarget); } catch (_) {}
                 return auth.signInWithRedirect(provider);
@@ -442,43 +436,41 @@
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
 
-                // Mobile: vai direto ao redirect (o popup falha nesses navegadores).
-                if (isMobileEnv()) {
-                    try {
-                        await startRedirectLogin(provider);
-                    } catch (error) {
-                        console.error('Erro no login (redirect):', error);
-                        alert('Erro ao iniciar o login: ' + (error.message || error.code));
-                    }
-                    return; // a página será recarregada pelo provedor
-                }
-
-                // Desktop: popup, com fallback automático para redirect se bloqueado.
+                // Popup em TODAS as plataformas, inclusive mobile. O authDomain
+                // (kink-is-not-kahoot.firebaseapp.com) é de origem diferente da do
+                // app (cloudpath.squareweb.app); nesse cenário o signInWithRedirect
+                // PERDE o login ao voltar do Google, porque os navegadores modernos
+                // isolam o armazenamento entre sites — o sintoma era "volta sem erro
+                // e sem logar". O popup roda no mesmo contexto e não sofre disso, e
+                // é o mesmo método que já funciona no desktop com esta config.
+                // Aberto dentro do clique, o navegador não o bloqueia.
                 try {
                     const result = await auth.signInWithPopup(provider);
 
-                    if (typeof Utils !== 'undefined') {
-                        Utils.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
+                    if (typeof Utils !== 'undefined' && result.user) {
+                        Utils.showToast(`Bem-vindo, ${result.user.displayName || 'de volta'}!`, 'success');
                     }
 
                     loginModal.style.display = 'none';
 
                     setTimeout(() => {
                         window.location.href = loginRedirectTarget;
-                    }, 1000);
+                    }, 800);
 
                 } catch (error) {
                     console.error('Erro no login:', error);
 
                     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                        return; // usuário cancelou — não faz nada
+                        return; // usuário fechou o popup — sem ruído
                     }
+                    // Popup indisponível (navegador in-app que bloqueia, etc.):
+                    // aí sim cai no redirect como alternativa.
                     if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment') {
                         try {
                             await startRedirectLogin(provider);
                             return;
                         } catch (_) {
-                            alert('Não foi possível abrir o login. Permita pop-ups ou tente em outro navegador.');
+                            alert('Não foi possível abrir o login. Permita pop-ups para este site e tente de novo.');
                             return;
                         }
                     }
@@ -486,7 +478,7 @@
                         alert('Domínio não autorizado. Contate o administrador.\nDomínio atual: ' + window.location.hostname);
                         return;
                     }
-                    alert('Erro: ' + error.message);
+                    alert('Erro ao entrar: ' + (error.message || error.code));
                 }
             }
 
