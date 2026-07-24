@@ -90,6 +90,18 @@
     // ════════════════════════════════════════════════════════════════════
     const STATE_KEY = 'cloudpath_arena_state_v1';
     const ACH_KEY = 'cloudpath_arena_achievements_v1';
+    const OPT_LAYOUT_KEY = 'cloudpath_arena_optlayout_v1'; // 'list' | 'grid'
+
+    // Preferência de layout das alternativas (lista 1/linha ou blocos 2 colunas).
+    // Guardada só no localStorage: é preferência de UI do aparelho, não faz
+    // parte do progresso sincronizado do jogo.
+    function optLayout() {
+        try { return localStorage.getItem(OPT_LAYOUT_KEY) === 'grid' ? 'grid' : 'list'; }
+        catch (e) { return 'list'; }
+    }
+    function setOptLayout(v) {
+        try { localStorage.setItem(OPT_LAYOUT_KEY, v === 'grid' ? 'grid' : 'list'); } catch (e) { /* noop */ }
+    }
 
     function freshArenaState() {
         return {
@@ -1206,21 +1218,31 @@
                 <div class="battle-field">
                     <div class="attack-callout" id="attackCallout"></div>
                     <div class="fighter" id="heroWrap">
-                        ${hpBarHtml('heroHp', a.heroCurrentHp, heroMaxHp(a), '#2dd4bf')}
                         <canvas id="heroCanvas" class="sprite" width="180" height="150" style="display:none"></canvas>
                         <div class="sprite-fallback">${state.heroChoice === 'feminino' ? '👩‍🚀' : '🧑‍🚀'}</div>
                         <div class="fighter-name">Você · nv. ${heroLevel(a)}</div>
+                        ${hpBarHtml('heroHp', a.heroCurrentHp, heroMaxHp(a), '#2dd4bf')}
                     </div>
                     <div class="vs">VS</div>
                     <div class="fighter ${battle.boss ? 'is-boss' : ''}" id="enemyWrap">
-                        ${hpBarHtml('enemyHp', battle.enemyHp, battle.enemyMaxHp, '#ff6b6b')}
                         <img id="enemySprite" class="sprite" alt="${esc(info.name)}">
                         <div class="sprite-fallback">${info.emoji}</div>
                         <div class="fighter-name">${esc(info.name)}${battle.boss ? ' 👑' : ''}</div>
+                        ${hpBarHtml('enemyHp', battle.enemyHp, battle.enemyMaxHp, '#ff6b6b')}
                     </div>
                 </div>
-                <div class="battle-question">
-                    <p class="question-text">${esc(q.text)}</p>
+                <div class="battle-question ${optLayout() === 'grid' ? 'opt-grid' : ''}">
+                    <div class="q-head">
+                        <p class="question-text">${esc(q.text)}</p>
+                        <div class="opt-layout-toggle" role="group" aria-label="Layout das alternativas">
+                            <button type="button" class="olt-btn ${optLayout() === 'list' ? 'active' : ''}"
+                                    data-layout="list" aria-pressed="${optLayout() === 'list'}"
+                                    title="Uma alternativa por linha">☰</button>
+                            <button type="button" class="olt-btn ${optLayout() === 'grid' ? 'active' : ''}"
+                                    data-layout="grid" aria-pressed="${optLayout() === 'grid'}"
+                                    title="Alternativas em blocos (2 colunas)">▦</button>
+                        </div>
+                    </div>
                     ${phaseHtml}
                 </div>
             </div>`;
@@ -1228,6 +1250,22 @@
         initHeroCanvas();
         setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
+
+        // Toggle lista/blocos: troca só a classe (sem re-render, para não
+        // reiniciar o sprite/canvas do herói no meio do turno).
+        app().querySelectorAll('.olt-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const layout = btn.dataset.layout;
+                setOptLayout(layout);
+                const bq = app().querySelector('.battle-question');
+                if (bq) bq.classList.toggle('opt-grid', layout === 'grid');
+                app().querySelectorAll('.olt-btn').forEach(b => {
+                    const on = b.dataset.layout === layout;
+                    b.classList.toggle('active', on);
+                    b.setAttribute('aria-pressed', String(on));
+                });
+            });
+        });
 
         if (battle.phase === 'eliminate') {
             app().querySelectorAll('.option-check input').forEach(cb => {

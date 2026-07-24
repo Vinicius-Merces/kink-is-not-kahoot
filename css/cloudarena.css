@@ -436,3 +436,77 @@ canvas.sprite { height: 220px; width: auto; }
     .option-check, .option-btn { font-size: 0.86rem; padding: 0.65rem 0.7rem; }
     .arena-end { margin: 1rem auto; padding: 1.4rem 1rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Etapa 3 — layout da batalha
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* HP bar agora fica ABAIXO do nome (convenção de RPG). Só um respiro. */
+.fighter .hp-bar { margin-top: 0.35rem; }
+
+/* Cabeçalho da pergunta: texto + toggle de layout lado a lado */
+.q-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+.q-head .question-text { margin: 0; flex: 1 1 auto; }
+
+.opt-layout-toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.olt-btn {
+    background: transparent;
+    color: rgba(234, 241, 255, 0.55);
+    border: none;
+    padding: 0.32rem 0.6rem;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+.olt-btn + .olt-btn { border-left: 1px solid rgba(255, 255, 255, 0.14); }
+.olt-btn:hover { color: var(--arena-color, #2dd4bf); }
+.olt-btn.active { background: var(--arena-color, #2dd4bf); color: #0f172a; }
+
+/* Alternativas em blocos: 2 por linha (A B / C D). Vale para os três golpes,
+   porque todos usam .option-list. */
+.battle-question.opt-grid .option-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    align-items: stretch;
+}
+.battle-question.opt-grid .option-btn,
+.battle-question.opt-grid .option-check { height: 100%; }
+
+/* ── Split screen no desktop: [ batalha | pergunta ] ─────────────────── */
+@media (min-width: 900px) {
+    .battle-screen {
+        max-width: 1080px;
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        grid-template-areas:
+            "top   top"
+            "field question";
+        column-gap: 1.5rem;
+        row-gap: 1rem;
+        align-items: start;
+    }
+    .battle-top { grid-area: top; margin-bottom: 0; }
+    /* a batalha fica fixa enquanto a pergunta (mais alta) rola: a luta nunca
+       some de vista, que era o problema do layout empilhado */
+    .battle-field {
+        grid-area: field;
+        margin-bottom: 0;
+        position: sticky;
+        top: 5rem;
+    }
+    .battle-question { grid-area: question; }
+}
