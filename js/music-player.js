@@ -49,27 +49,29 @@ class MusicPlayer {
 
     loadPlaylist() {
         const menuPlaylist = [
-            // Nomes de arquivo sem espaço e minúsculos ("slug") para as duas
-            // faixas que davam problema — Linux e Windows resolvem o caminho
-            // igual. As demais mantêm o nome antigo (funcionavam).
-            { id: 'menu1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Jam.mp3', cover: '🎵', duration: '0:00' },
-            { id: 'menu2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-me-chama.mp3', cover: '⚡', duration: '0:00' },
-            { id: 'menu3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-me-leva.mp3', cover: '☁️', duration: '0:00' },
-            { id: 'menu4', title: 'Neon', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neon.mp3', cover: '🎹', duration: '0:00' },
-            { id: 'menu5', title: 'Neons', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Neons.mp3', cover: '🎯', duration: '0:00' },
-            { id: 'menu6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/CloudPath Signal.mp3', cover: '⚛️', duration: '0:00' }
+            // Nomes de arquivo renomeados com emoji + slug (05/08/2026): a trilha
+            // parou de tocar em produção mesmo após limpar o cache da Cloudflare
+            // (404 batendo direto na origem, cf-cache-status: MISS). Trocar o nome
+            // do arquivo força uma URL nova, que não pode estar cacheada em
+            // lugar nenhum (Cloudflare, SquareCloud, navegador do usuário).
+            { id: 'menu1', title: 'Jam', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-jam-🎵.mp3', cover: '🎵', duration: '0:00' },
+            { id: 'menu2', title: 'Me Chama', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-me-chama-⚡.mp3', cover: '⚡', duration: '0:00' },
+            { id: 'menu3', title: 'Me Leva', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-me-leva-☁️.mp3', cover: '☁️', duration: '0:00' },
+            { id: 'menu4', title: 'Neon', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-neon-🎹.mp3', cover: '🎹', duration: '0:00' },
+            { id: 'menu5', title: 'Neons', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-neons-🎯.mp3', cover: '🎯', duration: '0:00' },
+            { id: 'menu6', title: 'Signal', artist: 'CloudPath Original', url: '/assets/music/Index/cloudpath-signal-⚛️.mp3', cover: '⚛️', duration: '0:00' }
         ];
         const gamePlaylist = [
-            // Instrumentais: os ARQUIVOS mantêm o nome KINK original (por
-            // enquanto), mas o título exibido ao usuário é CloudPath.
-            { id: 'game1', title: 'Lofi Session', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Lofi Session.mp3', cover: '🎧', duration: '0:00' },
-            { id: 'game2', title: 'Lofi Session 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Lofi Session 2.mp3', cover: '🎧', duration: '0:00' },
-            { id: 'game3', title: 'Quiz Lobby Cipher', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher.mp3', cover: '🕹️', duration: '0:00' },
-            { id: 'game4', title: 'Quiz Lobby Cipher 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Quiz Lobby Cipher 2.mp3', cover: '🕹️', duration: '0:00' },
-            { id: 'game5', title: 'Play!', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Play!.mp3', cover: '🎮', duration: '0:00' },
-            { id: 'game6', title: 'Play! 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Play! 2.mp3', cover: '🎮', duration: '0:00' },
-            { id: 'game7', title: 'Dark Drama', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Dark drama.mp3', cover: '🌑', duration: '0:00' },
-            { id: 'game8', title: 'Dark Drama 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/KINK - Dark drama 2.mp3', cover: '🌑', duration: '0:00' }
+            // Mesmo motivo do menuPlaylist acima: nome de arquivo novo com emoji
+            // pra furar qualquer cache de URL antiga que ainda esteja 404.
+            { id: 'game1', title: 'Lofi Session', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-lofi-session-🎧.mp3', cover: '🎧', duration: '0:00' },
+            { id: 'game2', title: 'Lofi Session 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-lofi-session-2-🎧.mp3', cover: '🎧', duration: '0:00' },
+            { id: 'game3', title: 'Quiz Lobby Cipher', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-quiz-lobby-cipher-🕹.mp3', cover: '🕹️', duration: '0:00' },
+            { id: 'game4', title: 'Quiz Lobby Cipher 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-quiz-lobby-cipher-2-🕹.mp3', cover: '🕹️', duration: '0:00' },
+            { id: 'game5', title: 'Play!', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-play-🎮.mp3', cover: '🎮', duration: '0:00' },
+            { id: 'game6', title: 'Play! 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-play-2-🎮.mp3', cover: '🎮', duration: '0:00' },
+            { id: 'game7', title: 'Dark Drama', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-dark-drama-🌑.mp3', cover: '🌑', duration: '0:00' },
+            { id: 'game8', title: 'Dark Drama 2', artist: 'CloudPath Instrumental', url: '/assets/music/instrumental/kink-dark-drama-2-🌑.mp3', cover: '🌑', duration: '0:00' }
         ];
         // Apenas a landing page usa a playlist própria; todo o resto usa a trilha instrumental/calma
         this.currentPlaylist = (this.playlistType === 'menu') ? menuPlaylist : gamePlaylist;
