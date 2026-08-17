@@ -38,10 +38,22 @@ def source_map(cert: str, level: str) -> dict[str, dict]:
 
 
 def staged_targets():
+    """Yield only exam staging directories backed by canonical exam banks.
+
+    ``translations/en`` also contains other localized products such as CloudArena.
+    Those trees have their own validators and must never be interpreted as
+    ``<cert>/<level>`` exam staging.
+    """
     if not STAGING.exists():
         return
     for cert_dir in sorted(p for p in STAGING.iterdir() if p.is_dir()):
+        source_cert_dir = EXAMS / cert_dir.name
+        if not source_cert_dir.is_dir():
+            continue
         for level_dir in sorted(p for p in cert_dir.iterdir() if p.is_dir()):
+            source_bank = source_cert_dir / f"{level_dir.name}.json"
+            if not source_bank.is_file():
+                continue
             yield cert_dir.name, level_dir.name, level_dir
 
 
