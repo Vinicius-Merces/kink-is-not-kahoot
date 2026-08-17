@@ -35,13 +35,17 @@ TECHNICAL_PATTERNS = [
 
 TECHNICAL_RE = re.compile(r"\b(?:" + "|".join(TECHNICAL_PATTERNS) + r")\b", re.I)
 
-# Do not start a numeric anchor inside an alphanumeric identifier such as C01,
-# C03, EC2 or S3. Identifiers are protected by technical anchors instead.
-# Common translated time units are consumed by the matcher but normalized to the
-# numeric value, so `9 anos` -> `9 years` is considered equivalent. Percentages and
-# byte-size units retain their semantic suffix because those symbols/units do not
-# change across PT/EN.
+# Immutable numeric spans used by the offline translator. Human-language units are
+# deliberately NOT included here: only the value is frozen, so `9 anos` can become
+# `9 years`. Locale-neutral technical units/symbols remain attached to the number.
 NUMBER_RE = re.compile(
+    r"(?<![A-Za-z0-9])(?P<number>\d+(?:[.,]\d+)?)(?P<suffix>\s*%|\s*(?:GB|TB|PB))?",
+    re.I,
+)
+
+# Richer matcher used only for cross-locale QA. It consumes translated duration
+# units but normalizes them back to the numeric value.
+NUMERIC_FACT_RE = re.compile(
     r"(?<![A-Za-z0-9])(?P<number>\d+(?:[.,]\d+)?)"
     r"(?P<suffix>\s*%|\s*(?:ms|s|sec|seconds?|segundos?|minutes?|minutos?|hours?|horas?|days?|dias?|months?|meses?|years?|anos?|GB|TB|PB))?",
     re.I,
@@ -64,7 +68,7 @@ def technical_anchors(text: str) -> set[str]:
 
 def numeric_anchors(text: str) -> set[str]:
     anchors = set()
-    for match in NUMBER_RE.finditer(text or ""):
+    for match in NUMERIC_FACT_RE.finditer(text or ""):
         number = match.group("number").replace(",", ".").casefold()
         suffix = re.sub(r"\s+", "", match.group("suffix") or "").casefold()
         if "%" in suffix:
@@ -72,8 +76,6 @@ def numeric_anchors(text: str) -> set[str]:
         elif suffix in {"gb", "tb", "pb"}:
             anchors.add(number + suffix)
         else:
-            # Human-language duration units are translated, so the numeric value is
-            # the stable cross-locale fact. Technical units remain preserved above.
             anchors.add(number)
     return anchors
 
