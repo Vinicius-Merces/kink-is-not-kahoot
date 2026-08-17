@@ -66,12 +66,20 @@ def validate(overlays,translated):
         if any(not str(v).strip() for v in item['finalJustifications']): raise ValueError(f'{qid}: empty final justification')
     return translated
 
+def safe_id(value):
+    """Return a filesystem-safe stable question identifier for batch filenames."""
+    return re.sub(r'[^A-Za-z0-9._-]+','-',str(value)).strip('-') or 'question'
+
 def write_batch(cert,overlays,translated):
-    start,end=qnum(overlays[0]['questionId']),qnum(overlays[-1]['questionId'])
+    # Question-number suffixes are not globally monotonic across CloudArena levels.
+    # Using full stable question IDs avoids collisions such as 097-003 followed by
+    # another 004-011 batch when the source order crosses a level boundary.
+    start_id,end_id=overlays[0]['questionId'],overlays[-1]['questionId']
     d=ROOT/'translations'/'en'/'cloudarena'/cert; d.mkdir(parents=True,exist_ok=True)
-    target=d/(f'{start:03d}-{end:03d}.json' if start!=end else f'{start:03d}.json')
+    stem=safe_id(start_id) if start_id==end_id else f'{safe_id(start_id)}--{safe_id(end_id)}'
+    target=d/f'{stem}.json'
     if target.exists(): raise FileExistsError(f'Refusing to overwrite {target.relative_to(ROOT)}')
-    target.write_text(json.dumps({'_batch':{'locale':'en','sourceLocale':'pt-BR','certId':cert,'range':f'{start:03d}-{end:03d}','generator':'offline-marian-faithful'},'questions':translated},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    target.write_text(json.dumps({'_batch':{'locale':'en','sourceLocale':'pt-BR','certId':cert,'range':f'{start_id}..{end_id}','generator':'offline-marian-faithful'},'questions':translated},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(f'wrote {target.relative_to(ROOT)}: {len(overlays)} overlays')
 
 def main():
