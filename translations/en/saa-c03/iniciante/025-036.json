@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "025-036",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-025": {
+      "text": "By creating a volume EBS for a new instance EC2, the architect has marked the encryption option. What protections this automatically activates choice?",
+      "options": [
+        "Only Internet traffic that reaches the instance",
+        "Only manual backups, requiring recryption of automatic snapshots",
+        "Only files manually marked as sensitive within the operating system",
+        "The data at rest in the volume, the snapshots created from it and the data in transit between the volume and the instance are encrypted"
+      ],
+      "explanation": "The cryptography of the EBS protects the data recorded in the volume, is inherited by snapshots (and their restored volumes) and also covers the traffic between the instance and the volume — all in a transparent way via KMS.",
+      "hint": "The protection follows the given along the block path: on the disk, on the copies (snapshots) and on the path to the instance.",
+      "optionRationales": [
+        "The cryptography of the EBS protects the data recorded in the volume, is inherited by snapshots (and their restored volumes) and also covers the traffic between the instance and the volume — all in a transparent way via KMS.",
+        "The cryptography of the EBS acts at block level, especially volume, without depending on file marking on operating system.",
+        "Internet traffic is protected by TLS in the application layer; the encryption of the EBS it deals with storage and the way between instance and volume.",
+        "Snapshots of encrypted volumes are automatically encrypted without any manual recryption step."
+      ]
+    },
+    "saa-ini-026": {
+      "text": "A team wants to encrypt objects in S3 and requires that each use of the encryption key be recorded for audit, with control over the policy and key rotation. SSE-S3 and SSE-KMS, which option meets these requirements and why?",
+      "options": [
+        "Neither; cryptography in S3 requires third-party software",
+        "SSE-S3, because it's the only option that encrypts at rest",
+        "SSE-KMS, because you use keys from the AWS KMS with controllable policies and records each key use in CloudTrail",
+        "SSE-S3, because it allows you to define custom key policies by bucket"
+      ],
+      "explanation": "No. SSE-KMS, the encryption uses keys from the KMS: the client controls policies and rotation (in keys managed by him) and all use of the key is auditable in the CloudTrail — resources that SSE-S3 does not offer.",
+      "hint": "Key use audit + policy control point to integration with key management service.",
+      "optionRationales": [
+        "No. SSE-KMS, the encryption uses keys from the KMS: the client controls policies and rotation (in keys managed by him) and all use of the key is auditable in the CloudTrail — resources that SSE-S3 does not offer.",
+        "No. SSE-S3, the keys are fully managed by the S3, without configurable key policies or individualised key-use trail.",
+        "Both options encrypt the objects at rest; the difference is in key control and auditability, not in the existence of encryption.",
+        "The S3 offers native server side encryption (SSE-S3, SSE-KMS), without the need for external solutions."
+      ]
+    },
+    "saa-ini-027": {
+      "text": "An architect needs to ensure that a new database Amazon RDS store all encrypted data at rest, including automatic backups and snapshots. What is the correct way to enable this protection?",
+      "options": [
+        "Install an encryption agent within the operating system of RDS",
+        "Use only certificates SSL in the connections with the bank",
+        "Enable encryption option at any time in the settings of the instance running",
+        "Enable encryption with KMS at the time of the creation of the instance RDS"
+      ],
+      "explanation": "Cryptography at rest of RDS is defined in the instance creation: once enabled, it covers data, automatic backups, snapshots and replicas — it is not possible simply to 'connect' then in the existing instance.",
+      "hint": "For the RDS, the decision to encrypt the storage needs to be made at a specific time of the life cycle.",
+      "optionRationales": [
+        "Cryptography at rest of RDS is defined in the instance creation: once enabled, it covers data, automatic backups, snapshots and replicas — it is not possible simply to 'connect' then in the existing instance.",
+        "There is no button to encrypt an instance RDS already existing; the path involves creating a snapshot, copying it with encryption and restoring a new instance.",
+        "The RDS is managed and does not give access to the operating system; rest encryption is a resource of the integrated platform to KMS.",
+        "SSL/TLS protects the data in transit between the application and the bank, but does not encrypt storage, backups and snapshots at rest."
+      ]
+    },
+    "saa-ini-028": {
+      "text": "A web application behind a Application Load Balancer needs to meet users exclusively via HTTPS. The team wants to get the certificate TLS without cost and with automatic renewal, integrated directly into the balancer. Which service solves this need?",
+      "options": [
+        "AWS Certificate Manager (ACM)",
+        "AWS KMS",
+        "Amazon GuardDuty",
+        "AWS Secrets Manager"
+      ],
+      "explanation": "The ACM issue certificates TLS free public with automatic renewal and native integration with ALB, CloudFront and API Gateway, enabling HTTPS without manual management of certificates.",
+      "hint": "HTTPS in the balancer asks for a certificate: what service the AWS emits and renews them for free?",
+      "optionRationales": [
+        "The ACM issue certificates TLS free public with automatic renewal and native integration with ALB, CloudFront and API Gateway, enabling HTTPS without manual management of certificates.",
+        "The KMS manage encryption keys for data, but do not issue or renew certificates TLS for web endpoints.",
+        "The Secrets Manager keep credentials and application secrets; is not a certificate issuing authority TLS.",
+        "The GuardDuty detects suspicious threats and activities in the account, unrelated to certificates or cryptography in transit."
+      ]
+    },
+    "saa-ini-029": {
+      "text": "The website of a virtual store, served by a Application Load Balancer, you are receiving malicious requests with patterns of injection of SQL and cross-site scripting (XSS). The architect wants to filter these requests in the application layer before they reach the servers. What service should be associated with ALB?",
+      "options": [
+        "AWS WAF",
+        "Amazon Macie",
+        "AWS Firewall Manager",
+        "Network ACL"
+      ],
+      "explanation": "The AWS WAF is the firewall of web applications of AWS: associated with ALB (or CloudFront/API Gateway), inspect requests HTTP/HTTPS and blocks malicious patterns like SQL injection e XSS by means of managed or custom rules.",
+      "hint": "Attacks that live DENTRO of the request HTTP require a firewall that understands the application layer.",
+      "optionRationales": [
+        "The AWS WAF is the firewall of web applications of AWS: associated with ALB (or CloudFront/API Gateway), inspect requests HTTP/HTTPS and blocks malicious patterns like SQL injection e XSS by means of managed or custom rules.",
+        "NACLs filter by IP, port and protocol at the sub-network level; cannot inspect the contents of requests HTTP in search of attack patterns.",
+        "The Macie discover sensitive data stored in S3; does not filter real-time web traffic.",
+        "The Firewall Manager centrally administers rules of WAF and other protections in various accounts, but who inspects and blocks requests is the WAF."
+      ]
+    },
+    "saa-ini-030": {
+      "text": "An architect explained to the board that all the charges on AWS already have an automatic and free protection against the most common DDoS attacks of network and transport (layers 3 and 4), no need for configuration. Which service he refers to?",
+      "options": [
+        "AWS Shield Standard",
+        "AWS WAF",
+        "Amazon Inspector",
+        "AWS Shield Advanced"
+      ],
+      "explanation": "The Shield Standard is automatically and cost-free enabled for all customers AWS, Mitigating the most common volumetric DDoS attacks on network and transport layers.",
+      "hint": "It's the basic shield that every client AWS already owns without asking or paying.",
+      "optionRationales": [
+        "The Shield Standard is automatically and cost-free enabled for all customers AWS, Mitigating the most common volumetric DDoS attacks on network and transport layers.",
+        "The Shield Advanced is the paid level, with advanced detection, response team and financial protection — not the free auto protection cited.",
+        "The WAF requires rules configuration and acts in the application layer (7), not being the automatic layer protection 3 and 4.",
+        "The Inspector sweep workloads in search of software vulnerabilities; does not mitigate DDoS attacks."
+      ]
+    },
+    "saa-ini-031": {
+      "text": "A payment platform considers its site a high-risk target for sophisticated DDoS attacks. In addition to basic protection, the company wants access to 24/7 to a specialized response team of the AWS and protection against extra scalability costs generated during attacks. Which service should be hired?",
+      "options": [
+        "AWS Shield Advanced",
+        "AWS Configure",
+        "AWS Shield Standard",
+        "Amazon GuardDuty"
+      ],
+      "explanation": "The Shield Advanced adds advanced detection and mitigation, access to Shield Response Team (SRT) 24/7 and financial protection against cost peaks caused by DDoS attacks — the appropriate level for high-risk targets.",
+      "hint": "Dedicated response team + bill protection during attacks = premium shield level.",
+      "optionRationales": [
+        "The Shield Advanced adds advanced detection and mitigation, access to Shield Response Team (SRT) 24/7 and financial protection against cost peaks caused by DDoS attacks — the appropriate level for high-risk targets.",
+        "The Shield Standard automatically protects against common attacks, but does not include dedicated response team or financial safeguards.",
+        "The GuardDuty is threat detection based on log analysis — does not mitigate DDoS or offers attack response team.",
+        "Config audits resource settings against compliance rules, without any role in DDoS defense."
+      ]
+    },
+    "saa-ini-032": {
+      "text": "An application needs to store non-sensitive configuration values (such as internal API URLs and functionality flags) centrally and hierarchically, with the option of encrypting the few confidential values, all at no additional cost for standard parameters. What service meets this usage case?",
+      "options": [
+        "AWS KMS",
+        "AWS Secrets Manager",
+        "Amazon S3 with public bucket",
+        "AWS Systems Manager Parameter Store"
+      ],
+      "explanation": "The Parameter Store store hierarchical configuration parameters, with String and SecureString types (crypted via KMS), and the default level is free — ideal for application settings.",
+      "hint": "For common settings (and some secrets), there is the free 'parameter cabinet' of Systems Manager.",
+      "optionRationales": [
+        "The Parameter Store store hierarchical configuration parameters, with String and SecureString types (crypted via KMS), and the default level is free — ideal for application settings.",
+        "The Secrets Manager is paid by secret and specialized in credentials with automatic rotation; for non-sensitive settings it would be unnecessary cost.",
+        "Exposing settings in public bucket is unsafe and does not offer the integration of typed and hierarchical parameters of configuration tools.",
+        "The KMS manages encryption keys, but is not a repository of application configuration parameters."
+      ]
+    },
+    "saa-ini-033": {
+      "text": "The security team wants a service that continuously monitors the account AWS in search of suspicious activities — as calls from API unusual, instances communicating with known malicious addresses and attempts to compromise credentials — automatically analyzing sources such as CloudTrail, VPC Flow Logs and Logs DNS. Which service performs this intelligent threat detection?",
+      "options": [
+        "AWS CloudTrail",
+        "Amazon GuardDuty",
+        "Amazon CloudWatch",
+        "AWS WAF"
+      ],
+      "explanation": "The GuardDuty is the threat detection service of the AWS: continuously analyzes CloudTrail, VPC Flow Logs and Logs DNS with machine learning and threat intelligence, generating findings about malicious activities without installing agents.",
+      "hint": "Think of the guard who watches the log of the account day and night looking for malicious behavior.",
+      "optionRationales": [
+        "The GuardDuty is the threat detection service of the AWS: continuously analyzes CloudTrail, VPC Flow Logs and Logs DNS with machine learning and threat intelligence, generating findings about malicious activities without installing agents.",
+        "The CloudTrail records calls from API (the raw material), but does not analyze the records in search of threats — this intelligence is the GuardDuty.",
+        "The WAF filters malicious web requests in specific applications, without monitoring the general behavior of the account and credentials.",
+        "The CloudWatch metric collection and operational logs, but has no threat intelligence to identify malicious activities automatically."
+      ]
+    },
+    "saa-ini-034": {
+      "text": "When reviewing a policy IAM in JSON, a beginner found the elements 'Effect', 'Action' and 'Resource'. What each of these elements defines in a policy statement?",
+      "options": [
+        "The three elements are only descriptive comments without practical effect",
+        "Effect defines encryption; Action defines allowed time; Resource defines instance type",
+        "Effect defines the cost of the operation; Action defines the user; Resource defines the Region",
+        "Effect defines whether the statement allows or denies (Allow/Deny); Action defines which transactions are affected; Resource defines which resources the statement applies to"
+      ],
+      "explanation": "These are the central elements of a declaration IAM: the effect (allow or deny), the actions of API covered (ex: s3:GetObject) and target resources identified by ARN.",
+      "hint": "Read the statement as a phrase: '[allow/deny] [what operations] [about what]'.",
+      "optionRationales": [
+        "These are the central elements of a declaration IAM: the effect (allow or deny), the actions of API covered (ex: s3:GetObject) and target resources identified by ARN.",
+        "Policies IAM they do not deal with costs; the user is defined outside of the policy (or in the main element in resource policies) and the Region is part of the ARN of the resource, not of an own element called Resource with that role.",
+        "None of these meanings correspond to the elements: encryption and timetables would be treated via Condition, and type of instance is not the role of the Resource element.",
+        "The three elements are the functional core of the policy — without them the declaration does not define any permission."
+      ]
+    },
+    "saa-ini-035": {
+      "text": "When designing the permissions of a new application, the architect defined that each component will receive only the minimum permissions strictly necessary for its function — for example, the upload function can only record in the specific prefix of the bucket, nothing more.?",
+      "options": [
+        "High availability",
+        "Horizontal scalability",
+        "Principle of minor privilege",
+        "Shared responsibility"
+      ],
+      "explanation": "The lowest privilege is to grant only the minimum permissions required for each task, reducing the potential impact of compromised credentials or errors — a pillar of good practice in the IAM.",
+      "hint": "'Only what is needed, and nothing more' — what is the classic name of this principle?",
+      "optionRationales": [
+        "The lowest privilege is to grant only the minimum permissions required for each task, reducing the potential impact of compromised credentials or errors — a pillar of good practice in the IAM.",
+        "The shared responsibility model divides duties between AWS and customer; does not deal with granularity of permissions granted to components.",
+        "High availability is an attribute of resilience of architecture, not related to the dimensioning of permissions.",
+        "Horizontal scalability tries to add instances to meet demand — a concept of capacity, not access security."
+      ]
+    },
+    "saa-ini-036": {
+      "text": "Right after you create an account AWS for a new project, the architect applied two immediate measures: activated the multifactor authentication in the root user and kept its credentials for use only in emergencies, creating separate identities for daily work. Why these measures are considered essential?",
+      "options": [
+        "Because MFA in the root accelerates the technical support of AWS",
+        "Because the root has unlimited and unrestricted power over the account, and its commitment would give complete control to an attacker",
+        "Because root is the only identity that can create instances EC2",
+        "Because without MFA in root the account cannot access paid services"
+      ],
+      "explanation": "Root user cannot be limited by policies IAM and executes exclusive critical actions; protect it with MFA and avoiding it day by day is the first safety recommendation of any account AWS.",
+      "hint": "Think about what would happen if someone stole the most powerful (and limitless) identity from the account.",
+      "optionRationales": [
+        "Root user cannot be limited by policies IAM and executes exclusive critical actions; protect it with MFA and avoiding it day by day is the first safety recommendation of any account AWS.",
+        "Any user or role IAM with appropriate permissions can create instances; resource operations do not require root.",
+        "The MFA is a authentication protection and has no relation to priority or speed of support service.",
+        "The account normally works without MFA in root — the measure is a good practice of protection, not a functional requirement of billing."
+      ]
+    }
+  }
+}

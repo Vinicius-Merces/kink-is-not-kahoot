@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "049-060",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-049": {
+      "text": "A digital bank requires RTO and RPO close to zero for your transaction system: no noticeable interruption and no data loss, even in the failure of an entire region. The high cost has been approved. What disaster recovery strategy meets this extreme requirement?",
+      "options": [
+        "Multi-site active, with the application running in total capacity in multiple regions simultaneously",
+        "Pilot light with provision on demand",
+        "Backup & Restore with backups every hour",
+        "Warm standby with reduced capacity"
+      ],
+      "explanation": "In the active-activity, all regions respond to production traffic at the same time with data replicated continuously; the failure of one region only redistributed users to the others, virtually without interruption or loss.",
+      "hint": "To RTO ~zero can't be 'click after': everything needs to be already attending production everywhere.",
+      "optionRationales": [
+        "In the active-activity, all regions respond to production traffic at the same time with data replicated continuously; the failure of one region only redistributed users to the others, virtually without interruption or loss.",
+        "This strategy involves hours of RTO (provide and restore everything) and up to an hour of data loss — incompatible with near zero requirements.",
+        "The pilot light still requires to connect and scale the application infrastructure after the disaster, resulting in RTO of tens of minutes or more.",
+        "Warm standby needs to scale the reduced capacity to the production port during the disaster, generating a degradation window — small but not zero."
+      ]
+    },
+    "saa-ini-050": {
+      "text": "In an order architecture, the payment service sends tasks directly to the tax billing service for synchronous calls. When the issue is out of the air, payments also fail. What architectural change makes the flow resilient to emission service failures?",
+      "options": [
+        "Make the payment service try the synchronous call infinitely until it succeeds",
+        "Unify the two services into a single monolithic application",
+        "Increase the size of the issue service instance",
+        "Place a row of the Amazon SQS between the services, so that the requests are stored in a durable way until the issue process them"
+      ],
+      "explanation": "The decoupling via SQS absorbs unavailability of the consumer: the payment service publishes in the queue and continues to work, and the issue processes the accumulated messages when it recovers — without loss of orders.",
+      "hint": "The classic solution for 'one falls and takes the other together' is to put a durable shock absorber between them.",
+      "optionRationales": [
+        "The decoupling via SQS absorbs unavailability of the consumer: the payment service publishes in the queue and continues to work, and the issue processes the accumulated messages when it recovers — without loss of orders.",
+        "More capacity does not solve the fragility of synchronous coupling: any emission drop would continue to bring down payments.",
+        "Infinite synchronous retentivities secure resources, degrade payment and can overload the service in recovery even more.",
+        "Founding the services would increase the coupling: a failure anywhere would knock down the whole set."
+      ]
+    },
+    "saa-ini-051": {
+      "text": "A row of the Amazon SQS process orders, but some malformed messages repeatedly fail in processing and return to the row in infinite loop, wasting resources. SQS handles these problematic messages correctly?",
+      "options": [
+        "Long polling, filtering faulty messages",
+        "Dead-letter tail (DLQ): after a set number of attempts, the message is moved to a separate row for analysis",
+        "Visibility Timeout greater, which automatically discards the message",
+        "Row FIFO, who rejects malformed messages at the entrance"
+      ],
+      "explanation": "A DLQ receives messages that have exceeded the maximum number of receipts without successful processing, removing them from the main cycle and preserving them for research and correction.",
+      "hint": "Think of the 'dead mail box': the destination of messages that no one can deliver.",
+      "optionRationales": [
+        "A DLQ receives messages that have exceeded the maximum number of receipts without successful processing, removing them from the main cycle and preserving them for research and correction.",
+        "Visibility Timeout only controls how long the message becomes invisible during processing — it does not rule out or isolate messages with repeated faults.",
+        "Rows FIFO ensure order and deduplication, but do not validate content or isolate messages that fail in processing.",
+        "Long polling optimizes the way to search for messages (reducing empty answers), without any analysis or filtering of defective content."
+      ]
+    },
+    "saa-ini-052": {
+      "text": "A company needs to centralize and automate the backups of its resources AWS — volumes EBS, banks RDS, tables DynamoDB and file systems EFS — with unique scheduling and retention policies, applied by tags, and centralized monitoring.?",
+      "options": [
+        "Manual snapshots of each service separately",
+        "S3 Cross-Region Replication",
+        "AWS Backup",
+        "AWS Storage Gateway"
+      ],
+      "explanation": "The AWS Backup centralizes data protection of multiple services (EBS, RDS, DynamoDB, EFS, among others) with policy-based backup plans, tag allocation, retention rules and unified monitoring.",
+      "hint": "The name of the service is literal: the central backup service of AWS.",
+      "optionRationales": [
+        "The AWS Backup centralizes data protection of multiple services (EBS, RDS, DynamoDB, EFS, among others) with policy-based backup plans, tag allocation, retention rules and unified monitoring.",
+        "Managing snapshots manually in each service is exactly the operational fragmentation that the scenario wants to eliminate with centralization and automation.",
+        "A CRR replica objects between buckets S3 — does not cover EBS, RDS, DynamoDB or EFS, nor offers centralized backup retention policies.",
+        "The Storage Gateway integrates on-premises storage with cloud; is not the central resource backup orchestration tool AWS."
+      ]
+    },
+    "saa-ini-053": {
+      "text": "A global application uses Amazon DynamoDB and it needs that the data are available for reading and writing in various regions at the same time, with automatic replication between them, ensuring continuity even if an entire region is unavailable. DynamoDB meets this requirement?",
+      "options": [
+        "DynamoDB Global Tables",
+        "Overall secondary indexes (GSI)",
+        "DynamoDB Accelerator (DAX)",
+        "Backups on demand from DynamoDB"
+      ],
+      "explanation": "Global Tables create multi-Region replicas and multi-active table: applications read and write locally in any participating region, with automatic replication — regional resilience and low global latency.",
+      "hint": "Watch out for similar names: the right feature turns the table into multi-Active Region.",
+      "optionRationales": [
+        "Global Tables create multi-Region replicas and multi-active table: applications read and write locally in any participating region, with automatic replication — regional resilience and low global latency.",
+        "The DAX is a cache in memory that accelerates readings in the same Region; does not replicate data between Regions.",
+        "Backups protect against data loss, but do not provide active reading/writing in multiple regions during a regional failure.",
+        "Despite the 'global' name, GSIs only allow queries for alternative attributes within the same table and Region — do not replicate data between Regions."
+      ]
+    },
+    "saa-ini-054": {
+      "text": "A critical application uses Amazon RDS in the region of São Paulo. For the strategy of disaster recovery, the architect created a replica of the bank reading in the region of Ohio. In case of complete disaster in São Paulo, what action allows us to use this replica to restore the operations?",
+      "options": [
+        "Promote the replica of reading to the independent main instance, accepting writings in the Ohio Region",
+        "Restore an old snapshot in Ohio Region and discard replica",
+        "Convert replica to ElastiCache cluster to take over the writings",
+        "Wait for RDS automatically transfer the writing endpoint to the replica"
+      ],
+      "explanation": "Reading replicas between regions can be promoted to autonomous reading and writing instances — a classic DR mechanism that combines continuous replication (good RPO) with fast promotion (good RTO).",
+      "hint": "The replica is a 'successor in training': what is the act that makes it the new bank holder?",
+      "optionRationales": [
+        "Reading replicas between regions can be promoted to autonomous reading and writing instances — a classic DR mechanism that combines continuous replication (good RPO) with fast promotion (good RTO).",
+        "The automatic endpoint failureover is characteristic of Multi-AZ within the same Region; the promotion of a replica between Regions is a deliberate action of the administrator (or automation own).",
+        "Restoring snapshots would lose replicated transactions continuously until disaster — wasting the main benefit of keeping the replica up to date.",
+        "ElastiCache is a cache service in memory — there is no replica conversion RDS in cache, neither cache replaces a relational production bank."
+      ]
+    },
+    "saa-ini-055": {
+      "text": "A web application saves user sessions in the memory of each instance EC2. When the Auto Scaling removes an instance, users connected to it lose their shopping carts. What change makes the application more resilient to these instances substitutions?",
+      "options": [
+        "Disable the Auto Scaling so that no instance is removed",
+        "Schedule instance removals to hours without any connected user",
+        "Increase the memory of each instance to support more sessions",
+        "Make the statess instances, moving the state of the sessions to an external storage like ElastiCache or DynamoDB"
+      ],
+      "explanation": "Statess applications do not keep local status: with sessions in a shared repository, any instance attends any user, and the loss of an instance stops causing loss of session data.",
+      "hint": "The problem is the state living inside the server — where it should live to survive the instances?",
+      "optionRationales": [
+        "Statess applications do not keep local status: with sessions in a shared repository, any instance attends any user, and the loss of an instance stops causing loss of session data.",
+        "Opening the hand of elasticity and self-recovery to preserve local sessions exchanges a problem for another bigger one — and instances can still fail alone.",
+        "More memory does not change the problem: the sessions would remain stuck to the instance and lose themselves with it.",
+        "Failures don't happen on schedule, and applications with constant traffic rarely have empty windows — the right design is to outsource the state."
+      ]
+    },
+    "saa-ini-056": {
+      "text": "An architect has configured a Auto Scaling Group with minimum capacity 2, desired 4 and maximum 10, distributed in two Availability Zones. What is the role of the MINIMUM value in this resilience configuration?",
+      "options": [
+        "Set the number of reserved instances with discount on billing",
+        "Determine how many instances are created in each new application deployment",
+        "Limit the maximum number of simultaneous users of the application",
+        "Ensure that the group never operates with less than 2 instances, even in periods of lower demand"
+      ],
+      "explanation": "The minimum capacity is the floor of the group: Auto Scaling never reduces below it, preserving basic redundancy (a instance by AZ, in the case) even when reduction policies are active.",
+      "hint": "Of the three issues of the ASG, which works as a 'safety floor' that automatic reduction never crosses?",
+      "optionRationales": [
+        "The minimum capacity is the floor of the group: Auto Scaling never reduces below it, preserving basic redundancy (a instance by AZ, in the case) even when reduction policies are active.",
+        "Minimum capacity of ASG is not related to Reserved Instances or purchase models — is only a group operating limit.",
+        "The ASG manage instances, non-connections or users; user limits are treated in the application layer.",
+        "Deployees are not controlled by the minimum capacity; it only prevents the group from shrinking beyond the defined floor."
+      ]
+    },
+    "saa-ini-057": {
+      "text": "The Amazon S3 announce 99,999999999% (11 nines) of durability for objects stored in the standard classes. What mechanism underpins this extremely high durability?",
+      "options": [
+        "Objects are physically printed and archived outside the cloud",
+        "Each object is recorded in a single unit of very high military quality",
+        "Objects are redundantly stored on multiple devices distributed by at least three Availability Zones",
+        "Durability depends exclusively on the versioning being enabled"
+      ],
+      "explanation": "The S3 automatically replicates each object by multiple devices and installations within the Region (minimum of three AZs in the default classes), making simultaneous loss of all copies a statistically despicable event.",
+      "hint": "Eleven nines don't come from a perfect disk, but from many copies in many places.",
+      "optionRationales": [
+        "The S3 automatically replicates each object by multiple devices and installations within the Region (minimum of three AZs in the default classes), making simultaneous loss of all copies a statistically despicable event.",
+        "Extreme durability comes from distributed redundancy, not the quality of a single device — any isolated disk may fail.",
+        "There is no physical archiving of digital objects; durability is achieved by electronic replication between installations.",
+        "Versioning protects against accidental actions of the user; the 11 nine come from the redundancy of the platform and exist even without versioning."
+      ]
+    },
+    "saa-ini-058": {
+      "text": "A serverless workflow with AWS Step Functions call one API The architect wants these transitory failures not to interrupt the flow, applying new automatic attempts at increasing intervals before giving up. Step Functions You'll have to work it out.?",
+      "options": [
+        "Run the whole state machine twice in parallel",
+        "Configure Retry policies with exponential backoff (and Catch for error treatment) directly in machine states",
+        "Migrate flow to one function Lambda monolithic",
+        "Reduce the timeout of all states to fail faster"
+      ],
+      "explanation": "The Step Functions allows to declare, by state, Retry rules (number of attempts, interval and backoff multiplier) and Catch blocks for error routes — declarative resilience without additional code.",
+      "hint": "The resilience of the orchestrator is declarative: look for the blocks of 'try again' and 'capture error' from each state.",
+      "optionRationales": [
+        "The Step Functions allows to declare, by state, Retry rules (number of attempts, interval and backoff multiplier) and Catch blocks for error routes — declarative resilience without additional code.",
+        "Duplicate executions generates duplicate side effects (couplings, records) and does not address the one-time failure of a single state.",
+        "Minor timesets would increase failures in slow calls — the opposite of absorbing transitory instability.",
+        "Focusing everything on one function eliminates visual orchestration and declarative control of errors per step — precisely losing the resilience resources of the Step Functions."
+      ]
+    },
+    "saa-ini-059": {
+      "text": "A resilient architecture in AWS was designed with the principle of 'avoid single points of failure'. Which of the settings below still represents a single point of failure that contradicts this principle.?",
+      "options": [
+        "RDS configured in Multi-AZ with automatic failover",
+        "A database running in a single instance EC2 in a single Area of Availability, without replica",
+        "Row SQS by uncoupling the services of order and billing",
+        "Application instances distributed in three AZs after one Application Load Balancer"
+      ],
+      "explanation": "A component without redundancy — a single instance, in a single AZ — knocks down the whole system if it fails: it is the definition of a single point of failure and must be eliminated with replicas or Multi-AZ.",
+      "hint": "Look for the component that, alone and without a copy, takes the entire system together when it falls.",
+      "optionRationales": [
+        "A component without redundancy — a single instance, in a single AZ — knocks down the whole system if it fails: it is the definition of a single point of failure and must be eliminated with replicas or Multi-AZ.",
+        "Multiple instances in multiple AZs with balancing is exactly the recommended redundancy pattern — there is no single point of failure in this layer.",
+        "The SQS is a regional service distributed and highly available by design; using it to uncouple increases resilience instead of creating fragility.",
+        "Multi-AZ maintains a synchronous replica in another zone with automatic failover — precisely the elimination of the single point of failure in the seat."
+      ]
+    },
+    "saa-ini-060": {
+      "text": "An application needs a shared file system that remains available even if an entire Availability Zone fails, accessible simultaneously by instances EC2 in several AZs. Which storage service was designed with this native multi-AZ resilience for files?",
+      "options": [
+        "Amazon EFS (Elastic File System) in default mode)",
+        "AWS Snowball permanently connected to VPC",
+        "Forum Store of its own bodies",
+        "Volume EBS attached to the courts of all AZs"
+      ],
+      "explanation": "The EFS Regional stores data redundantly in multiple AZs and can be mounted simultaneously by instances in all of them — failure of a zone does not interrupt access to the file system.",
+      "hint": "For shared files that survive the fall of an area, think about the 'elastic' and regional file system of AWS.",
+      "optionRationales": [
+        "The EFS Regional stores data redundantly in multiple AZs and can be mounted simultaneously by instances in all of them — failure of a zone does not interrupt access to the file system.",
+        "Volumes EBS reside in a single AZ and cannot be attached to different area instances — do not provide multi-AZ sharing.",
+        "The Forum Store is ephemeral and local to each physical server — data disappears with instance and is not shareable.",
+        "The Snowball is a physical device for mass data migration, and not an online file system shared between AZs."
+      ]
+    }
+  }
+}
