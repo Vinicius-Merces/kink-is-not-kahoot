@@ -12,6 +12,87 @@
     let activeLocale = DEFAULT_LOCALE;
     let initialized = false;
     let readyPromise = null;
+    let terminologyObserver = null;
+
+    // Narrow, deterministic cleanup for recurring literal MT artifacts in AWS exam
+    // content. This never changes IDs, answer indexes, API payloads or source banks;
+    // it only normalizes user-visible English terminology after rendering.
+    const AWS_ENGLISH_TERMINOLOGY = [
+        [/\bCourts Spot\b/gi, 'Spot Instances'],
+        [/\bFora Spot\b/gi, 'Spot Instances'],
+        [/\bCases Spot\b/gi, 'Spot Instances'],
+        [/\binstances Spot\b/gi, 'Spot Instances'],
+        [/\binstance Spot\b/gi, 'Spot Instance'],
+        [/\bOn-Demand Entities\b/gi, 'On-Demand Instances'],
+        [/\bEntities reserved\b/gi, 'Reserved Instances'],
+        [/\bReserved Entities\b/gi, 'Reserved Instances'],
+        [/\bReserved cases\b/gi, 'Reserved Instances'],
+        [/\bReserved fora\b/gi, 'Reserved Instances'],
+        [/\bFora Reserved\b/gi, 'Reserved Instances'],
+        [/\bFora in Dedicated Hosts\b/gi, 'Dedicated Hosts'],
+        [/\bFora Dedicated Hosts\b/gi, 'Dedicated Hosts'],
+        [/\binstances EC2\b/gi, 'EC2 instances'],
+        [/\binstance EC2\b/gi, 'EC2 instance'],
+        [/\bnewsletter S3\b/gi, 'S3 bucket'],
+        [/\bForum Store\b/gi, 'Instance Store'],
+        [/\bOverall secondary indexes?\b/gi, 'Global secondary indexes'],
+        [/\bComputers? Savings Plans\b/gi, 'Compute Savings Plans'],
+        [/\bEC2 Forum Savings Plans\b/gi, 'EC2 Instance Savings Plans'],
+        [/\bcomputer costs\b/gi, 'compute costs'],
+        [/\bcomputer services\b/gi, 'compute services'],
+        [/\bWeight-weighted rotation\b/gi, 'Weighted routing'],
+        [/\bGeolocation rotation\b/gi, 'Geolocation routing'],
+        [/\baccounts AWS\b/gi, 'AWS accounts'],
+        [/\baccount AWS\b/gi, 'AWS account'],
+        [/\bregions of the AWS\b/gi, 'AWS Regions']
+    ];
+
+    function normalizeEnglishText(value) {
+        if (activeLocale !== 'en' || typeof value !== 'string' || !value) return value;
+        return AWS_ENGLISH_TERMINOLOGY.reduce(
+            (text, [pattern, replacement]) => text.replace(pattern, replacement),
+            value
+        );
+    }
+
+    function shouldSkipTerminologyNode(node) {
+        const parent = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement);
+        return !!(parent && parent.closest('script,style,code,pre,textarea,svg'));
+    }
+
+    function normalizeEnglishSurface(root) {
+        if (activeLocale !== 'en' || !root) return;
+        if (root.nodeType === Node.TEXT_NODE) {
+            if (shouldSkipTerminologyNode(root)) return;
+            const next = normalizeEnglishText(root.nodeValue);
+            if (next !== root.nodeValue) root.nodeValue = next;
+            return;
+        }
+        if (root.nodeType !== Node.ELEMENT_NODE && root !== document) return;
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+            if (shouldSkipTerminologyNode(node)) continue;
+            const next = normalizeEnglishText(node.nodeValue);
+            if (next !== node.nodeValue) node.nodeValue = next;
+        }
+    }
+
+    function ensureTerminologyObserver() {
+        if (terminologyObserver || typeof MutationObserver === 'undefined') return;
+        terminologyObserver = new MutationObserver((mutations) => {
+            if (activeLocale !== 'en') return;
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'characterData') normalizeEnglishSurface(mutation.target);
+                mutation.addedNodes.forEach(node => normalizeEnglishSurface(node));
+            });
+        });
+        terminologyObserver.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
 
     function normalizeLocale(value) {
         if (!value) return null;
@@ -75,8 +156,8 @@
     function t(key, params) {
         const value = readKey(catalogs.get(activeLocale), key);
         const fallback = readKey(catalogs.get(DEFAULT_LOCALE), key);
-        if (typeof value === 'string') return interpolate(value, params);
-        if (typeof fallback === 'string') return interpolate(fallback, params);
+        if (typeof value === 'string') return normalizeEnglishText(interpolate(value, params));
+        if (typeof fallback === 'string') return normalizeEnglishText(interpolate(fallback, params));
         return key;
     }
 
@@ -91,7 +172,6 @@
     }
 
     function applyMeta() {
-        // Page-specific metadata is migrated with each page adapter.
         if (currentLeaf() !== 'index.html') return;
         document.title = t('meta.title');
         const bindings = [
@@ -130,6 +210,7 @@
             applyMeta();
             applyBrandSurface();
             updateLanguageSwitcher();
+            normalizeEnglishSurface(document);
         }
     }
 
@@ -266,6 +347,7 @@
             await loadAdapters();
             apply(document);
             createLanguageSwitcher();
+            ensureTerminologyObserver();
             initialized = true;
             document.dispatchEvent(new CustomEvent('cloudpath:i18nready', { detail: { locale: activeLocale } }));
             return activeLocale;
@@ -278,6 +360,7 @@
         SUPPORTED_LOCALES: SUPPORTED_LOCALES.slice(),
         CATALOG_FILES: CATALOG_FILES.slice(),
         normalizeLocale,
+        normalizeEnglishText,
         init,
         setLocale,
         apply,
