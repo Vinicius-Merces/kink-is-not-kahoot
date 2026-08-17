@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "medio",
+    "sourcePath": "data/exams/dva-c02/medio.json",
+    "range": "013-024",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-med-013": {
+      "text": "A table of the DynamoDB store user sessions that should be removed automatically 24 hours after creation, without cost of exclusion operations or cleaning code. DynamoDB answer that.?",
+      "options": [
+        "TTL (Time to Live): an attribute with the expiration timestamp does the DynamoDB exclude automatically expired items without consuming writing capacity",
+        "Enable versioning and expire old versions",
+        "Reduce Table Retention Period",
+        "A daily job that makes Scan and Delete old items"
+      ],
+      "explanation": "The TTL marks a numeric attribute (epoch) as expiration date: expired items are removed in background without cost of WCU — the pattern for sessions, caches and ephemeral data.",
+      "hint": "Carimbe each item with the 'date of validity' and let the service collect the losers for free.",
+      "optionRationales": [
+        "The TTL marks a numeric attribute (epoch) as expiration date: expired items are removed in background without cost of WCU — the pattern for sessions, caches and ephemeral data.",
+        "Scan + Delete consumes paid reading and writing ability and requires code maintenance — exactly what the TTL delete.",
+        "Tables of DynamoDB do not have 'retention period' — this concept belongs to logs and rows.",
+        "DynamoDB has no versioning of items — the expiration mechanism is the TTL."
+      ]
+    },
+    "dva-med-014": {
+      "text": "Whenever an item in a table of the DynamoDB is created or modified, a function Lambda must react to the event by receiving the new (and optionally old) image of the item. Which feature enables this event-oriented flow?",
+      "options": [
+        "Do the function consult the entire table every minute by comparing the items",
+        "Enable PITR and read continuous backups",
+        "DynamoDB Streams with event source mapping for function Lambda",
+        "Configure a trigger SQL in the table"
+      ],
+      "explanation": "Streams captures changes from the table in order (with new/old configurable images), and event source mapping delivers batch records to function — the default CDC of the DynamoDB.",
+      "hint": "The table 'change range' feeds the function with each change, in order.",
+      "optionRationales": [
+        "Streams captures changes from the table in order (with new/old configurable images), and event source mapping delivers batch records to function — the default CDC of the DynamoDB.",
+        "Polling with manual comparison is expensive, slow and loses intermediate changes — the stream delivers ready changes.",
+        "Triggers SQL belong to relational banks — the equivalent in DynamoDB It's Streams..",
+        "PITR serves for punctual restoration — does not issue change events for real-time consumption."
+      ]
+    },
+    "dva-med-015": {
+      "text": "A developer uses BatchWriteItem to record 25 items per call in DynamoDB. At peak times, the answer returns with the UnprocessedItems key filled. What this means and how the code should treat?",
+      "options": [
+        "The DynamoDB resend items automatically after",
+        "The table has been corrupted and needs to be restored",
+        "Part of the lot has not been recorded (e.g. by throttling); the code should forward unprocessed items with exponential backoff until the list is empty",
+        "All items were recorded and the list is only informative"
+      ],
+      "explanation": "BatchWriteItem is partially successful by design: UnprocessedItems lists what has failed and the customer is responsible for retaining these items with increasing expectation — behavior that SDKs help automate.",
+      "hint": "Lot not DynamoDB can return 'by half': the change in the answer says what you should send yourself.",
+      "optionRationales": [
+        "BatchWriteItem is partially successful by design: UnprocessedItems lists what has failed and the customer is responsible for retaining these items with increasing expectation — behavior that SDKs help automate.",
+        "Items in UnprocessedItems were NOT recorded — ignoring the list loses data silently.",
+        "Partial batch failure is normal operating condition under peak — no indication of corruption.",
+        "The service does not retain or reprocess the lot — the withholding is the responsibility of the customer."
+      ]
+    },
+    "dva-med-016": {
+      "text": "A payment flow needs to debit the balance in one item and record the transaction in another item — and the two writings must happen together or none of them (all-or-nothing), even between different tables of the DynamoDB. Which resource guarantees this atomicity?",
+      "options": [
+        "BatchWriteItem, which is already atomic by default",
+        "Two calls PutItem in a quick sequence",
+        "Transactions of DynamoDB (TransactWriteItems), grouping up 100 actions with atomic effect",
+        "Enable Global Tables to synchronize writing"
+      ],
+      "explanation": "TransactWriteItems applies the set of writings atomicly (with optional conditions): any failure cancels everything — the warranty ACID for multi-item/multi-table operations.",
+      "hint": "For 'or everything, or nothing' between items and tables, the DynamoDB has 'Transact' operations'.",
+      "optionRationales": [
+        "TransactWriteItems applies the set of writings atomicly (with optional conditions): any failure cancels everything — the warranty ACID for multi-item/multi-table operations.",
+        "The batch is NOT atomic — items can fail individually (UnprocessedItems) while others record.",
+        "Independent calls can fail each other, leaving the state in half — without atomicity.",
+        "Global Tables replicate between regions — do not group local writings in an atomic unit."
+      ]
+    },
+    "dva-med-017": {
+      "text": "By modeling a table of the DynamoDB, the developer compares local secondary indices (LSI) e global (GSI). What difference is correct??",
+      "options": [
+        "LSI and GSI are synonyms with different regional names",
+        "The LSI maintains the same partition key in the table by varying only the spell key and can only be created together with the table; the GSI can have completely different keys and be created at any time",
+        "The GSI can only be created in the table creation; the LSI can be added later",
+        "The LSI replicates the table to another region"
+      ],
+      "explanation": "These are the classic restrictions.: LSI share the partition (and the limit of 10 GB by key value) and born with the table; GSI is flexible in keys and life cycle, with own capacity.",
+      "hint": "The 'local' is born trapped in the partition and the creation of the table; the 'global' is free in the keys and in time.",
+      "optionRationales": [
+        "These are the classic restrictions.: LSI share the partition (and the limit of 10 GB by key value) and born with the table; GSI is flexible in keys and life cycle, with own capacity.",
+        "It's reversed: the LSI is fixed in the creation; GSIs are added and removed when necessary.",
+        "They are distinct resources with different restrictions and uses — not synonymous.",
+        "Replication between regions is the role of the Global Tables — 'local' in LSI refers to the same partition, not geography."
+      ]
+    },
+    "dva-med-018": {
+      "text": "A Query in DynamoDB returns the answer with the completed LastEvaluatedKey field. What this indicates and what the code should do to get the rest of the data?",
+      "options": [
+        "The returned item is the last of the entire table",
+        "The result was paged (limit of 1 MB per call); code should repeat Query by passing the value in ExclusiveStartKey to LastEvaluatedKey will be empty",
+        "The consultation failed and should be re-established from scratch",
+        "The table has reached the maximum size allowed"
+      ],
+      "explanation": "The DynamoDB page big results: LastEvaluatedKey is the marker of the next page, passed as ExclusiveStartKey in the loop to the end — SDK pagers automate this pattern.",
+      "hint": "It is the 'page marker' of the reading: return it on the next call to continue from where it stopped.",
+      "optionRationales": [
+        "The DynamoDB page big results: LastEvaluatedKey is the marker of the next page, passed as ExclusiveStartKey in the loop to the end — SDK pagers automate this pattern.",
+        "The presence of the marker indicates partial success with continuation — no error.",
+        "There is no maximum table size — the limit of 1 MB is by RESPOSTA Reading.",
+        "The marker delimits the current page of CONSULTA — not the physical end of the table."
+      ]
+    },
+    "dva-med-019": {
+      "text": "A function Lambda process files temporarily downloading them to the local disk before transforming them. What feature of /tmp storage of functions the developer should consider?",
+      "options": [
+        "It is shared among all account functions",
+        "It's an ephemeral storage by running environment (512 MB a 10 GB configurable), which may persist between invocations in the same warm environment, but should never be treated as durable",
+        "It is automatically replicated to the S3 at the end of each execution",
+        "It's unlimited in size"
+      ],
+      "explanation": "The /tmp belongs to the running environment: useful for staging and cache opportunistic between invocations reused, but disappears when the environment is recycled — durable data go to S3/EFS.",
+      "hint": "The 'work bench' location of the function: useful in the session, but the cleaning can pass at any time.",
+      "optionRationales": [
+        "The /tmp belongs to the running environment: useful for staging and cache opportunistic between invocations reused, but disappears when the environment is recycled — durable data go to S3/EFS.",
+        "There is no automatic synchronization — what stays in /tmp dies with the environment.",
+        "Each running environment has its /tmp isolated — there is no sharing between functions or environments.",
+        "/tmp has configurable limits of 512 MB a 10 GB — larger files require streaming or EFS."
+      ]
+    },
+    "dva-med-020": {
+      "text": "A function Lambda creates a connection to the bank and initializes a client HTTP to each invocation, within the handler, raising latency. What practice takes advantage of the reuse of the execution environment to optimize this?",
+      "options": [
+        "Move expensive initializations (connections, customers) SDK) outside the handler, in the global scope, so that invocations in the same warm environment re-use them",
+        "Store connection in an environment variable",
+        "Create and close the connection within the handler to each invocation, for security",
+        "Increase timeout to give time to initializations"
+      ],
+      "explanation": "The code outside the handler runs once per environment (on startup): connections and customers created there survive between invocations reused — reducing latency and pressure on the bank.",
+      "hint": "What's 'top handler' runs once per environment — mount the bench there and only work inside the handler.",
+      "optionRationales": [
+        "The code outside the handler runs once per environment (on startup): connections and customers created there survive between invocations reused — reducing latency and pressure on the bank.",
+        "Opening/closing each call is just the slow pattern that wastes the reused environment.",
+        "More time-limit does not eliminate the repeated cost of initialization — only tolerates it.",
+        "Environment variables keep configuration strings — not live objects as connections."
+      ]
+    },
+    "dva-med-021": {
+      "text": "A developer compares the two modes of direct invocation of functions Lambda for API: RequestResponse and Event. What is the practical difference between them?",
+      "options": [
+        "RequestResponse is synchronous (the caller waits and receives the answer/errors); Event is asynchronous (the Lambda string event, responds 202 immediately and manage retentative)",
+        "Event is faster because it performs the function with more CPU",
+        "Both modes are identical since 2020",
+        "RequestResponse only works within VPCs"
+      ],
+      "explanation": "In the synchronous invocation the client treats errors and receives the return; in the asynchronous the service assumes the internal row, with up to two retants and destinations/DLQ for failure — choice defines who owns the error.",
+      "hint": "One waits for the answer on the line; the other leaves the message and turns it off — and the service takes care of the restrainings.",
+      "optionRationales": [
+        "In the synchronous invocation the client treats errors and receives the return; in the asynchronous the service assumes the internal row, with up to two retants and destinations/DLQ for failure — choice defines who owns the error.",
+        "The method of invoking does not change the functions of the function — changes the contract of delivery and response.",
+        "The synchronous invocation has no dependence on VPC.",
+        "Different contracts remain — synchronous versus asynchronous with rows and managed retrenchments."
+      ]
+    },
+    "dva-med-022": {
+      "text": "A function Lambda integrated with API Gateway via proxy integration returns any object, and the client receives error 502 (Bad Gateway). What is the typical cause of this error in this integration?",
+      "options": [
+        "Missed enable CORS the API",
+        "The function exceeded the configured memory",
+        "The response of the function does not follow the format required by the proxy: JSON with statusCode, headers and body (string)",
+        "The API Gateway is out of the air in the region"
+      ],
+      "explanation": "In proxy integration, the API Gateway waits for the specific envelope; responses outside the contract (unserialized body, absent statusCode) generate 502 — the correction is to mount the response object correctly.",
+      "hint": "In proxy mode, the gateway requires the right envelope: status, headers and body as string.",
+      "optionRationales": [
+        "In proxy integration, the API Gateway waits for the specific envelope; responses outside the contract (unserialized body, absent statusCode) generate 502 — the correction is to mount the response object correctly.",
+        "Regional unavailability is rare and would affect everything — the 502 systematic on a route points invalid response contract.",
+        "Problems of CORS appear as lock in the browser — not as 502 Gateway.",
+        "Memory burst generates visible execution error in the logs — the 502 proxy is born from the response format."
+      ]
+    },
+    "dva-med-023": {
+      "text": "In one API REST of the API Gateway SEM proxy integration, the team needs to transform the received payload before sending it to the backend (rename fields, mount another JSON). What's the use of API Gateway realizes these transformations?",
+      "options": [
+        "Mapping templates written in VTL (Velocity Template Language) in Requisition/Response Integration",
+        "Internships with environment variables",
+        "Use plans with key API",
+        "Custom Domain Models"
+      ],
+      "explanation": "In non-proxy integration, mapping templates transform payloads between client and backend (request and response), allowing you to adapt contracts without changing any of the sides.",
+      "hint": "The 'translator' between the client's contract and the backend's speaks a four-letter template language.",
+      "optionRationales": [
+        "In non-proxy integration, mapping templates transform payloads between client and backend (request and response), allowing you to adapt contracts without changing any of the sides.",
+        "Stage variables parameterize destinations and settings by environment — do not transform payloads.",
+        "Use plans apply quotas and throttling per consumer — without any data processing.",
+        "Custom domains handle the address of API — not of the content of the messages."
+      ]
+    },
+    "dva-med-024": {
+      "text": "A message needs to be invisible by 15 minutes AFTER being sent to a queue SQS, only then can be consumed (e.g. give time to cancel the order). Which feature implements this delay in delivery, and how different from the visibility timeout?",
+      "options": [
+        "Long polling with waiting 15 minutes",
+        "Delay queue (or DelaySeconds by message): delays the PRIMEIRA availability of the message; visibility timeout hides the message AFTER being received by a consumer",
+        "Retention period of 15 minutes",
+        "Visibility timeout of 15 minutes solve, because it acts in the row entry"
+      ],
+      "explanation": "These are different moments of the cycle: the delay acts in the input (new message is hidden by the period), while the visibility timeout protects the processing in progress against double consumption.",
+      "hint": "One postpones the opening of the message; the other protects the message that is already on stage.",
+      "optionRationales": [
+        "These are different moments of the cycle: the delay acts in the input (new message is hidden by the period), while the visibility timeout protects the processing in progress against double consumption.",
+        "The visibility timeout only counts from the RECEBIMENTO message — does not delay the first delivery.",
+        "Retention defines when NOT consumed messages expire — not when they become available.",
+        "The long polling waits until 20 SEGUNDOS by available messages — is not delivery delay mechanism."
+      ]
+    }
+  }
+}
