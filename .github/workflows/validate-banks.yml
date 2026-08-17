@@ -7,6 +7,7 @@ on:
     paths:
       - 'data/**'
       - 'locales/**'
+      - 'translations/**'
       - 'js/i18n*.js'
       - 'js/nav-menu.js'
       - 'scripts/validate_banks.py'
@@ -14,12 +15,15 @@ on:
       - 'scripts/validate_i18n.py'
       - 'scripts/validate_exam_locale_parity.py'
       - 'scripts/scaffold_exam_translation.py'
+      - 'scripts/build_exam_translation.py'
+      - 'scripts/validate_exam_translation_staging.py'
       - 'scripts/prepare_arena_option_ids.py'
       - '.github/workflows/validate-banks.yml'
   pull_request:
     paths:
       - 'data/**'
       - 'locales/**'
+      - 'translations/**'
       - 'js/i18n*.js'
       - 'js/nav-menu.js'
       - 'scripts/validate_banks.py'
@@ -27,6 +31,8 @@ on:
       - 'scripts/validate_i18n.py'
       - 'scripts/validate_exam_locale_parity.py'
       - 'scripts/scaffold_exam_translation.py'
+      - 'scripts/build_exam_translation.py'
+      - 'scripts/validate_exam_translation_staging.py'
       - 'scripts/prepare_arena_option_ids.py'
       - '.github/workflows/validate-banks.yml'
   workflow_dispatch: {}
@@ -61,12 +67,17 @@ jobs:
           python3 -m py_compile scripts/validate_i18n.py
           python3 -m py_compile scripts/validate_exam_locale_parity.py
           python3 -m py_compile scripts/scaffold_exam_translation.py
+          python3 -m py_compile scripts/build_exam_translation.py
+          python3 -m py_compile scripts/validate_exam_translation_staging.py
           python3 -m py_compile scripts/prepare_arena_option_ids.py
 
       - name: Validar bancos de questões
         run: python3 scripts/validate_banks.py
 
-      - name: Validar paridade dos bancos EN
+      - name: Validar lotes EN em staging
+        run: python3 scripts/validate_exam_translation_staging.py
+
+      - name: Validar paridade dos bancos EN prontos
         run: python3 scripts/validate_exam_locale_parity.py
 
       - name: Validar overlays do CloudArena
