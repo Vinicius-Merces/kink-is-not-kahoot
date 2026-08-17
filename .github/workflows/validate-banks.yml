@@ -28,6 +28,7 @@ on:
       - 'scripts/build_exam_translation.py'
       - 'scripts/promote_complete_exam_translations.py'
       - 'scripts/prepare_arena_option_ids.py'
+      - 'scripts/apply_arena_option_id_runtime.py'
       - 'scripts/apply_exam_locale_runtime.py'
       - 'scripts/apply_aws_2026_content_fixes.py'
       - 'scripts/apply_aws_2026_extra_fixes.py'
@@ -54,6 +55,7 @@ on:
       - 'scripts/build_exam_translation.py'
       - 'scripts/promote_complete_exam_translations.py'
       - 'scripts/prepare_arena_option_ids.py'
+      - 'scripts/apply_arena_option_id_runtime.py'
       - 'scripts/apply_exam_locale_runtime.py'
       - 'scripts/apply_aws_2026_content_fixes.py'
       - 'scripts/apply_aws_2026_extra_fixes.py'
@@ -90,22 +92,31 @@ jobs:
           python3 -m py_compile scripts/build_exam_translation.py
           python3 -m py_compile scripts/promote_complete_exam_translations.py
           python3 -m py_compile scripts/prepare_arena_option_ids.py
+          python3 -m py_compile scripts/apply_arena_option_id_runtime.py
           python3 -m py_compile scripts/apply_exam_locale_runtime.py
           python3 -m py_compile scripts/apply_aws_2026_content_fixes.py
           python3 -m py_compile scripts/apply_aws_2026_extra_fixes.py
+
+      - name: Migrar overlays legados para optionId estável
+        run: python3 scripts/prepare_arena_option_ids.py --write
 
       - name: Aplicar correções factuais AWS verificadas em 2026
         run: |
           python3 scripts/apply_aws_2026_content_fixes.py
           python3 scripts/apply_aws_2026_extra_fixes.py
 
+      - name: Ressincronizar texto legível dos overlays após revisões
+        run: python3 scripts/prepare_arena_option_ids.py --write --require-ids
+
       - name: Validar fatos AWS sensíveis a data
         run: python3 scripts/validate_aws_current_facts.py
 
-      - name: Aplicar migração locale-aware em workspace
-        run: python3 scripts/apply_exam_locale_runtime.py
+      - name: Aplicar migrações de runtime i18n e CloudArena
+        run: |
+          python3 scripts/apply_exam_locale_runtime.py
+          python3 scripts/apply_arena_option_id_runtime.py
 
-      - name: Validar sintaxe do runtime i18n e simulados
+      - name: Validar sintaxe do runtime i18n, simulados e CloudArena
         run: |
           node --check server.js
           node --check js/i18n.js
@@ -138,11 +149,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Validar overlays do CloudArena
+      - name: Validar overlays do CloudArena por optionId
         run: python3 scripts/validate_arena.py
 
-      - name: Validar contrato de IDs do CloudArena
-        run: python3 scripts/prepare_arena_option_ids.py
+      - name: Exigir migração completa de IDs do CloudArena
+        run: python3 scripts/prepare_arena_option_ids.py --require-ids
 
       - name: Validar catálogos PT e EN
         run: python3 scripts/validate_i18n.py
@@ -152,12 +163,12 @@ jobs:
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          git add data/exams data/exams-en server.js js/simulados.js js/socket-client.js js/simulado-live-host.js
+          git add data/exams data/exams-en data/cloudarena/breakdowns server.js js/simulados.js js/socket-client.js js/simulado-live-host.js
           if git diff --cached --quiet; then
             echo 'Artefatos gerados já estão versionados e idênticos ao workspace validado.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): promote validated English exam banks'
+          git commit -m 'feat(i18n): promote validated banks and stable CloudArena IDs'
           git push origin "HEAD:${HEAD_BRANCH}"
