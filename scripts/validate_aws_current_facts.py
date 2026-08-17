@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Guard a small set of time-sensitive AWS facts in exam content.
+"""Guard verified time-sensitive AWS facts in truth-bearing exam fields.
 
-This validator intentionally targets claims we have verified against current AWS
-primary documentation. It is narrow by design: broader certification-content
-fact review should add explicit rules as facts are verified rather than guessing.
+Distractors are intentionally allowed to contain false statements, so this check
+scans only the question prompt, explanation and the option(s) marked correct.
+Broader fact rules should be added only after verification against AWS primary docs.
 """
 
 from __future__ import annotations
@@ -16,24 +16,28 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMS = ROOT / "data" / "exams"
 
 LEGACY_FREE_TIER_PATTERNS = [
-    re.compile(r"free tier.{0,120}12\s+mes", re.I | re.S),
-    re.compile(r"12\s+mes.{0,120}free tier", re.I | re.S),
-    re.compile(r"servi[cç]os gratuitos.{0,80}12\s+mes", re.I | re.S),
-    re.compile(r"12-month.{0,80}free tier", re.I | re.S),
+    re.compile(r"free tier.{0,140}12\s+mes", re.I | re.S),
+    re.compile(r"12\s+mes.{0,140}free tier", re.I | re.S),
+    re.compile(r"12-month.{0,100}free tier", re.I | re.S),
+    re.compile(r"free tier.{0,100}12-month", re.I | re.S),
 ]
 
 
-def iter_human_text(value):
-    if isinstance(value, str):
-        yield value
-    elif isinstance(value, list):
-        for item in value:
-            yield from iter_human_text(item)
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            if key in {"id", "domain", "correct", "selectCount", "topics"}:
-                continue
-            yield from iter_human_text(item)
+def correct_option_text(question: dict) -> list[str]:
+    options = question.get("options") or []
+    correct = question.get("correct")
+    indexes = correct if isinstance(correct, list) else [correct]
+    result = []
+    for index in indexes:
+        if isinstance(index, int) and 0 <= index < len(options):
+            result.append(str(options[index]))
+    return result
+
+
+def truth_text(question: dict) -> str:
+    parts = [str(question.get("text") or ""), str(question.get("explanation") or "")]
+    parts.extend(correct_option_text(question))
+    return " ".join(parts)
 
 
 def main() -> int:
@@ -41,13 +45,11 @@ def main() -> int:
     for path in sorted(EXAMS.glob("*/*.json")):
         data = json.loads(path.read_text(encoding="utf-8"))
         for question in data.get("questions", []):
-            combined = " ".join(iter_human_text(question))
-            for pattern in LEGACY_FREE_TIER_PATTERNS:
-                if pattern.search(combined):
-                    errors.append(
-                        f"{path.relative_to(ROOT)}::{question.get('id')}: legacy 12-month AWS Free Tier claim detected"
-                    )
-                    break
+            combined = truth_text(question)
+            if any(pattern.search(combined) for pattern in LEGACY_FREE_TIER_PATTERNS):
+                errors.append(
+                    f"{path.relative_to(ROOT)}::{question.get('id')}: legacy 12-month AWS Free Tier claim is presented as truth"
+                )
 
     if errors:
         print("AWS current-fact validation failed:")
@@ -55,7 +57,7 @@ def main() -> int:
             print(f"  - {error}")
         return 1
 
-    print("AWS current-fact validation passed: no legacy 12-month Free Tier claims detected")
+    print("AWS current-fact validation passed: no legacy 12-month Free Tier claim is taught as current truth")
     return 0
 
 
