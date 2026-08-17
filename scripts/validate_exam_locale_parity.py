@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = ROOT / "data" / "exams"
 EN_ROOT = ROOT / "data" / "exams-en"
 LEVELS = {"iniciante", "medio", "avancado"}
+TRANSLATION_STATUSES = {"draft", "ready"}
 
 
 def read_json(path: Path) -> dict:
@@ -62,15 +63,41 @@ def domain_map(payload: dict) -> dict[str, dict]:
     return result
 
 
+def validate_translation_meta(payload: dict, path: Path, require_ready: bool) -> list[str]:
+    errors: list[str] = []
+    rel = path.relative_to(ROOT)
+    meta = payload.get("_translation")
+    if not isinstance(meta, dict):
+        return [f"{rel}: missing _translation metadata; generate the file with scaffold_exam_translation.py"]
+
+    if meta.get("locale") != "en":
+        errors.append(f"{rel}: _translation.locale must be 'en'")
+    if meta.get("sourceLocale") != "pt-BR":
+        errors.append(f"{rel}: _translation.sourceLocale must be 'pt-BR'")
+
+    status = meta.get("status")
+    if status not in TRANSLATION_STATUSES:
+        errors.append(f"{rel}: _translation.status must be one of {sorted(TRANSLATION_STATUSES)}")
+    elif require_ready and status != "ready":
+        errors.append(f"{rel}: translation is required to be ready but status is {status!r}")
+
+    expected_source = str((SOURCE_ROOT / path.parent.name / path.name).relative_to(ROOT)).replace("\\", "/")
+    if meta.get("sourcePath") != expected_source:
+        errors.append(f"{rel}: _translation.sourcePath must be '{expected_source}'")
+    return errors
+
+
 def same_value(left, right) -> bool:
     return left == right
 
 
-def validate_pair(source_path: Path, translated_path: Path) -> list[str]:
+def validate_pair(source_path: Path, translated_path: Path, require_ready: bool = False) -> list[str]:
     errors: list[str] = []
     source = read_json(source_path)
     translated = read_json(translated_path)
     rel = translated_path.relative_to(ROOT)
+
+    errors.extend(validate_translation_meta(translated, translated_path, require_ready))
 
     source_ids, source_questions = question_map(source, source_path)
     translated_ids, translated_questions = question_map(translated, translated_path)
@@ -105,8 +132,6 @@ def validate_pair(source_path: Path, translated_path: Path) -> list[str]:
         dst = translated_questions[qid]
 
         for field in ("domain", "correct", "selectCount", "topics"):
-            # Optional fields must remain optional in the same way. This prevents
-            # semantic drift hidden inside a translation-only change.
             if not same_value(src.get(field), dst.get(field)):
                 errors.append(f"{rel}: {qid} changed '{field}' ({src.get(field)!r} -> {dst.get(field)!r})")
 
@@ -132,14 +157,15 @@ def main() -> int:
         "--require-cert",
         action="append",
         default=[],
-        help="require all three EN level files for the given certification; may be repeated",
+        help="require all three EN level files for the certification and require status=ready; may be repeated",
     )
     args = parser.parse_args()
 
     errors: list[str] = []
     files = translated_files()
+    required = {cert.strip().lower() for cert in args.require_cert if cert.strip()}
 
-    for cert_id in args.require_cert:
+    for cert_id in required:
         for level in sorted(LEVELS):
             expected = EN_ROOT / cert_id / f"{level}.json"
             if not expected.exists():
@@ -156,7 +182,7 @@ def main() -> int:
             errors.append(f"{translated_path.relative_to(ROOT)}: no canonical PT source bank exists")
             continue
         try:
-            errors.extend(validate_pair(source_path, translated_path))
+            errors.extend(validate_pair(source_path, translated_path, require_ready=cert_id in required))
         except ValueError as exc:
             errors.append(str(exc))
 
@@ -169,7 +195,17 @@ def main() -> int:
     if not files:
         print("Exam locale parity OK: EN bank directory has no translated JSON files yet; contract is ready.")
     else:
-        print(f"Exam locale parity OK: {len(files)} translated bank file(s) match canonical PT structure.")
+        ready_count = 0
+        for path in files:
+            try:
+                if read_json(path).get("_translation", {}).get("status") == "ready":
+                    ready_count += 1
+            except ValueError:
+                pass
+        print(
+            f"Exam locale parity OK: {len(files)} translated bank file(s) match canonical PT structure "
+            f"({ready_count} ready, {len(files) - ready_count} draft)."
+        )
     return 0
 
 
