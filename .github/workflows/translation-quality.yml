@@ -5,6 +5,7 @@ on:
     paths:
       - 'translations/en/**'
       - 'data/exams/**'
+      - 'scripts/translation_integrity.py'
       - 'scripts/validate_english_translation_quality.py'
       - '.github/workflows/translation-quality.yml'
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - 'translations/en/**'
       - 'data/exams/**'
+      - 'scripts/translation_integrity.py'
       - 'scripts/validate_english_translation_quality.py'
       - '.github/workflows/translation-quality.yml'
   workflow_dispatch: {}
@@ -21,10 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Validar sintaxe
-        run: python3 -m py_compile scripts/validate_english_translation_quality.py
-      - name: Validar qualidade mecânica das traduções EN
+        run: |
+          python3 -m py_compile scripts/translation_integrity.py
+          python3 -m py_compile scripts/validate_english_translation_quality.py
+      - name: Validar qualidade mecânica e fidelidade das traduções EN
         run: python3 scripts/validate_english_translation_quality.py
