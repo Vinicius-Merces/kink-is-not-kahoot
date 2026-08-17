@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Validate CloudPath locale catalogs and referenced i18n keys.
-
-This validator intentionally covers UI catalogs only. Narration assets and the
-large certification content banks are migrated in later phases.
-"""
+"""Validate CloudPath locale catalogs and referenced UI translation keys."""
 
 from __future__ import annotations
 
@@ -17,8 +13,11 @@ LOCALES_DIR = ROOT / "locales"
 BASE_LOCALE = "pt-BR"
 SUPPORTED_LOCALES = ("pt-BR", "en")
 
-REFERENCE_PATTERN = re.compile(
+MARKUP_REFERENCE_PATTERN = re.compile(
     r"data-i18n(?:-placeholder|-aria-label|-title)?=[\"']([^\"']+)[\"']"
+)
+KEY_LITERAL_PATTERN = re.compile(
+    r"[\"']((?:meta|brand|language|common|nav|auth|home|quiz|study|exam|arena|progress|errors)\.[A-Za-z0-9_.]+)[\"']"
 )
 
 
@@ -48,7 +47,8 @@ def referenced_keys() -> set[str]:
     candidates = list(ROOT.glob("*.html")) + list((ROOT / "js").glob("*.js"))
     for path in candidates:
         text = path.read_text(encoding="utf-8", errors="replace")
-        keys.update(REFERENCE_PATTERN.findall(text))
+        keys.update(MARKUP_REFERENCE_PATTERN.findall(text))
+        keys.update(KEY_LITERAL_PATTERN.findall(text))
     return keys
 
 
@@ -58,8 +58,7 @@ def main() -> int:
 
     for locale in SUPPORTED_LOCALES:
         try:
-            catalog = load_catalog(locale)
-            flattened[locale] = flatten(catalog)
+            flattened[locale] = flatten(load_catalog(locale))
         except ValueError as exc:
             errors.append(str(exc))
 
@@ -88,7 +87,7 @@ def main() -> int:
     refs = referenced_keys()
     unknown_refs = sorted(refs - base_keys)
     if unknown_refs:
-        errors.append("unknown data-i18n keys referenced by frontend: " + ", ".join(unknown_refs))
+        errors.append("unknown i18n keys referenced by frontend: " + ", ".join(unknown_refs))
 
     if errors:
         print("CloudPath i18n validation failed:\n")
