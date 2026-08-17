@@ -35,7 +35,14 @@ TECHNICAL_PATTERNS = [
 ]
 
 TECHNICAL_RE = re.compile(r"\b(?:" + "|".join(TECHNICAL_PATTERNS) + r")\b", re.I)
-NUMBER_RE = re.compile(r"(?<![A-Za-z])\d+(?:[.,]\d+)?(?:\s*%|\s*(?:ms|s|sec|seconds?|minutes?|hours?|days?|months?|years?|GB|TB|PB))?", re.I)
+# Do not start a numeric anchor inside an alphanumeric identifier such as C01,
+# C03, EC2 or S3. Those identities are protected by technical anchors instead.
+# Standalone facts such as 6 Rs, 90 days, 24/7, percentages and storage sizes
+# remain numeric anchors.
+NUMBER_RE = re.compile(
+    r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)?(?:\s*%|\s*(?:ms|s|sec|seconds?|minutes?|hours?|days?|months?|years?|GB|TB|PB))?",
+    re.I,
+)
 
 
 def _norm(value: str) -> str:
