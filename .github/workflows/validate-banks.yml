@@ -22,11 +22,14 @@ on:
       - 'scripts/validate_arena.py'
       - 'scripts/validate_i18n.py'
       - 'scripts/validate_exam_locale_parity.py'
+      - 'scripts/validate_exam_translation_staging.py'
+      - 'scripts/validate_aws_current_facts.py'
       - 'scripts/scaffold_exam_translation.py'
       - 'scripts/build_exam_translation.py'
-      - 'scripts/validate_exam_translation_staging.py'
+      - 'scripts/promote_complete_exam_translations.py'
       - 'scripts/prepare_arena_option_ids.py'
       - 'scripts/apply_exam_locale_runtime.py'
+      - 'scripts/apply_aws_2026_content_fixes.py'
       - '.github/workflows/validate-banks.yml'
   pull_request:
     paths:
@@ -44,11 +47,14 @@ on:
       - 'scripts/validate_arena.py'
       - 'scripts/validate_i18n.py'
       - 'scripts/validate_exam_locale_parity.py'
+      - 'scripts/validate_exam_translation_staging.py'
+      - 'scripts/validate_aws_current_facts.py'
       - 'scripts/scaffold_exam_translation.py'
       - 'scripts/build_exam_translation.py'
-      - 'scripts/validate_exam_translation_staging.py'
+      - 'scripts/promote_complete_exam_translations.py'
       - 'scripts/prepare_arena_option_ids.py'
       - 'scripts/apply_exam_locale_runtime.py'
+      - 'scripts/apply_aws_2026_content_fixes.py'
       - '.github/workflows/validate-banks.yml'
   workflow_dispatch: {}
 
@@ -72,15 +78,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Validar sintaxe das ferramentas de tradução
+      - name: Validar sintaxe das ferramentas de tradução e conteúdo
         run: |
           python3 -m py_compile scripts/validate_i18n.py
           python3 -m py_compile scripts/validate_exam_locale_parity.py
+          python3 -m py_compile scripts/validate_exam_translation_staging.py
+          python3 -m py_compile scripts/validate_aws_current_facts.py
           python3 -m py_compile scripts/scaffold_exam_translation.py
           python3 -m py_compile scripts/build_exam_translation.py
-          python3 -m py_compile scripts/validate_exam_translation_staging.py
+          python3 -m py_compile scripts/promote_complete_exam_translations.py
           python3 -m py_compile scripts/prepare_arena_option_ids.py
           python3 -m py_compile scripts/apply_exam_locale_runtime.py
+          python3 -m py_compile scripts/apply_aws_2026_content_fixes.py
+
+      - name: Aplicar correções factuais AWS verificadas em 2026
+        run: python3 scripts/apply_aws_2026_content_fixes.py
+
+      - name: Validar fatos AWS sensíveis a data
+        run: python3 scripts/validate_aws_current_facts.py
 
       - name: Aplicar migração locale-aware em workspace
         run: python3 scripts/apply_exam_locale_runtime.py
@@ -104,20 +119,17 @@ jobs:
       - name: Validar lotes EN em staging
         run: python3 scripts/validate_exam_translation_staging.py
 
-      - name: Exigir cobertura completa do piloto CLF-C02 Beginner
-        run: python3 scripts/build_exam_translation.py clf-c02 iniciante --require-complete
-
-      - name: Construir banco EN pronto do piloto
-        run: python3 scripts/build_exam_translation.py clf-c02 iniciante --write
+      - name: Promover automaticamente bancos EN completos
+        run: python3 scripts/promote_complete_exam_translations.py
 
       - name: Validar paridade dos bancos EN prontos
         run: python3 scripts/validate_exam_locale_parity.py
 
-      - name: Publicar banco EN validado do piloto
+      - name: Publicar bancos EN validados
         uses: actions/upload-artifact@v4
         with:
-          name: clf-c02-iniciante-en-ready
-          path: data/exams-en/clf-c02/iniciante.json
+          name: english-exam-banks-ready
+          path: data/exams-en/**/*.json
           if-no-files-found: error
           retention-days: 7
 
@@ -135,12 +147,12 @@ jobs:
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          git add data/exams-en/clf-c02/iniciante.json server.js js/simulados.js js/socket-client.js js/simulado-live-host.js
+          git add data/exams data/exams-en server.js js/simulados.js js/socket-client.js js/simulado-live-host.js
           if git diff --cached --quiet; then
             echo 'Artefatos gerados já estão versionados e idênticos ao workspace validado.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): enable locale-aware CLF practice exam runtime'
+          git commit -m 'feat(i18n): promote validated English exam banks'
           git push origin "HEAD:${HEAD_BRANCH}"
