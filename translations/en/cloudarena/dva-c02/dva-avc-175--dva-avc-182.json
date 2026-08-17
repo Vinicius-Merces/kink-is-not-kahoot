@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-175..dva-avc-182",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-175": {
+      "optionReasons": {
+        "dva-avc-175:option:0": "",
+        "dva-avc-175:option:1": "It is the closest because it hits the type (edge-optimized) for low global latency — but misses the certificate region: edge-optimized domain is served via CloudFront (global), then the certificate ACM must be in us-east-1, NO in the region of API (to-east-1).",
+        "dva-avc-175:option:2": "Custom Domain PRIVATE is only accessible from within a VPC — the opposite of access GLOBAL low latency.",
+        "dva-avc-175:option:3": "Custom Domain REGIONAL points directly to the regional endpoint — without the edge network of the CloudFront, does not give low overall latency."
+      },
+      "finalJustifications": [
+        "Because custom domain edge-optimized is served via CloudFront (global): the certificate ACM must be in us-east-1 (independent of API in sa-east-1), based path mapping and aliases in Route 53 — low global latency input.",
+        "Because custom domain edge-optimized with sa-east certificate-1 is served via CloudFront (the certificate in the region of the API, based path mapping and aliases in Route 53 — low global latency input.",
+        "Because the custom domain PRIVATE is served via CloudFront (global): the certificate ACM in us-east-1, based path mapping and aliases in Route 53 — low global latency input via endpoint of VPC.",
+        "Because the custom domain REGIONAL with sa-east certificate-1 is served via CloudFront (the certificate in the region of the API, with aliases in Route 53 the regional endpoint — low global latency input."
+      ]
+    },
+    "dva-avc-176": {
+      "optionReasons": {
+        "dva-avc-176:option:0": "AWS Config shows the time line by resource — but crossing each property with the template by hand is laborious; the drift already compares with the expected.",
+        "dva-avc-176:option:1": "",
+        "dva-avc-176:option:2": "It's the closest because an update with the same template would reveal differences — but it's a MUTATION operation (risked in production) that could REVERTER manual change (maybe still necessary) or fail; audit differences in form SOMENTE LEITURA, without touching the stack, is the drift detection.",
+        "dva-avc-176:option:3": "Delete and recreate the stack is destructive — removes the drift along with the stack; is not audit."
+      },
+      "finalJustifications": [
+        "Because drift detection compares configuration REAL of each resource with the one expected by the template, reporting IN_SYNC/MODIFIED/DELETED and the specific differences (the added SG rule) — read-only operation, without touching the stack.",
+        "Because AWS config compares the actual configuration of each resource to the one expected by the template, reporting MODIFIED and the specific differences — operation only reading, without touching the production stack.",
+        "Because the update with the same template compares the actual configuration of each resource with the one expected, reporting the specific differences — operation only reading, without touching the production stack.",
+        "Why delete and recreate the stack compares the actual configuration of each resource with the one expected by the template, reporting the specific differences — operation read only, without touching the stack."
+      ]
+    },
+    "dva-avc-177": {
+      "optionReasons": {
+        "dva-avc-177:option:0": "Logs Insights search logs — but it's not filtering TRACES X-Ray by annotation; the requirement is in X-Ray.",
+        "dva-avc-177:option:1": "",
+        "dva-avc-177:option:2": "It's the closest because it quotes the two right resources (annotations and metadata) — but INVERTE the roles: annotations are INDEXADAS and searchable in filter expressions (orderId, ter), and metadata is NOT indexed, serving for large context like payload; the option changes both.",
+        "dva-avc-177:option:3": "Creating an X-Ray Group for orderId value is unfeasible (groups are for patterns, not for value) — and that's not where the payload goes."
+      },
+      "finalJustifications": [
+        "Why orderId and customerTier as ANNOTATIONS are indexed and searchable in the filter expressions, and the payload as large as METADATA is only as a debugging context, not searchable — both requirements.",
+        "Why orderId and customerTier as METADATA are indexed and searchable in the filter expressions, and the payload as large as ANNOTATIONS is only as a context of debugging — the two requirements.",
+        "Because orderId and customerTier in the Logs Insights are indexed and searchable in the filter expressions, and the large payload as annotation is only as a debugging context — the two requirements.",
+        "Because orderId and customerTier in an X-Ray Group are indexed and searchable in the filter expressions, and the large payload as an annotation is only a debugging context — the two requirements."
+      ]
+    },
+    "dva-avc-178": {
+      "optionReasons": {
+        "dva-avc-178:option:0": "",
+        "dva-avc-178:option:1": "It's the closest because setting programmatically 'resolve' rates the sampling — but requires ALTERAR the code (buy percentages), which the requirement vetoes, and is not like X-Ray manages sampling; sampling rules with FixedRate and Priority on the console do this without touching the code.",
+        "dva-avc-178:option:2": "Disable X-Ray throws out error tracking just when it is most useful — the opposite of the order.",
+        "dva-avc-178:option:3": "Reservoir Size is not 'the only percentage parameter' — FixedRate controls the rate; zero the reservoir and maintain 5% can't. 1% nor 100% in 5xx."
+      },
+      "finalJustifications": [
+        "Because a rule with FixedRate 0.01 and reservoir for general traffic, another rule of PRIORIDADE Biggest getting married 5xx with FixedRate 1.0, sample 1% of normal and 100% of errors — without changing the code.",
+        "Why set the rates in the code with FixedRate 0.01 General and 1.0 for 5xx sample 1% of normal and 100% of errors — without sampling rules, incorporating percentages in function.",
+        "Why disable X-Ray with FixedRate 0.01 General and 1.0 for 5xx sample 1% of normal and 100% errors — without changing the code, depending on logs and metrics to debug.",
+        "Why Zero the Reservoir Size with FixedRate 5% sample 1% of normal and 100% of errors — without changing the code, since the reservoir is the parameter that controls the percentage."
+      ]
+    },
+    "dva-avc-179": {
+      "optionReasons": {
+        "dva-avc-179:option:0": "It's the closest because the Contributor Insights in Duration also points to latency — but by isolated FUNCTION (P99 of each), does not show the CADEIA the entire call to payment of third parties in aggregate; the graph with latency per node is the X-Ray Service Map.",
+        "dva-avc-179:option:1": "Correlation of two-function log by hand is slow and by sample — not the aggregate view between many tracks.",
+        "dva-avc-179:option:2": "",
+        "dva-avc-179:option:3": "PutMetricManual data + dashboard requires hand-tooling — Service Map now delivers ready track view."
+      },
+      "finalJustifications": [
+        "Because the X-Ray Service Map draws the graph API Gateway→OrderService→DynamoDB e →InventoryService→payment, with average latency per node — the slowest component appears highlighted, aggregated among many traces.",
+        "Because Contributor Insights draws the graph API Gateway→OrderService→DynamoDB e →InventoryService→payment, with average latency per node — the slowest component appears highlighted.",
+        "Because manual log correlation draws graph API Gateway→OrderService→DynamoDB e →InventoryService→payment, with average latency per node — the slowest component appears highlighted.",
+        "Because PutMetricData with dashboard draws graph API Gateway→OrderService→DynamoDB e →InventoryService→payment, with average latency per node — the slowest component appears highlighted."
+      ]
+    },
+    "dva-avc-180": {
+      "optionReasons": {
+        "dva-avc-180:option:0": "",
+        "dva-avc-180:option:1": "Creating/closing segments manually in the handler is manual instrumentation — the opposite of 'without instrumenting each call'; and the Lambda manage the segment in Active mode.",
+        "dva-avc-180:option:2": "No. Lambda X-Ray daemon is not implanted in EC2 sidecar — the service is already running the daemon; the Active mode is enough.",
+        "dva-avc-180:option:3": "It's the closest because PASSTHROUGH is in fact a way of tracing the Lambda — But he just PROPAGA the context without creating segments for the function; for the execution and calls of the SDK appear on X-Ray automatically, the mode needs to be ACTIVE."
+      },
+      "finalJustifications": [
+        "Why Enable Tracing ACTIVE (Tracking: Active) makes the execution and calls of SDK (with captureAWS) appear on X-Ray automatically — without instrumentalizing each call in the code.",
+        "Because creating segments manually makes the execution and calls of SDK appear on X-Ray automatically — without instrumentalizing each call, encapsulating the handler with new Segment/close.",
+        "Why implant the daemon in a EC2 sidecar makes the execution and calls of SDK appear on X-Ray automatically — without instrumentalizing each call, sending the data via VPC Configure.",
+        "Why set up the tracking PASSTHROUGH makes the execution and the calls of the SDK appear on X-Ray automatically — without using each call in the function code."
+      ]
+    },
+    "dva-avc-181": {
+      "optionReasons": {
+        "dva-avc-181:option:0": "Being in the same region is not what correlates traces — the correlation comes from the context propagated in the header.",
+        "dva-avc-181:option:1": "",
+        "dva-avc-181:option:2": "It's the closest because X-Ray Insights is a real feature of X-Ray — but it detects ANOMALIAS in traces, NOT 'mixes service traces by time window'; join A and B in a trace only requires PROPAGAR the X-Amzn-Trace-Id on the call HTTP from A to B.",
+        "dva-avc-181:option:3": "Writing segments in the same log group doesn't mix traces — X-Ray doesn't join by overlay timestamps'."
+      },
+      "finalJustifications": [
+        "Because Service A needs to propagate the X-Amzn-Trace-Id (ID trace, parent segment, sampling decision) on the call HTTP to Service B — X-Ray SDK does that when instrumentalizing the client HTTP, Unifying or Trace.",
+        "Because functions in the same region need to propagate the X-Amzn-Trace-Id in the call HTTP to Service B — X-Ray SDK does that when instrumentalizing the client HTTP, Unifying the trace of the two services.",
+        "Because enabling X-Ray Insights needs to propagate X-Amzn-Trace-Id on the call HTTP to Service B — X-Ray SDK does that when instrumentalizing the client HTTP, Unifying the trace of the two services.",
+        "Because writing in the same log group needs to propagate the X-Amzn-Trace-Id on the call HTTP to Service B — X-Ray SDK does that when instrumentalizing the client HTTP, Unifying the trace of the two services."
+      ]
+    },
+    "dva-avc-182": {
+      "optionReasons": {
+        "dva-avc-182:option:0": "",
+        "dva-avc-182:option:1": "Export to S3 + Athena/Glue provisioning pipelines and infrastructure — the requirement is without new infrastructure.",
+        "dva-avc-182:option:2": "It's the closest because a Metric Filter reports occurrences of 'ERROR' — But it generates UMA aggregate metric; no EXTRAI and AGRUPA by TIPO of message (Timeout vs Invalid format) of unstructured logs; consult, parse and group by type is the Logs Insights.",
+        "dva-avc-182:option:3": "Subscription filter for OpenSearch provides a domain (infrastructure) — Logs Insights directly consults the log group."
+      },
+      "finalJustifications": [
+        "Because Logs Insights consults the log group: filter isola 'ERROR', parse extracts the error type from the unstructured message and stats count(*) by group and counts by type — no script or new infrastructure.",
+        "Because Metric Filter consults the log group: filter isola 'ERROR', parse extracts the error type and stats count(*) by group and counts by type — no script or new infrastructure provided.",
+        "Because Athena on the S3 consult the log group: filter island 'ERROR', parse extracts the error type and stats count(*) by group and counts by type — no script or new infrastructure provided.",
+        "Because OpenSearch consults the log group: filter isola 'ERROR', parse extracts the error type and stats count(*) by group and counts by type — no script or new infrastructure provided."
+      ]
+    }
+  }
+}

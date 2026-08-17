@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-111..dva-avc-118",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-111": {
+      "optionReasons": {
+        "dva-avc-111:option:0": "It is the closest because a Post Confirmation can also mark email_verified — but it rotates DEPOIS that the user has already passed the verification flow: no PULA the code step for @example.com; self-confirm and self-verify ANTES of creation is the trigger Pre Sign-up.",
+        "dva-avc-111:option:1": "Two User Pools separated by domain double the configuration and logic in the client — Pre Sign-up solves in one.",
+        "dva-avc-111:option:2": "",
+        "dva-avc-111:option:3": "Mark all as checked and then EXCLUIR the other domain is destructive and breaks their normal flow."
+      },
+      "finalJustifications": [
+        "Because the Pre Sign-up trigger runs before the user is created: for emails @example.com defines autoConfirmUser and autoVerifyEmail as true (polishing the verification), and leaves false for others, maintaining the normal flow.",
+        "Because the trigger Post Confirmation runs before the user is created: for emails @example.com defines autoConfirmUser and autoVerifyEmail as true (by uploading the verification), and leaves false for others.",
+        "Because both User Pools run before the user is created: for emails @example.com define autoConfirmUser and autoVerifyEmail as true (polishing the verification), and leave false for others.",
+        "Because the user pool default check runs before user creation: for emails @example.com defines autoConfirmUser and autoVerifyEmail as true (by filtering the check), and leaves false for others."
+      ]
+    },
+    "dva-avc-112": {
+      "optionReasons": {
+        "dva-avc-112:option:0": "It's the closest because centralizing everything in Secrets Manager 'simplifies the operation — but collects POR SEGREDO: pay for 50 configuration values NOT sensitive and without rotation is waste; the economy is configurable in Parameter Store Standard (no cost per parameter) and only 2 credentials not Secrets Manager with rotation.",
+        "dva-avc-112:option:1": "Reverse services: config doesn't need the Secrets Manager ((price), and rotating credentials should not be left alone in Parameter Store Standard (no native password rotation in the bank)).",
+        "dva-avc-112:option:2": "The Parameter Store Advanced collects per parameter and has no rotation NATIVA of bank credentials such as Secrets Manager — is not the economic fit.",
+        "dva-avc-112:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the 50 config values are in the Parameter Store Standard (no cost per parameter, no rotation) and 2 credentials not Secrets Manager COM rotation — the cost per secret is justified only for what needs to rotate.",
+        "Because the 2 credentials remain in Parameter Store Standard and 50 values Secrets Manager — the cost per secret is justified by config versioning, and the rotation covers what needs to rotate.",
+        "'Cause all the 52 values remain in the Parameter Store Advanced with native rotation — no cost per parameter and with justified secret cost only for what needs to rotate.",
+        "'Cause all the 52 values remain in the Secrets Manager with rotation — centralizing simplifies the operation, and the cost per secret is justified only for what needs to rotate in fact."
+      ]
+    },
+    "dva-avc-113": {
+      "optionReasons": {
+        "dva-avc-113:option:0": "It's the closest because restricting the Principal to a specific SaaS user tightens the origin — but it does NOT prevent the confused deputy ENTRE customers: the same SaaS system, if committed, would still take over the role of Client A or B (both trust the same main); the unique secret per customer validated in AssumeRole is the External ID.",
+        "dva-avc-113:option:1": "CloudTrail alert DEPOIS of fact — does not prevent the assumption of the wrong role in real time.",
+        "dva-avc-113:option:2": "Access Keys per client replace AssumeRole with long-term credentials — worse posture and unsolved confusion.",
+        "dva-avc-113:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the unique External ID per client in the trust policy (Condition sts:ExternalId) requires SaaS to pass the right value of that client by assuming — assuming the wrong role fails, mitigating the confused deputy.",
+        "Why Restricting the Principal to a User IAM specific in trust policy requires SaaS to pass the right identity by assuming — assume the wrong role failure, mitigating the confused deputy between customers.",
+        "Because the alert from the CloudTrail in the trust policy requires SaaS to pass the right value of that customer by assuming — assume the wrong role failure, mitigating the confused deputy between customers.",
+        "Because the Access Keys per client in the trust policy require SaaS to pass the correct credentials of that client by assuming — assuming the wrong role fails, mitigating the confused deputy between customers."
+      ]
+    },
+    "dva-avc-114": {
+      "optionReasons": {
+        "dva-avc-114:option:0": "Exporting/importing material creates independent keys and is operationally risky — not the resource designed for this.",
+        "dva-avc-114:option:1": "",
+        "dva-avc-114:option:2": "It's the closest because you grant kms:Decrypt cross-region 'functional' — but keeps EXATAMENTE the problem: the application in eu-west-1 call the KMS Of us-east-1, with latency between regions and regional dependence; decipher LOCALMENTE with the same material is the Multi-Region Key (reply in eu-west-1).",
+        "dva-avc-114:option:3": "ReEncrypt via Streams in eu-west-1 it's extra pipeline and outdated — the multi-region key avoids reencrypting everything."
+      },
+      "finalJustifications": [
+        "Because the multi-region key with primary in us-east-1 and replica in me-west-1 share material: us-east ciphertext-1 is deciphered by the replica LOCAL, no cross-region call to KMS Of us-east-1.",
+        "Why grant kms:Decrypt cross-region shares access: us-east ciphertext-1 is deciphered locally in eu-west-1, no cross-region call to KMS Of us-east-1 in application.",
+        "Why exporting/importing material shares the key: us-east ciphertext-1 is deciphered by the local key of me-west-1, no cross-region call to KMS Of us-east-1 in application.",
+        "Because ReEncrypt via Streams shares the material: us-east ciphertext-1 is deciphered by the local key of me-west-1, no cross-region call to KMS Of us-east-1 in application."
+      ]
+    },
+    "dva-avc-115": {
+      "optionReasons": {
+        "dva-avc-115:option:0": "",
+        "dva-avc-115:option:1": "It's the closest because a Lambda Authorizer could also check a certificate — but it runs in the authorisation layer, DEPOIS Handshake TLS and the request already accepted; require the NO handshake customer certificate, rejecting the connection first of all, is the mTLS in the custom domain with trust store.",
+        "dva-avc-115:option:2": "WebSocket is not the scenario (it REST) — and that's not where you set up the customer certificate on the handshake.",
+        "dva-avc-115:option:3": "aws:CertificateIssuer in a resource policy does not impose mTLS on handshake — validation of the customer certificate is of mTLS in the domain."
+      },
+      "finalJustifications": [
+        "Because the mTLS in the custom domain with a trust store (CAs in S3) does the API Gateway EXIGIR or non-handshake customer certificate TLS, rejecting the connection of those who do not present it — before any authorisation.",
+        "Because Lambda Authorizer with trust store does the API Gateway require non-handshake customer certificate TLS, rejecting the connection of those who do not present it — before any authorisation.",
+        "Because WebSocket definitions with trust store make the API Gateway require non-handshake customer certificate TLS, rejecting the connection of those who do not present it — before any authorisation.",
+        "Because the resource policy with aws:CertificateIssuer does the API Gateway require non-handshake customer certificate TLS, rejecting the connection of those who do not present it — before any authorisation."
+      ]
+    },
+    "dva-avc-116": {
+      "optionReasons": {
+        "dva-avc-116:option:0": "Moving the topic to another account does not solve — the ARN Global Bucket would still marry the attacker's.",
+        "dva-avc-116:option:1": "Wildcard at SourceArn changes granularity of ARN — does not add the account ID missing in the check.",
+        "dva-avc-116:option:2": "It's the closest because aws:MainAccount seems to tie to the account — but here the PRINCIPAL is the service s3.amazonaws.com, not an account: this key does not isolate the owner of the pocket; what binds the source resource to Account A is aws:SourceAccount aws:SourceArn).",
+        "dva-avc-116:option:3": ""
+      },
+      "finalJustifications": [
+        "Why add aws:SourceAccount = Account A ID, next to aws:SourceArn, ensures that the event comes from an Account A bucket — the attacker's name pocket on another account is barred.",
+        "Why add aws:MainAccount = Account A ID, next to aws:SourceArn, ensures that the event comes from an Account A bucket — the attacker's name pocket on another account is barred.",
+        "Why move the topic and keep the aws:SourceArn guarantees that the event comes from a A Account Bucket — the attacker's name Bucket on another account is barred by isolation.",
+        "Because the wildcard doesn't aws:SourceArn guarantees that the event comes from a A Account Bucket — the attacker's name Bucket in another account is barred by object matching."
+      ]
+    },
+    "dva-avc-117": {
+      "optionReasons": {
+        "dva-avc-117:option:0": "Reading the token of the query string does not correct the wrong type of token — and the pattern is by the header Authorization.",
+        "dva-avc-117:option:1": "The refresh token DOES NOT authorize calls from API — serves to get new tokens; sending it gives 401.",
+        "dva-avc-117:option:2": "",
+        "dva-avc-117:option:3": "It's the closest because the App Client ID and the aud claim are real in validation — but the 401 here comes from the TIPO of token: o authorizer COGNITO_USER_POOLS valid ACCESS token, and the app is sending the ID token; the fix is sending the access token (and covering the goals if required)."
+      },
+      "finalJustifications": [
+        "Because you authorize it. COGNITO_USER_POOLS valid ACCESS token (token_use=access), not ID token: the app must send access token in the Authorization, covering the OAuth purposes if the method requires them.",
+        "Because setting up the App Client ID makes the authorizer validate the ACCESS token, not ID token: the app must send access token in the Authorization, covering the OAuth goals if the method requires them.",
+        "Because reading from the query string makes the authorizer validate the ACCESS token, not ID token: the app must send access token in the Authorization, covering the OAuth goals if the method requires them.",
+        "Because sending the refresh token makes the autorizer validate the ACCESS token, not ID token: the app must send access token in the Authorization, covering the OAuth goals if the method requires them."
+      ]
+    },
+    "dva-avc-118": {
+      "optionReasons": {
+        "dva-avc-118:option:0": "It's the closest because it tries multiple identity source — but the authorizer TOKEN receives only UMA string (authorizationToken) and not the full context (IP, query, headers); combining header, query and IP of origin requires the type authorizer REQUEST, that receives the entire event.",
+        "dva-avc-118:option:1": "",
+        "dva-avc-118:option:2": "Concatenate in the client does not bring the IP of origin (which is from the server) — and is fragile/adulterable.",
+        "dva-avc-118:option:3": "COGNITO_USER_POOLS valid JWT of the Cognito — does not combine custom header, query and IP for decision."
+      },
+      "finalJustifications": [
+        "Because you authorize it. REQUEST receives the full context (heads, query string, IP of origin, stage) in event: the function combines X-Api-Key-Custom, region and IP to decide — what type TOKEN does not allow.",
+        "Because you authorize it. TOKEN with multiple identitySource receives the full context in the event: the function combines X-Api-Key-Custom, region and IP to decide — bringing together the three sources of authorisation.",
+        "Because concatenating in the client receives the full context in the event: the function combines X-Api-Key-Custom, region and IP to decide — bringing together the three sources in a single string sent.",
+        "Because you authorize it. COGNITO_USER_POOLS gets the full context in the event: the function combines X-Api-Key-Custom, region and IP to decide — mapping values to custom attributes."
+      ]
+    }
+  }
+}

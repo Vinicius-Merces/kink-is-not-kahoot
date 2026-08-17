@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-ini-040..dva-ini-047",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-ini-040": {
+      "optionReasons": {
+        "dva-ini-040:option:0": "Download the entire pocket to count is expensive and unnecessary — the paged list resolves.",
+        "dva-ini-040:option:1": "Open call for the AWS sending the list is not an application method — pagination is the standard technique.",
+        "dva-ini-040:option:2": "It's the closest because it moves at the limit of the call — but the ceiling of 1.000 by name of ListObjectsV2 is FIXO And it doesn't go up to 1 million; travelling everything requires PAGINAR with the continuation token until exhausted.",
+        "dva-ini-040:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the pagination repeats calls using the return token (or the pagers of the SDK) until it is exhausted — so it travels the millions of objects beyond the ceiling of 1.000 per call.",
+        "Because downloading the entire bucket repeats calls using the continuation token until it runs out — so it travels the millions of objects beyond the ceiling of 1.000 by list call.",
+        "Because opening a call repeats calls using the continuation token until it runs out — so goes the millions of objects beyond the ceiling of 1.000 by list call.",
+        "Why increase the limit to 1 million repeats calls using the continuation token until it runs out — so it travels the millions of objects beyond the ceiling of 1.000 per call."
+      ]
+    },
+    "dva-ini-041": {
+      "optionReasons": {
+        "dva-ini-041:option:0": "It's the closest because dynamodb:* in * 'works' and avoids permission errors — but grants TUDO in TODAS the tables, the opposite of the least privilege; the correct is only the actions of the LEITURA Restricted to ARN of that table.",
+        "dva-ini-041:option:1": "AdministratorAccess gives full access to the account — the maximum privilege anti-standard.",
+        "dva-ini-041:option:2": "Do not attach policy and 'deactivate verification' does not exist — without permission the function or read the table.",
+        "dva-ini-041:option:3": ""
+      },
+      "finalJustifications": [
+        "Why grant only the necessary reading actions (GetItem, Query) restricted to ARN of that table follows the lowest privilege — the function does exactly what it needs, nothing more.",
+        "Why grant dynamodb:* in * follows the least privilege — the function does exactly what it needs (read a table), restricted to actions and the minimum resource.",
+        "Why attach AdministratorAccess follows the lowest privilege — the function does exactly what it needs (read a table), restricted to minimum actions and resource.",
+        "Because not annexing any policy follows the least privilege — the function does exactly what it needs (read a table), restricted to minimum actions and recourse."
+      ]
+    },
+    "dva-ini-042": {
+      "optionReasons": {
+        "dva-ini-042:option:0": "It's the closest because a .env in private repository 'guarda' the password out of the code — but it stays in TEXTO at rest, without automatic rotation or recovery managed by SDK; save encryption, rotate and recover in runtime is the Secrets Manager.",
+        "dva-ini-042:option:1": "Variable in clear text on server is not encrypted or rotated — insecure.",
+        "dva-ini-042:option:2": "CloudWatch Logs is for logs — no secret vault with rotation.",
+        "dva-ini-042:option:3": ""
+      },
+      "finalJustifications": [
+        "Because AWS Secrets Manager saves encrypted password, performs programmed automatic rotation and allows you to recover it via SDK on startup — meets all requirements at once.",
+        "Because the .env in the private repository saves encrypted password, makes programmed automatic rotation and allows you to recover it via SDK on startup — meets all requirements at once.",
+        "Because the variable in clear text saves the encrypted password, makes automatic rotation programmed and allows you to recover it via SDK on startup — meets all requirements at once.",
+        "Because CloudWatch Logs saves encrypted password, performs programmed automatic rotation and allows you to recover it via SDK on startup — meets all requirements at once."
+      ]
+    },
+    "dva-ini-043": {
+      "optionReasons": {
+        "dva-ini-043:option:0": "",
+        "dva-ini-043:option:1": "Comments on the code do not store or encrypt parameters — and secrets would leak into the source.",
+        "dva-ini-043:option:2": "A public table of the DynamoDB exposes data to anyone — the opposite of protecting sensitive values.",
+        "dva-ini-043:option:3": "It's the closest because it quotes the Parameter Store right — but the statement is FALSA: the string type does not encrypt; the 'automatic encryption' does not exist for String; sensitive values require the SecureString type. KMS)."
+      },
+      "finalJustifications": [
+        "Because Parameter Store with SecureString parameters encrypts sensitive values via KMS, at the standard level at no additional cost — while the common ones stay as String in the same service.",
+        "Because the comments in the code encrypt the sensitive values via KMS, at the cost-free standard level — while the common ones stay as String in the same place.",
+        "Because the public table of DynamoDB encrypts sensitive values via KMS, at the standard level at no cost — while the common ones stay as String in the same service.",
+        "Because Parameter Store with String type for everything encrypts sensitive values via KMS automatically, at standard cost-free level — covering common and sensitive equally."
+      ]
+    },
+    "dva-ini-044": {
+      "optionReasons": {
+        "dva-ini-044:option:0": "It's not just the refresh used in APIs — who AUTORIZA calls from API is the access token.",
+        "dva-ini-044:option:1": "",
+        "dva-ini-044:option:2": "The three are NOT identical copies — each has a distinct purpose.",
+        "dva-ini-044:option:3": "It's the closest because it tries to assign a role to each token — but the assignment is ABSURDA: ID token IS NOT password, access token is not username or refresh is email; the correct one is ID=identity, access=authorize APIs, refresh=renew tokens."
+      },
+      "finalJustifications": [
+        "Because ID token loads user identity, access token authorizes API calls and refresh token gets new tokens when the first ones expire — three different roles.",
+        "Because only the refresh token is used in calls, the ID carries the identity and the access renews the tokens — three roles in which only one serves APIs.",
+        "Because the three are identical copies by redundancy, loading identity, authorization and renewal at the same time — equivalent roles in the three tokens.",
+        "Because ID token is encrypted password, access token is username and refresh token is email — three different credentials."
+      ]
+    },
+    "dva-ini-045": {
+      "optionReasons": {
+        "dva-ini-045:option:0": "Sending the password to each upload is unsafe and the S3 invalid user password — not the mechanism.",
+        "dva-ini-045:option:1": "Embed permanent keys in the app is the long-term credentials anti-standard displayed.",
+        "dva-ini-045:option:2": "It's the closest because the User Pool is in the authentication stream — but it's EMITE TOKENS (ID/Access/Refresh), DO NOT credential AWS; change the login token to credentials AWS temporary associated with a roll is the Cognito Identity Pool.",
+        "dva-ini-045:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Cognito Identity Pool federa the authenticated identity of User Pool and issues credentials AWS TEMPORARY RELATED TO A ROLE — the app sends to S3 with limited access and defined time.",
+        "Why send the password to every federated upload the authenticated identity and issue credentials AWS temporary roles associated with a roll — the app sends to S3 with limited access and defined time.",
+        "Why Embed Permanent Keys federate authenticated identity and issue credentials AWS temporary roles associated with a roll — the app sends to S3 with limited access and defined time.",
+        "Because User Pool itself federates authenticated identity and issues credentials AWS temporary roles associated with a roll — the app sends to S3 with limited access and defined time."
+      ]
+    },
+    "dva-ini-046": {
+      "optionReasons": {
+        "dva-ini-046:option:0": "KMS manage encryption keys — does not issue certificates TLS for domains.",
+        "dva-ini-046:option:1": "Route 53 alone is DNS — does not provide the certificate TLS domain.",
+        "dva-ini-046:option:2": "It's the closest because a self-signed certificate also enables HTTPS — but the browsers do NOT trust him (security alert) and there is no automatic renewal; reliable public certificate with automatic renewal and cost-free is the ACM.",
+        "dva-ini-046:option:3": ""
+      },
+      "finalJustifications": [
+        "Because AWS Certificate Manager (ACM) issue the certificate TLS custom domain public with automatic renewal and free of charge — associated with Custom Domain API Gateway.",
+        "Because AWS KMS issue the certificate TLS custom domain public with automatic renewal and free of charge — associated with Custom Domain API Gateway.",
+        "Because Route 53 issue the certificate alone TLS custom domain public with automatic renewal and free of charge — associated with Custom Domain API Gateway.",
+        "Because the self-signed certificate issues the TLS custom domain with automatic renewal and free of charge — associated with Custom Domain API Gateway, reliable in browsers."
+      ]
+    },
+    "dva-ini-047": {
+      "optionReasons": {
+        "dva-ini-047:option:0": "",
+        "dva-ini-047:option:1": "It's the closest because the Inspector It's a security service — but he evaluates VULNERABILIDADES (CVEs) in instances/images/Lambda, no FILTRA malicious requests in the application layer in real time; filter SQLi and scratches in front of the API is the AWS WAF.",
+        "dva-ini-047:option:2": "AWS Backup makes snapshots/backup — does not filter malicious traffic.",
+        "dva-ini-047:option:3": "Security Group IP/port filter (network) — does not inspect application payloads as SQL injection."
+      },
+      "finalJustifications": [
+        "Because AWS WAF, associated with API Gateway, filter application layer requirements — rules managed barm SQL injection and rate-based rules contain scratches of scrapers.",
+        "Because Amazon Inspector, associated with API Gateway, filter application layer requirements — rules managed barm SQL injection and rate-based rules contain scratches of scrapers.",
+        "Because AWS Backup, associated with API Gateway, filter application layer requirements — rules managed barm SQL injection and rate-based rules contain scratches of scrapers.",
+        "Because Security Group, associated with API Gateway, filter application layer requirements — rules managed barm SQL injection and rate-based rules contain scratches of scrapers."
+      ]
+    }
+  }
+}

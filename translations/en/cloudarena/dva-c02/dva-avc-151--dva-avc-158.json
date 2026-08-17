@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-151..dva-avc-158",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-151": {
+      "optionReasons": {
+        "dva-avc-151:option:0": "There's no such thing as '$LATEST' for layers — the reference is always to a specific and unchangeable version number.",
+        "dva-avc-151:option:1": "It's the closest because it touches on how the layer is referenced — but it's wrong: layers are referenced by ARN of VERSÃO (immutable), not by name with automatic adoption of the latest; publishing a correction creates a NOVA version, and you need to point each function to the new ARN.",
+        "dva-avc-151:option:2": "Excluding the old version DOES NOT make the functions 'fall' in the latest — would break the functions that still refer to it.",
+        "dva-avc-151:option:3": ""
+      },
+      "finalJustifications": [
+        "Because each layer version is IMPUTABLE: the correction generated a new version (ARN ending in :3), and the old (:2) is still in use; it is necessary to update the Layers property of 5 functions for the new ARN version.",
+        "Because the layer is referenced by name and adopts the latest in the cold start: the correction generated a new version, and the functions would use it alone in the next invocation without alteration.",
+        "Why refer to layer by '$LATEST' always points to the latest: the correction generated a new version, and the functions would start to use it alone, just to configure them with '$LATEST'.",
+        "Because deleting the old version makes the functions fall into the latest: the correction generated a new version, and delete the old version (:2) force the 5 functions to automatically use the fix (:3)."
+      ]
+    },
+    "dva-avc-152": {
+      "optionReasons": {
+        "dva-avc-152:option:0": "",
+        "dva-avc-152:option:1": "The function is not invoked by 'URL of the ECR' by customers — it continues to be carried out by the service Lambda; o ECR only stores the image.",
+        "dva-avc-152:option:2": "It's the closest because it associates 'container' with the type charge Fargate — But it's FALSO: the image function continues in the MESMO environment Lambda, charged by INVOCATION and DURATION (ms), not per hour; the image changes only the EMPACOTAMENTO, not execution/coverage.",
+        "dva-avc-152:option:3": "False: functions in image SUPORTAM Provided Competition; what is not used with image are the Layers (packaging already brings everything)."
+      },
+      "finalJustifications": [
+        "Because the container image supports even 10GB and the function rotates in MESMO environment Lambda (the same charge for invocation/duration, the same step and provided for competition) — changes only COMO the code is packed and delivered.",
+        "Because the image of container is now invoked by URL of the ECR by customers and the function runs in the same environment Lambda — changes only how the code is packaged, keeping the collection by invocation.",
+        "Because the container image is charged by HORA as the Fargate and the function runs in the same environment Lambda — changes only how the code is packaged, keeping the automatic scaling.",
+        "Because the container image does not support provided competition or layers and the function runs in the same environment Lambda — changes only how the code is packaged, keeping the collection by invocation."
+      ]
+    },
+    "dva-avc-153": {
+      "optionReasons": {
+        "dva-avc-153:option:0": "Global Datastore replicates to another region (full copy) — does not add memory to fit a larger dataset.",
+        "dva-avc-153:option:1": "It's the closest because more reading replicas help to scale LEITURA — but each replica keeps a COPY COMPLETA dataset: does not partition or increase the total memory capacity; fit 50GB adding we demand sharding with Cluster Mode Enabled.",
+        "dva-avc-153:option:2": "",
+        "dva-avc-153:option:3": "The statement says that the dataset EXCEDE o MAIOR node available — 'always big enough node' is false; you need to partition."
+      },
+      "finalJustifications": [
+        "Because Cluster Mode Enabled partitions the keyspace into hash slots distributed by several shards (each with its primary): the dataset of 50GB fits in the sum of the memory of the knots, and the client rotates to the right shard.",
+        "Because increasing read replicas partitions the keyspace into hash slots distributed by several shards: the dataset of 50GB fits in the sum of the memory of the knots, and the client rotates to the right shard.",
+        "Because the Global Datastore partitions keyspace into hash slots distributed by several shards: the dataset of 50GB fits in the sum of the memory of the knots, and the client rotates to the correct shard.",
+        "Because migrating to the biggest node partitions keyspace into hash slots distributed by several shards: the dataset of 50GB fits in the sum of the memory of the knots, and the client rotates to the correct shard."
+      ]
+    },
+    "dva-avc-154": {
+      "optionReasons": {
+        "dva-avc-154:option:0": "",
+        "dva-avc-154:option:1": "It's the closest because an alarm + Lambda promoting the replica also automates the failure — but it is artisanal automation (code, latency, fault points) reinventing what ElastiCache already does; enabling Multi-AZ with Automatic Failover promotes the replica and updates the native endpoint.",
+        "dva-avc-154:option:2": "More replicas increase candidates — but without Automatic Failover enabled, none are promoted alone.",
+        "dva-avc-154:option:3": "Global Datastore is failover between REGIONS — is not the automatic failover within the region for primary fall."
+      },
+      "finalJustifications": [
+        "Why enable Multi-AZ with Automatic Failover makes ElastiCache monitor the primary and, in failure, automatically promote a replica of another AZ and update the endpoint — without manual intervention, minimizing write downtime.",
+        "Because the alarm with Lambda makes ElastiCache monitor the primary and, in failure, automatically promote a replica of another AZ and update the endpoint — without manual intervention, minimizing downtime.",
+        "Because increasing replicas makes ElastiCache monitor the primary and, in failure, automatically promote a replica of another AZ and update the endpoint — without manual intervention, minimizing downtime.",
+        "Because the Global Datastore makes ElastiCache monitor the primary and, in failure, automatically promote a replica of another AZ and update the endpoint — without manual intervention, minimizing downtime."
+      ]
+    },
+    "dva-avc-155": {
+      "optionReasons": {
+        "dva-avc-155:option:0": "Memcached is multi-thread and simple, but DOES NOT have rich structures, persistence or pub/sub — failure in three of the four requirements.",
+        "dva-avc-155:option:1": "It's the closest because Memcached + SNS try to cover the pub/sub missing — but Memcached has no SORTED SETS (leaderboard), no record persistence, no failover replication; an extra service for the pub/sub does not meet the other three requirements, which Redis meets natively.",
+        "dva-avc-155:option:2": "DAX is cached from DynamoDB — offers no sorted sets, native pub/sub or Redis resources for leaderboard.",
+        "dva-avc-155:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Redis answers all: lucky sets for the leaderboard (ZADD/ZRANGE), persistence via RDB/AOF, native pub/sub for notifications and Multi-AZ replication with automatic failover.",
+        "Because the Memcached with SNS attends all: sorted sets for the leaderboard, persistence via RDB/AOF, pub/sub for notifications and Multi-AZ replication with automatic failure in one engine.",
+        "Because the Memcached attends all: lucky sets for the leaderboard, persistence via RDB/AOF, native pub/sub for notifications and multi-AZ replication with automatic failover on the same engine.",
+        "Because DAX attends all: sorted sets for the leaderboard, persistence via RDB/AOF, native pub/sub for notifications and Multi-AZ replication with automatic failover as cache layer."
+      ]
+    },
+    "dva-avc-156": {
+      "optionReasons": {
+        "dva-avc-156:option:0": "It's the closest because it zeros the TTL would do CloudFront revalidate and take the new version — but apply to DISTRIBUTION INTEIRA, throw away the long cache (24h) other statics (the benefit you want to keep); invalidating only '/app.js' updates the file without moving in TTL of others.",
+        "dva-avc-156:option:1": "no-cache in TODOS objects eliminates the long cache from the entire site — the opposite of preserving the strategy of TTL.",
+        "dva-avc-156:option:2": "",
+        "dva-avc-156:option:3": "Create a new distribution by deploy and exchange DNS is drastic and time-consuming — punctual invalidation resolves at time."
+      },
+      "finalJustifications": [
+        "Because the invalidation of the CloudFront for the path '/app.js' forces a miss cache only in this file, looking for the corrected version of the origin immediately — without changing the TTL of 24h of other statics.",
+        "Why Reduce Default TTL a 0 force a miss cache only in '/app.js', looking for the corrected version of the source immediately — without changing the TTL of 24h of the other statics of the site.",
+        "Because Cache-Control: no-cache on all objects forces a miss cache only in '/app.js', looking for the corrected version of the origin immediately — without changing the TTL of 24h of other statics.",
+        "Because creating a new distribution forces a miss cache only in '/app.js', searching for the corrected version of the source immediately — without changing the TTL of 24h of the other statics of the site."
+      ]
+    },
+    "dva-avc-157": {
+      "optionReasons": {
+        "dva-avc-157:option:0": "",
+        "dva-avc-157:option:1": "sam package + aws lambda Invoke IMPLANTA the AWS and invokes cloud function — is not local test before deployment.",
+        "dva-avc-157:option:2": "Debug the function already IMPLANTADA in the cloud opposite the test requirement ANTES to implement any resource.",
+        "dva-avc-157:option:3": "It's the closest because sam validated and the change set inspect the template ANTES Deployment — but that's not EXECUTA the function neither emulates the runtime; test locally invoking with event and making HTTP real is sam place invoke and sam start location-api (in Docker container)."
+      },
+      "finalJustifications": [
+        "Because sam place invoke -e event.json performs the function in a Docker container emulating the runtime, and sam start location-api up one API Local Gateway — All Integration Tested Locally Without Implanting Anything.",
+        "Because sam package + aws lambda invoke performs the function in a Docker container that emulates the runtime, and goes up a API Local gateway — all integration is tested locally, with nothing implanted in AWS.",
+        "Because debugging the implanted function executes it in a Docker container that emulates the runtime, and goes up a API Local gateway — all integration is tested locally, with nothing implanted in AWS.",
+        "Because sam validate + deploy --not-execute-changeset performs the function in a Docker container that emulates the runtime, and climbs a API Local Gateway — All Integration Tested Locally Without Implanting Anything."
+      ]
+    },
+    "dva-avc-158": {
+      "optionReasons": {
+        "dva-avc-158:option:0": "Splitting into two stages makes them SEQUENCIAIS — stages of CodePipeline spin one after the other, not competing.",
+        "dva-avc-158:option:1": "It's the closest because 'ParallelExecution: true' sounds like the key to parallelizing — but this property DOES NOT EXISTE no CodePipeline; the parallelism within the stage is controlled by RunOrder: actions with the MESMO RunOrder rotate in parallel.",
+        "dva-avc-158:option:2": "Compute larger accelerates each build — but doesn't do the CodePipeline run two actions in parallel; this is from RunOrder.",
+        "dva-avc-158:option:3": ""
+      },
+      "finalJustifications": [
+        "Why assign the MESMO RunOrder (ex.: 1) to both actions does the CodePipeline execute them in PARALELO in the stage — Different RunOrders run in sequence, and the stage only advances when all of the current RunOrder ends.",
+        "Because adding ParallelExecution: true to both actions does the CodePipeline execute them in parallel at the stage — the actions run simultaneously independently of the RunOrder, advancing at the conclusion.",
+        "Because dividing into two stages does the CodePipeline perform the actions in parallel — different stages run competitively, and each advance when completing its independent tests.",
+        "Because increasing the computerType does the CodePipeline perform the two actions in parallel in the same instance — the largest build rotates the tests simultaneously and the stage advances when completing."
+      ]
+    }
+  }
+}

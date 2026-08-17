@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-207..dva-ini-012",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-207": {
+      "optionReasons": {
+        "dva-avc-207:option:0": "",
+        "dva-avc-207:option:1": "It's the closest because ParallelizationFactor moves in the consumption of the shard — but it only processes more lots of the shard in parallel; DO NOT isolate the poisonous record: the lot with it continues to fail and lock; dividing the lot until it isolates the bad record is the BisectBatchOnFunctionError.",
+        "dva-avc-207:option:2": "BatchSize bigger mixes bad record with better — the whole batch fails together, worsening blockage.",
+        "dva-avc-207:option:3": "Visibility Timeout is from SQS — does not apply to event source mapping of DynamoDB Streams."
+      },
+      "finalJustifications": [
+        "Because BisectBatchOnFunctionError=true divides the batch that fails in two recursively until it isolates the bad record (sent to a DLQ via OnFailure after the retries) — the iterator moves forward and the shard stops braking.",
+        "Because the ParallelizationFactor>1 divides the batch that fails into two recursively until it isolates the bad record (sent to a DLQ) — the iterator moves forward and the shard stops locking in the poisonous record.",
+        "Because the bigger BatchSize divides the batch that fails into two recursively until it isolates the bad record (sent to a DLQ) — the iterator moves forward and the shard stops locking in the poisonous record.",
+        "Because reducing the Visibility Timeout divides the batch that fails in two recursively until it isolates the bad record (sent to a DLQ) — the iterator moves forward and the shard stops locking in the poisonous record."
+      ]
+    },
+    "dva-avc-208": {
+      "optionReasons": {
+        "dva-avc-208:option:0": "GoneException is not about the Lambda have been deleted — it's about the client's WebSocket connection having closed.",
+        "dva-avc-208:option:1": "",
+        "dva-avc-208:option:2": "It is the closest because it mentions limits and backoff — but GoneException is NOT the region's connection limit: it indicates that the customer's CONNEXION is no longer active (disconnected) and the $disconnect (best-effort) did not clean the entry; the app should EXCLUIR the obsolete entry of the DynamoDB, do not retry.",
+        "dva-avc-208:option:3": "It's not throughput from the table — the connectionId is even there; it's the one that's obsolete because the connection fell."
+      },
+      "finalJustifications": [
+        "Because GoneException indicates that the client's connection has closed (and the $disconnect, best-effort, did not remove the entry): the app should capture the exception and EXCLUIR the obsolete connectionId input in DynamoDB — self-corrective cleaning.",
+        "Because GoneException indicates that the Lambda was deleted (and $disconnect did not remove the input): the app should capture the exception and delete the outdated input from the connectionId in DynamoDB — self-corrective cleaning.",
+        "Because GoneException indicates that the region has reached the connection limit (and $disconnect did not clean the input): the app must capture the exception and exclude the outdated input from the connectionId — autocorrective cleaning.",
+        "Because GoneException indicates insufficient throughput from the table (and $disconnect did not clean the input): the app should capture the exception and exclude the outdated input from the connectionId — autocorrective cleaning."
+      ]
+    },
+    "dva-avc-209": {
+      "optionReasons": {
+        "dva-avc-209:option:0": "X-Ray does not generate scheduled 'synthetic traces' — it tracks real requests, does not simulate outflows.",
+        "dva-avc-209:option:1": "",
+        "dva-avc-209:option:2": "It's the closest because a Lambda scheduled with HTTP + PutMetricData also runs synthetic checks — but is custom script to build and MANTER (multi-stage flows, multiple regions, retreats); the managed service that makes canaries scheduled with ready metrics is the CloudWatch Synthetics.",
+        "dva-avc-209:option:3": "AWS Health Dashboard reports on the health of SERVICES AWS — does not perform synthetic endpoint checks of its application."
+      },
+      "finalJustifications": [
+        "Because CloudWatch Synthetics rotates a canary (Node/Puppeteer or Python/Selenium) on an agenda, performs the synthetic flow of several regions and reports SuccessPercent/Duration as metrics — the alarm alerts in failure, without infrastructure EC2.",
+        "Because the X-Ray with synthetic tracks runs on an agenda, runs the flow of various regions and reports SuccessPercent/Duration as metrics — the alarm alerts in failure, without infrastructure EC2 Customized.",
+        "Because the Lambda scheduled with HTTP runs on an agenda, runs the flow of several regions and reports SuccessPercent/Duration as metrics — the alarm alerts to failure, without infrastructure EC2 Customized.",
+        "Because Health Dashboard runs health checks on an agenda, runs the flow of various regions and reports SuccessPercent/Duration as metrics — the alarm alerts in failure, without infrastructure EC2."
+      ]
+    },
+    "dva-avc-210": {
+      "optionReasons": {
+        "dva-avc-210:option:0": "Contributor Insights rankia log contributors — no trace anomalies detected or root cause summary.",
+        "dva-avc-210:option:1": "Trusted Advisor gives recommendations for good practice — does not analyze traces of X-Ray in search of anomalies.",
+        "dva-avc-210:option:2": "",
+        "dva-avc-210:option:3": "It's the closest because Anomaly Detection also learns a baseline and alarm without a fixed threshold — but requires setting POR METRIC/SERVICE (FaultRate/Latency of each) and DO NOT generate the summary with affected service, window and root cause factors; this is the X-Ray Insights about the group."
+      },
+      "finalJustifications": [
+        "Because X-Ray Insights continuously analyzes the group's tracks and detects anomalies (fault/latence peaks vs. the learning base) without thresholds, generating an Insight with window, affected services and contributing factors — notifiable via EventBridge.",
+        "Because the Contributor Insights continuously analyzes the group's traces and detects unbound anomalies, generating a summary with window, affected services and contributing factors — notifiable via EventBridge.",
+        "Because Trusted Advisor continuously analyzes the group's traces and detects abnormalities without thresholds, generating an Insight with window, affected services and contributing factors — notifiable via EventBridge.",
+        "Because CloudWatch Anomaly Detection by metric continuously analyzes the group's traces and detects non-limitary anomalies, generating a summary with window, affected services and contributing factors."
+      ]
+    },
+    "dva-avc-211": {
+      "optionReasons": {
+        "dva-avc-211:option:0": "An OR composite alarm treats everything the same — but every failure mode requires remedial action DIFERENTE; shall be separate alarms.",
+        "dva-avc-211:option:1": "It's the closest because it quotes real metrics from Lambda — but MAPEIA ERRADO: ConcurrentExecutions does not detect code error, IteratorAge is stream (not throttling), and Errors is not performance; the right mapping is Errors (code), Throttles (competition) and Duration (performance)).",
+        "dva-avc-211:option:2": "Invocations count calls — three thresholds of it do not distinguish code error, throttling and latency.",
+        "dva-avc-211:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Errors detects code failure, Throttles detects COMPETITION REJECTION and Duration detects Performance Degradation — three independent metrics with separate alarms, each with its remediation.",
+        "Because CompetExecutions detects code failure, IteratorAge detects throttling and Errors detects performance degradation — three independent metrics with separate alarms, each with its remediation.",
+        "Because three Invocations thresholds detect code failure, throttling and performance degradation — three alarms in the same metric, each band with its distinct remediation.",
+        "Because an alarm composed of Errors, Throttles and Duration detects the three modes with OR logic — a single alarm, since any condition calls for the same failure remedy."
+      ]
+    },
+    "dva-avc-212": {
+      "optionReasons": {
+        "dva-avc-212:option:0": "A Lambda DLQ capture failures of the asynchronous invocation DELA — not the events that EventBridge failed to deliver; the premise 'automatically for any origin' is false.",
+        "dva-avc-212:option:1": "MaximumRetryAttempts high not 'guaranteed delivery' — the cause (throttle, permission) may persist; and it may still rule out; preserving requires DLQ target.",
+        "dva-avc-212:option:2": "",
+        "dva-avc-212:option:3": "It's the closest because OnFailure Destination of Lambda also captures failures — but he treats the RESULTADO of the ASSINCIRONA invocation of its own function, NOT the failure of ENTREGA of the EventBridge to target; preserve the event that the EventBridge couldn't deliver is the DLQ no TARGET of REGRA (DeadLetterConfig)."
+      },
+      "finalJustifications": [
+        "Because the DLQ in the target rule (DeadLetterConfig) receives the event when the EventBridge exhausts undelivered retrieving — the event is preserved for inspection/reprocessing, all in the rule, without touching the function code.",
+        "Because the Lambda DLQ receives the event when the EventBridge exhausts undelivered retrieving — the event is preserved for inspection/reprocessing, automatically captured by any asynchronous origin.",
+        "Because the MaximumRetryAttempts high receives the event when the EventBridge exhausts the undelivered fees — the event is preserved for inspection/reprocessing by ensuring eventual delivery.",
+        "Because Lambda Destinations OnFailure receives the event when EventBridge exhausts undelivered retrieving — the event is preserved for inspection/reprocessing, configured in the destination function."
+      ]
+    },
+    "dva-ini-007": {
+      "optionReasons": {
+        "dva-ini-007:option:0": "",
+        "dva-ini-007:option:1": "Tags are metadata labels — they're not where you keep credentials, but the question asks the specific antistandard of variables with fixed keys.",
+        "dva-ini-007:option:2": "Permissions in the roll policy are the correct access mechanism — they are not the fixed anti-standard of credential that the question points out.",
+        "dva-ini-007:option:3": "It's the closest because the IAM Execution role is cited as PREFERIDA — but the question is which NOT to use for credentials: the role is exactly the recommended form (temporary believers managed), so choosing it as 'don't use' reverses the answer."
+      },
+      "finalJustifications": [
+        "Because saving Access Key/Secret Key fixed in environment variables is the anti-standard: long-term credentials exposed in the configuration; the correct is the IAM Implementing role with temporary credentials.",
+        "Because saving credentials in tags is the anti-standard: long-term credentials displayed on the label; the correct is the IAM Performance role with temporary credentials managed by AWS.",
+        "Because defining credentials in policy permissions is the anti-standard: long-term credentials in configuration; the correct is the IAM Implementing role with temporary credentials.",
+        "Why use the IAM Execution role is the anti-standard: long-term credentials displayed; the correct would be to save Access Key/Secret Key fixed in function environment variable."
+      ]
+    },
+    "dva-ini-012": {
+      "optionReasons": {
+        "dva-ini-012:option:0": "AWS Budgets monitor CUSTO — does not track requests or performance between services.",
+        "dva-ini-012:option:1": "It's the closest because the Route 53 also handles network 'path' (DNS/routing) — but it solves names and routing traffic, no RASTREIA the microservices request to find gargalos; distributed tracing is the AWS X-Ray.",
+        "dva-ini-012:option:2": "",
+        "dva-ini-012:option:3": "S3 Select query data within objects — nothing to do with requisition tracking."
+      },
+      "finalJustifications": [
+        "Because AWS X-Ray tracks the request for all microservices in one trace, showing the latency of each jump — identifying the chain performance gargalo.",
+        "Because Amazon Route 53 tracks the requisition for all microservices in one trace, showing the latency of each jump — identifying the chain performance gargalo.",
+        "Because AWS Budgets tracks the request for all microservices in one trace, showing the latency of each jump — identifying the performance gargalo in the service chain.",
+        "Because S3 Select tracks the request for all microservices in one trace, showing the latency of each jump — identifying the performance gargal in the service chain."
+      ]
+    }
+  }
+}
