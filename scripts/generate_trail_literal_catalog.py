@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate PT/EN literal catalogs for one CloudPath study-trail HTML page offline.
+"""Generate PT/EN literal catalogs for CloudPath study-trail HTML pages offline.
 
 The HTML markup remains canonical and single-source. Only visible prose/accessible
 labels are extracted. script/style/pre/code/svg blocks are excluded so code and
-runtime logic are never translated by this pipeline.
+runtime logic are never translated. A request may target one trail or `all`; the
+translator model is loaded only once per process.
 """
 from __future__ import annotations
 import argparse, hashlib, html, json, re
@@ -23,8 +24,7 @@ def candidate(value):
     value=html.unescape(value).replace('\xa0',' '); value=re.sub(r'\s+',' ',value).strip()
     if len(value)<2 or not re.search(r'[A-Za-zÀ-ÿ]',value): return None
     if len(value)>5000: return None
-    if PT.search(value): return value
-    return None
+    return value if PT.search(value) else None
 
 def extract(page):
     raw=clean_html((ROOT/page).read_text(encoding='utf-8')); values=set()
@@ -36,20 +36,28 @@ def extract(page):
         if v: values.add(v)
     return sorted(values,key=lambda x:(x.casefold(),x))
 
-def main():
-    parser=argparse.ArgumentParser(); parser.add_argument('request'); args=parser.parse_args()
-    req=json.loads((ROOT/args.request).read_text(encoding='utf-8')); trail=req['trail']; page=PAGES[trail]
-    values=extract(page)
+def write_trail(trail,translator):
+    page=PAGES[trail]; values=extract(page)
     print(f'{trail}: translating {len(values)} visible fragments from {page} offline')
-    translator=OfflineTranslator(); translated=translator.translate_many(values,batch_size=10)
+    translated=translator.translate_many(values,batch_size=12)
     pt={}; en={}
     for source,value in zip(values,translated):
-        key='literal_'+hashlib.sha1(source.encode()).hexdigest()[:14]; pt[key]=source; en[key]=value.strip()
+        key='literal_'+hashlib.sha1(source.encode()).hexdigest()[:14]
+        pt[key]=source; en[key]=value.strip()
         if not en[key]: raise RuntimeError(f'empty EN trail literal: {source[:80]}')
     filename=f'trail-{trail}-literals.json'
     for locale,data in [('pt-BR',pt),('en',en)]:
         path=ROOT/'locales'/locale/filename; path.parent.mkdir(parents=True,exist_ok=True)
         path.write_text(json.dumps({'trailLiterals':data},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         print(f'wrote {path.relative_to(ROOT)}: {len(data)} fragments')
+
+def main():
+    parser=argparse.ArgumentParser(); parser.add_argument('request'); args=parser.parse_args()
+    req=json.loads((ROOT/args.request).read_text(encoding='utf-8'))
+    requested=req['trail']; targets=list(PAGES) if requested=='all' else [requested]
+    unknown=[trail for trail in targets if trail not in PAGES]
+    if unknown: raise ValueError(f'unknown trails: {unknown}')
+    translator=OfflineTranslator()
+    for trail in targets: write_trail(trail,translator)
     return 0
 if __name__=='__main__': raise SystemExit(main())
