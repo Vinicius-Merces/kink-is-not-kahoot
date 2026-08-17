@@ -1,116 +1,133 @@
-# CloudPath internationalization architecture
+# CloudPath i18n Architecture
 
 ## Goal
 
-Make CloudPath natively bilingual without duplicating pages or changing the current premium visual language.
+Add English support without rewriting CloudPath, duplicating pages or degrading the current premium UI. Portuguese remains the source locale while English is introduced incrementally behind a shared runtime and validation contract.
 
-Initial locales:
+Narration assets are intentionally outside this migration until a later dedicated phase.
 
-- `pt-BR` - current source language and fallback
-- `en` - English product version
+## Current architecture
 
-Narration assets are explicitly outside this migration phase. Existing files under `assets/narracao/` remain untouched until a dedicated audio/TTS phase.
+CloudPath remains a Vanilla JS application with Node/Express/Socket.IO and Firebase. Internationalization is layered onto the existing product rather than used as a reason to migrate frameworks.
 
-## Runtime
+### Runtime
 
-`js/i18n.js` is the single locale runtime.
+`js/i18n.js` owns:
 
-It provides:
+- supported locales: `pt-BR` and `en`
+- persistent locale selection
+- `?lang=` override support
+- Portuguese fallback
+- `<html lang>` updates
+- semantic translation keys
+- text, placeholder, `aria-label` and `title` translation
+- compact PT/EN navigation switcher
+- modular catalog composition through deep merge
+- page adapter registration
 
-- persistent locale selection through `cloudpath_locale_v1`
-- optional URL override with `?lang=pt-BR` or `?lang=en`
-- fallback to `pt-BR`
-- automatic `<html lang>` updates
-- metadata translation for the main product surface
-- key-based translation through `data-i18n`
-- placeholder, `aria-label` and `title` translation
-- `cloudpath:i18nready` and `cloudpath:localechange` events
-- a compact PT/EN selector mounted in the existing navigation
+### Bootstraps
 
-The runtime is bootstrapped by `js/branding.js`, which is already shared by the product. This avoids adding a new script tag manually to every page during Phase 0.
+There are two guarded entry points:
 
-## Catalogs
+- `js/branding.js` boots i18n on the landing/home surface
+- `js/nav-menu.js` boots i18n on internal pages that share the primary navigation
 
-UI catalogs live in:
+Both use guards so a page may safely contain both entry points without loading the runtime twice.
+
+### Catalog layout
+
+Catalogs are split by product surface instead of growing into a single monolithic JSON file:
 
 ```text
 locales/
 ├── pt-BR/
-│   └── ui.json
+│   ├── ui.json
+│   └── simulator.json
 └── en/
-    └── ui.json
+    ├── ui.json
+    └── simulator.json
 ```
 
-All locale catalogs must contain exactly the same leaf keys. CI enforces this with `scripts/validate_i18n.py`.
+`ui.json` contains shared UI/home/navigation vocabulary. `simulator.json` contains the practice-exam interface. The runtime deep-merges the files for the active locale.
 
-Example:
+The validator requires each supported locale to expose the same catalog files and the same final flattened key set.
 
-```html
-<button data-i18n="common.login">Entrar</button>
-<input data-i18n-placeholder="quiz.roomCode" placeholder="Código da sala">
-<button data-i18n-aria-label="common.close" aria-label="Fechar">×</button>
-```
+## Implemented surfaces
 
-No runtime text-search or Portuguese-string replacement should be introduced. Every migrated string gets an explicit semantic key.
+### Home
 
-## Content migration order
+`js/i18n-home.js` maps the existing premium landing DOM to semantic keys without rebuilding the markup.
 
-1. Shared navigation, authentication, modals and common UI
-2. Home page
-3. Progress and quiz management surfaces
-4. Practice exam shell
-5. CloudArena UI shell
-6. Exam question banks and explanations
-7. Study guides
-8. Narration and TTS behavior in a separate project phase
+Covered surfaces include:
 
-This order keeps the current product functional while large content sets are translated in controlled batches.
+- loading state
+- hero and status badges
+- AWS globe accessibility copy and legend
+- teacher/student cards
+- room-code form
+- metrics
+- study/exam banners
+- CloudArena marketing/demo section
+- feature cards
+- About section
+- login modal
+- metadata
+- footer
 
-## Exam data contract
+Decorative DOM elements are preserved rather than replaced. The adapter is also compatible with the separate Orbital Studio creator-credit change: if that link is present, only the surrounding creator copy is localized and the link remains intact.
 
-Translated question banks must preserve these invariants across locales:
+### Shared navigation
 
-- same certification ID
-- same question ID
-- same domain ID
-- same difficulty bucket
-- same correct option index during the transition
-- same number and ordering of options during the transition
+`js/i18n-shared.js` covers:
 
-A translated question must never change the answer key.
+- navigation landmark label
+- mobile menu label and expanded state
+- Study / Quizzes / Performance groups
+- item labels and hints
+- logout
+- internal-page language switcher placement
 
-Future target layout:
+### Practice exams
+
+`js/i18n-simulados.js` begins the interface/content separation for Simulados.
+
+Translated interface surfaces include:
+
+- page heading and mode selectors
+- configuration labels
+- question-count controls
+- Exam Mode / Study Mode controls
+- real-exam controls
+- pause/review/report/navigation actions
+- option-layout controls
+- result-section headings
+- finish confirmation
+- live teacher-room shell
+- dynamic progress labels, review marks and multiple-answer hints
+
+The adapter preserves live counters and uses idempotent DOM updates so MutationObserver-driven localization cannot translate itself in a loop.
+
+Question text, answer options, explanations and domain/topic names remain Portuguese until the exam-bank content migration. This is deliberate: UI translation and study-content translation are separate layers.
+
+## Accessibility improvements included
+
+The home login modal now gains:
+
+- Escape to close
+- keyboard focus trapping
+- focus placement when opened
+- focus restoration for Escape-driven close
+
+Locale switching also updates accessible navigation and control labels.
+
+## CloudArena stable identity contract
+
+The existing CloudArena overlay still links answer metadata by literal `matchText`, which prevents safe content translation.
+
+The migration contract is:
 
 ```text
-data/exams/
-├── pt-BR/
-│   ├── clf-c02/
-│   ├── saa-c03/
-│   ├── dva-c02/
-│   └── dea-c01/
-└── en/
-    ├── clf-c02/
-    ├── saa-c03/
-    ├── dva-c02/
-    └── dea-c01/
-```
-
-The current `data/exams/<cert>/` layout remains the production source until the locale-aware server loader is introduced.
-
-## CloudArena option identity
-
-### Current risk
-
-CloudArena overlays currently bind metadata to the Portuguese option text through `matchText`.
-
-That relationship is language-dependent and must not be used as the final identity mechanism.
-
-### Stable migration ID
-
-Phase 0 defines:
-
-```text
-<questionId>:option:<zero-based-index>
+<questionId>:option:<index>
 ```
 
 Example:
@@ -119,56 +136,48 @@ Example:
 clf-ini-001:option:2
 ```
 
-`scripts/prepare_arena_option_ids.py` validates the current relationship and can enrich overlay files while preserving backwards compatibility:
+`scripts/prepare_arena_option_ids.py` validates and can enrich current overlays with stable `optionId` values while retaining `matchText` during the transition.
 
-```bash
-python3 scripts/prepare_arena_option_ids.py --write
-```
+The server resolver has not yet been switched away from `matchText`; that will happen after current overlays are safely enriched and validated.
 
-During the transition an overlay option may contain both fields:
+## CI contract
 
-```json
-{
-  "optionId": "clf-ini-001:option:2",
-  "matchText": "Troca de despesas de capital (CapEx) por despesas variáveis (OpEx)",
-  "stage": "correct"
-}
-```
+`.github/workflows/validate-banks.yml` now validates:
 
-`matchText` must only be removed after the server endpoint resolves CloudArena options by stable ID/index and PT/EN bank parity is covered by CI.
+- JavaScript syntax for the i18n runtime/adapters and internal navigation bootstrap
+- existing question banks
+- existing CloudArena overlays
+- CloudArena stable option-ID contract
+- PT/EN catalog-file parity
+- PT/EN translation-key parity
+- non-empty translation leaves
+- frontend references to unknown i18n keys
 
-## Validation
+This turns missing locale work into a build failure instead of a silent runtime fallback.
 
-Local command:
+## Narration boundary
 
-```bash
-npm run validate
-```
+`assets/narracao/**` is excluded from this migration phase.
 
-Individual checks:
+The English UI may explicitly communicate that current narrated chapters are in Portuguese. No narration audio is translated, regenerated or replaced in this branch.
 
-```bash
-npm run validate:i18n
-npm run validate:arena-ids
-```
+## Next slices
 
-GitHub Actions now validates:
+1. Finish Simulados dynamic runtime messages and result chrome without translating question-bank content yet.
+2. Add locale-aware exam-bank schema/parity validation.
+3. Pilot translated exam content with CLF-C02 while preserving question IDs, correct indexes and domain IDs.
+4. Enrich CloudArena overlays with stable option IDs and change server resolution from `matchText` to `optionId`.
+5. Translate CloudArena UI/metadata against stable IDs.
+6. Extract long study-track content from giant HTML files into locale-specific content sources.
+7. Add indexable English routes/metadata/hreflang after the bilingual product flow is stable.
 
-- question banks
-- current CloudArena overlays
-- stable option-ID migration contract
-- PT/EN UI catalog parity
+## Non-goals
 
-## Non-goals for Phase 0
+This work does not:
 
-Phase 0 does not:
-
-- translate narration audio
-- duplicate HTML pages
-- change framework
-- redesign the current UI
-- translate the full exam bank yet
-- translate the large study-guide documents yet
-- remove `matchText` from production before the server migration is ready
-
-The purpose of this phase is to make the English rollout safe before touching the mass content.
+- migrate CloudPath to React, Next.js or another framework
+- redesign the current premium interface
+- duplicate pages into `*-en.html`
+- translate narration assets
+- mass-translate question banks before identity/parity safeguards exist
+- remove current Portuguese content as the source locale
