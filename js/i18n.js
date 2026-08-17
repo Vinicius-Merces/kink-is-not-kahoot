@@ -20,6 +20,12 @@
         return null;
     }
 
+    function currentLeaf() {
+        let path = '/';
+        try { path = global.location.pathname || '/'; } catch (_) {}
+        return path.split('/').filter(Boolean).pop() || 'index.html';
+    }
+
     function resolveInitialLocale() {
         let query = null;
         let stored = null;
@@ -69,8 +75,10 @@
     }
 
     function applyMeta() {
-        const title = t('meta.title');
-        if (title !== 'meta.title') document.title = title;
+        // Page-specific metadata will be migrated with each page adapter.
+        // Until then, never replace an internal page title with the landing title.
+        if (currentLeaf() !== 'index.html') return;
+        document.title = t('meta.title');
         const bindings = [
             ['meta[name="description"]', 'meta.description'],
             ['meta[property="og:title"]', 'meta.ogTitle'],
@@ -202,11 +210,8 @@
     }
 
     function adapterUrls() {
-        let path = '/';
-        try { path = global.location.pathname || '/'; } catch (_) {}
-        const leaf = path.split('/').filter(Boolean).pop() || 'index.html';
         const urls = ['js/i18n-shared.js'];
-        if (leaf === 'index.html') urls.push('js/i18n-home.js');
+        if (currentLeaf() === 'index.html') urls.push('js/i18n-home.js');
         return urls;
     }
 
