@@ -183,16 +183,68 @@ app.use(express.static(path.join(__dirname)));
 // Uma chamada por arena; zero por batalha.
 const arenaCache = new Map();
 
+const TOPIC_LABELS_EN = {
+    'iam': 'IAM and identities', 'ec2-compute': 'EC2 and compute', 's3-storage': 'S3 and storage',
+    'vpc': 'VPC and networking', 'databases': 'Databases',
+    'high-availability': 'High availability and scalability', 'dr-backup': 'Disaster recovery and backup',
+    'serverless': 'Serverless and messaging', 'security-services': 'Security services',
+    'monitoring': 'Monitoring and observability', 'migration': 'Migration and transfer',
+    'analytics': 'Analytics and Big Data', 'cost': 'Cost optimization', 'containers': 'Containers',
+    'app-integration': 'APIs and integration', 'edge-dns': 'Route 53, CloudFront and edge',
+    'hybrid-networking': 'Hybrid networking and edge computing', 'ml-ai': 'Machine Learning and AI',
+    'governance': 'Organizations and governance', 'sdk-cli': 'SDK, CLI and credentials',
+    'lambda': 'AWS Lambda', 'api-gateway': 'API Gateway', 'dynamodb': 'DynamoDB',
+    's3-dev': 'S3 for developers', 'messaging': 'Messaging and Step Functions',
+    'security-dev': 'IAM, KMS and secrets', 'cognito': 'Cognito', 'cicd': 'CI/CD (CodeSuite)',
+    'cloudformation-sam': 'CloudFormation and SAM', 'beanstalk': 'Elastic Beanstalk',
+    'troubleshooting': 'Troubleshooting and optimization',
+    'de-fundamentals': 'Data engineering fundamentals', 'streaming': 'Streaming ingestion (Kinesis and MSK)',
+    'batch-ingestion': 'Batch ingestion and migration', 'glue-etl': 'AWS Glue and Data Catalog',
+    'datalake-s3': 'Data Lake on S3', 'redshift': 'Amazon Redshift', 'athena': 'Amazon Athena',
+    'emr': 'Amazon EMR and Spark', 'orchestration': 'Pipeline orchestration',
+    'dataops': 'Data operations and quality', 'data-security': 'Data security and governance',
+    'nosql-stores': 'NoSQL data stores'
+};
+
+function hasReadyEnglishArena(certId) {
+    try {
+        const overlayPath = path.join(__dirname, 'data', 'cloudarena', 'breakdowns-en', `${certId}.json`);
+        if (!fs.existsSync(overlayPath)) return false;
+        const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
+        const overlayMeta = overlay._translation || {};
+        if (overlayMeta.locale !== 'en' || overlayMeta.sourceLocale !== 'pt-BR' || overlayMeta.status !== 'ready') {
+            return false;
+        }
+        for (const level of ['iniciante', 'medio', 'avancado']) {
+            const bankPath = path.join(__dirname, 'data', 'exams-en', certId, `${level}.json`);
+            if (!fs.existsSync(bankPath)) return false;
+            const bank = JSON.parse(fs.readFileSync(bankPath, 'utf8'));
+            const meta = bank._translation || {};
+            if (meta.locale !== 'en' || meta.sourceLocale !== 'pt-BR' || meta.status !== 'ready') return false;
+        }
+        return true;
+    } catch (error) {
+        console.error(`[CloudArena] falha ao validar conteúdo EN ${certId}:`, error.message);
+        return false;
+    }
+}
+
 app.get('/api/arena/:certId', (req, res) => {
     const certId = String(req.params.certId || '').toLowerCase();
     if (!/^[a-z]{3}-c\d{2}$/.test(certId)) {
         return res.status(400).json({ success: false, error: 'certId inválido' });
     }
-    if (arenaCache.has(certId)) {
-        return res.json(arenaCache.get(certId));
+    const requestedLocale = String(req.query.locale || '').trim().toLowerCase().startsWith('en') ? 'en' : 'pt-BR';
+    const useEnglish = requestedLocale === 'en' && hasReadyEnglishArena(certId);
+    const contentLocale = useEnglish ? 'en' : 'pt-BR';
+    const localeFallback = requestedLocale === 'en' && !useEnglish;
+    const cacheKey = `${certId}:${contentLocale}`;
+    if (arenaCache.has(cacheKey)) {
+        return res.json(arenaCache.get(cacheKey));
     }
     try {
-        const overlayPath = path.join(__dirname, 'data', 'cloudarena', 'breakdowns', `${certId}.json`);
+        const overlayDir = contentLocale === 'en' ? 'breakdowns-en' : 'breakdowns';
+        const overlayPath = path.join(__dirname, 'data', 'cloudarena', overlayDir, `${certId}.json`);
         let overlays = [];
         if (fs.existsSync(overlayPath)) {
             overlays = (JSON.parse(fs.readFileSync(overlayPath, 'utf8')).overlays) || [];
@@ -202,7 +254,8 @@ app.get('/api/arena/:certId', (req, res) => {
         let totalBank = 0;
 
         for (const level of ['iniciante', 'medio', 'avancado']) {
-            const bankPath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
+            const bankDir = contentLocale === 'en' ? 'exams-en' : 'exams';
+            const bankPath = path.join(__dirname, 'data', bankDir, certId, `${level}.json`);
             if (!fs.existsSync(bankPath)) continue;
             const bank = JSON.parse(fs.readFileSync(bankPath, 'utf8'));
             const domainNames = new Map((bank.domains || []).map(d => [d.id, d.name]));
@@ -236,16 +289,16 @@ app.get('/api/arena/:certId', (req, res) => {
                     text: q.text,
                     level,
                     domain: q.domain || 'unknown',
-                    attackName: (firstTopic && TOPIC_LABELS[firstTopic]) || firstTopic
-                        || domainNames.get(q.domain) || 'Nuvem',
+                    attackName: (firstTopic && (contentLocale === 'en' ? TOPIC_LABELS_EN[firstTopic] : TOPIC_LABELS[firstTopic]))
+                        || domainNames.get(q.domain) || firstTopic || (contentLocale === 'en' ? 'Cloud' : 'Nuvem'),
                     options: resolved,
                     justifications: (ov.finalBlow && ov.finalBlow.justifications) || [],
                     explanation: q.explanation || '',
                 });
             }
         }
-        const payload = { success: true, certId, totalBank, pools };
-        arenaCache.set(certId, payload);
+        const payload = { success: true, certId, requestedLocale, locale: contentLocale, localeFallback, totalBank, pools };
+        arenaCache.set(cacheKey, payload);
         res.json(payload);
     } catch (err) {
         console.error('[CloudArena] erro ao montar payload:', err.message);
