@@ -14,6 +14,10 @@ on:
       - 'js/i18n*.js'
       - 'js/nav-menu.js'
       - 'js/tts-reader.js'
+      - 'server.js'
+      - 'js/simulados.js'
+      - 'js/socket-client.js'
+      - 'js/simulado-live-host.js'
       - 'scripts/validate_banks.py'
       - 'scripts/validate_arena.py'
       - 'scripts/validate_i18n.py'
@@ -22,6 +26,7 @@ on:
       - 'scripts/build_exam_translation.py'
       - 'scripts/validate_exam_translation_staging.py'
       - 'scripts/prepare_arena_option_ids.py'
+      - 'scripts/apply_exam_locale_runtime.py'
       - '.github/workflows/validate-banks.yml'
   pull_request:
     paths:
@@ -31,6 +36,10 @@ on:
       - 'js/i18n*.js'
       - 'js/nav-menu.js'
       - 'js/tts-reader.js'
+      - 'server.js'
+      - 'js/simulados.js'
+      - 'js/socket-client.js'
+      - 'js/simulado-live-host.js'
       - 'scripts/validate_banks.py'
       - 'scripts/validate_arena.py'
       - 'scripts/validate_i18n.py'
@@ -39,6 +48,7 @@ on:
       - 'scripts/build_exam_translation.py'
       - 'scripts/validate_exam_translation_staging.py'
       - 'scripts/prepare_arena_option_ids.py'
+      - 'scripts/apply_exam_locale_runtime.py'
       - '.github/workflows/validate-banks.yml'
   workflow_dispatch: {}
 
@@ -62,15 +72,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Validar sintaxe do runtime i18n
-        run: |
-          node --check js/i18n.js
-          node --check js/i18n-shared.js
-          node --check js/i18n-home.js
-          node --check js/i18n-simulados.js
-          node --check js/nav-menu.js
-          node --check js/tts-reader.js
-
       - name: Validar sintaxe das ferramentas de tradução
         run: |
           python3 -m py_compile scripts/validate_i18n.py
@@ -79,6 +80,23 @@ jobs:
           python3 -m py_compile scripts/build_exam_translation.py
           python3 -m py_compile scripts/validate_exam_translation_staging.py
           python3 -m py_compile scripts/prepare_arena_option_ids.py
+          python3 -m py_compile scripts/apply_exam_locale_runtime.py
+
+      - name: Aplicar migração locale-aware em workspace
+        run: python3 scripts/apply_exam_locale_runtime.py
+
+      - name: Validar sintaxe do runtime i18n e simulados
+        run: |
+          node --check server.js
+          node --check js/i18n.js
+          node --check js/i18n-shared.js
+          node --check js/i18n-home.js
+          node --check js/i18n-simulados.js
+          node --check js/nav-menu.js
+          node --check js/tts-reader.js
+          node --check js/simulados.js
+          node --check js/socket-client.js
+          node --check js/simulado-live-host.js
 
       - name: Validar bancos de questões
         run: python3 scripts/validate_banks.py
@@ -103,21 +121,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Versionar banco EN validado no PR
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          git add data/exams-en/clf-c02/iniciante.json
-          if git diff --cached --quiet; then
-            echo 'Banco EN já está versionado e idêntico ao artefato validado.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): promote validated CLF-C02 beginner English bank'
-          git push origin "HEAD:${HEAD_BRANCH}"
-
       - name: Validar overlays do CloudArena
         run: python3 scripts/validate_arena.py
 
@@ -126,3 +129,18 @@ jobs:
 
       - name: Validar catálogos PT e EN
         run: python3 scripts/validate_i18n.py
+
+      - name: Versionar artefatos validados no PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add data/exams-en/clf-c02/iniciante.json server.js js/simulados.js js/socket-client.js js/simulado-live-host.js
+          if git diff --cached --quiet; then
+            echo 'Artefatos gerados já estão versionados e idênticos ao workspace validado.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): enable locale-aware CLF practice exam runtime'
+          git push origin "HEAD:${HEAD_BRANCH}"
