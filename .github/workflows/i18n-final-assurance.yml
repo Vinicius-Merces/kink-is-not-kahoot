@@ -1,0 +1,183 @@
+name: Assurance final PT EN
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'locales/**'
+      - 'translations/**'
+      - 'js/**'
+      - '*.html'
+      - 'server.js'
+      - 'scripts/**'
+      - 'sitemap.xml'
+      - '.github/workflows/i18n-final-assurance.yml'
+  workflow_dispatch: {}
+
+jobs:
+  assure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Compilar runtime JS relevante
+        run: |
+          node --check server.js
+          node --check js/i18n.js
+          node --check js/i18n-home.js
+          node --check js/i18n-shared.js
+          node --check js/i18n-simulados.js
+          node --check js/i18n-cloudarena.js
+          node --check js/i18n-internal-literals.js
+          node --check js/i18n-trail-content.js
+          node --check js/nav-menu.js
+          node --check js/tts-reader.js
+          node --check js/simulados.js
+          node --check js/cloudarena.js
+
+      - name: Compilar ferramentas Python i18n
+        run: |
+          python3 -m py_compile scripts/validate_banks.py
+          python3 -m py_compile scripts/validate_i18n.py
+          python3 -m py_compile scripts/validate_exam_translation_staging.py
+          python3 -m py_compile scripts/validate_exam_locale_parity.py
+          python3 -m py_compile scripts/validate_english_translation_quality.py
+          python3 -m py_compile scripts/validate_arena.py
+          python3 -m py_compile scripts/validate_arena_locale_parity.py
+          python3 -m py_compile scripts/prepare_arena_option_ids.py
+
+      - name: Validar conteúdo e contratos
+        run: |
+          python3 scripts/validate_banks.py
+          python3 scripts/validate_exam_translation_staging.py
+          python3 scripts/validate_exam_locale_parity.py
+          python3 scripts/validate_english_translation_quality.py
+          python3 scripts/validate_aws_current_facts.py
+          python3 scripts/validate_arena.py
+          python3 scripts/prepare_arena_option_ids.py --require-ids
+          python3 scripts/validate_arena_locale_parity.py
+          python3 scripts/validate_i18n.py
+
+      - name: Exigir 12 bancos EN ready e 4 Arenas EN ready
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          certs=['clf-c02','dea-c01','dva-c02','saa-c03']
+          levels=['iniciante','medio','avancado']
+          for cert in certs:
+              for level in levels:
+                  path=Path('data/exams-en')/cert/f'{level}.json'
+                  assert path.exists(), f'missing {path}'
+                  meta=json.loads(path.read_text(encoding='utf-8')).get('_translation',{})
+                  assert meta.get('locale')=='en' and meta.get('sourceLocale')=='pt-BR' and meta.get('status')=='ready', (path,meta)
+              arena=Path('data/cloudarena/breakdowns-en')/f'{cert}.json'
+              assert arena.exists(), f'missing {arena}'
+              meta=json.loads(arena.read_text(encoding='utf-8')).get('_translation',{})
+              assert meta.get('locale')=='en' and meta.get('sourceLocale')=='pt-BR' and meta.get('status')=='ready', (arena,meta)
+          print('ready content matrix: 12/12 exam banks, 4/4 CloudArena overlays')
+          PY
+
+      - name: Exigir catálogos e wiring de UI/trilhas
+        run: |
+          for locale in pt-BR en; do
+            test -s "locales/$locale/ui.json"
+            test -s "locales/$locale/simulator.json"
+            test -s "locales/$locale/cloudarena-literals.json"
+            test -s "locales/$locale/internal-literals.json"
+            for trail in clf dea dva saa; do test -s "locales/$locale/trail-$trail-literals.json"; done
+          done
+          test "$(grep -c 'js/i18n-cloudarena.js' cloudarena.html)" -eq 1
+          for page in trilha.html trilha-dea.html trilha-dva.html trilha-saa.html; do
+            test "$(grep -c 'js/i18n-trail-content.js' "$page")" -eq 1
+          done
+          for page in admin.html create-quiz.html historico.html host.html my-quizzes.html player.html progresso.html; do
+            [ ! -f "$page" ] || test "$(grep -c 'js/i18n-internal-literals.js' "$page")" -eq 1
+          done
+
+      - name: Provar que narração EN está desabilitada e assets de áudio não mudaram
+        shell: bash
+        run: |
+          grep -F "data-narration" js/tts-reader.js >/dev/null
+          grep -F "locale === 'en'" js/tts-reader.js >/dev/null
+          BASE_BRANCH='${{ github.event.pull_request.base.ref || 'main' }}'
+          git fetch origin "$BASE_BRANCH"
+          if ! git diff --quiet "origin/$BASE_BRANCH...HEAD" -- assets/narracao; then
+            echo 'ERRO: assets/narracao foi alterado na branch i18n.'
+            git diff --name-only "origin/$BASE_BRANCH...HEAD" -- assets/narracao
+            exit 1
+          fi
+          echo 'Narration assets untouched; EN disable contract present.'
+
+      - name: Exigir rotas e hreflang EN
+        run: |
+          grep -F 'CLOUDPATH_INDEXABLE_EN_ROUTES' server.js
+          grep -F 'CLOUDPATH_ROUTE_LOCALE_SYNC' js/i18n.js
+          for page in index.html trilha.html trilha-dea.html trilha-dva.html trilha-saa.html simulados.html cloudarena.html; do
+            grep -F 'hreflang="en"' "$page" >/dev/null
+          done
+
+      - name: Instalar dependências e executar smoke HTTP
+        run: npm ci
+
+      - name: Smoke PT EN de ponta a ponta
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3210 NODE_ENV=production node server.js >/tmp/cloudpath-assurance.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true; cat /tmp/cloudpath-assurance.log' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3210/health >/dev/null && break || sleep 1; done
+          curl -fsS http://127.0.0.1:3210/en/ | grep -E '<html[^>]*lang="en"'
+          curl -fsS http://127.0.0.1:3210/en/trilha-saa.html | grep -F '/en/trilha-saa.html'
+          for cert in clf-c02 dea-c01 dva-c02 saa-c03; do
+            curl -fsS "http://127.0.0.1:3210/api/simulado/certifications?locale=en" | grep -F '"contentLocale":"en"' >/dev/null
+            curl -fsS "http://127.0.0.1:3210/api/arena/$cert?locale=en" | grep -F '"locale":"en"' >/dev/null
+          done
+          kill $PID; wait $PID || true; trap - EXIT
+
+      - name: Gerar relatório de assurance
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TESTED_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          mkdir -p reports
+          python3 - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          report={
+            'schemaVersion':1,
+            'status':'passed',
+            'testedCommit':os.environ['TESTED_SHA'],
+            'generatedAt':datetime.now(timezone.utc).isoformat(),
+            'locales':['pt-BR','en'],
+            'examBanksReady':12,
+            'cloudArenaOverlaysReady':4,
+            'cloudArenaIdentity':'optionId',
+            'narration':{'ptBR':'enabled','en':'disabled','assetsModified':False},
+            'indexableEnglishRoutes':True,
+            'checks':['syntax','canonical-banks','staging','exam-parity','translation-quality','current-aws-facts','arena-option-ids','arena-parity','catalog-parity','html-wiring','narration-boundary','http-smoke']
+          }
+          open('reports/i18n-assurance.json','w',encoding='utf-8').write(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git add reports/i18n-assurance.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(i18n): record passing bilingual assurance'
+          git push origin "HEAD:${HEAD_BRANCH}"
