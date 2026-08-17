@@ -6,6 +6,7 @@
     const SUPPORTED_LOCALES = ['pt-BR', 'en'];
     const STORAGE_KEY = 'cloudpath_locale_v1';
     const QUERY_KEY = 'lang';
+    const CATALOG_FILES = ['ui.json', 'simulator.json'];
     const catalogs = new Map();
     const adapters = [];
     let activeLocale = DEFAULT_LOCALE;
@@ -34,11 +35,26 @@
         return query || stored || DEFAULT_LOCALE;
     }
 
+    function deepMerge(target, source) {
+        const output = target && typeof target === 'object' && !Array.isArray(target) ? target : {};
+        Object.entries(source || {}).forEach(([key, value]) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                output[key] = deepMerge(output[key], value);
+            } else {
+                output[key] = value;
+            }
+        });
+        return output;
+    }
+
     async function fetchCatalog(locale) {
         if (catalogs.has(locale)) return catalogs.get(locale);
-        const response = await fetch(`locales/${locale}/ui.json`, { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`i18n catalog ${locale} unavailable (HTTP ${response.status})`);
-        const catalog = await response.json();
+        const catalog = {};
+        for (const file of CATALOG_FILES) {
+            const response = await fetch(`locales/${locale}/${file}`, { cache: 'no-cache' });
+            if (!response.ok) throw new Error(`i18n catalog ${locale}/${file} unavailable (HTTP ${response.status})`);
+            deepMerge(catalog, await response.json());
+        }
         catalogs.set(locale, catalog);
         return catalog;
     }
@@ -75,8 +91,7 @@
     }
 
     function applyMeta() {
-        // Page-specific metadata will be migrated with each page adapter.
-        // Until then, never replace an internal page title with the landing title.
+        // Page-specific metadata is migrated with each page adapter.
         if (currentLeaf() !== 'index.html') return;
         document.title = t('meta.title');
         const bindings = [
@@ -261,6 +276,7 @@
     global.I18n = {
         DEFAULT_LOCALE,
         SUPPORTED_LOCALES: SUPPORTED_LOCALES.slice(),
+        CATALOG_FILES: CATALOG_FILES.slice(),
         normalizeLocale,
         init,
         setLocale,
