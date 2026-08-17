@@ -178,8 +178,9 @@ app.use(express.static(path.join(__dirname)));
 
 // ── CloudArena: payload do jogo por certificação ─────────────────────────
 // /data é bloqueado no static (gabaritos); o jogo recebe daqui apenas as
-// questões QUE TÊM overlay, já resolvidas (vínculo por texto + checagem de
-// gabarito feita no servidor). Uma chamada por arena; zero por batalha.
+// questões QUE TÊM overlay, já resolvidas por optionId estável + checagem de
+// gabarito feita no servidor. matchText é apenas metadado legível.
+// Uma chamada por arena; zero por batalha.
 const arenaCache = new Map();
 
 app.get('/api/arena/:certId', (req, res) => {
@@ -209,14 +210,22 @@ app.get('/api/arena/:certId', (req, res) => {
                 totalBank++;
                 const ov = overlayById.get(q.id);
                 if (!ov) continue;
-                // vínculo por TEXTO + checagem cruzada de gabarito
-                const resolved = q.options.map(optionText => {
-                    const meta = (ov.options || []).find(o => o.matchText === optionText);
-                    return meta ? { text: optionText, stage: meta.stage, reasonWrong: meta.reasonWrong || '' } : null;
+                // vínculo por ID estável + checagem cruzada de gabarito.
+                // O texto pode evoluir ou ser localizado sem alterar a identidade.
+                const resolved = q.options.map((optionText, optionIndex) => {
+                    const expectedOptionId = `${q.id}:option:${optionIndex}`;
+                    const meta = (ov.options || []).find(o => o.optionId === expectedOptionId);
+                    return meta ? {
+                        optionId: expectedOptionId,
+                        text: optionText,
+                        stage: meta.stage,
+                        reasonWrong: meta.reasonWrong || ''
+                    } : null;
                 });
+                const correctOptionId = `${q.id}:option:${q.correct}`;
                 const correctMeta = resolved.find(o => o && o.stage === 'correct');
-                if (resolved.some(o => !o) || !correctMeta || correctMeta.text !== q.options[q.correct]) {
-                    console.error(`[CloudArena] overlay desalinhado ignorado: ${q.id}`);
+                if (resolved.some(o => !o) || !correctMeta || correctMeta.optionId !== correctOptionId) {
+                    console.error(`[CloudArena] overlay desalinhado por optionId ignorado: ${q.id}`);
                     continue;
                 }
                 // Inimigo resolvido pelo domínio oficial; nome do golpe vem do
