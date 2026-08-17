@@ -1,0 +1,30 @@
+name: Validar qualidade EN
+
+on:
+  pull_request:
+    paths:
+      - 'translations/en/**'
+      - 'data/exams/**'
+      - 'scripts/validate_english_translation_quality.py'
+      - '.github/workflows/translation-quality.yml'
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'translations/en/**'
+      - 'data/exams/**'
+      - 'scripts/validate_english_translation_quality.py'
+      - '.github/workflows/translation-quality.yml'
+  workflow_dispatch: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar sintaxe
+        run: python3 -m py_compile scripts/validate_english_translation_quality.py
+      - name: Validar qualidade mecânica das traduções EN
+        run: python3 scripts/validate_english_translation_quality.py
