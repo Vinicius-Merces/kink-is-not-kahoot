@@ -1,6 +1,5 @@
 name: Validar conteúdo e i18n
 
-# Valida bancos, overlays do CloudArena e a camada de internacionalização.
 permissions:
   contents: write
 
@@ -21,6 +20,8 @@ on:
       - 'scripts/validate_banks.py'
       - 'scripts/validate_arena.py'
       - 'scripts/validate_i18n.py'
+      - 'scripts/translation_integrity.py'
+      - 'scripts/validate_english_translation_quality.py'
       - 'scripts/validate_exam_locale_parity.py'
       - 'scripts/validate_exam_translation_staging.py'
       - 'scripts/validate_aws_current_facts.py'
@@ -48,6 +49,8 @@ on:
       - 'scripts/validate_banks.py'
       - 'scripts/validate_arena.py'
       - 'scripts/validate_i18n.py'
+      - 'scripts/translation_integrity.py'
+      - 'scripts/validate_english_translation_quality.py'
       - 'scripts/validate_exam_locale_parity.py'
       - 'scripts/validate_exam_translation_staging.py'
       - 'scripts/validate_aws_current_facts.py'
@@ -71,20 +74,19 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Validar sintaxe das ferramentas de tradução e conteúdo
         run: |
           python3 -m py_compile scripts/validate_i18n.py
+          python3 -m py_compile scripts/translation_integrity.py
+          python3 -m py_compile scripts/validate_english_translation_quality.py
           python3 -m py_compile scripts/validate_exam_locale_parity.py
           python3 -m py_compile scripts/validate_exam_translation_staging.py
           python3 -m py_compile scripts/validate_aws_current_facts.py
@@ -96,26 +98,20 @@ jobs:
           python3 -m py_compile scripts/apply_exam_locale_runtime.py
           python3 -m py_compile scripts/apply_aws_2026_content_fixes.py
           python3 -m py_compile scripts/apply_aws_2026_extra_fixes.py
-
       - name: Migrar overlays legados para optionId estável
         run: python3 scripts/prepare_arena_option_ids.py --write
-
       - name: Aplicar correções factuais AWS verificadas em 2026
         run: |
           python3 scripts/apply_aws_2026_content_fixes.py
           python3 scripts/apply_aws_2026_extra_fixes.py
-
       - name: Ressincronizar texto legível dos overlays após revisões
         run: python3 scripts/prepare_arena_option_ids.py --write --require-ids
-
       - name: Validar fatos AWS sensíveis a data
         run: python3 scripts/validate_aws_current_facts.py
-
       - name: Aplicar migrações de runtime i18n e CloudArena
         run: |
           python3 scripts/apply_exam_locale_runtime.py
           python3 scripts/apply_arena_option_id_runtime.py
-
       - name: Validar sintaxe do runtime i18n, simulados e CloudArena
         run: |
           node --check server.js
@@ -123,24 +119,24 @@ jobs:
           node --check js/i18n-shared.js
           node --check js/i18n-home.js
           node --check js/i18n-simulados.js
+          node --check js/i18n-internal-literals.js
+          node --check js/i18n-trail-content.js
+          node --check js/i18n-cloudarena.js
           node --check js/nav-menu.js
           node --check js/tts-reader.js
           node --check js/simulados.js
           node --check js/socket-client.js
           node --check js/simulado-live-host.js
-
       - name: Validar bancos de questões
         run: python3 scripts/validate_banks.py
-
       - name: Validar lotes EN em staging
         run: python3 scripts/validate_exam_translation_staging.py
-
+      - name: Validar fidelidade semântica EN antes da promoção
+        run: python3 scripts/validate_english_translation_quality.py
       - name: Promover automaticamente bancos EN completos
         run: python3 scripts/promote_complete_exam_translations.py
-
       - name: Validar paridade dos bancos EN prontos
         run: python3 scripts/validate_exam_locale_parity.py
-
       - name: Publicar bancos EN validados
         uses: actions/upload-artifact@v4
         with:
@@ -148,16 +144,12 @@ jobs:
           path: data/exams-en/**/*.json
           if-no-files-found: error
           retention-days: 7
-
       - name: Validar overlays do CloudArena por optionId
         run: python3 scripts/validate_arena.py
-
       - name: Exigir migração completa de IDs do CloudArena
         run: python3 scripts/prepare_arena_option_ids.py --require-ids
-
       - name: Validar catálogos PT e EN
         run: python3 scripts/validate_i18n.py
-
       - name: Versionar artefatos validados no PR
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
@@ -171,4 +163,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'feat(i18n): promote validated banks and stable CloudArena IDs'
+          git pull --rebase origin "$HEAD_BRANCH"
           git push origin "HEAD:${HEAD_BRANCH}"
