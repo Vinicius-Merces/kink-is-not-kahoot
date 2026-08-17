@@ -1,0 +1,76 @@
+name: Validar rotas indexáveis EN
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/apply_indexable_en_routes.py'
+      - 'server.js'
+      - 'js/i18n.js'
+      - 'index.html'
+      - 'trilha*.html'
+      - 'simulados.html'
+      - 'cloudarena.html'
+      - 'sitemap.xml'
+      - '.github/workflows/indexable-en-routes.yml'
+  workflow_dispatch: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Aplicar rotas EN
+        run: python3 scripts/apply_indexable_en_routes.py
+      - name: Validar sintaxe
+        run: |
+          node --check server.js
+          node --check js/i18n.js
+          python3 scripts/validate_i18n.py
+      - name: Instalar dependências
+        run: npm ci
+      - name: Smoke test HTTP PT EN
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3210 NODE_ENV=production node server.js >/tmp/cloudpath-server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true; cat /tmp/cloudpath-server.log' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3210/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:3210/health >/dev/null
+          curl -fsS http://127.0.0.1:3210/en/ | grep -E '<html[^>]*lang="en"'
+          curl -fsS http://127.0.0.1:3210/en/ | grep -F 'hreflang="en"'
+          curl -fsS http://127.0.0.1:3210/en/trilha-saa.html | grep -F '/en/trilha-saa.html'
+          curl -fsS http://127.0.0.1:3210/en/js/i18n.js | grep -F 'CLOUDPATH_ROUTE_LOCALE_SYNC'
+          curl -fsS 'http://127.0.0.1:3210/api/simulado/certifications?locale=en' | grep -F '"contentLocale":"en"'
+          curl -fsS 'http://127.0.0.1:3210/api/arena/clf-c02?locale=en' | grep -F '"locale":"en"'
+          kill $PID
+          wait $PID || true
+          trap - EXIT
+      - name: Versionar rotas e SEO validados
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          git add server.js js/i18n.js index.html trilha.html trilha-dea.html trilha-dva.html trilha-saa.html simulados.html cloudarena.html sitemap.xml
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): add indexable English routes and hreflang'
+          git push origin "HEAD:${HEAD_BRANCH}"
