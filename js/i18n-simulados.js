@@ -12,19 +12,34 @@
     const qa = (selector, root = document) => Array.from(root.querySelectorAll(selector));
     const t = (key, params) => global.I18n.t(key, params);
 
-    function text(selector, key) {
-        const el = q(selector);
-        if (el) el.textContent = t(key);
+    function setText(el, value) {
+        if (el && el.textContent !== value) el.textContent = value;
+    }
+
+    function text(selector, key, params) {
+        setText(q(selector), t(key, params));
     }
 
     function html(selector, key) {
         const el = q(selector);
-        if (el) el.innerHTML = t(key);
+        const value = t(key);
+        if (el && el.innerHTML !== value) el.innerHTML = value;
     }
 
-    function attr(selector, name, key) {
+    function attr(selector, name, key, params) {
         const el = q(selector);
-        if (el) el.setAttribute(name, t(key));
+        const value = t(key, params);
+        if (el && el.getAttribute(name) !== value) el.setAttribute(name, value);
+    }
+
+    function counterHeading(selector, key, counterId) {
+        const el = q(selector);
+        if (!el) return;
+        let counter = q(`#${counterId}`, el);
+        const value = counter ? counter.textContent : '0';
+        const expected = `${t(key)} (${value})`;
+        if (el.textContent.trim() === expected) return;
+        el.innerHTML = `${t(key)} (<span id="${counterId}">${value}</span>)`;
     }
 
     function localizeStatic() {
@@ -43,15 +58,17 @@
 
         const countLabel = q('.question-count-control label');
         const max = q('#maxQuestionsLabel');
-        if (countLabel && max) {
+        if (countLabel && max && countLabel.dataset.i18nReady !== global.I18n.locale) {
             const currentMax = max.textContent;
             countLabel.innerHTML = `${t('exam.ui.questionCountPrefix')} <span id="maxQuestionsLabel">${currentMax}</span>)`;
+            countLabel.dataset.i18nReady = global.I18n.locale;
         }
         const countValue = q('.question-count-value');
         const value = q('#numQuestionsValue');
-        if (countValue && value) {
+        if (countValue && value && countValue.dataset.i18nReady !== global.I18n.locale) {
             const currentValue = value.textContent;
             countValue.innerHTML = `<span id="numQuestionsValue">${currentValue}</span> ${t('exam.ui.questions')}`;
+            countValue.dataset.i18nReady = global.I18n.locale;
         }
 
         html('.exam-real-toggle > span', 'exam.ui.realExamHtml');
@@ -80,7 +97,7 @@
         text('#liveHostScreen h2', 'exam.live.roomTitle');
         text('#copyLiveLinkBtn', 'exam.live.copyLink');
         text('#liveHostScreen .live-room-hint', 'exam.live.shareHint');
-        text('#liveHostScreen .players-waiting h3', 'exam.live.studentsRoom');
+        counterHeading('#liveHostScreen .players-waiting h3', 'exam.live.studentsRoom', 'liveHostPlayerCount');
         text('#startLiveSessionBtn', 'exam.live.startVoting');
         text('#cancelLiveRoomBtn', 'exam.live.cancelRoom');
 
@@ -91,7 +108,7 @@
         text('#liveRevoteBtn', 'exam.live.revote');
         text('#liveAdvanceBtn', 'exam.live.advance');
         text('#liveEndSessionBtn', 'exam.live.endExam');
-        text('.live-control-sidebar .control-card:first-child h3', 'exam.live.students');
+        counterHeading('.live-control-sidebar .control-card:first-child h3', 'exam.live.students', 'liveControlPlayerCount');
         text('.live-control-sidebar .control-card:last-child h3', 'exam.live.questionsHeading');
 
         text('#liveResultScreen .form-card:nth-of-type(2) h3', 'exam.live.classDomainPerformance');
@@ -107,7 +124,9 @@
         const el = q('#configCertName');
         if (!el) return;
         const parts = el.textContent.split('—');
-        if (parts.length > 1) el.textContent = `${t('exam.ui.configure')} — ${parts.slice(1).join('—').trim()}`;
+        if (parts.length < 2) return;
+        const value = `${t('exam.ui.configure')} — ${parts.slice(1).join('—').trim()}`;
+        setText(el, value);
     }
 
     function localizeLevels() {
@@ -120,7 +139,14 @@
                 : levelId === 'medio' ? 'exam.intermediate'
                     : levelId === 'avancado' ? 'exam.advanced' : null;
             if (!key) return;
-            btn.innerHTML = `${t(key)}${count ? `<small>${count} ${t('exam.ui.questions')}</small>` : ''}`;
+
+            const labelNode = Array.from(btn.childNodes)
+                .find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+            if (labelNode) {
+                const desired = `\n                ${t(key)}\n                `;
+                if (labelNode.nodeValue !== desired) labelNode.nodeValue = desired;
+            }
+            if (small && count) setText(small, `${count} ${t('exam.ui.questions')}`);
         });
     }
 
@@ -133,8 +159,7 @@
 
         const resume = q('#resumeSimuladoBanner');
         if (resume && resume.style.display !== 'none') {
-            const strong = q('strong', resume);
-            if (strong) strong.textContent = t('exam.ui.pausedExam');
+            setText(q('strong', resume), t('exam.ui.pausedExam'));
             text('#resumeSimuladoBtn', 'exam.ui.resume');
             text('#discardSimuladoBtn', 'exam.ui.discard');
         }
@@ -142,59 +167,61 @@
         const focus = q('#domainFocusBanner .domain-focus-text');
         if (focus) {
             const strong = q('strong', focus);
-            if (strong) focus.childNodes[0].textContent = `${t('exam.ui.focusedPractice')} `;
+            const first = Array.from(focus.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+            if (strong && first) {
+                const desired = `${t('exam.ui.focusedPractice')} `;
+                if (first.nodeValue !== desired) first.nodeValue = desired;
+            }
         }
         attr('#clearDomainFocus', 'title', 'exam.ui.clearFocus');
 
-        const progress = q('#examProgressLabel');
-        if (progress) {
+        [q('#examProgressLabel'), q('#liveControlProgress')].forEach(progress => {
+            if (!progress) return;
             const nums = progress.textContent.match(/\d+/g);
-            if (nums && nums.length >= 2) progress.textContent = t('exam.ui.questionProgress', { current: nums[0], total: nums[1] });
-        }
-        const liveProgress = q('#liveControlProgress');
-        if (liveProgress) {
-            const nums = liveProgress.textContent.match(/\d+/g);
-            if (nums && nums.length >= 2) liveProgress.textContent = t('exam.ui.questionProgress', { current: nums[0], total: nums[1] });
-        }
+            if (!nums || nums.length < 2) return;
+            setText(progress, t('exam.ui.questionProgress', { current: nums[0], total: nums[1] }));
+        });
 
         qa('#examQuestionDots .exam-dot, #liveControlQuestionDots .exam-dot').forEach(dot => {
             const number = dot.dataset.index ? Number(dot.dataset.index) + 1 : Number(dot.textContent.trim());
             if (!Number.isFinite(number)) return;
             const answered = dot.classList.contains('answered');
-            dot.title = t('exam.ui.questionNumber', { number });
-            dot.setAttribute('aria-label', answered
+            const title = t('exam.ui.questionNumber', { number });
+            if (dot.title !== title) dot.title = title;
+            const aria = answered
                 ? t('exam.ui.questionAnswered', { number })
-                : t('exam.ui.questionNumber', { number }));
+                : title;
+            if (dot.getAttribute('aria-label') !== aria) dot.setAttribute('aria-label', aria);
         });
 
         const mark = q('#examMarkBtn');
         if (mark && mark.style.display !== 'none') {
-            mark.textContent = mark.classList.contains('active') ? t('exam.ui.markedReview') : t('exam.ui.markReview');
+            setText(mark, mark.classList.contains('active') ? t('exam.ui.markedReview') : t('exam.ui.markReview'));
         }
 
         const multi = q('#examMultiHint');
         if (multi && multi.style.display !== 'none') {
             const nums = multi.textContent.match(/\d+/g);
             if (nums && nums.length >= 3) {
-                multi.textContent = t('exam.ui.multiAnswer', {
+                setText(multi, t('exam.ui.multiAnswer', {
                     required: nums[0], selected: nums[1], total: nums[2]
-                });
+                }));
             }
         }
 
         const feedbackTitle = q('#examFeedback .exam-feedback-title');
         if (feedbackTitle) {
-            feedbackTitle.textContent = q('#examFeedback.correct')
-                ? t('exam.ui.correctAnswer') : t('exam.ui.incorrectAnswer');
+            setText(feedbackTitle, q('#examFeedback.correct')
+                ? t('exam.ui.correctAnswer') : t('exam.ui.incorrectAnswer'));
         }
 
         const finishMessage = q('#confirmFinishMessage');
         if (finishMessage && finishMessage.textContent.trim()) {
             const nums = finishMessage.textContent.match(/\d+/g);
             if (nums && nums.length >= 2) {
-                finishMessage.textContent = t('exam.ui.finishIncomplete', { answered: nums[0], total: nums[1] });
+                setText(finishMessage, t('exam.ui.finishIncomplete', { answered: nums[0], total: nums[1] }));
             } else if (nums && nums.length === 1) {
-                finishMessage.textContent = t('exam.ui.finishComplete', { total: nums[0] });
+                setText(finishMessage, t('exam.ui.finishComplete', { total: nums[0] }));
             }
         }
     }
@@ -214,7 +241,13 @@
         const root = q('#main-content');
         if (!root || observer) return;
         observer = new MutationObserver(scheduleDynamic);
-        observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'style'] });
+        observer.observe(root, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: ['class', 'style']
+        });
     }
 
     global.I18n.registerAdapter(() => {
