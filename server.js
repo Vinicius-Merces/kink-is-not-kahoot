@@ -346,8 +346,44 @@ function topicLabel(id) {
     return TOPIC_LABELS[id] || id;
 }
 
-// Carrega as pools de perguntas (cert x nível) em memória
-const examPools = new Map(); // chave: "certId:level" -> { certCode, certName, level, domains, questions }
+// Carrega as pools de perguntas (cert x nível) em memória.
+// PT-BR mantém a chave histórica `certId:level`; bancos EN prontos usam
+// `en:certId:level`. Um banco inglês só entra no runtime quando declara
+// explicitamente `_translation.status = ready`.
+const examPools = new Map();
+
+function normalizeExamLocale(locale) {
+    const value = String(locale || '').trim().toLowerCase();
+    return value === 'en' || value.startsWith('en-') ? 'en' : 'pt-BR';
+}
+
+function indexExamTopics(pool) {
+    pool.topicCounts = {};
+    for (const q of (pool.questions || [])) {
+        for (const t of (q.topics || [])) {
+            pool.topicCounts[t] = (pool.topicCounts[t] || 0) + 1;
+        }
+    }
+    return pool;
+}
+
+function resolveExamPool(certId, level, requestedLocale) {
+    const requested = normalizeExamLocale(requestedLocale);
+    if (requested === 'en') {
+        const english = examPools.get(`en:${certId}:${level}`);
+        if (english && english.questions && english.questions.length) {
+            return { pool: english, requestedLocale: 'en', locale: 'en', fallback: false };
+        }
+    }
+
+    const canonical = examPools.get(`${certId}:${level}`) || null;
+    return {
+        pool: canonical,
+        requestedLocale: requested,
+        locale: 'pt-BR',
+        fallback: requested === 'en',
+    };
+}
 
 function loadExamPools() {
     for (const [certId, cert] of Object.entries(CERTIFICATIONS)) {
@@ -355,21 +391,30 @@ function loadExamPools() {
             const filePath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
             try {
                 const raw = fs.readFileSync(filePath, 'utf-8');
-                const pool = JSON.parse(raw);
-                // Índice de tópicos (campo `topics` das questões) para prática focada
-                pool.topicCounts = {};
-                for (const q of pool.questions) {
-                    for (const t of (q.topics || [])) {
-                        pool.topicCounts[t] = (pool.topicCounts[t] || 0) + 1;
-                    }
-                }
+                const pool = indexExamTopics(JSON.parse(raw));
                 examPools.set(`${certId}:${level}`, pool);
             } catch (error) {
                 console.log(`⚠️ Pool de simulado não encontrada: ${certId}/${level} (${error.message})`);
             }
+
+            const englishPath = path.join(__dirname, 'data', 'exams-en', certId, `${level}.json`);
+            if (!fs.existsSync(englishPath)) continue;
+            try {
+                const english = indexExamTopics(JSON.parse(fs.readFileSync(englishPath, 'utf-8')));
+                const meta = english._translation || {};
+                if (meta.locale !== 'en' || meta.sourceLocale !== 'pt-BR' || meta.status !== 'ready') {
+                    console.warn(`⚠️ Banco EN ignorado por status inválido: ${certId}/${level}`);
+                    continue;
+                }
+                examPools.set(`en:${certId}:${level}`, english);
+            } catch (error) {
+                console.warn(`⚠️ Banco EN ignorado: ${certId}/${level} (${error.message})`);
+            }
         }
     }
-    console.log(`📚 ${examPools.size} pools de simulado carregadas`);
+    const canonicalCount = [...examPools.keys()].filter(key => !key.startsWith('en:')).length;
+    const englishCount = [...examPools.keys()].filter(key => key.startsWith('en:')).length;
+    console.log(`📚 ${canonicalCount} pools PT-BR + ${englishCount} pools EN prontas carregadas`);
 }
 
 loadExamPools();
@@ -580,15 +625,19 @@ async function verifySocketIdToken(idToken) {
 
 // Lista certificações, níveis disponíveis, domínios e tamanho das pools
 app.get('/api/simulado/certifications', (req, res) => {
+    const requestedLocale = normalizeExamLocale(req.query.locale);
     const certifications = Object.entries(CERTIFICATIONS).map(([id, cert]) => ({
         id,
         code: cert.code,
         name: cert.name,
         shortName: cert.shortName,
         levels: cert.levels.map(level => {
-            const pool = examPools.get(`${id}:${level}`);
+            const resolved = resolveExamPool(id, level, requestedLocale);
+            const pool = resolved.pool;
             return {
                 id: level,
+                contentLocale: resolved.locale,
+                localeFallback: resolved.fallback,
                 totalQuestions: pool ? pool.questions.length : 0,
                 domains: pool ? pool.domains : [],
                 topics: pool
@@ -600,7 +649,7 @@ app.get('/api/simulado/certifications', (req, res) => {
         })
     }));
 
-    res.json({ success: true, maxQuestions: MAX_SIMULADO_QUESTIONS, certifications });
+    res.json({ success: true, locale: requestedLocale, maxQuestions: MAX_SIMULADO_QUESTIONS, certifications });
 });
 
 // Inicia um simulado: seleciona perguntas respeitando a proporção de domínios e oculta gabaritos
@@ -610,14 +659,16 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         return res.status(401).json({ success: false, error: 'Faça login para iniciar um simulado' });
     }
 
-    const { certId, level, numQuestions, domain } = req.body || {};
+    const { certId, level, numQuestions, domain, locale } = req.body || {};
+    const requestedLocale = normalizeExamLocale(locale);
 
     const cert = CERTIFICATIONS[certId];
     if (!cert || !cert.levels.includes(level)) {
         return res.status(400).json({ success: false, error: 'Certificação ou nível inválido' });
     }
 
-    const pool = examPools.get(`${certId}:${level}`);
+    const resolvedPool = resolveExamPool(certId, level, requestedLocale);
+    const pool = resolvedPool.pool;
     if (!pool || pool.questions.length === 0) {
         return res.status(404).json({ success: false, error: 'Pool de perguntas não disponível para essa combinação' });
     }
@@ -693,6 +744,9 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         level,
         certCode: pool.certCode,
         certName: pool.certName,
+        requestedLocale,
+        locale: resolvedPool.locale,
+        localeFallback: resolvedPool.fallback,
         domains: pool.domains,
         focusDomain,
         focusTopic,
@@ -709,6 +763,9 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         certCode: pool.certCode,
         certName: pool.certName,
         level,
+        requestedLocale,
+        locale: resolvedPool.locale,
+        localeFallback: resolvedPool.fallback,
         domains: pool.domains,
         focusDomain,
         focusTopic,
@@ -1807,6 +1864,9 @@ class LiveSimuladoRoom {
         this.certCode = simuladoData.certCode;
         this.certName = simuladoData.certName;
         this.level = simuladoData.level;
+        this.requestedLocale = simuladoData.requestedLocale || 'pt-BR';
+        this.locale = simuladoData.locale || 'pt-BR';
+        this.localeFallback = !!simuladoData.localeFallback;
         this.domains = simuladoData.domains;
         this.questions = simuladoData.questions; // perguntas completas (com gabarito) - nunca enviadas aos alunos
         this.creatorSocketId = creatorSocketId;
@@ -2069,6 +2129,9 @@ class LiveSimuladoRoom {
             certCode: this.certCode,
             certName: this.certName,
             level: this.level,
+            requestedLocale: this.requestedLocale,
+            locale: this.locale,
+            localeFallback: this.localeFallback,
             mode: 'live',
             roomCode: this.code,
             participantsCount: this.players.size,
@@ -2440,7 +2503,8 @@ io.on('connection', (socket) => {
     // Criar sala de simulado ao vivo (professor)
     safeOn(socket, 'simulado:create-room', async (data, callback) => {
         try {
-            const { certId, level, numQuestions, creatorName, idToken } = data || {};
+            const { certId, level, numQuestions, creatorName, idToken, locale } = data || {};
+            const requestedLocale = normalizeExamLocale(locale);
 
             // O resultado fica gravado no histórico do professor (users/{uid}/simuladoAttempts),
             // então creatorId precisa ser o uid verificado pelo ID token - nunca o valor enviado pelo cliente.
@@ -2460,7 +2524,8 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            const pool = examPools.get(`${certId}:${level}`);
+            const resolvedPool = resolveExamPool(certId, level, requestedLocale);
+            const pool = resolvedPool.pool;
             if (!pool || pool.questions.length === 0) {
                 callback({ success: false, error: 'Pool de perguntas não disponível para essa combinação' });
                 return;
@@ -2483,6 +2548,9 @@ io.on('connection', (socket) => {
                 certCode: pool.certCode,
                 certName: pool.certName,
                 level,
+                requestedLocale,
+                locale: resolvedPool.locale,
+                localeFallback: resolvedPool.fallback,
                 domains: pool.domains,
                 questions
             }, socket.id, safeCreatorName, creatorId);
@@ -2504,6 +2572,9 @@ io.on('connection', (socket) => {
                 certCode: pool.certCode,
                 certName: pool.certName,
                 level,
+                requestedLocale,
+                locale: resolvedPool.locale,
+                localeFallback: resolvedPool.fallback,
                 domains: pool.domains,
                 totalQuestions: questions.length
             });

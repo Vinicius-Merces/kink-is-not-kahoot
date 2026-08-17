@@ -235,9 +235,9 @@ class SocketClient {
     // ============================================
 
     // Criar sala de simulado ao vivo (professor)
-    createLiveSimuladoRoom(certId, level, numQuestions, creatorName, creatorId, idToken, callback) {
+    createLiveSimuladoRoom(certId, level, numQuestions, creatorName, creatorId, idToken, locale, callback) {
         console.log(`📝 Criando simulado ao vivo: ${certId}/${level} (${numQuestions} perguntas)`);
-        this.emit('simulado:create-room', { certId, level, numQuestions, creatorName, creatorId, idToken }, (response) => {
+        this.emit('simulado:create-room', { certId, level, numQuestions, creatorName, creatorId, idToken, locale }, (response) => {
             if (response && response.success) {
                 this.roomId = response.roomId;
                 this.role = 'host';
