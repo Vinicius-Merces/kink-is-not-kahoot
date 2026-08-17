@@ -1,53 +1,44 @@
-name: Gerar catálogo visual EN da CloudArena
+name: Validar catálogo visual EN da CloudArena
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   pull_request:
     paths:
-      - 'scripts/offline_mt.py'
+      - 'locales/pt-BR/cloudarena-literals.json'
+      - 'locales/en/cloudarena-literals.json'
       - 'scripts/translation_integrity.py'
       - 'scripts/validate_i18n.py'
-      - 'scripts/generate_cloudarena_literal_catalog.py'
+      - 'js/i18n-cloudarena.js'
       - 'cloudarena.html'
-      - 'js/cloudarena.js'
+      - '.github/workflows/generate-cloudarena-literals.yml'
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'locales/pt-BR/cloudarena-literals.json'
+      - 'locales/en/cloudarena-literals.json'
+      - 'scripts/translation_integrity.py'
+      - 'scripts/validate_i18n.py'
+      - 'js/i18n-cloudarena.js'
+      - 'cloudarena.html'
       - '.github/workflows/generate-cloudarena-literals.yml'
   workflow_dispatch: {}
 
 jobs:
-  generate:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      HF_HUB_DISABLE_XET: '1'
-      TOKENIZERS_PARALLELISM: 'false'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Instalar motor de tradução local
+      - name: Validar catálogo visual curado
         run: |
-          python -m pip install --upgrade pip
-          pip install 'torch>=2.3,<3' --index-url https://download.pytorch.org/whl/cpu
-          pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
-      - name: Gerar catálogos a partir da UI real
-        run: python3 scripts/generate_cloudarena_literal_catalog.py
-      - name: Validar paridade, fidelidade e resíduo PT dos catálogos
-        run: python3 scripts/validate_i18n.py
-      - name: Versionar catálogos validados
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          git add locales/pt-BR/cloudarena-literals.json locales/en/cloudarena-literals.json
-          if git diff --cached --quiet; then exit 0; fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): add validated offline CloudArena visual literal catalogs'
-          git pull --rebase origin "$HEAD_BRANCH"
-          git push origin "HEAD:${HEAD_BRANCH}"
+          python3 -m py_compile scripts/translation_integrity.py
+          python3 -m py_compile scripts/validate_i18n.py
+          python3 scripts/validate_i18n.py
+      - name: Validar adapter visual da CloudArena
+        run: node --check js/i18n-cloudarena.js
