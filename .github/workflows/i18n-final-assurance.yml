@@ -1,7 +1,7 @@
 name: Assurance final PT EN
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   pull_request:
@@ -20,6 +20,7 @@ on:
 jobs:
   assure:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +31,7 @@ jobs:
           python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
 
       - name: Compilar runtime JS relevante
@@ -52,12 +53,28 @@ jobs:
         run: |
           python3 -m py_compile scripts/validate_banks.py
           python3 -m py_compile scripts/validate_i18n.py
+          python3 -m py_compile scripts/translation_integrity.py
           python3 -m py_compile scripts/validate_exam_translation_staging.py
           python3 -m py_compile scripts/validate_exam_locale_parity.py
           python3 -m py_compile scripts/validate_english_translation_quality.py
           python3 -m py_compile scripts/validate_arena.py
           python3 -m py_compile scripts/validate_arena_locale_parity.py
           python3 -m py_compile scripts/prepare_arena_option_ids.py
+          python3 -m py_compile scripts/offline_mt.py
+          python3 -m py_compile scripts/translate_exam_staging_offline.py
+          python3 -m py_compile scripts/translate_arena_staging_offline.py
+          python3 -m py_compile scripts/repair_exam_staging_offline.py
+
+      - name: Proibir dependência de inferência GitHub Models aposentada
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE 'models\.github\.ai|_with_github_models\.py|models:[[:space:]]*read' \
+              scripts .github/workflows --include='*.py' --include='*.yml' --include='*.yaml'; then
+            echo 'ERRO: referência executável à API aposentada do GitHub Models encontrada.'
+            exit 1
+          fi
+          echo 'No retired GitHub Models inference dependency in executable CI/tooling.'
 
       - name: Validar conteúdo e contratos
         run: |
@@ -143,25 +160,22 @@ jobs:
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3210/health >/dev/null && break || sleep 1; done
           curl -fsS http://127.0.0.1:3210/en/ | grep -E '<html[^>]*lang="en"'
           curl -fsS http://127.0.0.1:3210/en/trilha-saa.html | grep -F '/en/trilha-saa.html'
+          curl -fsS "http://127.0.0.1:3210/api/simulado/certifications?locale=en" | grep -F '"contentLocale":"en"' >/dev/null
           for cert in clf-c02 dea-c01 dva-c02 saa-c03; do
-            curl -fsS "http://127.0.0.1:3210/api/simulado/certifications?locale=en" | grep -F '"contentLocale":"en"' >/dev/null
             curl -fsS "http://127.0.0.1:3210/api/arena/$cert?locale=en" | grep -F '"locale":"en"' >/dev/null
           done
           kill $PID; wait $PID || true; trap - EXIT
 
-      - name: Gerar relatório de assurance
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      - name: Gerar relatório de assurance do SHA testado
         env:
-          TESTED_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        shell: bash
+          TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           mkdir -p reports
           python3 - <<'PY'
           import json, os
           from datetime import datetime, timezone
           report={
-            'schemaVersion':1,
+            'schemaVersion':2,
             'status':'passed',
             'testedCommit':os.environ['TESTED_SHA'],
             'generatedAt':datetime.now(timezone.utc).isoformat(),
@@ -169,15 +183,18 @@ jobs:
             'examBanksReady':12,
             'cloudArenaOverlaysReady':4,
             'cloudArenaIdentity':'optionId',
+            'translationEngine':{'runtimeDependency':False,'staging':'offline-marian'},
             'narration':{'ptBR':'enabled','en':'disabled','assetsModified':False},
             'indexableEnglishRoutes':True,
-            'checks':['syntax','canonical-banks','staging','exam-parity','translation-quality','current-aws-facts','arena-option-ids','arena-parity','catalog-parity','html-wiring','narration-boundary','http-smoke']
+            'checks':['syntax','canonical-banks','staging','field-local-translation-integrity','exam-parity','translation-quality','current-aws-facts','arena-option-ids','arena-parity','catalog-parity','html-wiring','retired-model-dependency','narration-boundary','http-smoke']
           }
           open('reports/i18n-assurance.json','w',encoding='utf-8').write(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
           PY
-          git add reports/i18n-assurance.json
-          if git diff --cached --quiet; then exit 0; fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'test(i18n): record passing bilingual assurance'
-          git push origin "HEAD:${HEAD_BRANCH}"
+
+      - name: Publicar relatório sem alterar o SHA aprovado
+        uses: actions/upload-artifact@v4
+        with:
+          name: i18n-assurance-${{ github.event.pull_request.head.sha || github.sha }}
+          path: reports/i18n-assurance.json
+          if-no-files-found: error
+          retention-days: 30
