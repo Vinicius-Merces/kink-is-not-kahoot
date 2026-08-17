@@ -78,7 +78,23 @@
         bindText('.nav-menu #logoutBtn, .nav-menu .btn-logout', 'common.logout');
     }
 
+    function loadPageAdapter() {
+        let leaf = '';
+        try { leaf = location.pathname.split('/').filter(Boolean).pop() || 'index.html'; } catch (_) {}
+        if (leaf !== 'simulados.html') return;
+        if (document.querySelector('script[data-cloudpath-i18n-page="simulados"]')) return;
+
+        const script = document.createElement('script');
+        script.src = new URL('js/i18n-simulados.js', document.baseURI).href;
+        script.dataset.cloudpathI18nPage = 'simulados';
+        script.async = true;
+        script.onerror = () => console.warn('[i18n] simulator adapter unavailable');
+        document.head.appendChild(script);
+    }
+
     global.I18n.registerAdapter(() => {
         annotateSharedNavigation();
     });
+
+    loadPageAdapter();
 })(window);
