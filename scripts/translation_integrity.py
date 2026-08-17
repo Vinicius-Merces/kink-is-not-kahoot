@@ -2,9 +2,10 @@
 """Shared mechanical integrity checks for PT-BR -> EN translations.
 
 The goal is not to judge prose style. It protects semantic anchors that must not
-silently change during translation: AWS/service names, technical acronyms and
-numeric facts. Checks are field-local, so a service mentioned in source option 3
-must remain in translated option 3 rather than merely appearing elsewhere.
+silently change during translation: distinctive AWS/service names, technical
+acronyms and numeric facts. Checks are field-local, so a service mentioned in
+source option 3 must remain in translated option 3 rather than merely appearing
+elsewhere.
 """
 from __future__ import annotations
 
@@ -34,6 +35,7 @@ TECHNICAL_PATTERNS = [
 ]
 
 TECHNICAL_RE = re.compile(r"\b(?:" + "|".join(TECHNICAL_PATTERNS) + r")\b", re.I)
+GENERIC_TECHNICAL_ANCHORS = {"aws", "amazon", "api"}
 
 # Immutable numeric spans used by the offline translator. Human-language units are
 # deliberately NOT included here: only the value is frozen, so `9 anos` can become
@@ -62,6 +64,11 @@ def technical_anchors(text: str) -> set[str]:
     for match in TECHNICAL_RE.finditer(text or ""):
         token = re.sub(r"\s+", "", match.group(0)).casefold()
         token = token.replace("instances", "instance")
+        # Generic vendor prefixes and the generic word API can be omitted in an
+        # otherwise faithful English sentence without changing the proposition.
+        # Distinctive service/product/protocol anchors remain mandatory.
+        if token in GENERIC_TECHNICAL_ANCHORS:
+            continue
         anchors.add(token)
     return anchors
 
