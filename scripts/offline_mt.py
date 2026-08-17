@@ -149,10 +149,10 @@ class OfflineTranslator:
             return []
         encoded = self.tokenizer(values, return_tensors="pt", padding=True, truncation=True, max_length=512)
         with self.torch.inference_mode():
-            generated = self.model.generate(**encoded, num_beams=4, max_new_tokens=512, early_stopping=True)
+            generated = self.model.generate(**encoded, num_beams=2, max_new_tokens=512, early_stopping=True)
         return self.tokenizer.batch_decode(generated, skip_special_tokens=True)
 
-    def translate_many(self, sources: list[str], batch_size: int = 12) -> list[str]:
+    def translate_many(self, sources: list[str], batch_size: int = 20) -> list[str]:
         tasks: list[_TranslationTask] = []
         layouts = [_build_layout(source, tasks) for source in sources]
         translated_tasks = [""] * len(tasks)
