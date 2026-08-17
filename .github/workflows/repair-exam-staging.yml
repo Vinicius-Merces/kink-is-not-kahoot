@@ -2,7 +2,6 @@ name: Reparar fidelidade EN dos bancos
 
 permissions:
   contents: write
-  models: read
 
 on:
   push:
@@ -24,6 +23,10 @@ concurrency:
 jobs:
   repair:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -48,16 +51,21 @@ jobs:
             echo "path=$REQUEST" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Instalar motor de tradução local
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'torch>=2.3,<3' --index-url https://download.pytorch.org/whl/cpu
+          pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
+
       - name: Validar sintaxe das ferramentas
         run: |
           python3 -m py_compile scripts/translation_integrity.py
-          python3 -m py_compile scripts/repair_exam_staging_with_github_models.py
+          python3 -m py_compile scripts/offline_mt.py
+          python3 -m py_compile scripts/repair_exam_staging_offline.py
           python3 -m py_compile scripts/validate_english_translation_quality.py
 
       - name: Reparar somente staging com drift detectado
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 scripts/repair_exam_staging_with_github_models.py "${{ steps.request.outputs.path }}"
+        run: python3 scripts/repair_exam_staging_offline.py "${{ steps.request.outputs.path }}"
 
       - name: Validar staging e fidelidade após reparo
         run: |
@@ -83,5 +91,5 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'fix(i18n): repair English exam translation fidelity'
+          git commit -m 'fix(i18n): repair English exam translation fidelity offline'
           git push origin "HEAD:${GITHUB_REF_NAME}"
