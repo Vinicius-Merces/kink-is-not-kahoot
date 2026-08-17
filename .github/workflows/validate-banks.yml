@@ -80,8 +80,22 @@ jobs:
       - name: Validar lotes EN em staging
         run: python3 scripts/validate_exam_translation_staging.py
 
+      - name: Exigir cobertura completa do piloto CLF-C02 Beginner
+        run: python3 scripts/build_exam_translation.py clf-c02 iniciante --require-complete
+
+      - name: Construir banco EN pronto do piloto
+        run: python3 scripts/build_exam_translation.py clf-c02 iniciante --write
+
       - name: Validar paridade dos bancos EN prontos
         run: python3 scripts/validate_exam_locale_parity.py
+
+      - name: Publicar banco EN validado do piloto
+        uses: actions/upload-artifact@v4
+        with:
+          name: clf-c02-iniciante-en-ready
+          path: data/exams-en/clf-c02/iniciante.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Validar overlays do CloudArena
         run: python3 scripts/validate_arena.py
