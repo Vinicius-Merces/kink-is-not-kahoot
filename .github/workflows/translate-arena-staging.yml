@@ -1,0 +1,72 @@
+name: Gerar CloudArena EN
+
+permissions:
+  contents: write
+  models: read
+
+on:
+  push:
+    branches: [ feat/i18n-foundation ]
+    paths:
+      - 'translations/requests-arena/**.json'
+  workflow_dispatch:
+    inputs:
+      request:
+        description: 'Arquivo JSON em translations/requests-arena/'
+        required: true
+        default: 'translations/requests-arena/clf-c02.json'
+
+concurrency:
+  group: translate-arena-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolver solicitação
+        id: req
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "path=${{ inputs.request }}" >> "$GITHUB_OUTPUT"
+          else
+            REQUEST=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^translations/requests-arena/.*\.json$' | head -n 1)
+            test -n "$REQUEST"
+            echo "path=$REQUEST" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validar ferramentas
+        run: |
+          python3 -m py_compile scripts/translate_arena_staging_with_github_models.py
+          python3 -m py_compile scripts/build_arena_translation.py
+          python3 -m py_compile scripts/validate_arena_locale_parity.py
+      - name: Gerar staging pedagógico EN
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/translate_arena_staging_with_github_models.py "${{ steps.req.outputs.path }}"
+      - name: Extrair certId
+        id: cert
+        shell: bash
+        run: |
+          CERT=$(python3 -c "import json; print(json.load(open('${{ steps.req.outputs.path }}'))['certId'])")
+          echo "id=$CERT" >> "$GITHUB_OUTPUT"
+      - name: Construir overlay EN completo
+        run: python3 scripts/build_arena_translation.py "${{ steps.cert.outputs.id }}" --write
+      - name: Validar paridade PT EN
+        run: python3 scripts/validate_arena_locale_parity.py
+      - name: Versionar somente staging e overlay EN validado
+        shell: bash
+        run: |
+          git add translations/en/cloudarena data/cloudarena/breakdowns-en
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): add validated English CloudArena overlay'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
