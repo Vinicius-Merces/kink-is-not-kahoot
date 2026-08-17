@@ -1,12 +1,6 @@
-/**
- * CloudPath home-page locale adapter.
- *
- * Keeps the premium landing markup stable while associating the existing
- * elements with semantic i18n keys. Decorative icon spans are preserved.
- */
+/** CloudPath home-page locale adapter. */
 (function (global) {
     'use strict';
-
     if (!global.I18n) return;
 
     const q = (selector, root = document) => root.querySelector(selector);
@@ -25,8 +19,7 @@
 
     function bindAttribute(selector, attribute, key) {
         const element = q(selector);
-        if (!element) return;
-        element.setAttribute(`data-i18n-${attribute}`, key);
+        if (element) element.setAttribute(`data-i18n-${attribute}`, key);
     }
 
     function ensureCopySpan(element, key, position = 'after') {
@@ -35,12 +28,9 @@
         if (!copy) {
             copy = document.createElement('span');
             copy.className = 'cp-i18n-copy';
-
-            const textNodes = Array.from(element.childNodes).filter(node =>
-                node.nodeType === Node.TEXT_NODE && node.textContent.trim()
-            );
-            textNodes.forEach(node => node.remove());
-
+            Array.from(element.childNodes)
+                .filter(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
+                .forEach(node => node.remove());
             if (position === 'before') element.prepend(copy);
             else element.append(copy);
         }
@@ -70,12 +60,28 @@
         copy.setAttribute('data-i18n', key);
     }
 
+    function localizeFooter() {
+        const footer = q('.rebellion-badge p');
+        if (!footer) return;
+        const creator = footer.querySelector('a[href*="orbitalstudio.com.br"]');
+        if (!creator) {
+            footer.setAttribute('data-i18n', 'home.footer');
+            return;
+        }
+
+        footer.removeAttribute('data-i18n');
+        Array.from(footer.childNodes)
+            .filter(node => node.nodeType === Node.TEXT_NODE)
+            .forEach(node => node.remove());
+        ensureCopySpan(footer, 'home.footerCreatorPrefix', 'before');
+        creator.setAttribute('aria-label', global.I18n.t('home.creatorAria'));
+    }
+
     function annotateHome() {
-        if (!document.querySelector('.hero-section')) return;
+        if (!q('.hero-section')) return;
 
         bindText('.skip-link', 'home.skipLink');
         bindText('#loading-overlay .cp-loading-inner > p', 'home.loading');
-
         bindText('#navLoginBtn', 'auth.navLogin');
         bindText('#logoutBtn', 'common.logout');
 
@@ -90,7 +96,7 @@
         if (badges[3]) badges[3].setAttribute('data-i18n', 'home.statusRanking');
 
         bindAttribute('#awsGlobe', 'aria-label', 'home.globeAria');
-        bindAllText('.hero-globe-legend .chave', ['home.globeRegions', 'home.globePrimaryRegion']);
+        bindIconRows('.hero-globe-legend .chave', ['home.globeRegions', 'home.globePrimaryRegion']);
 
         bindText('.host-card h2', 'home.teacherTitle');
         bindText('.host-card > p', 'home.teacherDescription');
@@ -184,12 +190,10 @@
         ]);
         bindText('.about-badges-title', 'home.about.badgesTitle');
         const badgeImages = qa('.about-badges img');
-        if (badgeImages[0]) badgeImages[0].setAttribute('data-i18n-aria-label', 'home.about.restartBadgeAlt');
-        if (badgeImages[0]) badgeImages[0].setAttribute('data-i18n-title', 'home.about.restartBadgeAlt');
         if (badgeImages[0]) badgeImages[0].setAttribute('alt', global.I18n.t('home.about.restartBadgeAlt'));
         if (badgeImages[1]) badgeImages[1].setAttribute('alt', global.I18n.t('home.about.practitionerBadgeAlt'));
 
-        bindText('.rebellion-badge p', 'home.footer');
+        localizeFooter();
 
         bindAttribute('#loginModal .close', 'aria-label', 'common.close');
         bindText('#loginModalTitle', 'auth.modalTitle');
@@ -198,9 +202,7 @@
     }
 
     function localizeFirebaseFallback() {
-        const overlay = q('#loading-overlay');
-        if (!overlay) return;
-        const inner = q('.cp-loading-inner', overlay);
+        const inner = q('#loading-overlay .cp-loading-inner');
         if (!inner) return;
         const paragraphs = qa(':scope > p', inner);
         const reload = q('button', inner);
@@ -216,29 +218,24 @@
         const overlay = q('#loading-overlay');
         if (!overlay || overlay.dataset.i18nObserved === 'true') return;
         overlay.dataset.i18nObserved = 'true';
-        const observer = new MutationObserver(localizeFirebaseFallback);
-        observer.observe(overlay, { childList: true, subtree: true });
+        new MutationObserver(localizeFirebaseFallback).observe(overlay, { childList: true, subtree: true });
     }
 
     function installModalAccessibility() {
         const modal = q('#loginModal');
         if (!modal || modal.dataset.a11yEnhanced === 'true') return;
         modal.dataset.a11yEnhanced = 'true';
-
         let trigger = null;
+
         document.addEventListener('click', (event) => {
             const candidate = event.target.closest('#navLoginBtn, #loginBtn, #hostBtn, #simuladosBtn');
             if (candidate) trigger = candidate;
         }, true);
 
-        function visible() {
-            return getComputedStyle(modal).display !== 'none';
-        }
-
-        function focusables() {
-            return qa('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])', modal)
-                .filter(el => el.offsetParent !== null);
-        }
+        const visible = () => getComputedStyle(modal).display !== 'none';
+        const focusables = () => qa(
+            'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])', modal
+        ).filter(el => el.offsetParent !== null);
 
         document.addEventListener('keydown', (event) => {
             if (!visible()) return;
@@ -262,15 +259,12 @@
             }
         });
 
-        const observer = new MutationObserver(() => {
+        new MutationObserver(() => {
             if (visible()) {
                 const first = focusables()[0];
                 if (first && !modal.contains(document.activeElement)) first.focus();
-            } else if (trigger && document.contains(trigger) && modal.contains(document.activeElement)) {
-                trigger.focus();
             }
-        });
-        observer.observe(modal, { attributes: true, attributeFilter: ['style', 'class'] });
+        }).observe(modal, { attributes: true, attributeFilter: ['style', 'class'] });
     }
 
     global.I18n.registerAdapter(() => {
