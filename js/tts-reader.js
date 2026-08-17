@@ -2,6 +2,10 @@
  * Audio Reader — player de narração pré-gravada (Azure Neural TTS) para as trilhas
  * Toca arquivos de áudio reais por capítulo, com Media Session API para
  * controle em segundo plano (tela bloqueada) no celular.
+ *
+ * Importante para i18n: o catálogo de áudio atual existe somente em PT-BR.
+ * Quando o locale ativo é EN, a narração é desativada por completo para não
+ * criar a expectativa de que exista áudio em inglês.
  */
 (function () {
     'use strict';
@@ -33,6 +37,7 @@
         rate: 1.0,
         chapterId: null,
         chapterTitle: '',
+        narrationEnabled: true,
     };
 
     // ── Posição de áudio salva por capítulo (retomar de onde parou) ─────────
@@ -134,6 +139,59 @@
         audioEl.addEventListener('loadedmetadata', updateProgress);
     }
 
+    function getActiveLocale() {
+        if (window.I18n && window.I18n.locale) return window.I18n.locale;
+        const datasetLocale = document.documentElement.dataset.locale;
+        if (datasetLocale) return datasetLocale;
+        const lang = (document.documentElement.lang || '').toLowerCase();
+        return lang.startsWith('en') ? 'en' : 'pt-BR';
+    }
+
+    function setNarrationAvailability(locale) {
+        const enabled = locale !== 'en';
+        state.narrationEnabled = enabled;
+
+        if (!triggerBtn || !bar || !audioEl) return;
+
+        triggerBtn.hidden = !enabled;
+        bar.hidden = !enabled;
+        audioEl.hidden = !enabled;
+        document.documentElement.dataset.narration = enabled ? 'enabled' : 'disabled';
+
+        if (!enabled) {
+            if (!audioEl.paused) audioEl.pause();
+            state.isOpen = false;
+            state.chapterId = null;
+            state.chapterTitle = '';
+            lastSavedSecond = -1;
+            bar.classList.remove('tts-open');
+            triggerBtn.classList.remove('tts-active');
+            document.body.classList.remove('tts-bar-open');
+            audioEl.removeAttribute('src');
+            try { audioEl.load(); } catch (_) {}
+            updateProgress();
+            if ('mediaSession' in navigator) {
+                try {
+                    navigator.mediaSession.metadata = null;
+                    navigator.mediaSession.playbackState = 'none';
+                } catch (_) {}
+            }
+            return;
+        }
+
+        // Ao voltar para PT, a fonte do capítulo é carregada somente quando o
+        // usuário abrir o player, evitando downloads desnecessários.
+        playBtn.disabled = false;
+        triggerBtn.classList.remove('tts-unavailable');
+    }
+
+    function syncNarrationWithLocale(event) {
+        const locale = event && event.detail && event.detail.locale
+            ? event.detail.locale
+            : getActiveLocale();
+        setNarrationAvailability(locale);
+    }
+
     function formatTime(seconds) {
         if (!isFinite(seconds) || seconds < 0) return '0:00';
         const m = Math.floor(seconds / 60);
@@ -149,18 +207,22 @@
     }
 
     function onProgressBarClick(e) {
-        if (!audioEl.duration || !isFinite(audioEl.duration)) return;
+        if (!state.narrationEnabled || !audioEl.duration || !isFinite(audioEl.duration)) return;
         const rect = progressBarEl.getBoundingClientRect();
         const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
         audioEl.currentTime = pct * audioEl.duration;
     }
 
     function seekBy(deltaSeconds) {
-        if (!audioEl.duration) return;
+        if (!state.narrationEnabled || !audioEl.duration) return;
         audioEl.currentTime = Math.max(0, Math.min(audioEl.duration, audioEl.currentTime + deltaSeconds));
     }
 
     function onPlay() {
+        if (!state.narrationEnabled) {
+            audioEl.pause();
+            return;
+        }
         playBtn.textContent = '⏸';
         playBtn.setAttribute('aria-label', 'Pausar');
         triggerBtn.classList.add('tts-active');
@@ -185,7 +247,7 @@
 
     // Salva a posição a cada ~5s enquanto toca, sem sobrecarregar o localStorage
     function trackPositionForSaving() {
-        if (!state.chapterId) return;
+        if (!state.narrationEnabled || !state.chapterId) return;
         const second = Math.floor(audioEl.currentTime);
         if (second !== lastSavedSecond && second % 5 === 0) {
             lastSavedSecond = second;
@@ -194,11 +256,12 @@
     }
 
     function togglePlay() {
-        if (!audioEl.src) return;
+        if (!state.narrationEnabled || !audioEl.src) return;
         if (audioEl.paused) audioEl.play(); else audioEl.pause();
     }
 
     function changeSpeed(delta) {
+        if (!state.narrationEnabled) return;
         state.rate = Math.min(2.5, Math.max(0.5, +(state.rate + delta).toFixed(2)));
         audioEl.playbackRate = state.rate;
         speedLabel.textContent = state.rate.toFixed(1) + '×';
@@ -219,7 +282,7 @@
     }
 
     function loadChapter(chapter) {
-        if (!chapter) return;
+        if (!state.narrationEnabled || !chapter) return;
         const wasPlaying = !audioEl.paused;
         state.chapterId = chapter.id;
 
@@ -256,7 +319,7 @@
     }
 
     function updateMediaSessionMetadata() {
-        if (!('mediaSession' in navigator)) return;
+        if (!state.narrationEnabled || !('mediaSession' in navigator)) return;
         navigator.mediaSession.metadata = new MediaMetadata({
             title: state.chapterTitle || trilha.album,
             artist: 'Apostila — Narração',
@@ -266,6 +329,7 @@
 
     // ── Bar open/close ────────────────────────────────────────────────────
     function openBar() {
+        if (!state.narrationEnabled) return;
         state.isOpen = true;
         bar.classList.add('tts-open');
         triggerBtn.classList.add('tts-active');
@@ -285,12 +349,14 @@
     }
 
     function toggleBar() {
+        if (!state.narrationEnabled) return;
         if (state.isOpen) closeBar(); else openBar();
     }
 
     function bindSidebarLinks() {
         document.querySelectorAll('.trilha-sidebar a[href^="#cap"]').forEach(link => {
             link.addEventListener('click', () => {
+                if (!state.narrationEnabled) return;
                 setTimeout(() => {
                     const id = link.getAttribute('href').slice(1);
                     const ch = document.getElementById(id);
@@ -312,15 +378,23 @@
         }
 
         bindSidebarLinks();
+        syncNarrationWithLocale();
+        document.addEventListener('cloudpath:i18nready', syncNarrationWithLocale);
+        document.addEventListener('cloudpath:localechange', syncNarrationWithLocale);
 
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', () => audioEl.play());
-            navigator.mediaSession.setActionHandler('pause', () => audioEl.pause());
+            navigator.mediaSession.setActionHandler('play', () => {
+                if (state.narrationEnabled && audioEl.src) audioEl.play();
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                if (state.narrationEnabled) audioEl.pause();
+            });
             navigator.mediaSession.setActionHandler('seekbackward', () => seekBy(-15));
             navigator.mediaSession.setActionHandler('seekforward', () => seekBy(15));
         }
 
         document.addEventListener('keydown', e => {
+            if (!state.narrationEnabled) return;
             if (e.altKey && e.key === 'n') { e.preventDefault(); if (state.isOpen) togglePlay(); }
             if (e.altKey && e.key === 'r') { e.preventDefault(); toggleBar(); }
         });
