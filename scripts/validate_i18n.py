@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Validate CloudPath modular locale catalogs and referenced translation keys."""
+"""Validate CloudPath modular locale catalogs, references and EN mechanical quality."""
 
 from __future__ import annotations
 
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
+
+from translation_integrity import field_anchor_errors
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCALES_DIR = ROOT / "locales"
@@ -19,6 +22,19 @@ MARKUP_REFERENCE_PATTERN = re.compile(
 KEY_LITERAL_PATTERN = re.compile(
     r"[\"']((?:meta|brand|language|common|nav|auth|home|quiz|study|exam|arena|progress|errors)\.[A-Za-z0-9_.]+)[\"']"
 )
+PT_MARKERS = re.compile(
+    r"\b(?:qual|quais|uma|um|empresa|servi[cç]o|servi[cç]os|usu[aá]rio|usu[aá]rios|equipe|dados|nuvem|"
+    r"armazenamento|seguran[cç]a|gerenciado|gerenciada|permite|deve|possui|precisa|deseja|utiliza|utilizar|"
+    r"aplica[cç][aã]o|inst[aâ]ncia|regi[aã]o|disponibilidade|faturamento|custo|custos|acesso|recurso|recursos|"
+    r"quest[aã]o|pergunta|resposta|correta|errada|continuar|voltar|salvar|excluir|hist[oó]rico|progresso|"
+    r"cap[ií]tulo|conceito|conceitos|pr[aá]tica|arquitetura|responsabilidade|monitoramento|processamento)\b",
+    re.I,
+)
+
+
+def norm(value: str) -> str:
+    value = unicodedata.normalize("NFKC", value or "")
+    return re.sub(r"\s+", " ", value.strip()).casefold()
 
 
 def deep_merge(target: dict, source: dict) -> dict:
@@ -124,6 +140,22 @@ def main() -> int:
             elif not value.strip():
                 errors.append(f"{locale}:{key}: translation must not be empty")
 
+    # Mechanical EN content quality for all modular catalogs, including large trail literals.
+    pt_flat = flattened[BASE_LOCALE]
+    en_flat = flattened["en"]
+    for key in sorted(base_keys & set(en_flat)):
+        pt_value = pt_flat.get(key)
+        en_value = en_flat.get(key)
+        if not isinstance(pt_value, str) or not isinstance(en_value, str):
+            continue
+        if len(pt_value) >= 28 and norm(pt_value) == norm(en_value) and PT_MARKERS.search(pt_value):
+            errors.append(f"en:{key}: long Portuguese source copied unchanged")
+        markers = PT_MARKERS.findall(en_value)
+        if len(markers) >= 3:
+            errors.append(f"en:{key}: probable Portuguese residue: {markers[:5]}")
+        for detail in field_anchor_errors(pt_value, en_value, key):
+            errors.append(f"en:{detail}")
+
     refs = referenced_keys()
     unknown_refs = sorted(refs - base_keys)
     if unknown_refs:
@@ -131,14 +163,16 @@ def main() -> int:
 
     if errors:
         print("CloudPath i18n validation failed:\n")
-        for error in errors:
+        for error in errors[:300]:
             print(f"  - {error}")
+        if len(errors) > 300:
+            print(f"  ... and {len(errors) - 300} more")
         return 1
 
     print(
         f"CloudPath i18n OK: {len(SUPPORTED_LOCALES)} locales, "
         f"{len(base_files)} catalog files/locale, {len(base_keys)} keys, "
-        f"{len(refs)} frontend references."
+        f"{len(refs)} frontend references; EN catalog fidelity passed."
     )
     return 0
 
