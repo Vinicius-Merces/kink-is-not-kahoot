@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "059-066",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-059": {
+      "optionReasons": {
+        "dva-med-059:option:0": "User-Agent identifies client/navigator — does not load user groups.",
+        "dva-med-059:option:1": "It's the closest because a CSV of the Cognito actually contains the groups — but manually exporting it per day is outdated and is not used to authorize CADA called in real time; groups come in claim cognito:Token groups JWT issued not logged in.",
+        "dva-med-059:option:2": "Tags by Lambda are resource metadata — do not have authenticated user groups.",
+        "dva-med-059:option:3": ""
+      },
+      "finalJustifications": [
+        "Because they claim it cognito:groups come in tokens JWT issued not logged in: a API validates and uses groups ('admin', 'editor', 'reader') to decide the permissions of each call.",
+        "Because CSV exported from Cognito comes with the groups of the login: a API the valid and uses groups ('admin', 'editor', 'reader') to decide the permissions of each call.",
+        "Because the User-Agent header comes with the login groups: a API the valid and uses groups ('admin', 'editor', 'reader') to decide the permissions of each call of the application.",
+        "Because the tags of Lambda come with the login groups: a API validates and uses groups ('admin', 'editor', 'reader') to decide the permissions of each call of the application."
+      ]
+    },
+    "dva-med-060": {
+      "optionReasons": {
+        "dva-med-060:option:0": "",
+        "dva-med-060:option:1": "Exclude the old key after the exchange makes the data encrypted with it IRRECUPERABLE — data loss.",
+        "dva-med-060:option:2": "Exporting the paper key at each exchange is unsafe and unnecessary — the KMS keeps the materials internally.",
+        "dva-med-060:option:3": "It's the closest because creating new key periodically It's a form of rotation — but it requires updating keyId everywhere and RECRIPTOGRAFAR the old data and manage the old key; exchange the material by keeping the same ARN, without recrypting or moving the code, is the automatic rotation of the KMS."
+      },
+      "finalJustifications": [
+        "Because automatic rotation generates new material annually while maintaining the same ARN/keyId and the ability to decipher with old materials — without rewriting data or changing code.",
+        "Because excluding the old key generates new material annually maintaining the same ARN/keyId and the ability to decipher with old materials — without rewriting data or changing code.",
+        "Because exporting the paper key generates new material annually while maintaining the same ARN/keyId and the ability to decipher with old materials — without rewriting data or changing code.",
+        "Because creating a new key per month generates new material while maintaining the same ARN/keyId and the ability to decipher with old materials — without rewriting data or changing code."
+      ]
+    },
+    "dva-med-061": {
+      "optionReasons": {
+        "dva-med-061:option:0": "Recording secrets in Dockerfile incorporates them into the image — persistent leak, worse still.",
+        "dva-med-061:option:1": "Printing the secrets 'for conference' is exactly what they expose in the logs.",
+        "dva-med-061:option:2": "It's the closest because deactivating logs would really stop secrets from appearing in them — but throw away TODA the observability of the build (errors, diagnosis); the correct is to inject secrets via Secrets Manager/Parameter Store and EVITAR commands that echo them (set +x, no echo), without relying only on masking.",
+        "dva-med-061:option:3": ""
+      },
+      "finalJustifications": [
+        "Because injecting secrets saw Secrets Manager/Parameter Store in buildspec and avoid commands that echo them (set +x, no echo) protects the logs — without relying only on partial masking.",
+        "Because recording the secrets on the Dockerfile and avoiding commands that echo them (set +x, no echo) protects the logs — without relying only on partial masking of the CodeBuild.",
+        "Why print the secrets at first and avoid commands that echo them (set +x, no echo) protects the logs — without relying only on partial masking of the CodeBuild.",
+        "Because deactivating all logs and avoiding commands that echo them (set +x, no echo) protects the logs — without relying only on partial masking of the CodeBuild."
+      ]
+    },
+    "dva-med-062": {
+      "optionReasons": {
+        "dva-med-062:option:0": "",
+        "dva-med-062:option:1": "False: ID token expires; and even if it did not expire, it is not API authorization token.",
+        "dva-med-062:option:2": "It's the closest because the two are tokens of Cognito and they seem equivalent — but they are NOT interchangeable: each has purpose; the ID token carries the IDENTIDADE user (to customer) and access token is what AUTORIZA calls to APIs and resources (scopes)).",
+        "dva-med-062:option:3": "Access token DOES NOT contain user password — loads scopes/claims of authorization, non-credit."
+      },
+      "finalJustifications": [
+        "Because the ID token is for the customer himself (user identity claims) and access token is what authorizes API calls and protected resources via scopes — different roles.",
+        "Because ID token never expires and therefore serves for APIs, while access token authorizes resource calls — the first is preferred for long-term calls.",
+        "Because ID token and access token are interchangeable in any API: both carry identity and authorize calls to protected resources indiscriminately.",
+        "Because the ID token is for the client and the access token contains the encrypted password of the user, used to authorize API calls and protected resources via scopes."
+      ]
+    },
+    "dva-med-063": {
+      "optionReasons": {
+        "dva-med-063:option:0": "",
+        "dva-med-063:option:1": "False: o Lambda encrypts the environment variables at rest by default — there is cryptography support.",
+        "dva-med-063:option:2": "Name with prefix SECRET_ does not protect anything — it is only a name; the protection comes from KMS.",
+        "dva-med-063:option:3": "It's the closest because it touches who can VER the variables — but the statement is FALSA: they are NOT public to any user AWS; the correct is that they are already encrypted at rest by KMS by default, and can be reinforced with CMK own and cryptographic helpers in transit."
+      },
+      "finalJustifications": [
+        "Because the variables are encrypted at rest by KMS by default, and it is possible to use one CMK own and cryptographic helpers in transit — protecting even from those who read the configuration.",
+        "Because Lambda does not support variable encryption, but it is possible to use a CMK own and cryptographic helpers in transit — protecting even from who reads the function configuration.",
+        "Because the prefix is enough. SECRET_ for the Lambda encrypt at rest, and it is possible to use a CMK own and cryptographic helpers in transit — protecting from who reads the configuration.",
+        "Because the variables are public to any user AWS, but you can use one CMK own and cryptographic helpers in transit — protecting from who reads the function configuration."
+      ]
+    },
+    "dva-med-064": {
+      "optionReasons": {
+        "dva-med-064:option:0": "",
+        "dva-med-064:option:1": "It's the closest because it describes a displacement GRADUAL traffic — but that's the standard LINEAR (increments at each interval); the Canary10Percent5Minutes is DOIS Steps: 10% now and, after 5 minutes without alarm, the 90% remaining at once.",
+        "dva-med-064:option:2": "Deployment of LAMBDA traffic displacement ALIAS — does not update 'instances EC2'.",
+        "dva-med-064:option:3": "The new version RECEBE real traffic ( 10%) during the window — does not rotate in parallel without traffic."
+      },
+      "finalJustifications": [
+        "Why not Canary10Percent5Minutes 10% of the traffic of the alias goes to the new version and, after 5 minutes without alarms fired, the 90% remaining are promoted at once.",
+        "Because in Canary10Percent5Minutes traffic grows 10% each 5 minutes to 100%, gradually shifting the alias to the new version without alarms fired.",
+        "Why not Canary10Percent5Minutes 10 cases EC2 are updated each time 5 minutes, moving the alias to the new version until complete without alarms fired.",
+        "Because in Canary10Percent5Minutes the new version runs in parallel by 5 minutes without real traffic and, without alarms, the alias is promoted to her at once."
+      ]
+    },
+    "dva-med-065": {
+      "optionReasons": {
+        "dva-med-065:option:0": "In-place SUPORTA life-cycle hooks (BeforeInstall, ValidateService etc.) — the claim is false.",
+        "dva-med-065:option:1": "",
+        "dva-med-065:option:2": "Blue/green is NOT exclusive to Lambda — also exists for EC2 providing new fleet.",
+        "dva-med-065:option:3": "It's the closest because it talks about creating/reusing instances, which is the axis of difference — but INVERTE: the in-place updates the MESMAS instances; the blue/green provides a set NOVO And turn the traffic to it."
+      },
+      "finalJustifications": [
+        "Because the in-place updates the application in the same instances (stopping and reconnecting the service), while the blue/green provides a new set and redirects the balancer traffic to it.",
+        "Because the in-place does not allow hooks and updates in the same instances, while the blue/green provides a new set and redirects the balancer traffic to it.",
+        "Because the in-place updates in the same instances and the blue/green only works for Lambda, providing a new set and redirecting balancer traffic to it.",
+        "Because the in-place creates new instances and the blue/green reuses the old ones, redirecting the balancer traffic between sets as the implementation advances."
+      ]
+    },
+    "dva-med-066": {
+      "optionReasons": {
+        "dva-med-066:option:0": "It's the closest because BeforeInstall is a real app spec hook — but it turns ANTES to copy the files, when the new version does not exist: too soon for smoke tests; validate the new version already running, making the deploy fail to fail, is the ValidateService (hook final).",
+        "dva-med-066:option:1": "DownloadBundle is internal agent step (download) — not hook to run tests.",
+        "dva-med-066:option:2": "ApplicationStop rotates to PARAR the previous version — before the new climb, it's not for her smoke test.",
+        "dva-med-066:option:3": ""
+      },
+      "finalJustifications": [
+        "Because ValidateService is the final hook, after the new version starts rolling: the smoke tests there confirm health and, if they fail, the deploy fails and reverses.",
+        "Because BeforeInstall is the final hook, after the new version starts rolling: the smoke tests there confirm health and, if they fail, the deploy fails and reverses.",
+        "Because DownloadBundle is the final hook, after the new version starts rolling: the smoke tests there confirm health and, if they fail, the deploy fails and reverses.",
+        "Because ApplicationStop is the final hook after the new version starts running: the smoke tests there confirm health and, if they fail, the deploy fails and reverses."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "011-018",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-011": {
+      "optionReasons": {
+        "dva-med-011:option:0": "Minimize memory gives less CPU — tends to PIORAR the initialization, not to mitigate the cold start.",
+        "dva-med-011:option:1": "Disabling the version does not affect cold start — version is deploy organization, non-heating.",
+        "dva-med-011:option:2": "It's the closest because timeout is a configuration of its own function — but it limits the TEMPO Maximum execution, do not preheat environments: cold starters continue; keep instances already initialized and ready is the Provided Competition.",
+        "dva-med-011:option:3": ""
+      },
+      "finalJustifications": [
+        "Because provided Competition keeps a number of environments already initialized and ready to respond immediately — the cold starts are API critical even after idleness.",
+        "Why increase the timeout to 15 min keeps a number of environments already initialized and ready to respond immediately — cold starters disappear in API critical even after idleness.",
+        "Because reducing memory to a minimum keeps a number of environments already initialized and ready to respond immediately — cold starters disappear in API critical even after idleness.",
+        "Because deactivating the versioning keeps a number of environments already initialized and ready to respond immediately — the cold starts disappear in API critical even after idleness."
+      ]
+    },
+    "dva-med-012": {
+      "optionReasons": {
+        "dva-med-012:option:0": "It is the closest because X-Ray also reduces the cost of observability in certain cases — but it is TRACING, does not replace the logs: exchange logs for X-Ray PERDE important recent records; controlling cost by maintaining recent logs is the retention policy that expires only the old ones.",
+        "dva-med-012:option:1": "Disable the CloudWatch Logs removes TODOS logs — loses even the important recent ones.",
+        "dva-med-012:option:2": "Increase the memory of Lambda changes performance/run cost — does not control log storage.",
+        "dva-med-012:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the retention policy in the log group automatically expires the old logs and keeps the recent ones: the storage cost falls without losing the important records of the current period.",
+        "Because using only X-Ray automatically expires the old logs and keeps the recent ones: the storage cost falls without losing the important records of the current period.",
+        "Why disable the CloudWatch Logs automatically expires the old logs and keeps the recent ones: the storage cost falls without losing the important records of the current period.",
+        "Why increase the memory of Lambda automatically expires the old logs and keeps the recent ones: the storage cost falls without losing the important records of the current period."
+      ]
+    },
+    "dva-med-013": {
+      "optionReasons": {
+        "dva-med-013:option:0": "",
+        "dva-med-013:option:1": "Versioning is not a resource of DynamoDB of this type — and expiring versions does not remove session items.",
+        "dva-med-013:option:2": "'Retention period' does not exist for table items DynamoDB — does not expire items by age.",
+        "dva-med-013:option:3": "It's the closest because a daily Scan+Delete job also removes old items — but CONSOME read/write capability and requires CODE to maintain; automatically delete expired items, without writing cost or code, is the TTL of the DynamoDB."
+      },
+      "finalJustifications": [
+        "Because TTL excludes automatically expired items from an attribute with expiration timestamp — without consuming writing capacity or requiring cleaning code.",
+        "Because the versioning excludes automatically expired items from an attribute with expiration timestamp — without consuming writing capacity or requiring cleaning code.",
+        "Because reducing retention period excludes automatically expired items from an attribute with expiration timestamp — without consuming writing capacity or requiring cleaning code.",
+        "Because Scan+Delete's daily job excludes automatically expired items from an attribute with expiration timestamp — without consuming writing capacity or requiring code."
+      ]
+    },
+    "dva-med-014": {
+      "optionReasons": {
+        "dva-med-014:option:0": "It's the closest because consulting the table periodically also detects changes — but by POLLING inefficient, late and without the image ANTIGA of the item; react to each creation/modification receiving the new image (and optionally the old one) is the DynamoDB Streams with event source mapping.",
+        "dva-med-014:option:1": "PITR is continuous backup for restoration — is not a consumable change event stream.",
+        "dva-med-014:option:2": "",
+        "dva-med-014:option:3": "DynamoDB has no 'trigger' SQL' — is not relational bank; the reaction to changes is via Streams."
+      },
+      "finalJustifications": [
+        "Because DynamoDB Streams issues changes to items (new and optionally old image) and event source mapping triggers Lambda each event — event-oriented flow in near real time.",
+        "Why consult the table every minute issues changes to the items (new and optionally the old image) and activates the Lambda each event — event-oriented flow in near real time.",
+        "Why read the backups of PITR emits changes of items (new and optionally old image) and activates the Lambda each event — event-oriented flow in near real time.",
+        "Because the trigger SQL in the table issues changes of items (new and optionally the old image) and activates the Lambda each event — event-oriented flow in near real time."
+      ]
+    },
+    "dva-med-015": {
+      "optionReasons": {
+        "dva-med-015:option:0": "It's the closest because it supposes that the DynamoDB Take care of the forwarding — but it DOES NOT send alone: UnprocessedItems means that PARTE of the lot was not recorded (e.g. throttling), and it is up to the CODE to forward items not processed with exponential backoff.",
+        "dva-med-015:option:1": "The table is not corrupted — UnprocessedItems is normal flow under throttling, no data failure.",
+        "dva-med-015:option:2": "",
+        "dva-med-015:option:3": "It is not informative: if the list is filled out, these items have NOT been recorded and need to be re-sent."
+      },
+      "finalJustifications": [
+        "Because UnprocessedItems indicates that part of the batch has not been recorded (e.g. throttling): the code should forward unprocessed items with exponential backoff to the empty list.",
+        "Because DynamoDB forwards items automatically after: the code only needs to record that part of the batch has not been saved and wait for auto reprocessing of the list.",
+        "Because the table has been corrupted: the code should restore the table and then forward unprocessed items with exponential backoff to the empty list completely.",
+        "Because all the items were saved and the list is informative: the code can ignore it, since UnprocessedItems only reports the items processed in the current batch."
+      ]
+    },
+    "dva-med-016": {
+      "optionReasons": {
+        "dva-med-016:option:0": "It's the closest because BatchWriteItem also groups several writings into a call — but it's NOT atomic: each item can fail independently (UnprocessedItems), without all-or-nothing; atomity between items/tables is TransactWriteItems.",
+        "dva-med-016:option:1": "Two PutItems in sequence are not atomic — the second may fail by leaving the first applied.",
+        "dva-med-016:option:2": "",
+        "dva-med-016:option:3": "Global Tables replica between regions — does not guarantee atomicity between two writings."
+      },
+      "finalJustifications": [
+        "Because TransactWriteItems groups up 100 actions with atomic effect (everything-or-nothing), even between different tables—debit and transaction record happen together or none happens.",
+        "Because BatchWriteItem groups even 100 actions with atomic effect (everything-or-nothing), even between different tables—debit and transaction record happen together or none happens.",
+        "Because two PutItems in sequence group up 100 actions with atomic effect (everything-or-nothing), even between tables—debit and transaction record happen together or none happen.",
+        "Because the Global Tables group even 100 actions with atomic effect (everything-or-nothing), even between different tables—debit and transaction record happen together or none happens."
+      ]
+    },
+    "dva-med-017": {
+      "optionReasons": {
+        "dva-med-017:option:0": "LSI and GSI NOT synonymous — differ in keys, creation time and scope.",
+        "dva-med-017:option:1": "",
+        "dva-med-017:option:2": "It's the closest because it's right that UM of the indices can only be created with the table — but INVERTE: is the LSI which requires creation along with the table (same partition key, different sort key); GSI can have completely different keys and be created at any time.",
+        "dva-med-017:option:3": "LSI does not replicate the table to another region — this is Global Tables, not index."
+      },
+      "finalJustifications": [
+        "Because LSI keeps the table key partition varying only the key spell and only born with the table; the GSI accepts completely different keys and can be created at any time.",
+        "Because GSI keeps the table key partition varying only the key spell and only born with the table; the LSI accepts completely different keys and can be created at any time.",
+        "Because LSI and the GSI are the same index with regional names: both keep the score key of the table and can be created at any time, with different sort key.",
+        "Because LSI replicates the table to another region by varying the key spell and is only born with the table; the GSI accepts different keys and can be created at any time."
+      ]
+    },
+    "dva-med-018": {
+      "optionReasons": {
+        "dva-med-018:option:0": "It's the closest because LastEvaluatedKey points to the LAST item evaluated — but it's not the last of the TABELA whole: it marks where the page stopped because of the limit of 1 MB; code should continue Query from it until it comes empty.",
+        "dva-med-018:option:1": "",
+        "dva-med-018:option:2": "The consultation did not fail — LastEvaluatedKey filled is normal PAID flow, not error.",
+        "dva-med-018:option:3": "It's not related to the maximum table size — it's just the cut-off page of 1 MB per call."
+      },
+      "finalJustifications": [
+        "Because the result was paged (limit of 1 MB per call): the code repeats Query by passing the value in ExclusiveStartKey until LastEvaluatedKey is empty — so look for the rest.",
+        "Because the returned item is the last of the entire table: the code repeats Query by passing the value in ExclusiveStartKey to the LastEvaluatedKey see empty — so look for the rest of the data.",
+        "Because the query failed and must be repeated: the code repeats Query by passing the value in ExclusiveStartKey to the LastEvaluatedKey see empty — so look for the rest of the data.",
+        "Because the table has reached the maximum size: the code repeats Query by passing the value in ExclusiveStartKey to the LastEvaluatedKey see empty — so look for the rest of the page data."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "019-026",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-019": {
+      "optionReasons": {
+        "dva-med-019:option:0": "It's the closest because it touches on the behavior of /tmp between executions — but it's NOT shared between account functions: each function has its own /tmp EFFEMERO by execution environment (512 MB a 10 GB), which may persist between invocations of the same warm, never lasting environment.",
+        "dva-med-019:option:1": "",
+        "dva-med-019:option:2": "/tmp is not automatically replicated to S3 — persistent data requires recording in S3 explicitly.",
+        "dva-med-019:option:3": "/tmp is NOT unlimited — goes from 512 MB a 10 GB configurable, and the developer needs to scale."
+      },
+      "finalJustifications": [
+        "Because /tmp is ephemeral by running environment (512 MB a 10 GB): may persist between invocations in the same hot environment, but should never be treated as durable storage.",
+        "Because /tmp is shared among all account functions (512 MB a 10 GB): may persist between invocations in the same warm environment, but should never be treated as durable.",
+        "Because /tmp is replicated to S3 at the end of each execution (512 MB a 10 GB): may persist between invocations in the same warm environment, but should never be treated as durable.",
+        "Because /tmp is unlimited in size: it can persist between invocations in the same hot environment, but should never be treated as durable storage by function."
+      ]
+    },
+    "dva-med-020": {
+      "optionReasons": {
+        "dva-med-020:option:0": "",
+        "dva-med-020:option:1": "Save connection in an environment variable does not reuse connection object — environment variable is static string.",
+        "dva-med-020:option:2": "It's the closest because creating and closing the connection to every 'security' invocation seems defensive — but it's the ANTI-FATHER causing latency: create expensive resources each time; take advantage of the warm environment is initializing UMA once, out of the handler, in the global scope.",
+        "dva-med-020:option:3": "Increasing timeout gives more time — does not reduce the latency of re-creating connections to each invocation."
+      },
+      "finalJustifications": [
+        "Why initialize expensive resources (connections, customers) SDK) outside the handler, in the global scope, makes the invocations in the same warm environment reuse them — latency by invocation falls.",
+        "Because saving the connection in an environment variable makes the invocations in the same warm environment reuse it — latency by invocation falls by not recreating expensive resources.",
+        "Because creating and closing the connection inside the handler makes the invocations in the same warm environment reuse it — latency by invocation falls by not recreating expensive resources.",
+        "Because increasing timeout makes invocations in the same hot environment reuse expensive resources — latency by invocation falls by not re-creating them at each call."
+      ]
+    },
+    "dva-med-021": {
+      "optionReasons": {
+        "dva-med-021:option:0": "",
+        "dva-med-021:option:1": "It's the closest because it compares performance, which looks like the difference — but it's FALSA: Event mode doesn't run with more CPU; the real difference is SINCRONISMO: RequestResponse is synchronous (waits for response) and Event is asynchronous (row, answer) 202 and Restrictive Management).",
+        "dva-med-021:option:2": "The two modes are NOT identical — they differ in synchronism and retentive treatment.",
+        "dva-med-021:option:3": "RequestResponse works in and out of VPC — there is no restriction to VPC."
+      },
+      "finalJustifications": [
+        "Because the RequestResponse is synchronous (the caller waits and receives response/errors) and the Event is asynchronous (the Lambda row, answer 202 at the time and manage the retaliatory).",
+        "Because Event is faster for running with more CPU, and the RequestResponse is synchronous — the practical difference is in processing performance between the two modes of invocation.",
+        "Because both modes have been identical since 2020: both expect the response and manage retentatives in the same way in direct invocation of the function by API of the Lambda.",
+        "Because the RequestResponse only works within VPCs (synchronous) and the Event runs out — the practical difference is in the network scope of each invocation mode."
+      ]
+    },
+    "dva-med-022": {
+      "optionReasons": {
+        "dva-med-022:option:0": "It's the closest because CORS is a common problem of API Gateway — But Failure to CORS generates browser error/403, no 502 Bad Gateway; or 502 in the proxy integration comes from RESPOSTA of the function outside the required format (JSON with statusCode, headers and body string).",
+        "dva-med-022:option:1": "Failed memory generates function error/timeout (5(xx different) — not the 502 typical invalid response format.",
+        "dva-med-022:option:2": "",
+        "dva-med-022:option:3": "The API Gateway out of the air in the region would make general service error — not the 502 point of integration."
+      },
+      "finalJustifications": [
+        "Because in proxy integration the function should return a JSON with statusCode, headers and body (string): an object out of that format makes the API Gateway respond 502 Bad Gateway.",
+        "Because in proxy integration the lack of CORS makes the function return out of the expected format: an object like this does the API Gateway respond 502 Bad Gateway to the customer.",
+        "Because in proxy integration exceeding memory makes the function return out of the expected format: an object like this does the API Gateway respond 502 Bad Gateway to the customer.",
+        "Because in proxy integration the API Gateway out of the air makes the function return out of the expected format: an object like this does the API Gateway respond 502 Bad Gateway to the customer."
+      ]
+    },
+    "dva-med-023": {
+      "optionReasons": {
+        "dva-med-023:option:0": "",
+        "dva-med-023:option:1": "It is the closest because stages and variables are part of the configuration of the API — but they parameterize the environment (URLs, flags), no TRANSFORMAM the payload; rename fields and reassemble the JSON between client and backend is the mapping template in VTL.",
+        "dva-med-023:option:2": "Use plans with API keys control quota/throttling per customer — do not transform the body of the request.",
+        "dva-med-023:option:3": "Custom domain changes the URL of API — does not change the payload sent to the backend."
+      },
+      "finalJustifications": [
+        "Because the mapping templates in VTL, in the integration of requisition/response, rename fields and mount another JSON before sending to the backend — the transformation of non-proxy payload.",
+        "Because the stages with variables, in the integration of requisition/response, rename fields and mount another JSON before sending to the backend — the transformation of non-proxy payload.",
+        "Because I use plans with API keys, when integrating requisition/response, rename fields and mount another JSON before sending to the backend — the transformation of non-proxy payload.",
+        "Because the custom domain, in the integration of requisition/response, renames fields and mounts another JSON before sending to the backend — the transformation of non-proxy payload."
+      ]
+    },
+    "dva-med-024": {
+      "optionReasons": {
+        "dva-med-024:option:0": "Long polling only makes the consumer wait for messages when reading — does not delay the availability of a message sent.",
+        "dva-med-024:option:1": "",
+        "dva-med-024:option:2": "Retention period defines how long the message PERMANECE in the queue — does not delay the first delivery.",
+        "dva-med-024:option:3": "It's the closest because visibility timeout also hides the message — but it acts DEPOIS that a consumer RECEBE the message (to process it without re-delivery), not on ENTRADA of row; delay the PRIMEIRA availability is the delay tail (or DelaySeconds by message)."
+      },
+      "finalJustifications": [
+        "Because the delay queue (or DelaySeconds) delays the PRIMEIRA availability of the message by 15 min, while the visibility timeout hides the message only AFTER it is received by a consumer.",
+        "Because long polling delays the first delivery of the message by 15 min, while the visibility timeout hides the message only after it is received by a consumer.",
+        "Because the retention period delays the first delivery of the message by 15 min, while the visibility timeout hides the message only after it is received by a consumer.",
+        "Because the visibility timeout of 15 min delays the first delivery of the message, while the same timeout hides the message only after it is received by a consumer."
+      ]
+    },
+    "dva-med-025": {
+      "optionReasons": {
+        "dva-med-025:option:0": "",
+        "dva-med-025:option:1": "Increase visibility timeout only postpones the re-delivery of the entire batch — the 9 Good ones still come back.",
+        "dva-med-025:option:2": "It's the closest because batch size 1 eliminates reprocessing in fact — but throws out the efficiency of processing in LOTE (more invocations, more cost); reporting only failed IDs, keeping the batch, is the partial batch response (ReportBatchItemFailures)).",
+        "dva-med-025:option:3": "Fake success always hides the real flaws — loses the bad message instead of reprocessing it."
+      },
+      "finalJustifications": [
+        "Because the partial batch response (ReportBatchItemFailures) makes the function return only the failed IDs: only those return to the queue, and the 9 successful are not reprocessed.",
+        "Because increasing visibility timeout makes the function return only the failed IDs: only those return to the queue, and the 9 successful are not reprocessed in the batch.",
+        "Why reduce batch size to 1 makes the function return only the failed IDs: only those return to the queue, and the 9 successful are not reprocessed in the batch.",
+        "Because capturing everything as a success makes the function return only the failed IDs: only those return to the queue, and the 9 successful are not reprocessed in the batch."
+      ]
+    },
+    "dva-med-026": {
+      "optionReasons": {
+        "dva-med-026:option:0": "",
+        "dva-med-026:option:1": "The row SQS does not filter by content — the selection by attribute happens on the signature of the SNS.",
+        "dva-med-026:option:2": "It is the closest because filtering into the consumer would also leave only the refunds processed — but it is precisely what the veto requirement (without the consumer discarding the rest): the message would still be delivered and paid; select in itself ASSINATURA is the filter policy of SNS.",
+        "dva-med-026:option:3": "One topic per type multiplies the infrastructure — the filter policy resolves with a single signature."
+      },
+      "finalJustifications": [
+        "Because the filter policy in the subscription only delivers to the refund queue messages whose attribute 'type' home with the filter — the consumer does not receive or discard the rest.",
+        "Because row rejection delivers to the repayment row only messages whose attribute 'type' home with the filter — the consumer does not receive or discard the rest of the events.",
+        "Because the consumer deleting what does not matter delivers to the queue only messages whose attribute 'type' home with the filter — without receiving or discarding the rest of the events.",
+        "Because one topic per type delivers to the reimbursement queue only messages whose attribute 'type' home with the filter — the consumer does not receive or discard the rest of the events."
+      ]
+    }
+  }
+}

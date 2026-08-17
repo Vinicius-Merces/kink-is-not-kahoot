@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "079-086",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-079": {
+      "optionReasons": {
+        "dva-avc-079:option:0": "It is the closest because it respects the limit of 4 KB slicing the file — but passing hundreds of MB through API Encrypt in thousands of blocks is very slow and expensive; the standard of ENVELOPE it's generating UMA data key (GenerateDataKey), encrypt the file locally with it and save the encrypted data key.",
+        "dva-avc-079:option:1": "Export material from CMK and encrypt all local without KMS breaks key management — not encryption envelope.",
+        "dva-avc-079:option:2": "GenerateDataKeyWithhoutPlaytext + Instant Decrypt is a rodeo that nullifies optimization — the GenerateDataKey already returns both versions at once.",
+        "dva-avc-079:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the encryption envelope uses GenerateDataKey (flat text + encrypted version), cipher the local file with AES-256-GCM, save the encrypted key data together and discard it in plain — Decrypt on the key data to describe.",
+        "Why encrypt blocks of 4 KB uses GenerateDataKey (flat text + encrypted version), encrypts the local file with AES-256-GCM, save the encrypted key data together and discard it in plain — Decrypt to describe.",
+        "Why export the material from CMK use GenerateDataKey (flat text + encrypted version), encrypt the local file with AES-256-GCM, save the encrypted key data together and discard it in plain — Decrypt to describe.",
+        "Because GenerateDataKeyWithhoutPlaytext + Decrypt uses GenerateDataKey (flat text + encrypted version), encrypt the local file with AES-256-GCM, saves the encrypted key data together and discards it in clear."
+      ]
+    },
+    "dva-avc-080": {
+      "optionReasons": {
+        "dva-avc-080:option:0": "",
+        "dva-avc-080:option:1": "Standard String parameter saves the password in text and does not rotate or update the bank — insecure and incomplete.",
+        "dva-avc-080:option:2": "Hand-updated environment variable requires REIMPLANTAR the function at each 30 days — the opposite of 'no re-implantation''.",
+        "dva-avc-080:option:3": "It's the closest because SecureString + EventBridge + Lambda Customized REALMENTE it would rotate the value — but it is rotation code to write and maintain, and the Parameter Store does not manage password exchange NO BANCO; fully managed rotation (value + password in RDS) is the Secrets Manager with automatic rotation."
+      },
+      "finalJustifications": [
+        "Because Secrets Manager with automatic rotation uses one Lambda rotation to change the password in RDS And the value of the secret to each 30 days, and the app reads via GetSecretValue in runtime — without reimplanting or downtime.",
+        "Because Parameter Store Standard String uses one Lambda rotation to change the password in RDS and the value at each 30 days, and the app reads in runtime — without reimplanting or downtime, managed by AWS.",
+        "Because the environment variable with KMS use one Lambda rotation to change the password in RDS and the value at each 30 days, and the app reads in runtime — without reimplanting or downtime, managed by AWS.",
+        "Because Parameter Store SecureString with EventBridge use one Lambda rotation to change the password in RDS and the value at each 30 days, and the app reads in runtime — without reimplanting or downtime."
+      ]
+    },
+    "dva-avc-081": {
+      "optionReasons": {
+        "dva-avc-081:option:0": "User IAM per employee is just what the requirement wants EVITAR — and AD Connector does not 'synchronize passwords' like this.",
+        "dva-avc-081:option:1": "It's the closest because the Cognito also federa via SAML and map roles identities — but it is for APPLICATION users (B2C), not for access of FUNCTIONARYS to the Console assuming roles by group of AD; labor force federation in the IAM is the IdP SAML with sts:AssumeRoleWithSAML.",
+        "dva-avc-081:option:2": "",
+        "dva-avc-081:option:3": "GetFederationToken requires a user IAM long-term portal — not the federation SAML by group of the requested AD."
+      },
+      "finalJustifications": [
+        "Why configure AD FS as IdP SAML 2.0 no IAM and create roles with trust in sts:AssumeRoleWithSAML, mapping the AD groups to the Role attribute SAML, lets each employee take the right role on the Console — no user IAM.",
+        "Why set the AD FS to Cognito User Pool and mapping roles via Identity Pool lets each employee take the right role on the Console — no user IAM, via the federated AD groups.",
+        "Why create a user IAM by AD Connector employee lets each take the right role on the Console — without managing passwords, via the synchronised AD groups to login.",
+        "Why use GetFederationToken from a user IAM from the portal lets each employee take the right role on the Console — no user IAM individual, via AD groups."
+      ]
+    },
+    "dva-avc-082": {
+      "optionReasons": {
+        "dva-avc-082:option:0": "Reserved competition gives capacity — does not allow the S3 invoking the function.",
+        "dva-avc-082:option:1": "It's the closest because it quotes lambda:InvokeFunction, which is the relevant action — but put it in EXECUTION ROLE is the wrong direction: the execution roll says what the FUNCTION can do, not who can invoke it; the S3 invoking the function requires a policy BASEADA EM RECURSO (Lambda permission) for s3.amazonaws.com.",
+        "dva-avc-082:option:2": "s3:PutBucketNotification is for CONFIGURAR the notification — it is not the permission that leaves the S3 invoke function.",
+        "dva-avc-082:option:3": ""
+      },
+      "finalJustifications": [
+        "Why Resource-Based Policy Is Missing (Lambda permission) authorising the principal s3.amazonaws.com invoking the function (with SourceArn from the bucket) — separated from the execution roll, is what leaves the S3 shoot at Lambda.",
+        "Because there is a lack of inline policy in the execution roll with lambda:InvokeFunction — separated from the configuration, is what leaves the S3 shoot at Lambda when authorising the main s3.amazonaws.com.",
+        "Because there is a lack of increasing the reserved competition of the function — separated from the execution role, it is what leaves the S3 shoot at Lambda when authorising the main s3.amazonaws.com summoning you.",
+        "Because permission is missing s3:PutBucketNotification in execution roll — separated from configuration, is what leaves the S3 shoot at Lambda when authorising the main s3.amazonaws.com."
+      ]
+    },
+    "dva-avc-083": {
+      "optionReasons": {
+        "dva-avc-083:option:0": "It's the closest because the default encryption REALMENTE cryptographers who don't send heads — but she is a silent FATHER, not a REJECTION: a upload that asks for another cryptography (or none explicitly) is not BARRADO; reject at the level of API requires conditional Deny in the bucket policy.",
+        "dva-avc-083:option:1": "Object Lock protects against overwriting/exclusion (WORM) — does not require SSE-KMS on uploads.",
+        "dva-avc-083:option:2": "Policy by main IAM depends on attaching to TODOS the mains — the policy pocket Deny is worth regardless of the mains.",
+        "dva-avc-083:option:3": ""
+      },
+      "finalJustifications": [
+        "'Cause the bucket policy with Deny on s3:PutObject for '*' when the header s3:x-amz-server-side-encryption is not the SSE-KMS required reject upload in API — regardless of principal's permissions.",
+        "Because the default encryption SSE-KMS when the cryptography header is not required rejects the upload in API — regardless of the permissions of the principal who makes the PutObject.",
+        "Because Object Lock in Compliance when the encryption header is not required rejects uploading in API — regardless of the permissions of the principal who makes the PutObject.",
+        "Because politics IAM mainly when the cryptography header is not required rejects upload in API — regardless of the permissions of the principal who makes the PutObject."
+      ]
+    },
+    "dva-avc-084": {
+      "optionReasons": {
+        "dva-avc-084:option:0": "identitySource = requestId makes each request ONLY — the cache never hits, invoking the authorizer always.",
+        "dva-avc-084:option:1": "",
+        "dva-avc-084:option:2": "More memory accelerates the query to DynamoDB — but the authorizer is still invoked at each request.",
+        "dva-avc-084:option:3": "It's the closest because the method cache of the API Gateway also saves answers by TTL — But he was hiding the RESPOSTA of API, not the result of the AUTHORIZER: o Lambda Authorizer would continue to be invoked; cache the authorizer policy is the authorizerResultTtlInSeconds with identitySource in the Authorization header."
+      },
+      "finalJustifications": [
+        "Why AuthorizeResultTtlInSeconds=300 with identitySource in the header Authorization does the API Gateway cache policy by key of API by 5 min — repeated requests re-use cache without invoking authorizer.",
+        "Why identitySource=context.requestId as TTL 300 does the API Gateway cache policy by key of API by 5 min — repeated requests re-use cache without invoking authorizer.",
+        "Why increase the memory of the authorizer with TTL 300 does the API Gateway cache policy by key of API by 5 min — repeated requests re-use cache without invoking authorizer.",
+        "Because the method cache with TTL 300 does the API Gateway cache author's policy by key API by 5 min — repeated requests re-use cache without invoking authorizer."
+      ]
+    },
+    "dva-avc-085": {
+      "optionReasons": {
+        "dva-avc-085:option:0": "It's the closest because it quotes real triggers from Cognito — but Pre Sign-up and Pre Token Generation DO NOT implement a challenge/response stream OTP; the passwordless custom requires the triggers Define/Create/Verify Auth Challenge with the client starting via CUSTOM_AUTH.",
+        "dva-avc-085:option:1": "Pre/Post Authentication with ALLOW_USER_PASSWORD_AUTH still presupposes SENHA — the requirement is without any password.",
+        "dva-avc-085:option:2": "MFA optional with fixed password is not passwordless — there is a password, and shared fixed password is unsafe.",
+        "dva-avc-085:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Define/Create/Verify Auth Challenge with client starting via CUSTOM_AUTH orchestrate the challenge: one sends the OTP (SNS/SES) and the other validates the code — login without any password.",
+        "Because Pre Sign-up and Pre Token Generation with the client starting via CUSTOM_AUTH orchestrate the challenge: one sends the OTP and the other validates the code — login without any password in the flow.",
+        "Because Pre and Post Authentication with the client starting via CUSTOM_AUTH orchestrate the challenge: one sends the OTP and the other validates the code — login without any password in the custom flow.",
+        "Because MFA optional with SMS and the client starting via CUSTOM_AUTH orchestrate the challenge: one sends the OTP and the other validates the code — login without any password in the custom flow."
+      ]
+    },
+    "dva-avc-086": {
+      "optionReasons": {
+        "dva-avc-086:option:0": "It's the closest because keys to a GitHub secret work for the pipeline — but they're credentials of LONGA DURATION, exactly what the requirement wants to avoid (even if rotated by hand); temporary credentials by execution, restricted to repose/branch, come from the federation OIDC with AssumeRoleWithWebIdentity.",
+        "dva-avc-086:option:1": "",
+        "dva-avc-086:option:2": "Identity Pool with guest role gives wide anonymous access — insecure and does not restrict by repository/branch.",
+        "dva-avc-086:option:3": "Secrets Manager saving keys still uses long-term credentials (and another bootstrap to read it) — does not eliminate the problem."
+      },
+      "finalJustifications": [
+        "Because one IAM OIDC Provider for GitHub and a role with AssumeRoleWithWebIdentity restricted to sub claim (repo/branch) let the workflow change token OIDC by temporary credentials — no long-term key.",
+        "Because a user IAM with keys in the secrets of GitHub and a repo/branch restricted roll let the workflow get temporary credentials by execution — no long-term key stored.",
+        "Because an Identity Pool with restricted guest role by repo/branch lets the workflow exchange the login for temporary credentials by execution — no long-term key stored.",
+        "Because Secrets Manager with the keys and a restricted roll by rest/branch let the workflow get temporary credentials per execution — no long-term key stored."
+      ]
+    }
+  }
+}

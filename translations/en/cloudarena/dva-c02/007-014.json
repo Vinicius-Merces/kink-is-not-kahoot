@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "007-014",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-007": {
+      "optionReasons": {
+        "dva-avc-007:option:0": "It is the closest because sharing the key 'would' give access to the central account — but use Access/Secret Key of ROOT is the worst anti-standard: long-term credentials, without scope, without rotation; the correct is the STS TakeRole with trust policy trusting the accounts of origin.",
+        "dva-avc-007:option:1": "Users IAM identical with the same password in each account is not cross-account access — and spreads credentials.",
+        "dva-avc-007:option:2": "Making the public newsletter exposes the data to anyone — the opposite of controlled temporary access.",
+        "dva-avc-007:option:3": ""
+      },
+      "finalJustifications": [
+        "Because STS TakeRole, with a trust policy in the central account role trusting the accounts of origin, gives TEMPORARY credentials to microservices — without sharing long-term keys.",
+        "Because sharing the root Access/Secret Key gives temporary credentials to microservices via trust policy in the central account — without spreading long-term keys between accounts.",
+        "Why Create Users IAM identical with the same password gives temporary credentials to microservices via trust policy in the central account — without sharing long-term keys.",
+        "Why make the public bucket gives temporary credentials to microservices via trust policy in the central account — without sharing long-term keys between accounts."
+      ]
+    },
+    "dva-avc-008": {
+      "optionReasons": {
+        "dva-avc-008:option:0": "",
+        "dva-avc-008:option:1": "It's the closest because AllAtOnce is a real deployment configuration — but it changes TUDO at once, without directing a small fraction first nor offering rollback by alarm; the gradual displacement with automatic rollback is the Blue/Green with Canary/Linear associated with alarms of the CloudWatch.",
+        "dva-avc-008:option:2": "Disable the Auto Scaling during the deployment does not implement canary or rollback — only removes elasticity.",
+        "dva-avc-008:option:3": "Manual deployment via SSH in each instance is the opposite of automation with canary and rollback."
+      },
+      "finalJustifications": [
+        "Because Blue/Green with deployment Canary or Linear directs a fraction of the traffic to the new version and automatically reverses if alarms from CloudWatch shoot — exactly the requirement.",
+        "Because the AllAtOnce in-place directs a fraction of traffic to the new version and automatically reverses if alarms from the CloudWatch shoot — exactly the team requirement.",
+        "Why disable the Auto Scaling directs a fraction of traffic to the new version and automatically reverses if alarms from CloudWatch shoot — exactly the team requirement.",
+        "'Cause the manual deployee saw SSH directs a fraction of traffic to the new version and automatically reverses if alarms from CloudWatch shoot — exactly the team requirement."
+      ]
+    },
+    "dva-avc-009": {
+      "optionReasons": {
+        "dva-avc-009:option:0": "Manually edited production hardcode is fragile and prone to error — the opposite of reusable.",
+        "dva-avc-009:option:1": "It's the closest because templates by environment REALMENTE give different configurations — but doubling them without reuse breaks the requirement of a single base template and creates divergence; parameterizing with Parameters and samconfig.toml (stage profiles) keeps a template only.",
+        "dva-avc-009:option:2": "False: o SAM SUPORTA multiple environments — via parameters and configs per stage.",
+        "dva-avc-009:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Parameters of CloudFormation/SAM and the samconfig.toml with stage profiles adjust memory and variables by environment — maintaining a single basic template for dev, homolog and production.",
+        "Because environment-separated templates adjust memory and variables by environment — maintaining a single base template for dev, homolog and production, without parameterization.",
+        "Because the production hardcode adjusts memory and variables by environment — maintaining a single basic template for dev, homolog and production, manually modified before deployment.",
+        "Because even the SAM not supporting multiple environments, memory and variables are adjusted by environment — maintaining a single basic template for dev, homolog and production."
+      ]
+    },
+    "dva-avc-010": {
+      "optionReasons": {
+        "dva-avc-010:option:0": "",
+        "dva-avc-010:option:1": "Reduce memory does not release /tmp (are distinct features) — and can worsen performance.",
+        "dva-avc-010:option:2": "It's the closest because increasing the timeout looks like the obvious output — but it's FALSO there is no limit: the Lambda has a roof of 15 minutes per execution; long and heavy task should migrate to AWS Batch, ECS Fargate or Step Functions with distributed processing.",
+        "dva-avc-010:option:3": "The error must NOT be ignored — timeout/space failure loses processing; Lambda no 'restart without loss'."
+      },
+      "finalJustifications": [
+        "Because Lambda has a roof of 15 minutes and /tmp ephemeral limited: redesign to AWS Batch, ECS Fargate or Step Functions distributed is suitable for the long and heavy task of images.",
+        "Because, reducing memory to release /tmp, the Lambda still has roof of 15 min: the appropriate function is the same with less memory processing large images within the limit.",
+        "Because by increasing the timeout beyond 15 min (without limit), or Lambda processes large images in the same function — covering the long task without migrating from service.",
+        "Because, ignoring the error (the Lambda restart without loss), same function reprocesses large images automatically — without migrating to another service or redesigning the process."
+      ]
+    },
+    "dva-avc-011": {
+      "optionReasons": {
+        "dva-avc-011:option:0": "It's the closest because logs help in research — but the CloudTrail records calls from API of management, not the decomposition of LATENCIA of the requisition; the X-Ray decomposes the trace in SUBSEGMENTS, revealing whether time is in external network (other service, bank, API) or internal processing.",
+        "dva-avc-011:option:1": "",
+        "dva-avc-011:option:2": "Disable X-Ray throws out just the tool that decomposes latency — the opposite of useful.",
+        "dva-avc-011:option:3": "Increasing the instance without analysis is kick — the metrics of CPU/memory is already normal."
+      },
+      "finalJustifications": [
+        "Because analyzing the trace subsegments in X-Ray shows whether latency is in external network calls (other service, bank), API) or in internal processing — pointing to the real cause.",
+        "Because check only the logs of CloudTrail shows whether latency is in external network calls or in internal processing — pointing to the real cause of downstream service.",
+        "Why deactivating X-Ray shows whether latency is in external network calls or in internal processing — pointing to the real cause of downstream service with high latency.",
+        "Because increasing the instance shows whether latency is in external network calls or in internal processing — pointing to the real cause of downstream service with high latency."
+      ]
+    },
+    "dva-avc-012": {
+      "optionReasons": {
+        "dva-avc-012:option:0": "It's the closest because it moves on the Visibility Timeout, which is the right parameter — but in the direction ERRADA: reducing it makes the message reappear AINDA earlier, aggravating duplicate processing; the solution is to extend dynamically (ChangeMessageVisibility) or increase the timeout above maximum processing.",
+        "dva-avc-012:option:1": "Migratory to SNS bar/sub row swap — does not resolve long processing, changes architecture.",
+        "dva-avc-012:option:2": "",
+        "dva-avc-012:option:3": "Delete message before processing loses message if processing fails — unsafe."
+      },
+      "finalJustifications": [
+        "Because the API ChangeMessageVisibility extends the timeout during long processing (or increases the pattern above the maximum time) — the message does not reappear or is processed in duplicate.",
+        "Because reducing Visibility Timeout extends time during long processing — the message does not reappear or is duplicated by another simultaneous worker.",
+        "Why migrate to the SNS extends the timeout during long processing — the message does not reappear or is duplicated by another simultaneous worker.",
+        "Because deleting the message before extends the timeout during long processing — the message does not reappear or is duplicated by another simultaneous worker."
+      ]
+    },
+    "dva-avc-013": {
+      "optionReasons": {
+        "dva-avc-013:option:0": "It is the closest because the idea of 'page × 20 as offset' is the pattern of pagination of relational banks — but the DynamoDB DO NOT have numeric offset, and the filter Scan reads the entire table and is expensive; the correct pagination is to pass the LastEvaluatedKey as ExclusiveStartKey.",
+        "dva-avc-013:option:1": "",
+        "dva-avc-013:option:2": "Load everything in memory after a Scan does not scale for thousands of items and de-updates between requests.",
+        "dva-avc-013:option:3": "Select COUNT only counts items — and GetIt by item requires knowing the keys; not Query page."
+      },
+      "finalJustifications": [
+        "Why use the LastEvaluatedKey of the answer as Query's ExclusiveStartKey next page in a stable way — without jumping or doubling items, even with the table being modified between requests.",
+        "Why use Scan with page offset × 20 page in a stable way — without jumping or doubling items, even with the table being modified between endpoint requests.",
+        "Why load everything in memory and slice by page index in a stable way — without jumping or doubling items, even with the table being modified between the endpoint requests.",
+        "Why use Select COUNT with GetItitem per page item in a stable way — without jumping or doubling items, even with the table being modified between the endpoint requests."
+      ]
+    },
+    "dva-avc-014": {
+      "optionReasons": {
+        "dva-avc-014:option:0": "",
+        "dva-avc-014:option:1": "One GSI with PK=timestamp would mix conversations and not consult efficiently by conversation+interval.",
+        "dva-avc-014:option:2": "It's the closest because Query in PK is the right start — but apply FilterExpression in the timestamp READ all the items in the conversation and only then discard them out of the range (consumes capacity for nothing); use SK BETWEEN in the KeyConditionExpression already limits reading to the interval.",
+        "dva-avc-014:option:3": "Scan scans the entire table — exactly what the requirement forbids."
+      },
+      "finalJustifications": [
+        "Because Query with PK = 'CONV#...' AND SK BETWEEN start and end read only the messages of the interval, already in chronological order by spell key — without sweeping the table or reading items out of the window.",
+        "Because GSI with PK=timestamp read only the interval messages, already in chronological order — without sweeping the table or reading items out of the conversation date window.",
+        "Because Query with FilterExpression in the timestamp only reads the interval messages, already in chronological order — without sweeping the table or reading items out of the date window.",
+        "Because the Scan with FilterExpression in the SK only reads the interval messages, already in chronological order — without sweeping the table or reading items out of the conversation date window."
+      ]
+    }
+  }
+}

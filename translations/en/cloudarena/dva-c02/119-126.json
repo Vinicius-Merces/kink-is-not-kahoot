@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "119-126",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-119": {
+      "optionReasons": {
+        "dva-avc-119:option:0": "HMAC (GenerateMac/VerifyMac) is SIMETRIC: sharing the secret with verifiers allows them also ASSINEM — no separate public key for verification.",
+        "dva-avc-119:option:1": "It's the closest because it generates a couple of keys. RSA to sign/verify — but GenerateDataKeyPair returns the key PRIVADA to the application ( SAI of the KMS), violating the private requirement never to be exposed; the asymmetric key SIGN_VERIFY of the KMS sign COM the private who never leaves the service.",
+        "dva-avc-119:option:2": "Keep the private key in the Parameter Store and using it in memory exposes the private to the code — exactly what is forbidden.",
+        "dva-avc-119:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the asymmetric key SIGN_VERIFY of the KMS sign via 'Sign' with key PRIVADA that NUNCA exit from KMS, and the verifiers use the Public Key (GetPublicKey) to validate — without ever accessing the private.",
+        "'Cause GenerateDataKeyPair signs with the private key that never comes out of KMS, and the verifiers use the public key to validate — without ever accessing the distributed private to the microservice.",
+        "Because the key RSA no Parameter Store signs with the private key that never comes out of KMS, and the verifiers use the public key to validate — without ever accessing the private used in memory.",
+        "Because HMAC symmetrical signs with the key that never comes out of KMS, and the verifiers use the public key to validate — without ever accessing the shared secret for VerifyMac."
+      ]
+    },
+    "dva-avc-120": {
+      "optionReasons": {
+        "dva-avc-120:option:0": "",
+        "dva-avc-120:option:1": "It's the closest because it quotes VPC Endpoint in the default S3/DynamoDB — But these are GATEWAY endpoints, and Secrets Manager DO NOT support Gateway Endpoint: only S3 and DynamoDB use gateway; for the Secrets Manager private access is via INTERFACE Endpoint (PrivateLink).",
+        "dva-avc-120:option:2": "NAT Gateway route INTERNET public — violates the requirement to keep traffic off the internet.",
+        "dva-avc-120:option:3": "Remove Lambda of VPC breaks access PRIVADO to the bank at VPC (plea for compliance) — is not the solution."
+      },
+      "finalJustifications": [
+        "Because the Interface VPC Endpoint (PrivateLink) for the Secrets Manager supplies ENIS with private IP in VPC: a Lambda on the private subnet reaches the secretsmanager.<region> without NAT nor public internet.",
+        "Because the Gateway VPC Endpoint for the Secrets Manager provision route in the private subnet table: a Lambda achieves the secretsmanager.<region> without NAT or public Internet, as in S3/DynamoDB.",
+        "Because NAT Gateway provision for private subnet: a Lambda achieves the secretsmanager.<region> without public internet, roaming 0.0.0.0/0 by public subnet.",
+        "Why take it away Lambda of VPC provides internal access to the AWS: the function achieves the secretsmanager.<region> without NAT or public internet, by the internal network of the service."
+      ]
+    },
+    "dva-avc-121": {
+      "optionReasons": {
+        "dva-avc-121:option:0": "SCP with project account is heavy restructuring — and SCP restricts, does not do dynamic tag matching by role.",
+        "dva-avc-121:option:1": "",
+        "dva-avc-121:option:2": "It's the closest because a project-driven policy with RNAs REALMENTE gives the right access — but it is the model that DOES NOT scale: each new/removed table requires updating the project policy; determining the access by CORRESPONDENT of tags, with a single policy, is the ABAC (aws:ResourceTag = aws:MainTag).",
+        "dva-avc-121:option:3": "ConditionExpression of TransactWriteItems is from item/data — does not allow access to the table by tag in IAM."
+      },
+      "finalJustifications": [
+        "Because ABAC mark the roll of each Lambda with project=<x> and a single comparative policy aws:ResourceTag/project with aws:MainTag/project — access follows tags automatically, without listing RNAs or updating by table.",
+        "Because the policy managed by project marks a role with project=<x> and compares aws:ResourceTag with aws:MainTag — access follows tags automatically, without listing RNAs or updating by table.",
+        "Because the SCP by branding the role with project=<x> and comparing aws:ResourceTag with aws:MainTag — access follows tags automatically, without listing RNAs or updating by table.",
+        "Because ConditionExpression marks the role with project=<x> and compares aws:ResourceTag with aws:MainTag — access follows tags automatically, without listing RNAs or updating by table."
+      ]
+    },
+    "dva-avc-122": {
+      "optionReasons": {
+        "dva-avc-122:option:0": "It's the closest because a ConditionExpression in the code would restrict the item — but it lives in the APP (customer), is shamable and depends on the developer to implement it always; impose on IAM, on the service side, with a shared role, is the condition dynamodb:LeadingKeys linked to the sub of Cognito.",
+        "dva-avc-122:option:1": "",
+        "dva-avc-122:option:2": "One single roll per user fixing the non-scale userId (thousands of roles) — LeadingKeys solves with one roll only.",
+        "dva-avc-122:option:3": "One table per user is data reengineering — unnecessary when LeadingKeys isolates by partition key."
+      },
+      "finalJustifications": [
+        "Because the role policy authenticated with dynamodb:LeadingKeys = ${cognito-identity.amazonaws.com:sub} limits each user to items whose partition key is their identity — item control with a single shared role.",
+        "Because ConditionExpression in the app with LeadingKeys = ${cognito-identity.amazonaws.com:sub} limits each user to items whose partition key is their identity — item control with a single shared role.",
+        "Because the unique user role with LeadingKeys = ${cognito-identity.amazonaws.com:sub} limits each user to items whose partition key is their identity — item-by-item control on shared role.",
+        "Because the table per user with LeadingKeys = ${cognito-identity.amazonaws.com:sub} limits each user to items whose partition key is their identity — item control with a single shared role."
+      ]
+    },
+    "dva-avc-123": {
+      "optionReasons": {
+        "dva-avc-123:option:0": "Query string is not 'encrypted and header is not' — both go for TLS; And it's not the safety gap..",
+        "dva-avc-123:option:1": "",
+        "dva-avc-123:option:2": "It's the closest because it mentions an extra layer (WAF) security — but part of a premise FALSA: API keys are NOT authentication; they identify/measure clients and can be removed from the app and reused; the gap is using real permission (IAM/Cognito/Lambda Authorizer), with key only for measurement.",
+        "dva-avc-123:option:3": "Rotate to API key reduces exposure window — but key is not authentication; the gap is the lack of actual authorization."
+      },
+      "finalJustifications": [
+        "Because API keys only IDENTIFICAM/MEDEM customers (throttle/quota), not AUTENTICAM: are extractable from the customer and without verified identity; API needs IAM/Cognito/Lambda Authorizer, with key only for measurement.",
+        "Because, being the encrypted query string and the header not, API you just need to move the place key: the API keys already authenticate and measure customers by thrttle/quota without other access control.",
+        "Because the API keys already authenticate enough, just add WAF by throttling: they identify customers and the WAF covers the riddle of keys without other access control.",
+        "Why rotate the key each time 24h resolves the gap: as API keys authenticate customers by thrttle/quota, and rotation limits the exposure window without other access control."
+      ]
+    },
+    "dva-avc-124": {
+      "optionReasons": {
+        "dva-avc-124:option:0": "It's the closest because the OAI It also restricts the S3 to CloudFront — But it's the method LEGADO (CanonicalUser), with less resources and without the condition aws:SourceArn by distribution; the recommended today is the OAC, which signs with SigV4 and links access to the specific distribution via SourceArn.",
+        "dva-avc-124:option:1": "Making the Bucket Public Trusts in Darkness — Direct Access Continues Possible for Those Who Know the Name.",
+        "dva-avc-124:option:2": "",
+        "dva-avc-124:option:3": "Website Endpoint of S3 requires PUBLIC access to the pocket — the opposite of blocking direct access."
+      },
+      "finalJustifications": [
+        "Because OAC signs the requests of the CloudFront to S3 with SigV4, and the bucket policy releases GetObject only for cloudfront.amazonaws.com with aws:SourceArn distribution — direct access to the pocket is denied.",
+        "Because the OAI without SourceArn signs the requests of CloudFront to S3, and the bucket policy releases GetObject only to the CanonicalUser of OAI — direct access to the pocket is denied by whom to discover the name.",
+        "Because the public newsletter signs the requests of the CloudFront to S3, and the bucket policy releases GetObject for distribution only — direct access to the bucket is denied by cache and obscurity.",
+        "Because the Endpoint Website signs the requests of the CloudFront to S3, and the bucket policy releases GetObject only for distribution — direct access to the bucket is denied by endpoint controls."
+      ]
+    },
+    "dva-avc-125": {
+      "optionReasons": {
+        "dva-avc-125:option:0": "An OAuth client on the backend is just the custom code you want to avoid.",
+        "dva-avc-125:option:1": "IAM Identity Center Tokens — not tokens of the Cognito User Pool expected by API.",
+        "dva-avc-125:option:2": "",
+        "dva-avc-125:option:3": "It's the closest because it also stinked Google in Cognito — but in one IDENTITY POOL, whose exit is CREDENCIAIS AWS temporary (STS), NOT the ID/Access/Refresh tokens the application uses in the authorizer COGNITO_USER_POOLS; federating Google in USER POOL emits tokens Cognito standard."
+      },
+      "finalJustifications": [
+        "Why set Google as federated IdP no USER POOL does the Cognito manage the handshake OIDC and issue standard tokens (ID/Access/Refresh) — used transparently by the authorizer COGNITO_USER_POOLS, without own code.",
+        "Because implementing a client OAuth himself does the Cognito manage the handshake OIDC and issue standard tokens (ID/Access/Refresh) — used by the authorizer COGNITO_USER_POOLS, no custom code.",
+        "Why use the IAM Identity Center does the Cognito manage the handshake OIDC and issue standard tokens (ID/Access/Refresh) — used by the authorizer COGNITO_USER_POOLS, no custom code.",
+        "Because setting up Google in an Identity Pool does the Cognito manage the handshake OIDC and issue standard tokens (ID/Access/Refresh) — used by the authorizer COGNITO_USER_POOLS, no custom code."
+      ]
+    },
+    "dva-avc-126": {
+      "optionReasons": {
+        "dva-avc-126:option:0": "volumesFrom with authenticated sidecar is invented gambiarra — the Fargate already separates task roll and execution roll.",
+        "dva-avc-126:option:1": "It's the closest because it moves on the trust policy of roles of ECS — but trusting two main ones in a roll does NOT solve: the problem is that the AGENTE use the EXECUTION ROLE (field executionRoleArn) and the CODE uses the TASK ROLE (TaskRoleArn); ECR/Logs need to be in EXECUTION roll, a separate field.",
+        "dva-avc-126:option:2": "Fargate DO NOT give automatic access to DynamoDB via service-linked roll — code permissions come from task roll.",
+        "dva-avc-126:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Fargate separate the TASK ROLE (code: dynamodb:PutItem) EXECUTION ROLE (Agent: pull from ECR and write logs), in different fields: put ECR/Logs only in theRoleArn task does not help the agent, who uses executionRoleArn.",
+        "Because the trust policy with two mains separates the task role from the execution role: put ECR/Logs only on the taskRoleArn does not help the agent, who uses executionRoleArn before the container goes up.",
+        "Because the volumesFrom with sidecar separates the task role (code) from the execution role (agent): put ECR/Logs only on the taskRoleArn does not help the agent, who uses executionRoleArn before the container goes up.",
+        "Because the service-linked roll of Fargate separates the task role (code) from the execution role (agent): put ECR/Logs only on the taskRoleArn does not help the agent, who uses executionRoleArn before the container goes up."
+      ]
+    }
+  }
+}
