@@ -1,7 +1,7 @@
 name: Validar rotas indexáveis EN
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   pull_request:
@@ -24,7 +24,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -32,9 +31,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Aplicar rotas EN
+      - name: Aplicar rotas EN no workspace de validação
         run: python3 scripts/apply_indexable_en_routes.py
-      - name: Validar sintaxe
+      - name: Validar sintaxe e catálogos
         run: |
           node --check server.js
           node --check js/i18n.js
@@ -58,20 +57,9 @@ jobs:
           curl -fsS http://127.0.0.1:3210/en/trilha-saa.html | grep -F '/en/trilha-saa.html'
           curl -fsS http://127.0.0.1:3210/en/js/i18n.js | grep -F 'CLOUDPATH_ROUTE_LOCALE_SYNC'
           curl -fsS 'http://127.0.0.1:3210/api/simulado/certifications?locale=en' | grep -F '"contentLocale":"en"'
-          curl -fsS 'http://127.0.0.1:3210/api/arena/clf-c02?locale=en' | grep -F '"locale":"en"'
+          for cert in clf-c02 dea-c01 dva-c02 saa-c03; do
+            curl -fsS "http://127.0.0.1:3210/api/arena/${cert}?locale=en" | grep -F '"locale":"en"'
+          done
           kill $PID
           wait $PID || true
           trap - EXIT
-      - name: Versionar rotas e SEO validados
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        shell: bash
-        run: |
-          git add server.js js/i18n.js index.html trilha.html trilha-dea.html trilha-dva.html trilha-saa.html simulados.html cloudarena.html sitemap.xml
-          if git diff --cached --quiet; then exit 0; fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): add indexable English routes and hreflang'
-          git pull --rebase origin "$HEAD_BRANCH"
-          git push origin "HEAD:${HEAD_BRANCH}"
