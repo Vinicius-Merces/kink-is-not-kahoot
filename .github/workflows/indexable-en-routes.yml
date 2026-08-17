@@ -1,7 +1,7 @@
-name: Validar rotas indexáveis EN
+name: Materializar e validar rotas indexáveis EN
 
 permissions:
-  contents: read
+  contents: write
 
 on:
   pull_request:
@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -31,13 +32,18 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Aplicar rotas EN no workspace de validação
+      - name: Materializar rotas EN
         run: python3 scripts/apply_indexable_en_routes.py
       - name: Validar sintaxe e catálogos
         run: |
           node --check server.js
           node --check js/i18n.js
           python3 scripts/validate_i18n.py
+          grep -F 'CLOUDPATH_INDEXABLE_EN_ROUTES' server.js >/dev/null
+          grep -F 'CLOUDPATH_ROUTE_LOCALE_SYNC' js/i18n.js >/dev/null
+          for page in index.html trilha.html trilha-dea.html trilha-dva.html trilha-saa.html simulados.html cloudarena.html; do
+            grep -F 'hreflang="en"' "$page" >/dev/null
+          done
       - name: Instalar dependências
         run: npm ci
       - name: Smoke test HTTP PT EN
@@ -63,3 +69,18 @@ jobs:
           kill $PID
           wait $PID || true
           trap - EXIT
+      - name: Versionar somente as rotas validadas
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add server.js js/i18n.js index.html trilha.html trilha-dea.html trilha-dva.html trilha-saa.html simulados.html cloudarena.html sitemap.xml
+          if git diff --cached --quiet; then
+            echo 'English routes already materialized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): materialize validated indexable English routes'
+          git pull --rebase origin "$HEAD_BRANCH"
+          git push origin "HEAD:$HEAD_BRANCH"
