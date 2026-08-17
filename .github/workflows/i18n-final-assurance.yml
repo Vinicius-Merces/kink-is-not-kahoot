@@ -128,8 +128,10 @@ jobs:
       - name: Provar que narração EN está desabilitada e assets de áudio não mudaram
         shell: bash
         run: |
+          set -euo pipefail
           grep -F "data-narration" js/tts-reader.js >/dev/null
-          grep -F "locale === 'en'" js/tts-reader.js >/dev/null
+          grep -F "const enabled = locale !== 'en';" js/tts-reader.js >/dev/null
+          grep -F "audioEl.removeAttribute('src');" js/tts-reader.js >/dev/null
           BASE_BRANCH='${{ github.event.pull_request.base.ref || 'main' }}'
           git fetch origin "$BASE_BRANCH"
           if ! git diff --quiet "origin/$BASE_BRANCH...HEAD" -- assets/narracao; then
