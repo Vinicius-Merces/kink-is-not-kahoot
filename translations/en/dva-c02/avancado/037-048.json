@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "avancado",
+    "sourcePath": "data/exams/dva-c02/avancado.json",
+    "range": "037-048",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-avc-037": {
+      "text": "A worker application running on Amazon ECS continuously calls 'ReceiveMessage' in a row of Amazon SQS using the standard configuration of 'short polling' ('WaitTimeSeconds=0'). When the queue is empty (most of the time), most calls return without messages, but still counts as a call from API — generating high cost of requests and consumption of CPU of the worker in a tight pollen loop.",
+      "options": [
+        "Increase the 'VisibilityTimeout' of the row to a higher value, so that the worker needs to call 'ReceiveMessage' less frequently.",
+        "Convert the standard row (Standard) to a row FIFO to reduce the number of pollen calls required.",
+        "Configure 'WaitTimeSeconds' to a value of up to 20 seconds in the so-called 'ReceiveMessage', enabling the 'long polling', which does the SQS wait for a message (or timeout) to arrive before replying.",
+        "Reduce the interval between calls 'ReceiveMessage' on the worker (for example, call each 100ms instead of 1 second) to detect new messages faster."
+      ],
+      "explanation": "Correct. The 'long polling' 1 and 20) does the SQS keep the connection open until a message is available or the time limit is reached, drastically reducing the number of empty responses and therefore the number of calls from API and consumption of CPU of the worker compared to 'short polling''.",
+      "hint": "Think of what parameter of the so-called 'ReceiveMessage' does the SQS wait for a message to arrive before returning an empty reply.",
+      "optionRationales": [
+        "Correct. The 'long polling' 1 and 20) does the SQS keep the connection open until a message is available or the time limit is reached, drastically reducing the number of empty responses and therefore the number of calls from API and consumption of CPU of the worker compared to 'short polling''.",
+        "Incorrect. Call 'ReceiveMessage' with MAIOR frequency AUMENTA the number of calls from API (and, therefore, the cost) and consumption of CPU — exactly the opposite of what is needed; this worsens the problem described instead of solving it.",
+        "Incorrect. The row type (Standard vs.. FIFO) determines warranties for ordering and deduplicating messages, but does not affect the polling behavior or the number of empty responses returned by 'ReceiveMessage' — this change has no relation to the cost problem/CPU Description.",
+        "Incorrect. 'VisibilityTimeout' controls how long a message RECEBIDA is hidden from other consumers while being processed — it does not affect the frequency or behavior of the workers' 'ReceiveMessage' calls when the queue is empty, not solving the problem of empty answers."
+      ]
+    },
+    "dva-avc-038": {
+      "text": "A table of the DynamoDB 'Tickets' contains millions of items. Only a small fraction (about 2%) of the tickets has the boolean attribute 'needsManagerReview' defined as 'true' (present only when certain business conditions are met — the other items simply DO NOT have that attribute). The team needs to consult efficiently only the tickets that need management review, without reading the entire table.",
+      "options": [
+        "Create a Global Secondary Index (GSI) using 'needsManagerReview' as the index partition key — as most items do NOT have this attribute, the DynamoDB does not include them in the index (a 'spray index'), so that the GSI will contain only the ~2% of marked tickets.",
+        "Use 'Scan' in the 'Tickets' table with a 'FilterExpression' checking 'needsManagerReview = true'.",
+        "Create a second table of DynamoDB containing only the marked tickets, and use the DynamoDB Streams with a function Lambda to synchronize items in this second table whenever 'needsManagerReview' becomes 'true''.",
+        "Create a GSI using 'TicketId' (the primary key of the base table) as the index partition key, and 'needsManagerReview' as the sorting key."
+      ],
+      "explanation": "Correct. When an item does not have the attribute(s) used as the key of the GSI, o DynamoDB simply DO NOT create a corresponding entry in this index — this 'spear index' behavior means that the GSI it will contain only the items with defined 'needsManagerReview', making queries about it extremely efficient compared to the size of the base table, without the need to duplicate data in another table.",
+      "hint": "Think about what happens when an item does not have the attribute(s) used as a key to a Global Secondary Index, and how it can be used in your favor.",
+      "optionRationales": [
+        "Correct. When an item does not have the attribute(s) used as the key of the GSI, o DynamoDB simply DO NOT create a corresponding entry in this index — this 'spear index' behavior means that the GSI it will contain only the items with defined 'needsManagerReview', making queries about it extremely efficient compared to the size of the base table, without the need to duplicate data in another table.",
+        "Incorrect. Scan read TODOS the items in the table (using reading capacity proportional to the MILHIONES of items) and applies the filter. DEPOIS of reading — extremely inefficient to recover only the ~2% of marked items, especially as the table grows.",
+        "Incorrect. Use the unique identifier of the item itself ('TicketId') as the partition key of the GSI does not group or filter items in a useful way (each partition would have at most one item) — consult this index would still require knowing the specific TicketId beforehand, which does not meet the requirement to recover 'all tickets marked for revision' without knowing them previously.",
+        "Incorrect. Although functionally possible, this introduces significant operational complexity (maintaining a duplicate table synchronized via Streams, dealing with removals when the attribute ceases to be 'true', monitoring synchronization delays) to resolve something that a single GSI scattered in the existing table already resolves natively, without duplication of data or additional pipelines."
+      ]
+    },
+    "dva-avc-039": {
+      "text": "An application invokes a function AWS Lambda in the form ASSINCRONA (type of invocation 'Event') to process a document JSON large representing a batch of requests sent by upload. For larger batches, the invocations start to fail with an error related to the size of the payload. The team discovers that although invocations SYNCHRONAS accept even payloads 6 MB, ASYNCRON Invocations have a much lower payload limit (256 KB).",
+      "options": [
+        "Increase the function's assigned memory Lambda for 10.240 MB (maximum)).",
+        "Have the caller send the document JSON large for the Amazon S3 first, and then invoke the function Lambda asynchronous form passing only a small reference (bucket and object key) S3) at the event — the function then downloads the full document of S3 when executed.",
+        "Compact the payload JSON with gzip before including it in the asynchronous invocation event.",
+        "Change the function invocation type to synchronous ('RequestResponse'), taking advantage of the payload limit of 6 MB."
+      ],
+      "explanation": "Correct. When passing only a light reference (bucket/key of S3) in the asynchronous invocation event, the invocation payload remains well below the limit of 256 KB, regardless of actual document size; function Lambda recovers the full content directly from S3 during its execution, where there is no equivalent payload limit — this is the recommended standard for dealing with large data in asynchronous/event-based invocations.",
+      "hint": "Think of where the large content can be stored so that only a small reference needs to be included in the event that triggers the function Lambda.",
+      "optionRationales": [
+        "Correct. When passing only a light reference (bucket/key of S3) in the asynchronous invocation event, the invocation payload remains well below the limit of 256 KB, regardless of actual document size; function Lambda recovers the full content directly from S3 during its execution, where there is no equivalent payload limit — this is the recommended standard for dealing with large data in asynchronous/event-based invocations.",
+        "Incorrect. 6 MB is greater than 256 KB, this limit may still be insufficient for very large batches (the problem reappears on a larger scale), and synchronous invocations do the CHAMADOR block pending completion of processing — a potentially unwanted behavior change to an originally asynchronous flow, in addition to not solving the problem in a scalable way.",
+        "Incorrect. Compaction can reduce the size in some cases, but not GARANTE that the payload will be below 256 KB for arbitrarily large lots (the limit may still be exceeded), and adds decompact complexity to function code — does not solve the architectural limitation in a reliable and scalable way.",
+        "Incorrect. The function memory configuration Lambda is not related to the size limit of the PAYLOAD INVOCATION (which is a fixed platform limit, regardless of memory/configured computing) — increasing memory does not change this limit of 256 KB for asynchronous invocations."
+      ]
+    },
+    "dva-avc-040": {
+      "text": "An Endpoint of API REST of the Amazon API Gateway, with integration to a function AWS Lambda, often receives requisitioning bodies JSON malformed (obligatory fields absent, incorrect types) of a misbehaved outsourced client. Currently, TODA malformed request still invokes function Lambda, which then performs code validation and returns error 400 — waste invocations (and cost) of the Lambda in requests that are guaranteed to fail in validation.",
+      "options": [
+        "Configure a 'Request Validator' in the API Gateway, associated with a model of JSON Scheme defining the mandatory fields and their types for the body of the request — the API Gateway will reject malformed requests with 400 Bad Request ANTES to invoke the function Lambda.",
+        "Configure a rule of AWS WAF on the Web ACL associated with API Gateway inspecting body contents JSON of the request in search of mandatory fields absent.",
+        "Increase the timeout of the function Lambda to ensure that it has sufficient time to validate and reject malformed requests.",
+        "Implement one Lambda Authorizer who makes the body parse of the request and validates its structure before allowing the main integration to be invoked."
+      ],
+      "explanation": "Correct. 'Request Validators' from API Gateway, combined with Models of JSON Scheme, validate the body structure of the request (and/or parameters) NA CAMADA DO API GATEWAY, returning 400 immediately for requests that do not comply with the scheme — without ever invoking the function Lambda integrated, eliminating the waste of invocations in applications guaranteed invalid.",
+      "hint": "Think of what resource the API Gateway allows you to validate the body structure of a requisition against a defined scheme, rejecting invalid requisitions before they reach backend integration.",
+      "optionRationales": [
+        "Correct. 'Request Validators' from API Gateway, combined with Models of JSON Scheme, validate the body structure of the request (and/or parameters) NA CAMADA DO API GATEWAY, returning 400 immediately for requests that do not comply with the scheme — without ever invoking the function Lambda integrated, eliminating the waste of invocations in applications guaranteed invalid.",
+        "Incorrect. Lambda Authorizers exist for AUTHENTICATION/AUTORIZATION decisions (returning a policy) IAM based, typically, on a token), and their answers are CACHEADAS by token/identity — not by body of requisition; use an autorizer to validate the structure of the BODY is not its purpose, breaks the authorizer cache model (since the body varies by request) and is not the mechanism designed for this validation.",
+        "Incorrect. Increasing the timeout does not reduce the number of invocations (every malformed request would still invoke the function normally) or the associated cost — the problem is the waste of invocations themselves, not the duration of each.",
+        "Incorrect. AWS WAF are mainly designed to detect SAFETY AMOUNTS (injection of SQL, XSS, rate limitation, IP blocking) using pattern matching — implement validation ESTRUTURAL of JSON Scheme (compulsory fields, types) by rules of the WAF is impractical and is not the purpose of the service, unlike the Request Validators + Models of API Gateway, designed specifically for this purpose."
+      ]
+    },
+    "dva-avc-041": {
+      "text": "A function AWS Lambda handles requests 'POST /users' to create new users, using 'UserId' (e-mail derivative) as partition key for a table from DynamoDB. Currently, the function calls 'PutItem' without any condition. Under concurrent traffic, two requests with the same email (and therefore the same 'UserId') can both succeed, and the second called 'PutItem'' SOBRESCREVE silently the data of the first user (for example, deleting already configured preferences), because there is no verification of previous existence.",
+      "options": [
+        "Before calling 'PutItem', make 'GetItem' to check if 'UserId' already exists; just call 'PutItem' if 'GetItem' returns empty.",
+        "Enable Point-in-Time Recovery (PITR) in the table of DynamoDB, allowing to restore the user item to a previous state if it is overwritten.",
+        "Switch 'PutItem' to 'UpdateItem' with an 'UpdateExpression' that defines the attributes of the new user, without any 'ConditionExpression''.",
+        "Add a 'ConditionExpression' from 'attribute_not_exists(UserId)' to the so-called 'PutItem' — if an item with that partition key already exists, the call will fail with 'ConditionalCheckFailedException' instead of overwriting it."
+      ],
+      "explanation": "Correct. ConditionExpression is evaluated by DynamoDB ATOMIC form along with the writing operation: if 'UserId' already exists, the 'PutItem' fails immediately with 'ConditionalCheckFailedException' and the existing item remains intact — making the creation of a secure user (impotent) even under competing duplicate requests, without running condition windows.",
+      "hint": "Think of what expression can be added to a writing operation of the DynamoDB so that it fails atomically if an item with the same key already exists, without a separate check anticipated.",
+      "optionRationales": [
+        "Correct. ConditionExpression is evaluated by DynamoDB ATOMIC form along with the writing operation: if 'UserId' already exists, the 'PutItem' fails immediately with 'ConditionalCheckFailedException' and the existing item remains intact — making the creation of a secure user (impotent) even under competing duplicate requests, without running condition windows.",
+        "Incorrect. This pattern 'verify-after-act'' (TOCTOU — time-of-check to time-of-use) is vulnerable to race condition: two competing requests can both run 'GetItem' and receive 'empty'' ANTES that anyone executes 'PutItem', resulting in both continuing to 'PutItem' and the second still overwriting the first — the original problem persists.",
+        "Incorrect. 'UpdateItem' has 'upsert' semantics (create the item if it does not exist, OR updates the existing item if it already exists) — without a 'ConditionExpression', a call to an existing 'UserId' would simply update/overwrite the specified attributes of the existing user, reproducing the same unwanted overwrite problem.",
+        "Incorrect. PITR is a resource BACKUP/RESTORATION that allows restore the table to a point in time AFTER a problem occurs — it does not PREVINE the overwritten at the time it happens, and a restoration via PITR affects the table as a whole at a point in time, is not a point correction and in real time for a single item during normal application operation."
+      ]
+    },
+    "dva-avc-042": {
+      "text": "A team is designing a new API public for a mobile application, where end users authenticate via Amazon Cognito User Pools and each request must have its access token JWT validated. The requirements specify optimize for the MENOR possible costs and costs, and the API DO NOT need requisition/response transformation via mapping templates, API Keys/Use Plans, no integration with AWS WAF.",
+      "options": [
+        "Use one REST API of the Amazon API Gateway with a Web ACL of the AWS WAF associated, for additional security enhancement, in addition to validation of token JWT.",
+        "Use one HTTP API of the Amazon API Gateway with a 'JWT native autorizer, configured with URL of the issuer (issuer) and the hearing (hearing) of the Amazon Cognito User Pool, to validate access tokens automatically on each request.",
+        "Use one REST API of the Amazon API Gateway with a Lambda Custom Authorizer written to validate the token JWT of the Cognito at each request.",
+        "Use AWS AppSync with a API GraphQL, setting up the Amazon Cognito User Pools as a mode of authorization of the API GraphQL."
+      ],
+      "explanation": "Correct.. HTTP APIs offer native support to 'JWT authors' validating tokens issued by providers compatible with OIDC, including Amazon Cognito User Pools, without requiring custom code from Lambda Authorizer; HTTP APIs have lower cost for requisition and latency than REST APIs, and as the requirements do not require any exclusive use of REST API (mapping templates, API Keys/Use Plans, WAF), a HTTP API attends fully to the case of use with the most economical option.",
+      "hint": "Think of what kind of API of the API Gateway provides native token validation support JWT (including those issued by Amazon Cognito User Pools) with the lowest cost and latency, when no unique feature of the other type of API is necessary.",
+      "optionRationales": [
+        "Correct.. HTTP APIs offer native support to 'JWT authors' validating tokens issued by providers compatible with OIDC, including Amazon Cognito User Pools, without requiring custom code from Lambda Authorizer; HTTP APIs have lower cost for requisition and latency than REST APIs, and as the requirements do not require any exclusive use of REST API (mapping templates, API Keys/Use Plans, WAF), a HTTP API attends fully to the case of use with the most economical option.",
+        "Incorrect. Although technically functional, REST APIs have higher cost per request and base latency than HTTP APIs, and write/maintain one Lambda Custom Authorizer for validation of JWT is unnecessary additional work when no exclusive resource of REST API is required by the requirements — a disproportionately expensive and complex choice in relation to the declared objective of lower cost/latence.",
+        "Incorrect. The requirements explicitly state that integration with AWS WAF NOT required; add a Web ACL introduce additional costs of WAF not justified by the declared requirements, in addition to choosing REST API (more expensive/latent than HTTP API) no need.",
+        "Incorrect. Migrating to AppSync means adopting the entire GraphQL paradigm (resolvers, data sources, GraphQL scheme) — a much broader architectural change than simply choosing between REST API and HTTP API for one API which presumably already follows (or would follow) a style REST; this paradigm change is not justified by the declared requirements (only validation of the JWT low cost/latence)."
+      ]
+    },
+    "dva-avc-043": {
+      "text": "An order processing flow requires CANCELAR automatically a request if it remains in status 'AWAITING_PAYMENT' for more than 24 hours after its creation. The flow is orchestrated with the AWS Step Functions and you need to 'pause' the execution by up 24 hours (a longer duration than the maximum queue delay limit of the SQS) before verifying the status of the application and canceling it, if not yet paid.",
+      "options": [
+        "Configure an Event Pattern Amazon EventBridge with a time window filter of 24 hours for the order creation event.",
+        "Send request to a row of Amazon SQS with 'DelaySeconds' defined as 86400 (24 hours).",
+        "Use a Wait status of Step Functions configured with 'TimestampPath' (or 'SecondsPath') pointing to a dynamically calculated future timestamp (creation time) + 24 hours), pause the execution until that moment before moving to the state that checks the status of the order and cancels it, if necessary.",
+        "Implement pause within a function AWS Lambda using a call from 'sleep' (e.g. 'Thread.sleep' or equivalent) by 24 hours before further processing."
+      ],
+      "explanation": "Right. Step Functions can pause an execution up to a specific timestamp or duration, including dynamically calculated values from state input via 'TimestampPath'/'SecondsPath'; Standard Workflows of Step Functions support waits of up to a year, making this the native and correct way to implement a break of 24 hours inside an orchestrated flow.",
+      "hint": "Think of what state of Step Functions it was specifically designed to pause an execution up to a specific time or duration, calculated from input data.",
+      "optionRationales": [
+        "Right. Step Functions can pause an execution up to a specific timestamp or duration, including dynamically calculated values from state input via 'TimestampPath'/'SecondsPath'; Standard Workflows of Step Functions support waits of up to a year, making this the native and correct way to implement a break of 24 hours inside an orchestrated flow.",
+        "Incorrect. The DelaySeconds parameter of SQS has a maximum value of 900 seconds (15 minutes) — 86400 exceeds this limit and is not a valid configuration; SQS cannot delay the delivery of a message by 24 hours.",
+        "Incorrect. Maximum time limit for performing a function Lambda is of 15 minutes — a function cannot remain running (even 'sleeping') by 24 hours; even if possible, this would generate idle computing cost throughout the wait, which the 'Wait' state of Step Functions avoid.",
+        "Incorrect. Event Patterns EventBridge filter events based on your content/ESTRUTURA at the moment when CHEGAM — they do not have a mechanism to 'delay' or 'wait' before they correspond to an event, and do not pause the execution of a workflow."
+      ]
+    },
+    "dva-avc-044": {
+      "text": "A company has users in North America and Europe. To provide low latency reading and writing access to user profile data stored in Amazon DynamoDB for both regions, and to ensure that implementation remains available even if one of the regions of the AWS suffer an interruption, the team wants the same data in the table to be replicated automatically and continuously between two regions of the AWS, with AMBAS regions accepting written.",
+      "options": [
+        "Enable DynamoDB Streams in Region A table and use a function Lambda customized to read the stream and replicate each change via 'PutItem' in an identical table in Region B.",
+        "Maintain the table in a single region and implement a cluster of Amazon DynamoDB Accelerator (DAX) in the second region to provide low latency access.",
+        "Configure on-demand backups of DynamoDB in the primary region and periodically restore them in a table in the second region.",
+        "Configure Global Tables from DynamoDB, which replicate a table between multiple regions of the AWS with multi-active replication (multi-region, multi-master) — written in either region spread to the other (typically in less than a second))."
+      ],
+      "explanation": "Correct. Global Tables provide fully managed and multi-active multi-region replication: both regions can accept locally written and readings with low latency, changes automatically spread between regional replications, and the application remains available in one region even if the other suffers a break — meeting all declared requirements without need for custom synchronization pipelines.",
+      "hint": "Think of what resource the DynamoDB it was specifically designed to replicate a table between regions of the AWS, allowing multiple regions to accept written with automatic synchronization.",
+      "optionRationales": [
+        "Correct. Global Tables provide fully managed and multi-active multi-region replication: both regions can accept locally written and readings with low latency, changes automatically spread between regional replications, and the application remains available in one region even if the other suffers a break — meeting all declared requirements without need for custom synchronization pipelines.",
+        "Incorrect. Backups and restorations are operations of PONTO NO TEMPO (snapshot), no continuous replication — this would introduce significant delay (depending on the frequency of backups/restorations) between the data of the two regions, and the table restored in the second region would not accept writings that would automatically be reconciled with the primary region.",
+        "Incorrect. DAX is a CACHE in memory for operations LEITURA on a table in UMA specific region — it does not provide a copy LOCAL AND GRAVABLE data in the second region; writing calls (and miss cache readings) of a DAX in the second region they would still run in latency between regions to access the original table, and a DAX would not survive an interruption of the region where the table resides.",
+        "Incorrect. This approach manually reimplements, with significant engineering effort, capabilities that the Global Tables already offer native — including replication BIDIRECIONAL real (written in B would also need to be replicated back to A, requiring a second pipeline and conflict resolution logic), replication delay monitoring and fault treatment — all of this automatically managed by Global Tables."
+      ]
+    },
+    "dva-avc-045": {
+      "text": "A team needs an endpoint HTTP simple to receive callbacks (webhooks) from a third party payment provider, invoking a single function AWS Lambda. No need for requisition/response transformation, custom domains, multiple routes, API Keys or Usage Plans — Just an Endpoint HTTPS direct invoking the function.",
+      "options": [
+        "Make the outsourced payment provider call the API 'Invoke Lambda directly (lambda:InvokeFunction) using AWS SDK with credentials IAM.",
+        "Configure a Application Load Balancer (ALB) with a target group of the type Lambda pointing to the function.",
+        "Enable a 'Function' URL' in function Lambda (with the appropriate type of authentication), providing an endpoint HTTPS dedicated that invokes the function directly.",
+        "Create a REST API of the Amazon API Gateway with a single feature and method configured with proxy integration Lambda."
+      ],
+      "explanation": "Correct. 'Function URLs' provide an endpoint HTTPS dedicated and managed by AWS to invoke a function Lambda directly, enabled with a single configuration in the function itself — the simplest solution for 'a function, an endpoint HTTP simple', without the need to provide and configure a API Full Gateway.",
+      "hint": "Think of a resource of its own AWS Lambda providing an endpoint HTTPS dedicated to invoke a function directly, without providing any other service.",
+      "optionRationales": [
+        "Correct. 'Function URLs' provide an endpoint HTTPS dedicated and managed by AWS to invoke a function Lambda directly, enabled with a single configuration in the function itself — the simplest solution for 'a function, an endpoint HTTP simple', without the need to provide and configure a API Full Gateway.",
+        "Incorrect. Although functional, this requires providing and setting up a resource of API Complete gateway (with additional cost and complexity of management) to meet requirements that are explicitly minimal — 'Function URLs' were designed exactly for this 'single function, endpoint' scenario HTTP simple', without the overload of a API Gateway.",
+        "Incorrect. Outsourced webhook providers send requests HTTP POST standard; they don't make calls from API of AWS Signed with SigV4 using credentials IAM of your account — 'lambda:InvokeFunction' is not accessible as an endpoint HTTP generic for external callers not authenticated in AWS, making this option impossible for an external webhook.",
+        "Incorrect. Use one ALB as destination for Lambda is valid for certain cases of use, but requires provisioning and managing a load balancer (with network costs and considerations/VPC associated) — an unnecessary overload for what a 'Function URL' performs with a single configuration option in its own function."
+      ]
+    },
+    "dva-avc-046": {
+      "text": "An application sends clickstream events to a Amazon Kinesis Data Stream com 10 shards. The team uses the attribute 'eventType' (which has only 3 possible values: 'click', 'view', 'purchase') as partition key. They notice that a single shard receives the vast majority of records (since 'view' events are much more numerous than the other types) and is being throttled, while the other shards get almost idle.",
+      "options": [
+        "Increase the number of shards in the stream 10 for 20.",
+        "Use an attribute of high cardinality — such as 'userId' (or a combination that includes it) — as a partition key, since the Kinesis does hash the partition key to determine the shard, and a key with only 3 different values can map, at most, to 3 shards, regardless of the total number of shards.",
+        "Enable 'enhanced fan-out' for stream consumers.",
+        "Replace Amazon Kinesis Data Streams by a standard (Standard) row of Amazon SQS."
+      ],
+      "explanation": "Correct. Kinesis Data Streams determines the destination shard of a record based on the partition key hash; a key with only 3 possible different values ('eventType') will result in, at most, 3 different hash values — concentrating all records on up to 3 shards, regardless of how many shards the stream has. A key of high cardinality like 'userId' distributes the records in a much more uniform way among all shards.",
+      "hint": "Think of how the Kinesis Data Streams determines in which shard a record will be stored, and what happens when the key used for this decision has few possible values.",
+      "optionRationales": [
+        "Correct. Kinesis Data Streams determines the destination shard of a record based on the partition key hash; a key with only 3 possible different values ('eventType') will result in, at most, 3 different hash values — concentrating all records on up to 3 shards, regardless of how many shards the stream has. A key of high cardinality like 'userId' distributes the records in a much more uniform way among all shards.",
+        "Incorrect. Increasing the number of shards does not solve the underlying problem: a partition key with only 3 different values will still result in mapped hashes to, at most, 3 two (now 20) shards — most shards would remain idle and one (or few) would still be overloaded.",
+        "Incorrect. 'Enhanced fan-out' provides each consumer with dedicated reading capacity (2 MB/s per shard) from the stream, solving throughput containment of the LADO DO CONSUMIDOR — But it doesn't change how the records of PRODUTOR are distributed among the shards based on the partition key hash.",
+        "Incorrect. SQS does not have the concept of 'shards' and is a fundamentally different service (point-to-point thread vs. streaming with ordered semantics, replayable and multi-consumer); completely changing service does not solve the issue of partition key cardinality and would cause the application to lose specific streaming capabilities on which it may depend."
+      ]
+    },
+    "dva-avc-047": {
+      "text": "An application stores records of 'Customers' and 'Requests' of each client (one-to-many relationship) in Amazon DynamoDB. The team wants to recover the profile of a client and TODOS your requests in UMA ONLY operation 'Query', instead of a query for the client and another separate one for the requests (two round-trips)).",
+      "options": [
+        "Create a Global Secondary Index (GSI) in the 'Orders' table with 'CustomerId' as partition key, and make a separate 'Query' table in the 'Customers' table'.",
+        "Use two separate tables ('Customers' and 'Orders'), making two sequential calls 'Query' (one for each table) in the application code and combining the results.",
+        "Store the complete list of 'OrderIds' as an array attribute (list JSON) inside the 'Customer' item, and make a separate 'BatchGetItem' call to search for orders.",
+        "Use a single table with 'CustomerId' partition key for both entity types: a 'Customer' item with sorting key 'PROFILE', and 'Order' items with ordination key 'ORDER#<OrderId>' — a single 'Query' with 'KeyConditionExpression: CustomerId = :id' (without ordering key restriction, or using 'begins_with') recovers both the profile item and all order items on a call."
+      ],
+      "explanation": "Correct. This 'adjacency list' standard in a single-table design table places related items under the MESMA partition key, differentiated by prefixes in the sorting key; a single 'Query' by the partition key 'CustomerId' returns both the item 'PROFILE' as all items 'ORDER#...' in a single call from API, eliminating the second round-trip.",
+      "hint": "Think of how items of different types, but related, can share the same partition key in a single table, being differentiated by prefixes in the sorting key.",
+      "optionRationales": [
+        "Correct. This 'adjacency list' standard in a single-table design table places related items under the MESMA partition key, differentiated by prefixes in the sorting key; a single 'Query' by the partition key 'CustomerId' returns both the item 'PROFILE' as all items 'ORDER#...' in a single call from API, eliminating the second round-trip.",
+        "Incorrect. This is exactly the pattern of two round-trips that the team wants to avoid — the DynamoDB has no operation of 'JOIN' native between tables, so using two separate tables will always require at least two calls from API to obtain data from both.",
+        "Incorrect. This still requires two sets of calls (one to get the 'Customer' item with the ID list, another 'BatchGetItem' route for orders) — it is not a single 'Query'; moreover, the 'OrderIds' list attribute could grow indefinitely throughout the customer's life, approaching the item size limit of the DynamoDB (400 KB).",
+        "Incorrect. This still involves two separate 'Query' calls against two different tables/indexes — does not meet the requirement of a ONE operation 'Query' returning both data types."
+      ]
+    },
+    "dva-avc-048": {
+      "text": "A function AWS Lambda updates the status attribute of an application item via 'UpdateItem', and the response of the API needs to include the ITEM COMPLETO ATUALIZADO (all current attribute values) to return to the client. Currently, the code calls 'UpdateItem' and then makes a call SEPARADA 'GetIt's to look for the updated item — two round-trips for what should be a single logical operation.",
+      "options": [
+        "Add parameter 'ReturnValues': \"ALL_NEW\"' to the so-called 'UpdateItem' — the DynamoDB returns the full set of attributes of the item COMO ELE APARECE AFTER the update, in the same answer, eliminating the need for a separate call 'GetItem'.",
+        "Use 'TransactWriteItems' instead of 'UpdateItem', as transactions automatically return the updated full item.",
+        "Store cache item in Amazon DynamoDB Accelerator (DAX) before updating, and read it from DAX after the update is completed.",
+        "Add 'ConsistentRead: true' to the subsequent 'GetItem' to ensure that updated data is immediately visible."
+      ],
+      "explanation": "The parameter 'ReturnValues': \"ALL_NEW\"' makes the answer of the 'UpdateItem' itself include all attributes of the already updated item — meeting the requirement in a single call from API, without any additional call.",
+      "hint": "Think about what parameter of the 'UpdateItem' operation DynamoDB allows the update response itself to include the current (post-update) values of the item attributes.",
+      "optionRationales": [
+        "The parameter 'ReturnValues': \"ALL_NEW\"' makes the answer of the 'UpdateItem' itself include all attributes of the already updated item — meeting the requirement in a single call from API, without any additional call.",
+        "Incorrect. 'ConsistentRead: true' ensures strongly consistent readings (relevant since the standard readings of the DynamoDB are eventually consistent), but DO NOT eliminate the need for a call SEPARADA — the answer of the 'UpdateItem' itself can already return the updated item via 'ReturnValues', making the second call unnecessary regardless of its consistency..",
+        "Incorrect. 'TransactWriteItems' DOES NOT return the attributes values of the item by default in its main response (only capacity consumption metadata, and optionally attributes in case of condition failure via 'ReturnValuesOnConditionCheckFailure') — switch to a transaction for a single item update adds overhead without solving the declared problem.",
+        "Incorrect. Although the DAX write-through cache support (updating cache in writing), introduce and manage a cluster DAX adds significant architectural complexity to solve something that the 'ReturnValues' parameter of the 'UpdateItem' already offers for free, without additional calls or infrastructure."
+      ]
+    }
+  }
+}

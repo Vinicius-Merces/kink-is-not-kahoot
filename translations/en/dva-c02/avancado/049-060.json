@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "avancado",
+    "sourcePath": "data/exams/dva-c02/avancado.json",
+    "range": "049-060",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-avc-049": {
+      "text": "A function AWS Lambda processes messages from a row of Amazon SQS via 'event source mapping'. Occasionally, a malformed message ('poison pill') makes the function launch an error every time it is processed; the 'event source mapping' continues to deliver this MESMA message repeatedly, consuming the competition of the function and delaying the processing of other valid messages.",
+      "options": [
+        "Configure a redirect policy in the source row specifying a Dead-Letter Queue (DLQ) and a 'maxReceiveCount' (ex.: 3) — after the message has been received and failed 'maxReceiveCount' times, the SQS automatically moves to the DLQ, removing it from the original row.",
+        "Increase the timeout of the function Lambda to give more time to process the malformed message successfully.",
+        "Delete the message manually from the queue whenever a processing error is recorded in the logs of CloudWatch Logs.",
+        "Set the 'VisibilityTimeout' of the row as 0, so that failed messages are immediately available for re-delivery."
+      ],
+      "explanation": "Right. A redrive policy with 'maxReceiveCount' does the SQS automatically move, after the configured number of failed attempts, the 'poison pill' message to the DLQ — removing it from the source row (allowing subsequent valid messages to be processed without blocking) and preserving it separately for subsequent inspection/reprocessing, without data loss.",
+      "hint": "Think of a native mechanism of SQS which automatically isolates messages that fail repeatedly, removing them from the main row after a configurable number of attempts.",
+      "optionRationales": [
+        "Right. A redrive policy with 'maxReceiveCount' does the SQS automatically move, after the configured number of failed attempts, the 'poison pill' message to the DLQ — removing it from the source row (allowing subsequent valid messages to be processed without blocking) and preserving it separately for subsequent inspection/reprocessing, without data loss.",
+        "Incorrect. Increasing the timeout does not help if the message is fundamentally malformed/improcessible — the function will continue to fail regardless of the time available, and the problem of repeated deliveries/blocking remains.",
+        "Incorrect. Define 'VisibilityTimeout' as 0 would make the MESMA message 'poison pill' be re implement almost IMEDIATAMENTE and repeatedly, without any isolation or limit — consuming competition from the Lambda in a way still MAIS aggressive (a worse effect than the current one), not better.",
+        "Incorrect. This requires manual and reactive intervention (someone monitoring logs and deleting messages) instead of an automated mechanism, and delete (instead of moving to a DLQ) discards the message permanently, without registration or possibility to investigate what went wrong."
+      ]
+    },
+    "dva-avc-050": {
+      "text": "A function AWS Lambda 'ProcessPayment' is invoked (which can be re-send/re-send by the client or platform after a timeout) to collect a client's card via a API third-party payments and record the transaction in DynamoDB. Each request includes a 'impotencyKey' provided by the customer. MESMA requisition (even 'impotencyKey') is processed more than once due to retaliatory, the customer should NOT be charged twice.",
+      "options": [
+        "Store the 'impotencyKey' in the function environment variables Lambda before calling the API of payments, and check it in subsequent invocations.",
+        "Before I called the API of payments, the function performs a conditional 'PutItem' in a table of DynamoDB using 'idepotencyKey' as partition key with 'ConditionExpression: attribute_not_exists(idepotencyKey)'; if 'PutItem' succeeds (first time seeing this key), proceed with the recovery; if failure with 'ConditionalCheckFailedException' (key already registered), skip the recovery and return the previously stored result.",
+        "Configure the function with Reserved Competition equal to '1' to prevent competing executions that could cause duplicate charges.",
+        "Trust the auto and native deduplication of the AWS Lambda for repeated invocations, based on the request ID."
+      ],
+      "explanation": "Correct. The 'PutItem' conditional with 'attribute_not_exists' is executed ATOMICALly by DynamoDB: only the PRIMEIRA Invocation with a given 'impotencyKey' will succeed in registering the key and will continue with the collection; any subsequent (retentative) invocations with the MESMA key will fail in condition and skip the call to API of payments — ensuring that the recovery takes place not more than once by 'impotencyKey', even under competing or repeated invocations.",
+      "hint": "Think of what operation the DynamoDB can register atomically 'this request has already been seen', failing safely if the same key has already been registered before.",
+      "optionRationales": [
+        "Correct. The 'PutItem' conditional with 'attribute_not_exists' is executed ATOMICALly by DynamoDB: only the PRIMEIRA Invocation with a given 'impotencyKey' will succeed in registering the key and will continue with the collection; any subsequent (retentative) invocations with the MESMA key will fail in condition and skip the call to API of payments — ensuring that the recovery takes place not more than once by 'impotencyKey', even under competing or repeated invocations.",
+        "Incorrect. AWS Lambda DO NOT automatically deduct invocations or warrant execution 'exactly once' for retrantatives (especially for asynchronous or retrantative invocations on the client's side with new requisitioning IDs) — the idempotence must be implemented by the application.",
+        "Incorrect. Limiting competition to '1' serialization GLOBALMENTE TODO the processing of payments (a severe gargalo under normal load) and does not prevent the MESMA logical request is processed twice in invocations SEQUENCIAIS (not simultaneous) caused by retants — only avoids simultaneous, not sequential duplication of the same 'idepotencyKey''.",
+        "Incorrect. Environmental variables are part of the CONFIGURATION IMPLANTADA of the function (shared by all execution environments) and cannot be dynamically written, by invocation, from the running code to track state by request — is not a viable mechanism to track the idempotence of individual requests."
+      ]
+    },
+    "dva-avc-051": {
+      "text": "An application needs to run a function Lambda UMA ONLY VEZ on a specific future date/time (e.g. send a promotional notification scheduled for '2026-07-01 09:00 UTC'), and also perform another function Lambda on a recurring agenda (e.g.: 'every day at 02:00 UTC' for cleaning). The team wants a single native mechanism of AWS for AMBOS the cases (single and recurring schedule), without implementing additional infrastructure as a database table.",
+      "options": [
+        "Use AWS Step Functions with a 'Wait' state calculated for the target date/hour, initiated immediately, for both use cases (single and recurring)).",
+        "Use standard event bus rules (Rules) of the Amazon EventBridge with a cron expression both for the recurring task and for the single task.",
+        "Store the scheduled date/time in a table of the DynamoDB and perform a function Lambda every minute (see a recurring rule of the EventBridge) to do table scan in search of expired tasks.",
+        "Use Amazon EventBridge Scheduler, which supports both unique schedules (specific date/time, 'at()' expressions) and recurring schedules (chron/rate expressions) to invoke destinations as functions Lambda directly, without additional infrastructure."
+      ],
+      "explanation": "Correct. Amazon EventBridge Scheduler was designed specifically to support AMBOS the types of scheduling — single executions in a specific future timestamp ('at()') and recurring executions via cron/rate expressions — invoking the destination (ex.: Lambda) directly, without the need for tables, polling jobs or additional infrastructure.",
+      "hint": "Think of what service the AWS it was introduced specifically to support both unique schedules in a future date/hour and recurring schedules of the cron type, invoking destinations directly.",
+      "optionRationales": [
+        "Correct. Amazon EventBridge Scheduler was designed specifically to support AMBOS the types of scheduling — single executions in a specific future timestamp ('at()') and recurring executions via cron/rate expressions — invoking the destination (ex.: Lambda) directly, without the need for tables, polling jobs or additional infrastructure.",
+        "Incorrect. EventBridge support cron/rate expressions for scheduling RECORRENTES, but they do not have a clean native concept of 'executing exactly once in this future timestamp and then automatically removing' — this would require a cron expression corresponding to a single instant and manual cleaning of the rule afterwards; the EventBridge Scheduler was specifically introduced to treat unique schedules more directly.",
+        "Incorrect. This is exactly the type of additional infrastructure (Table 3). DynamoDB + Lambda of polling + Scan-based logic) that the team wants to avoid — the EventBridge Scheduler provides this capacity natively, without these extra components.",
+        "Incorrect. A 'Wait' state could express the delay for the ONE case, but the Step Functions does not, by itself, have a native concept of a 'recurrent/cron' trigger — it would still need an external trigger (such as the EventBridge) for INICIAR the recurrent execution; is not a single and unified mechanism for AMBOS the types of scheduling."
+      ]
+    },
+    "dva-avc-052": {
+      "text": "A table 'Notifications' of the DynamoDB has partition key 'UserId' and ordination key 'Timestamp' ISO 8601, A feed of 'recent notifications' needs to display a user's notifications with MAIS RECENTES first, limited to the last 20.",
+      "options": [
+        "Create a Global Secondary Index (GSI) with 'Timestamp' as partition key and 'UserId' as sorting key, and do 'Query' in GSI for the desired UserId.",
+        "Use 'Query' with 'KeyConditionExpression: UserId = :uid', 'ScanIndexForward: false' and 'Limit': 20'.",
+        "Use 'Query' with default settings (increasing order) and 'Limit': 20', and then invert the result array into the application code before returning it to the client.",
+        "Use 'Scan' in the table with a 'FilterExpression' for 'UserId', sorting the results by 'Timestamp' in the application after recovery, and then taking the first 20."
+      ],
+      "explanation": "Correct. 'ScanIndexForward: false' does the DynamoDB scroll the index of the sorting key in order DECRESCENTE; combined with 'Limit': 20', o DynamoDB directly returns the 20 notifications with the highest values of 'Timestamp' (the latest) — already in the desired order, without need to recover and reorder all user notifications.",
+      "hint": "Think of what parameter of a 'Query' operation of DynamoDB controls the direction (decrease or decrease) in which items are returned based on the ordination key.",
+      "optionRationales": [
+        "Correct. 'ScanIndexForward: false' does the DynamoDB scroll the index of the sorting key in order DECRESCENTE; combined with 'Limit': 20', o DynamoDB directly returns the 20 notifications with the highest values of 'Timestamp' (the latest) — already in the desired order, without need to recover and reorder all user notifications.",
+        "Incorrect. With increasing order and 'Limit': 20', o DynamoDB returns 20 notifications MAIS ANTIGAS user (not the 20 most recent) — the 'Limit' is applied ANTES of any rearrangement; simply reverse that array would produce the 20 older in descending order, not 20 most recent.",
+        "Incorrect. Scan read to TABELA INTEIRA (notifications of TODOS users), regardless of the filter applied — vastly less efficient than a 'Query' driven by the partition key, especially as the table grows.",
+        "Incorrect. Use an attribute of very high cardinality and constant change as 'Timestamp' as the key to PARTICIPATION of a GSI create partitions with very few items each (timestamps are almost unique), making it inefficient to consult 'all notifications of this UserId' (which would be spread by numerous partition keys different from the index) — the 'Timestamp' ordination key of the base table, combined with 'ScanIndexForward', is already the correct and idiomatic approach."
+      ]
+    },
+    "dva-avc-053": {
+      "text": "In a request processing pipeline, a function AWS Lambda call one API the calculation of freight of a third party provider at each request. This provider is currently in an outage and each delay call ~30 seconds before returning error/timeout. During interruption, TODA invocation of Lambda wait for this full duration before failure, making the pipeline accumulate a severe backlog and consuming running time (and cost) of Lambda in calls guaranteed to fail.",
+      "options": [
+        "Increase the timeout of the function Lambda to ensure that she has sufficient time to receive the error response from API Of a kind used for the transport of goods.",
+        "Implement the 'circuit breaker' pattern: the function tracks the recent state/rate of faults of the API downstream (stored in a repository shared between invocations, such as Amazon DynamoDB or Amazon ElastiCache); after a limit of consecutive failures, the circuit opens and subsequent calls immediately return an error/fallback SEM call API downstream, periodically testing (half-open state) if she's already recovered.",
+        "Involve the call to API freight in the same retentive logic with exponential backoff and jitter used to deal with transient throttling of the DynamoDB.",
+        "Configure the Reserved Competition function to '0', completely interrupting the processing until the interruption is solved manually."
+      ],
+      "explanation": "Correct. The circuit breaker pattern avoids repeated calls to a downstream service that is consistently failing, maintaining a shared state (between invocations of Lambda, which are ephemeral) on the 'health' of the service; when the circuit is 'open', the calls return quickly without waiting for the complete timeout, releasing resources and avoiding the accumulation of backlog — and periodically allows a test call to detect the recovery of the service.",
+      "hint": "Think of a design pattern that repeatedly avoids calling a downstream service that is consistently failing, returning quickly until the service is recovered.",
+      "optionRationales": [
+        "Correct. The circuit breaker pattern avoids repeated calls to a downstream service that is consistently failing, maintaining a shared state (between invocations of Lambda, which are ephemeral) on the 'health' of the service; when the circuit is 'open', the calls return quickly without waiting for the complete timeout, releasing resources and avoiding the accumulation of backlog — and periodically allows a test call to detect the recovery of the service.",
+        "Incorrect. Increasing the timeout does not solve the problem during a sustained interruption — the function would simply wait AINDA MAIS TEMPO before failing on each call, worsening the backlog buildup instead of improving it.",
+        "Incorrect. Retentives with backoff are suitable for TRANSITOR errors that should be resolved soon, but during an INTERRUPTION SUSTENTADA, retentatives only multiply the wasted waiting time (multiple attempts by invocation, each waiting for the timeout) — the circuit breaker, differently, explicitly interrupts calls during sustained failures, which retentatives themselves do not.",
+        "Incorrect, it interrupts. TODOS requests (including those that do not depend on API of freight or which could proceed with a standard rate/fallback), an excessively wide manual intervention compared to a circuit breaker that degrades gracefully and recovers automatically, without human intervention."
+      ]
+    },
+    "dva-avc-054": {
+      "text": "A web application is migrating from instances EC2 (with 'sticky sessions' storing the contents of the shopping cart in the memory of each instance) for a serverless architecture (Amazon API Gateway + AWS Lambda). The implementation environments of the Lambda are ephemeral, and requests of the same user can be handled by execution environments DIFERENTES (without 'stickiness' guarantee) — as a result, the contents of the cart are being lost randomly between requests.",
+      "options": [
+        "Store session data in the function's ephemeral '/tmp' storage Lambda.",
+        "Increase the function's assigned memory Lambda so that session data can be kept in global variables between invocations.",
+        "Store session status (e.g. cart content) in an external and shared data repository — such as Amazon ElastiCache (Redis) for storage of low latency session, or the Amazon DynamoDB — indexed by a session ID (e.g. stored in a cookie)/JWT), in such a way that any execution environment Lambda who answers a request for this session can read/write the same status.",
+        "Enable sticky sessions no Amazon API Gateway, similar to a Application Load Balancer, to route a user's requests always to the same running environment of the Lambda."
+      ],
+      "explanation": "Correct. Store session status in a repository EXTERNO and shared, outside the life cycle of the environment of execution of the Lambda, ensures that QUALQUER Invocation (regardless of which execution environment to attend) has access to the same updated session status, indexed by a session identifier — this is the recommended standard for state persistence HTTP in architectures serverless statess.",
+      "hint": "Think about where the status of a user session can be stored so that any ephemeral running environment, when processing a request for that session, can read it and update it.",
+      "optionRationales": [
+        "Correct. Store session status in a repository EXTERNO and shared, outside the life cycle of the environment of execution of the Lambda, ensures that QUALQUER Invocation (regardless of which execution environment to attend) has access to the same updated session status, indexed by a session identifier — this is the recommended standard for state persistence HTTP in architectures serverless statess.",
+        "Incorrect. API Gateway does not have the concept of routing requests for a SPECIFIC running environment of Lambda — the life cycle of the execution environments of the Lambda is managed by AWS and is not addressable/outerly routeable; this resource does not exist for integrations with Lambda.",
+        "Incorrect. '/tmp' is local to A ONLY execution environment and is not shared among (potentially many) competing/different execution environments that meet user requests — data recorded in a '/tmp' are invisible to other environments and can be lost when the environment is recycled.",
+        "Incorrect. Global/static variables persist only between invocations treated by the MESMO execution environment (a better effort optimization, not guaranteed, used for re-use of connections) — not between different and competing execution environments; user session would still be lost when routed to a different environment (e.g. a cold start))."
+      ]
+    },
+    "dva-avc-055": {
+      "text": "A function AWS Lambda needs to process all objects from a Amazon S3 which contains millions of objects. The current code called 'ListObjectsV2'' UMA ONLY VEZ and processes the returned 'Contents' array — however, 'ListObjectsV2' returns at most 1.000 keys per call, and the function is stopping processing the vast majority of objects in large bucks.",
+      "options": [
+        "Increase the 'MaxKeys' parameter to a value greater than 1.000 in the name 'ListObjectsV2''.",
+        "Check the field 'IsTruncated' (or the presence of 'NextContinuationToken') in the answer; if true, make subsequent calls to 'ListObjectsV2' by passing the 'NextContinuationToken' returned as the parameter 'ContinuationToken', repeating until 'IsTruncated' is false.",
+        "Use API 'ListObjects' 1, older) instead of 'ListObjectsV2''.",
+        "Use the 'Prefix' parameter to divide objects into smaller groups, assuming that each prefix group will have less than 1.000 objects."
+      ],
+      "explanation": "Correct. 'ListObjectsV2' returns at most 1.000 keys per call and indicates, via 'IsTruncated'/'NextContinuationToken', if there are more results; pass this pagination token as 'ContinuationToken' in the next call allows you to scroll TODAS the results pages to the end — the standard pattern of pagination S3.",
+      "hint": "Think of which field of the 'ListObjectsV2' response indicates if there are more results, and which parameter of the next call should receive this value to continue from where the previous stop.",
+      "optionRationales": [
+        "Correct. 'ListObjectsV2' returns at most 1.000 keys per call and indicates, via 'IsTruncated'/'NextContinuationToken', if there are more results; pass this pagination token as 'ContinuationToken' in the next call allows you to scroll TODAS the results pages to the end — the standard pattern of pagination S3.",
+        "Incorrect. 'MaxKeys' has a maximum RIGID of 1.000 by request — values defined above are limited (capped) to 1.000 by the service itself; it is not possible to increase beyond that limit.",
+        "Incorrect. API v1 ('ListObjects') MESMO limit of 1.000 call keys (using 'Marker'/'NextMarker' instead of 'ContinuationToken' for pagination, but the underlying limitation and need for pagination are identical) — change version from API does not eliminate the need for pagination.",
+        "Incorrect. This is unreliable — a certain prefix may still contain more than 1.000 objects, or the bucket may not have a prefix structure that distributes objects evenly — it is not a general and guaranteed solution to recover TODOS the objects, in comparison to follow the token of continuation until the exhaustion of the results."
+      ]
+    },
+    "dva-avc-056": {
+      "text": "A single topic of the Amazon SNS, 'OrderEvents, posts messages for various events in the order life cycle, each with an 'eventType' message attribute (values: 'OrderCreated', 'OrderShipped', 'OrderCancelled', 'OrderRefused'). Amazon SQS are registered: the shipping service only needs 'OrderCreated' and 'OrderShipped'; the Analytics service needs to TODOS the types; the fraud service only needs 'OrderCancelled' and 'OrderRefused'. Currently, the three rows receive TODAS messages, and each function Lambda consumer filter by 'eventType' in code, discarding irrelevant messages after receiving them (and paying for them)).",
+      "options": [
+        "Configure a filter policy in the subscription of each row SQS the topic SNS, specifying which values of the attribute 'eventType' that entry should receive (e.g., Send Policy: '{\"eventType\": [\"OrderCreated\", \"OrderShipped\"]}') — the SNS evaluates the policy and delivers only the messages corresponding to each registration.",
+        "Add a function Lambda between the SNS and each row SQS, filtering messages and only passing the relevant messages.",
+        "Use message attributes from SQS and configure each row with a 'redive policy' that discards messages with unmatched eventType values.",
+        "Create a topic SNS separate for each eventType value, and send the publisher to each relevant topic for each event."
+      ],
+      "explanation": "Correct. Filtration filter policies of the SNS are evaluated by the SNS at the time of publication, delivering to each registration only messages whose attributes correspond to the configured policy — reducing the delivery/processing of irrelevant messages without any change in the publisher and without additional filtering code in consumers.",
+      "hint": "Think about which subscription configuration of the Amazon SNS allows each subscriber to receive only messages whose attributes correspond to specific criteria, without changing the publisher.",
+      "optionRationales": [
+        "Correct. Filtration filter policies of the SNS are evaluated by the SNS at the time of publication, delivering to each registration only messages whose attributes correspond to the configured policy — reducing the delivery/processing of irrelevant messages without any change in the publisher and without additional filtering code in consumers.",
+        "Incorrect. This requires that the PUBLICADOR know and manage multiple topics/routing logic — adding a new type of event or a new combination of interest of a subscriber would require changes on the publisher's side; filter policies allow you to configure this routing on the subscriber's side ASSINANTE, no changes in the publisher.",
+        "Incorrect. This adds three functions Lambda extras (cost, latency and additional operating overhead) to perform a filtering that the filter policies of registration of the SNS they already provide natively, without any additional count.",
+        "Incorrect. SQS route messages that FALHAM NO PROCESSAMENTO (exceeding 'maxReceiveCount') for a tail-letter — they do not have the concept of filtering by VALOR of message attribute at the time of delivery, and have no relation to this filtering requirement."
+      ]
+    },
+    "dva-avc-057": {
+      "text": "A document editing application stores 'Draws' (Drafts) in DynamoDB with a 'version' attribute. A feature to 'delete draft' reads the draft (showing it to the user with 'version').=3') and, after user confirmation, calls 'DeleteItem'. However, between reading and confirmation, OUTRO process may have updated the draft (e.g. auto-save of new changes, 'version' becomes 4). The team wants you to exclude FALHE if the item has changed since last reading by this user, avoiding deleting a draft that now contains more recent changes and not yet seen.",
+      "options": [
+        "Use 'UpdateItem' with 'UpdateExpression': REMOVE' in all attributes, instead of 'DeleteItem', combined with a 'ConditionExpression''.",
+        "Call 'DeleteItem' with a 'ConditionExpression' of 'version = :expectedVersion' (the version that the user saw last, ex.: 3) — if another process has already updated the item (increasing 'version' to 4), condition fails with 'ConditionalCheckFailedException' and exclusion does NOT occur.",
+        "Call 'DeleteItem' normally and immediately afterwards call 'GetItem' to check if the deleted item had the expected version.",
+        "Enable DynamoDB Streams and use a function Lambda separate to veto exclusions by recreate the item if your 'version' has changed."
+      ],
+      "explanation": "Correct. ConditionExpression is evaluated by DynamoDB atomically along with the exclusion operation: if the current 'version' value does not match the expected one (indicating that the item has changed since the last reading), the exclusion is aborted with 'ConditionalCheckFailedException', preserving the latest changes; the application can then inform the user that the draft has changed.",
+      "hint": "Think of what expression can be added to the exclusion operation of DynamoDB so that it fails atomically if the item has been modified since the last reading.",
+      "optionRationales": [
+        "Correct. ConditionExpression is evaluated by DynamoDB atomically along with the exclusion operation: if the current 'version' value does not match the expected one (indicating that the item has changed since the last reading), the exclusion is aborted with 'ConditionalCheckFailedException', preserving the latest changes; the application can then inform the user that the draft has changed.",
+        "Incorrect. At the time that 'GetItem' is called, the item ALREADY FOI EXCLUDED ('DeleteItem' is unconditional and has already been executed) — this check occurs too late to prevent exclusion.",
+        "Incorrect. 'REMOVE'-r all attributes via 'UpdateItem' leaves one ITEM VAZIO (containing only the key attributes) instead of removing the item completely from the table — this is different from the desired 'exclusion' semantics and could affect later code that checks the existence of the item via 'GetItem' (an empty item still 'existing'').",
+        "Incorrect. This is a reactive, asynchronous and eventually consistent solution (the exclusion would have already occurred and would have been reversed later), which can cause confusing intermediate states — in contrast to a ConditionExpression, which prevents exclusion from occurring atomically from the very beginning.."
+      ]
+    },
+    "dva-avc-058": {
+      "text": "A Single-Page Application (SPA) hosted in 'https://app.example.com' (way CloudFront/S3) call one REST API of the Amazon API Gateway hosted in a different origin ('https://api.example.com'). The browser requirements for the API are failing with errors of CORS in the browser console ('No Access-Control-Allow-Original header is present'), although the function Lambda integrated executes successfully when tested directly (out of browser).",
+      "options": [
+        "Configure the execution function (execution roll)) IAM of Lambda with a policy allowing 'execute-api:Invoke' from the origin of SPA.",
+        "Move function code Lambda to execute within the same VPC of distribution CloudFront which serves SPA.",
+        "Configure a cache policy from Amazon CloudFront in the distribution serving the SPA to include the 'Origin' header in the cache key.",
+        "Enable CORS in the resources/methods of the API Gateway — Setting Method 'OPTIONS' to respond to pre-light requests, and ensuring that relevant methods (GET, POST etc.) return the header 'Access-Control-Allow-Origin' (defined as 'https://app.example.com' or '*'), together with 'Access-Control-Allow-Methods'/ 'Access-Control-Allow-Headers' as necessary."
+      ],
+      "explanation": "Correct. CORS occur when the NAVEGADOR does not find the expected 'Access-Control-Allow-*' headers in response to a cross-origin request; enable CORS no API Gateway (be via your built-in resource 'Enable CORS' or doing his own function Lambda return these headers in the case of proxy integration) adds these headers to the responses and configures the method 'OPTIONS' to respond correctly to pre-light requests — solving the error directly in the cause.",
+      "hint": "Think of which answer header HTTP, absent in the responses of API, the browser requires to allow a page of a different origin to read the answer of a cross-origin request.",
+      "optionRationales": [
+        "Correct. CORS occur when the NAVEGADOR does not find the expected 'Access-Control-Allow-*' headers in response to a cross-origin request; enable CORS no API Gateway (be via your built-in resource 'Enable CORS' or doing his own function Lambda return these headers in the case of proxy integration) adds these headers to the responses and configures the method 'OPTIONS' to respond correctly to pre-light requests — solving the error directly in the cause.",
+        "Incorrect. IAM control QUAIS PRINCIPAIS of AWS may carry out actions of API — they have no effect on the heads of CORS for use by NAVEGADOR, which are a safety mechanism on the side of CLIENTE based on response headers HTTP, without relation to permissions IAM.",
+        "Incorrect. CORS is applied by the NAVEGADOR based on ORIGEM (schema+domain+port) of the page that makes the call versus the 'Access-Control-Allow-Origin' header of the response — has no connection to the network location (VPC) backend; place the Lambda in one VPC does not add any heading of CORS to the responses of the API Gateway.",
+        "Incorrect. cache key policies of CloudFront control what the CloudFront use to determine cache correctness/errors — they do not add headers to CORS to the responses of the API Gateway (which in this scenario is not served by this distribution CloudFront), not solving the absence of the header 'Access-Control-Allow-Origin' in the responses of API."
+      ]
+    },
+    "dva-avc-059": {
+      "text": "A team needs to deploy a function AWS Lambda with a machine learning inference library and model files totaling about 1,8 GB. The standard implementation package of the Lambda (zip) has a limit of 250 MB decompressed (including function code) MAIS TODAS combined layers) — much lower than these dependencies.",
+      "options": [
+        "Pack the function as a container image (using a basic image of the AWS for Lambda or a custom image that implements the Lambda Runtime API), published no Amazon ECR — o Lambda supports up container images 10 GB.",
+        "Store ML model files in Amazon EFS and mount the file system EFS in function Lambda, keeping the inference library in the default zip package.",
+        "Request to AWS Supports an increase in service quota for the size limit of the implementation package of the Lambda.",
+        "Divide the dependencies between the maximum of 5 Lambda Layers, each falling just below the limit of 250 MB."
+      ],
+      "explanation": "Correct. The deployment via container image supports up to 10 GB, well above the limit of 250 MB of the zip+layers deployment model — being the documented and recommended solution for functions with large dependencies (such as ML libraries and model files) that exceed the limits of the zip package.",
+      "hint": "Think about what function packing format Lambda supports a much larger size (up to 10 GB) than the traditional model based on zip file and layers.",
+      "optionRationales": [
+        "Correct. The deployment via container image supports up to 10 GB, well above the limit of 250 MB of the zip+layers deployment model — being the documented and recommended solution for functions with large dependencies (such as ML libraries and model files) that exceed the limits of the zip package.",
+        "Incorrect. The limit of 250 MB applies to size TOTAL DESCOMPRIMIDO function code MAIS TODAS AS LAYERS COMBINADAS, not by layer individually — divide a set of dependencies of 1,8 GB between 5 layer does not circumvent this combined limit, since 1,8 GB still exceeds 250 MB regardless of how it is divided.",
+        "Incorrect. This could work for ARQUIVOS OF MODELO (data, often suitable for EFS/S3), but the very same BIBLIOTECA Inference (e.g. a large Python package with native binaries) would still need to be in the function code/layers, remaining restricted by the combined limit of 250 MB — does not completely solve the problem for a combined set of 1,8 GB without using container images or other restructuring.",
+        "Incorrect. The size limits of the implementation package of the Lambda (250 MB decompressed; 50 MB to upload directly via zip) are rigid limits of the zip-based deployment model and are NOT adjustable via request for increased service share — container image support (up to 10 GB) is the documented solution for packages that exceed these limits."
+      ]
+    },
+    "dva-avc-060": {
+      "text": "A table of the DynamoDB 'Messages' has partition key 'ChatRoomId' and ordination key 'Timestamp'. An endpoint needs to return messages from a chat room sent by a SPECIFIC sender ('SenderId' = 'user123'). The current implementation makes 'Query' with 'KeyConditionExpression: ChatRoomId = :roomId' (recovering) TODAS the messages of the room, potentially thousands) and a 'FilterExpression: SenderId = :userId'. The team realizes that this consumes ability to read proportional to the TODAS the messages of the room (read before filtering), even if few correspond to the filter, and that 'Limit' applied to this query returns less results than expected, because 'Limit' counts items ANTES Filtering.",
+      "options": [
+        "Use 'Scan' with 'FilterExpression' in 'ChatRoomId' and 'SenderId' instead of 'Query''.",
+        "Keep 'Query' with current 'FilterExpression' but increase 'Limit' to a very high value (ex.: 10000) to ensure that sufficient items are read before filtering.",
+        "Move 'SenderId = :userId' from 'FilterExpression' to 'KeyConditionExpression', along with 'ChatRoomId = :roomId', since both are conditions of equality.",
+        "Create a Global Secondary Index (GSI) with partition key 'ChatRoomId' and a composite sorting key that includes 'SenderId' (e.g. 'SenderId#Timestamp'), allowing you to express the access pattern ('messages of this sender') via 'KeyConditionExpression' in GSI, instead of reading and discarding messages from other senders."
+      ],
+      "explanation": "Correct. 'FilterExpression' is applied AFTER the reading of the items (and 'Limit' is applied to the reading, not to the filtered result) — the correct correction is a change of data modeling: a GSI whose key includes 'SenderId' allows 'KeyConditionExpression' to directly restrict items read to 'ChatRoomId' and 'SenderId', avoiding reading and discarding messages from other senders.",
+      "hint": "Think about why 'FilterExpression' does not reduce the amount of data read, and in which modeling change would allow the filter attribute to be part of a readable key.",
+      "optionRationales": [
+        "Correct. 'FilterExpression' is applied AFTER the reading of the items (and 'Limit' is applied to the reading, not to the filtered result) — the correct correction is a change of data modeling: a GSI whose key includes 'SenderId' allows 'KeyConditionExpression' to directly restrict items read to 'ChatRoomId' and 'SenderId', avoiding reading and discarding messages from other senders.",
+        "Incorrect. Increase 'Limit' still increases MAIS the number of items LIDOS (and the reading capacity consumed), aggravating inefficiency, and still does not guarantee to capture all the corresponding messages if there are more messages in the room than the 'Limit' before filtering find sufficient correspondence.",
+        "Incorrect. 'KeyConditionExpression' can only refer to attributes that ARE, in fact, the partition key and the table sorting key (or index) as defined in your schema; 'SenderId' is not part of the base table key scheme, so it cannot simply be 'move' to 'KeyConditionExpression' without a corresponding index that includes it as a key attribute.",
+        "Incorrect. 'Scan' read to TABELA INTEIRA (all rooms, all messages), instead of just the items of UMA partition ('ChatRoomId') — becoming strictly MENOS efficient than the current approach of Query+Filter, no more."
+      ]
+    }
+  }
+}

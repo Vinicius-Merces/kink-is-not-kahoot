@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "avancado",
+    "sourcePath": "data/exams/dva-c02/avancado.json",
+    "range": "013-024",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-avc-013": {
+      "text": "A developer is creating an endpoint of API REST which returns a paged list of requests from a customer from a table of the Amazon DynamoDB (partition key = CustomerId, sort key = OrderDate#OrderId. The table can contain thousands of orders per client. The endpoint must return pages of 20 items, and the customer of API must be able to request the 'next page' using a token returned by the previous answer. The developer already uses Query with 'Limit': 20', but does not know how to properly implement the 'next page' without jumping or doubling items, even if the table is modified between requests.",
+      "options": [
+        "Use Scan with a CustomId FilterExpression, and a growing page number multiplied by 20 as offset of the results.",
+        "Use the value 'LastEvaluatedKey' returned by the Query response (present when there are more items than the Limit) as the 'ExclusiveStartKey' of the following Query call.",
+        "Store all customer requests in memory of the application after a single Scan, and return slices (slices) of 20 items by array index for each 'page' request'.",
+        "Use 'Select' parameter: COUNT' of Query combined with 'Limit' to get only the item count, and then make separate GetItem calls for each item of the page requested."
+      ],
+      "explanation": "Correct. DynamoDB returns 'LastEvaluatedKey' only when there are more results than the requested limit. When passing this value as 'ExclusiveStartKey' on the next Query call, the reading starts exactly after that item — a key-based pagination that correctly deals with concurrent changes in the table, without jumping or doubling position-based items, unlike offset-based pagination.",
+      "hint": "Think of what field of response the DynamoDB indicates that there are more results, and how it relates to the parameter used to start the next query exactly where the previous one stopped.",
+      "optionRationales": [
+        "Correct. DynamoDB returns 'LastEvaluatedKey' only when there are more results than the requested limit. When passing this value as 'ExclusiveStartKey' on the next Query call, the reading starts exactly after that item — a key-based pagination that correctly deals with concurrent changes in the table, without jumping or doubling position-based items, unlike offset-based pagination.",
+        "Incorrect. DynamoDB (Scan or Query) does not support numeric offset-based pagination. In addition, Scan reads the TABELA INTEIRA (not only the customer's items), consuming much more RCUs than necessary, and FilterExpression is applied AFTER the reading capacity consumption of TODOS swept items — an inefficient and non-scalable approach.",
+        "Incorrect. This requires loading/scanning the data set COMPLETO (potentially thousands of items) in the first requisition, which does not scale, and reintroduces offset-based pagination problems (items added/removed between requisitions change the indexes of subsequent 'pages').",
+        "Incorrect. 'COUNT' returns only counts, not item data, requiring a fully separate mechanism to search for real items. This does not solve the pagination logic and adds significant complexity/cost (many called GetItem) compared to a single Query page."
+      ]
+    },
+    "dva-avc-014": {
+      "text": "An application stores chat messages in a single table of DynamoDB using the single-table design pattern. Each message item has partition key (PK)) = 'CONV#<conversationId>' and ordination key (SK)) = 'MSG#<timestamp>#<messageId>'. A new requirement asks: recover all messages from a conversation sent within a specific date range (between two timestamps), in chronological order, without sweeping the entire table.",
+      "options": [
+        "Use Query with KeyConditionExpression: PK = 'CONV#<conversation>' AND SK BETWEEN 'MSG#<Timestamp start>' AND 'MSG#<EndTimestamp>'.",
+        "Create a Global Secondary Index (GSI) with PK = timestamp and SK = conversationId, and make Query in GSI for the date range.",
+        "Use Query with KeyConditionExpression: PK = 'CONV#<conversationId>' and apply a FilterExpression for the timestamps interval on returned items.",
+        "Using Scan with a FilterExpression: SK BETWEEN 'MSG#<Timestamp start>' AND 'MSG#<EndTimestamp>'."
+      ],
+      "explanation": "Right. As the ordination key (SK) is sorted lexigraphically and starts with 'MSG#<timestamp>', a condition BETWEEN in the sorting key, within a single partition key value, efficiently recovers only messages in the desired time interval, already in order, using a single Query — no Scan and no filtering of irrelevant items on the application side.",
+      "hint": "Think of the difference between a condition applied to the ordination key ANTES reading and an applied filter DEPOIS that the items have already been read from the partition.",
+      "optionRationales": [
+        "Right. As the ordination key (SK) is sorted lexigraphically and starts with 'MSG#<timestamp>', a condition BETWEEN in the sorting key, within a single partition key value, efficiently recovers only messages in the desired time interval, already in order, using a single Query — no Scan and no filtering of irrelevant items on the application side.",
+        "Incorrect. Scan reads TODOS the items of the TABELA INTEIRA (of all conversations) before applying the filter, consuming RCUs proportional to the total size of the table, instead of only the messages of the relevant conversation — extremely inefficient compared to a Query directed by the partition key.",
+        "Incorrect. GSI PUDESSE support queries by time interval between TODAS the conversations, use only the timestamp as the partition key of the GSI concentrates the writings of TODAS conversations in a small set of partition values close to 'now' (creating a hot partition), and the requirement is limited to UMA ONLY conversation — the existing PK/SK structure already supports this access pattern via Query, without the need for an additional index.",
+        "Incorrect. A FilterExpression is applied AFTER items are read from the partition (using RCUs to TODOS the conversation items, not just those of the date range), while expressing the interval directly in the KeyConditionExpression (SK) BETWEEN) allows the DynamoDB use the ordination key index to read SOMENTE the items in the interval, being much more efficient in terms of RCU."
+      ]
+    },
+    "dva-avc-015": {
+      "text": "An e-commerce application needs to process an order: decrease the stock count of a product item and insert a new order item, ensuring that if the stock is insufficient (it would be negative), NEM the stock decrease NEM the creation of the request occurs — both operations must succeed or fail together, involving two different items (possibly in different tables) in the DynamoDB.",
+      "options": [
+        "Use a single UpdateItem call with an UpdateExpression that modifies both the product's stock attribute and creates the order item using nested map attributes.",
+        "Use BatchWriteItem with Stock UpdateItem and Order PutItem on the same batch request.",
+        "Use TransactWriteItems with an Update operation on the product item (ConditionExpression: stock >= :quantity) and a Put operation for the new order item, in a single transactional request.",
+        "Use two separate UpdateItem calls (one for the Stock Decrement with ConditionExpression, one for the Order Put), and if the second fails, call DeleteItem manually to undo the first."
+      ],
+      "explanation": "Right. TransactWriteItems offers transactional guarantees ACID up to 100 items/multitables: if QUALQUER failure condition (e.g. insufficient stock), transaction ENTIRA is atomized, ensuring that neither stock update nor request creation is applied — exactly the 'everything or nothing' requirement described.",
+      "hint": "Think of what operation the DynamoDB ensures that a group of operations on different items is applied all-or-nothing, with verification of conditions included.",
+      "optionRationales": [
+        "Right. TransactWriteItems offers transactional guarantees ACID up to 100 items/multitables: if QUALQUER failure condition (e.g. insufficient stock), transaction ENTIRA is atomized, ensuring that neither stock update nor request creation is applied — exactly the 'everything or nothing' requirement described.",
+        "Incorrect. This is a manual and non-atomic 'compensatory transaction': between the two calls, another request may read an inconsistent intermediate state (decremented stump, but still uncreated request), and if the application fails between calls, the DeleteCompensatory Item may never be executed, leaving inconsistent data — the TransactWriteItems of DynamoDB eliminates this risk natively.",
+        "Incorrect. BatchWriteItem DOES NOT support ConditionExpression in its operations and DOES NOT offer atomicity between items — if one batch operation fails, the others may still succeed independently, which is the opposite of the 'everything or nothing' requirement described.",
+        "Incorrect. UpdateItem operates on a ONLY item identified by its primary key; it cannot create or modify an item SEPARADO (the new request, which has its own distinct primary key) within the same call — this is not technically possible for two distinct items."
+      ]
+    },
+    "dva-avc-016": {
+      "text": "A collaborative document editing application stores the status of documents in DynamoDB. Two users can load the same document simultaneously, edit and save. Without any safeguards, the second user's rescue would quietly overwrite the changes of the first (lost update / race condition). The team wants each rescue operation to FALHE (so that the application detects the conflict and asks the user to reload) if the document was modified by someone else since it was loaded, SEM use a separate lock service.",
+      "options": [
+        "Use write-through cache from Amazon DynamoDB Accelerator (DAX) to serialize written in the same item, preventing concurrent rescues.",
+        "Implement Optimistic localking with a numerical attribute 'version': when loading, read the current version (e.g.: version)=5); when saving, use UpdateItem with ConditionExpression 'version = :expectedVersion' (5) and an UpdateExpression that defines the new content and increases version to 6.",
+        "Use GetItem with ConsistentRead=true before each UpdateItem call, ensuring that the application always reads the latest version before writing.",
+        "Configure Table Collection Mode DynamoDB as 'Provisioned' with a low value of WriteCapacityUnits, so that competing writings are limited (throttled) and only one succeeds."
+      ],
+      "explanation": "Correct. If another user has already saved (increased version to 6), ConditionExpression fails with ConditionalCheckFailedException, making the second rescue fail and signaling a conflict to the application — without requiring any external lock mechanism. This is the classic version-based optimized localking standard.",
+      "hint": "Think of an attribute that changes to each writing and a condition clause that compares that attribute to the value read by the application before allowing the update.",
+      "optionRationales": [
+        "Correct. If another user has already saved (increased version to 6), ConditionExpression fails with ConditionalCheckFailedException, making the second rescue fail and signaling a conflict to the application — without requiring any external lock mechanism. This is the classic version-based optimized localking standard.",
+        "Incorrect. DAX is a read-through/write-through cache focused on reducing read latency and unloading table reading traffic; it DOES NOT provide detection of conflicts at application level nor serializes concurrent writings from different application instances based on semantics as 'it has changed since I loaded' — is the wrong tool for this requirement of competition control.",
+        "Incorrect. Throttling due to insufficient capacity is NON-DETERMINISTIC (can limit any of the requests, or none, depending on timing/capacity) and does not implement the desired semantics of 'failing has changed since I loaded' — it is an unrelated capacity management mechanism, not a competition control standard.",
+        "Incorrect. ConsistentRead=true ensures that the LEITURA reflects all previous successful writings (strong vs. eventual consistency), but DOES NOT prevent a RACE CONDITION between reading and subsequent writing — another writing can still occur in this window; this resolves the current reading, not the detection of conflicts between competing writings.."
+      ]
+    },
+    "dva-avc-017": {
+      "text": "A function AWS Lambda written in Node.js treats requests from API and need to consult a database Amazon RDS saw a pool of connections (using a library like 'mysql2' or 'pg'). The developer initially created the pool of connections DENTRO of the handler function (then a new pool is created in every invocation). Under load, the database reports errors of 'too many connections', and each invocation has visibly greater latency due to the overhead connection establishment.",
+      "options": [
+        "Use Dead Letter Queue configuration AWS Lambda to capture invocations that fail due to bank connection errors, and process them later.",
+        "Increase function memory allocation Lambda for maximum (10.240 MB), for what more CPU is available to establish connections with the bank more quickly.",
+        "The Amazon RDS Proxy is not required here; instead, increase the instance 'max_connections' parameter RDS for a very high value to accommodate all connections being created.",
+        "Move the creation of the connection pool to FORA of the handler function (in the global scope/module), to be created UMA VEZ by implementing environment, and REUTILIZADO between invocations that share the same context of 'hot execution''."
+      ],
+      "explanation": "Correct. Lambda (and its global scope state, including open bank pools/connections) are reused in multiple invocations when the environment is 'hot'. Initiate the pool in loading the module (out of the handler) avoids creating new connections in any invocation, reducing both the problem of 'too many connections' and the invocation latency caused by the connection setup — each new (cold) environment still starts its own pool independently.",
+      "hint": "Think of what state is preserved between invocations of the same 'hot' execution environment of the Lambda, and where in the code this state should be initialized to be reused.",
+      "optionRationales": [
+        "Correct. Lambda (and its global scope state, including open bank pools/connections) are reused in multiple invocations when the environment is 'hot'. Initiate the pool in loading the module (out of the handler) avoids creating new connections in any invocation, reducing both the problem of 'too many connections' and the invocation latency caused by the connection setup — each new (cold) environment still starts its own pool independently.",
+        "Incorrect. Increase memory/CPU can accelerate work limited by CPU, but does not solve the root cause: a NOVO pool of connections (and new connections to the bank) being created in TODA invocation regardless of speed of CPU — the connections would continue to accumulate in the same proportion of the number of invocations, only with the setup by connection a little faster.",
+        "Incorrect. Increase 'max_connections' treats or SINTOMA (many connections) without solving the root inefficiency (create a new pool/connections in all invocation); also risks exhausting bank memory/resources in very high connection counts, and does not reduce the invocation connection setup latency.",
+        "Incorrect. DLQ catch PAYLOADS of asynchronous invocations that failed, for reprocessing/reanalysis; it does not prevent the exhaustion of connections from occurring in the first place, and does not apply to synchronous invocations (e.g. triggered by API Gateway), which can't stand DLQ in the same way."
+      ]
+    },
+    "dva-avc-018": {
+      "text": "A developer configured a API REST no Amazon API Gateway with proxy integration of Lambda. A client calls the endpoint with a query string containing the MESMO multiple-time parameter: 'GET /search?tag=urgent&tag=billing&tag=clientA'. In the event object of the function Lambda, the developer is reading 'event.queryStringParameters.tag' and gets only the LAST value ('clientA'), losing the other two.",
+      "options": [
+        "Configure the method requisition parameters in API Gateway to 'hide' query strings with multiple values, making 'queryStringParameters' automatically return arrays.",
+        "Ask the customer to send repeated query parameters as a single comma-separated value (e.g. '?tag=urgent, billing, customerA') and divide the string into the function Lambda.",
+        "Read values from 'event.multiValueQueryStringParameters.tag', which returns a ARRAY with all the values of a repeated query string parameter (e.g. ['urgent', 'billing', 'clientA')']).",
+        "Change the type of integration of 'Lambda proxy integration' for 'Lambda custom integration' with a mapping template that joins repeated query parameters with a comma delimiter."
+      ],
+      "explanation": "Correct. Lambda, o API Gateway populates both 'queryStringParameters' (a simple map where a repeated key keeps only the LAST occurrence) and 'multiValueQueryStringParameters' (an array map, preserving TODOS repeated key values). For endpoints that need to support multiple values for the same parameter, the application should read 'multiValueQueryStringParameters''.",
+      "hint": "Think of which DOIS event object fields of the proxy integration of Lambda represent the query string, and how each one deals with repeated keys.",
+      "optionRationales": [
+        "Correct. Lambda, o API Gateway populates both 'queryStringParameters' (a simple map where a repeated key keeps only the LAST occurrence) and 'multiValueQueryStringParameters' (an array map, preserving TODOS repeated key values). For endpoints that need to support multiple values for the same parameter, the application should read 'multiValueQueryStringParameters''.",
+        "Incorrect. There is no cache configuration in API Gateway that alters the TIPO/queryStringParameters structure at the proxy integration event Lambda — its behavior (last occurrence wins for repeated keys) is fixed by the proxy integration event format; 'multiValueQueryStringParameters' is the separate field that already provides the array.",
+        "Incorrect. This requires writing/maintaining mapping templates VTL (additional complexity, losing the convenience of integration proxy to pass the full event to OUTROS aspects of the request), when proxy integration already provides the necessary data via 'multiValueQueryStringParameters' without any template changes.",
+        "Incorrect. This requires changing the FORMATO THE REQUIREMENT OF THE CLIENTE (a contract change, possibly affecting other consumers), when the existing format of repeated parameters is already fully accessible on the server via 'multiValueQueryStringParameters', without any change on the client's side."
+      ]
+    },
+    "dva-avc-019": {
+      "text": "A developer implemented a Lambda Custom Authorizer of Type 'REQUEST' for one API REST of the API Gateway, which validates a custom header 'X-Api-Token' and returns a policy IAM allowing/denying access, along with a 'principalId'. TTL Authorizer cache is configured to 300 during the tests, the developer realizes that when a user's token is revoked, the requests using this token remain PERMITIDAS for up to 5 minutes after revocation, even if the function Lambda the author correctly returns 'Deny' when invoked directly (tested in isolation)).",
+      "options": [
+        "The problem is, the author is the type 'REQUEST' instead of 'TOKEN'; type-authorizers 'TOKEN' do not support response cache, which would force any request to invoke the authorizer.",
+        "The cache to authorize the API Gateway only applies to 'HTTP APIs', not the 'REST APIs'; migrate this API of REST API for HTTP API would have immediate effect of revocation.",
+        "This is the expected behavior given the authorizer cache configuration: the API Gateway caches the author's response (the policy IAM) for TTL configured (300s), with a key based on 'identity source' (e.g. the value of the header 'X'-Api-Token'). To make the revocation more effective, reduce 'authorizerResultTtlInSeconds' to a value compatible with the acceptable revocation spread delay (accepting the trade-off of MAIS invocations of the Lambda the authorizer); define the TTL as 0 disable or cache completely.",
+        "This indicates a bug in the code of Lambda Authorizer; the authorizer must explicitly check a 'revocation list' within the policy 'Condition' block IAM returned to force immediate reassessment."
+      ],
+      "explanation": "Correct. The cache of the authorizer is maintained by the API Gateway by 'authorizerResultTtlInSeconds', with key in the identity source — during that period, Lambda of the author is NOT invoked again, even if the token has been revoked. Adjust (or zero) the TTL is the direct control over this window, exchanging latency/cost of additional invocations for speed of propagation of revocation.",
+      "hint": "Think about which configuration of the authorizer determines how long the API Gateway re-uses an authorization decision without again invoking the function Lambda.",
+      "optionRationales": [
+        "Correct. The cache of the authorizer is maintained by the API Gateway by 'authorizerResultTtlInSeconds', with key in the identity source — during that period, Lambda of the author is NOT invoked again, even if the token has been revoked. Adjust (or zero) the TTL is the direct control over this window, exchanging latency/cost of additional invocations for speed of propagation of revocation.",
+        "Incorrect. Policy 'Condition' blocks IAM are evaluated by the policy engine of the API Gateway on politics already in CACHE for each request, but the LAMBDA DO AUTHORIZER in itself (where any check of the revocation list would occur) IS NOT invoked again while the answer is in cache — no Condition block can force the re-invocation of the authorizer function during the TTL cache; cache occurs even before the policy is evaluated against new requests.",
+        "Incorrect. Authorizers of the type 'TOKEN' SUPORTAM cache in the same way as the type 'REQUEST' (both support 'authorizerResultTtlInSeconds'; the type determines which identity sources can be used (TOKEN: a single header; REQUEST: multiple fonts, including headers, query strings, stage variables and context), not if cache is supported.",
+        "Incorrect. REST APIs HTTP APIs support response cache from Lambda Authorize with TTL configurable — migrate the type of API would not, by itself, alter the cache behavior described."
+      ]
+    },
+    "dva-avc-020": {
+      "text": "A backend service allows users to upload video files from up to 5 GB directly to a pocket of Amazon S3. Using the default call 'PutObject' of SDK of AWS, uploads of large files often fail in the middle of the process due to network interruptions, demanding that the ARQUIVO INTEIRO is sent back from start to finish, which is slow and unreliable for large files in unstable connections.",
+      "options": [
+        "Use API Multipart Upload S3 (or the high-level managed upload utility of SDK, ex: 'Upload' of '@aws-sdk/lib-storage no AWS SDK is JavaScript v3, or equivalent 'TransferManager' in other SDKs), which divides the object into multiple parts (sent independently, possibly in parallel); if a part fails, only ELA it needs to be sent back, not the whole object.",
+        "Use S3 Transfer Acceleration to speed up calls 'PutObject', which automatically resumes failed uploads from the last byte successfully transferred.",
+        "Reduce the maximum file size allowed to less than 100 MB, requiring users to compress/dividate videos before uploading, avoiding the need for special treatment.",
+        "Enable S3 Versioning in the pocket so that partially sent objects are retained as previous versions and can be taken back from where they stopped."
+      ],
+      "explanation": "Right. Multipart Upload is designed specifically for large objects (a AWS recommends its use for objects above 100 MB), improving throughput via parallel upload parts and resilience by allowing individual retry of parts, with the complete object mounted on the server side only after all the parts are successful (via CompleteMultipartUpload).",
+      "hint": "Think of which API of the S3 was designed to divide a large object into independent parts, allowing isolated retry of each part in case of network failure.",
+      "optionRationales": [
+        "Right. Multipart Upload is designed specifically for large objects (a AWS recommends its use for objects above 100 MB), improving throughput via parallel upload parts and resilience by allowing individual retry of parts, with the complete object mounted on the server side only after all the parts are successful (via CompleteMultipartUpload).",
+        "Incorrect. S3 Transfer Acceleration accelerates transfers by routing them through edge locations of the CloudFront (beneficial for geographically distant customers), but DOES NOT alter the fundamental behavior of a unique call 'PutObject' in relation to resuming a partial failure — a upload of PUT only that fails still requires the forwarding of the entire object, regardless of the Transfer Acceleration.",
+        "Incorrect. This transfers the problem to USERS (requiring manual file division/compression, poor experience and workflow change) instead of using the native mechanism of AWS (Multipart Upload) designed exactly to handle large uploads reliably.",
+        "Incorrect. S3 Versioning creates a new VERSATION of an object every time it is saved successfully; there is no concept of 'retrieve' a partially completed single upload PutObject — a failed PutObject does not create any object/version, versioned or not."
+      ]
+    },
+    "dva-avc-021": {
+      "text": "An application needs to recover 80 specific items from a table of the DynamoDB by its primary keys (a list of product IDs returned by a search). The developer currently makes 80 called GetItItem sequential in a loop, which results in perceptible latency (each call has its own network trip). The team wants to reduce the number of round-trips and the total latency of this reading pattern.",
+      "options": [
+        "Use BatchGetItem, which recovers multiple items (up to 100 items or 16 MB per request) of one or more tables in a single call from API.",
+        "Use Query with a KeyConditionExpression containing an 'IN' operator listing the 80 Product IDs as partition key values.",
+        "Use Scan with a FilterExpression checking if the product ID is 'IN' in the list of 80 IDs.",
+        "Enable DynamoDB Accelerator (DAX) and keep doing the 80 called GetItem sequentially, counting on the reading latency in microseconds of DAX to eliminate the concern with round-trips."
+      ],
+      "explanation": "Correct. BatchGetItItem reduces network round-trips by grouping multiple GetItItem operations into a single request. It is important to note that BatchGetItem can return 'UnprocessedKeys' to unrecovered items (due to throttling or size limits), which should be re-send in a subsequent BatchGetItItem — addressing directly the latency problem caused by many sequential individual GetItItem calls.",
+      "hint": "Think of what operation the DynamoDB allows you to group multiple searches by primary key in a single call from API, reducing the number of network trips.",
+      "optionRationales": [
+        "Correct. BatchGetItItem reduces network round-trips by grouping multiple GetItItem operations into a single request. It is important to note that BatchGetItem can return 'UnprocessedKeys' to unrecovered items (due to throttling or size limits), which should be re-send in a subsequent BatchGetItItem — addressing directly the latency problem caused by many sequential individual GetItItem calls.",
+        "Incorrect. The KeyConditionExpression of DynamoDB DO NOT support the operator 'IN' for the CHAVE PARTICIPATION (Query operates on A SINGLE partition key value per call); 'IN' is only usable in FilterExpression (applied after reading) or in ordering key conditions in specific contexts — this would not work as described to recover items from 80 separate partition keys.",
+        "Incorrect. Scan reads TABELA INTEIRA regardless of the filter, consuming RCUs proportional to the total size of the table, instead of only 80 needed items — extremely inefficient for a table with much more items than 80 desired.",
+        "Incorrect. DAX reduces the LATENCIA of each individual reading in cache, but DOES NOT reduce the NUMBER of round-trips/network calls (they would still be 80 separate calls from the application for the DAX) — although it can help in cache hits, BatchGetItem directly resolves the amount of round-trips regardless of cache."
+      ]
+    },
+    "dva-avc-022": {
+      "text": "An application needs to maintain a denormalized search index table whenever a product item is created/updated/excluded in the main table 'Products' DynamoDB, And also send a notification to a topic SNS The team wants to implement this. SEM modify the application code that writes in the 'Products' table (avoiding dual-write logic spread across multiple writing paths).",
+      "options": [
+        "Enable DynamoDB Streams in the 'Products' table (with view type) 'NEW_AND_OLD_IMAGES' to access the status of the item before/after) and configure a function AWS Lambda as a trigger (event source mapping) of the stream.",
+        "Modify the application's writing code in the 'Products' table to also write in the search index table and publish in the SNS within the same request handler, using try/catch for each operation.",
+        "Configure the Amazon EventBridge Pipes directly on the calls from API of the 'Products' table via data events of the AWS CloudTrail, filtering by calls 'PutItem'/'UpdateItem'.",
+        "Use an scheduled rule of Amazon EventBridge which triggers a function Lambda each 5 minutes to make Scan of the 'Products' table and compare with a previous snapshot stored in S3 to detect changes."
+      ],
+      "explanation": "Right. Lambda receives a stream of change logs (INSERT/MODIFY/REMOVE) containing the old and new images of the item, allowing to update the search index table and compare the attributes 'price' old vs new to publish in the SNS conditionally only when the price actually changed — this completely uncouples downstream reactions (index update, price change notification) from the original writing path, without dual-write logic in the application.",
+      "hint": "Think of a resource of the DynamoDB which emits a flow of events of change in almost real time for each modified item, without requiring changes in the code that writes in the table.",
+      "optionRationales": [
+        "Right. Lambda receives a stream of change logs (INSERT/MODIFY/REMOVE) containing the old and new images of the item, allowing to update the search index table and compare the attributes 'price' old vs new to publish in the SNS conditionally only when the price actually changed — this completely uncouples downstream reactions (index update, price change notification) from the original writing path, without dual-write logic in the application.",
+        "Incorrect. This is exactly the 'dual-write' approach that the team wants to avoid: it requires changing and maintaining writing logic on every code path that it writes in 'Products', and if one of the secondary writings (updating the index or publishing in the SNS) fail after primary writing succeeds, operations become inconsistent without additional compensatory logic.",
+        "Incorrect. Data events of the CloudTrail for the DynamoDB capture METADADOS of the call from API (who called which API, where) for the purpose of AUDITORIA, not DADOS/Attribute values of the ITEM (old vs. new content) needed to compare price changes or build a search index — is not designed to, nor appropriate as, a data capture mechanism for changing item content.",
+        "Incorrect.That introduces even 5 minutes late (it's not nearly real time), requires Scan of the TABELA INTEIRA repeatedly (costy and inefficient as the table grows) and requires building/maintaining custom logic for comparison of snapshots — the DynamoDB Streams provides item-by-item events, immediate, natively."
+      ]
+    },
+    "dva-avc-023": {
+      "text": "An application stores temporary session tokens in a table of DynamoDB, each with an attribute 'expiresAt' (timestamp Unix) indicating when the session is no longer valid. Currently, a function Lambda scheduled runs every hour, makes Scan from the entire table and excludes items whose 'expiresAt' has already passed — this Scan-based cleaning consumes significant reading capacity, the table is growing with expired items still not excluded, and occasionally the application recovers expired sessions before the cleaning job is executed.",
+      "options": [
+        "Reduce the frequency of Lambda cleaning schedule from each hour to each 5 minutes, to delete expired items more quickly.",
+        "Set up a Lifecycle Policy (Lifecycle) S3 in the table of DynamoDB to automatically archive expired items in S3 Glacier.",
+        "Enable Time to Live (TTL) of the DynamoDB in the table, specifying the attribute 'expiresAt' (stored as timestamp Unix in seconds) as the attribute of TTL.",
+        "Add a Global Secondary Index (GSI) with 'expiresAt' as partition key, and make Query in GSI for items where 'expiresAt' is less than the current time, then delete them in batch."
+      ],
+      "explanation": "Correct. DynamoDB automatically deletes items whose attribute value from TTL is in the past, typically within 48 hours after expiry, SEM consume writing capacity for exclusions and without requiring a custom Scan-based cleaning job; for the application concern of recovering an item 'exhaled but not yet physically excluded', the application should still check 'expiresAt' against the current reading time (since the exclusion by TTL is not instantaneous), but table growth and cleaning cost via Scan are eliminated.",
+      "hint": "Think of a native resource of DynamoDB which automatically excludes items based on a timestamp attribute, without consuming writing capacity or requiring custom cleaning jobs.",
+      "optionRationales": [
+        "Correct. DynamoDB automatically deletes items whose attribute value from TTL is in the past, typically within 48 hours after expiry, SEM consume writing capacity for exclusions and without requiring a custom Scan-based cleaning job; for the application concern of recovering an item 'exhaled but not yet physically excluded', the application should still check 'expiresAt' against the current reading time (since the exclusion by TTL is not instantaneous), but table growth and cleaning cost via Scan are eliminated.",
+        "Incorrect. Lifecycle policies of the S3 apply to OBJETOS EM BUCKETS S3, not to items from a table of DynamoDB — Tables of the DynamoDB They're not bucks. S3 and do not support Lifecycle configuration of S3; this is not a valid mechanism for expiration of items from DynamoDB.",
+        "Incorrect. Run Scan-based cleaning COM MAIS FREQUENCE makes the problem of reading capacity consumption PIOR (More frequent full scan in the table), no better — does not resolve the underlying inefficiency of using Scan for cleaning.",
+        "Incorrect. Consult a GSI by 'expiresAt < now' is not directly expressive as a partition key equal condition (Query in GSI requires exact match of the partition key, not an interval comparison on the partition key itself) — this would require 'expiresAt' as an ORDER key with a separate partition key, and yet it would essentially be to reimplement what the TTL it already offers natively, with additional complexity, writing costs of GSI and still demanding custom logic of exclusion."
+      ]
+    },
+    "dva-avc-024": {
+      "text": "A team is designing a table of the DynamoDB for an application of 'Requests' with partition key 'CustomerId' and sorting key 'OrderId'. After the table is in production by 6 months with significant volume of data, a new requirement arises: to support the query of a customer's requests ordered by 'OrderStatus' (e.g., to recover all orders) 'PENDING' The team wants to add this access pattern with the minimum possible disruption..",
+      "options": [
+        "Create a Secondary Site Index (LSI) with partition key 'CustomerId' (equal to the base table) and sort key 'OrderStatus''.",
+        "Use a FilterExpression in 'OrderStatus' combined with a Query in the existing PK/SK of the base table.",
+        "Change the sorting key from the 'OrderId' base table to 'OrderStatus' via an UpdateTable operation.",
+        "Create a Global Secondary Index (GSI) with 'CustomerId' partition key and 'OrderStatus' sorting key'."
+      ],
+      "explanation": "Correct. GSIs can be added to a table already EXISTENTE EM QUALQUER MOMENTO (filled asynchronously by DynamoDB) without interrupting the table or requiring recreation, and support an ordination key DIFERENTE from the base table while reusing the same partition key — this is the right choice to add a new query pattern to a table already established in production.",
+      "hint": "Think about what type of secondary index can be added to a table already in production, without requiring that it has been planned this way since creation..",
+      "optionRationales": [
+        "Correct. GSIs can be added to a table already EXISTENTE EM QUALQUER MOMENTO (filled asynchronously by DynamoDB) without interrupting the table or requiring recreation, and support an ordination key DIFERENTE from the base table while reusing the same partition key — this is the right choice to add a new query pattern to a table already established in production.",
+        "Incorrect. DEVEM be defined NO MOMENTO OF THE CREATION OF THE TABELA and NO PODEM be added to a table that exists later; as the table is already in production there is 6 months, one LSI cannot be retroactively added — the table would need to be recreated completely (with data migration), which is much more disruptive than adding a GSI.",
+        "Incorrect. The primary key scheme (names/types of the partition and sorting key) of a table of the DynamoDB is IMPUTABLE after creation and cannot be changed via UpdateTable — this would require creating a completely new table and migrating all data, which is unnecessarily disruptive compared to adding a GSI.",
+        "Incorrect. That would require reading TODOS the customer's requests (using RCUs for all items) and filter by OrderStatus AFTER recovery, on the client/server side, and does not provide the semantics of 'ordered by OrderStatus' — is much less efficient than a GSI designed specifically for this access pattern."
+      ]
+    }
+  }
+}

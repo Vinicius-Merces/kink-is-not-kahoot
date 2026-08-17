@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "avancado",
+    "sourcePath": "data/exams/dva-c02/avancado.json",
+    "range": "061-072",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-avc-061": {
+      "text": "A team is building a collaborative real-time panel (task table style) where multiple users watch live updates whenever a table of the DynamoDB underlying changes. The team already uses the AWS AppSync with the DynamoDB as a data source (data source) for queries/mutations, and wants customers to receive updates via PUSH automatically when a mutation occurs, without implementing custom WebSocket connection management.",
+      "options": [
+        "Use a WebSocket API of the Amazon API Gateway in conjunction with AppSync: AppSync treats query/mutations GraphQL, while a WebSocket API separate transmits changes.",
+        "Set a type 'Subscription' in the GraphQL schema of AppSync, linked to relevant mutations (e.g. 'onTaskUpdated' inscribed in the updateTask' mutation) — AppSync automatically manages the WebSocket connections of the registered customers and sends (push) the result of the mutation to them in real time.",
+        "Enable DynamoDB Streams and use a function Lambda to call directly, see HTTP, a URL of each connected client webhook.",
+        "Have customers consult the GraphQL endpoint of AppSync with a 'Query' each 2 seconds to check changes."
+      ],
+      "explanation": "Correct. AppSync natively manages the life cycle of WebSocket connections for customers registered in a GraphQL subscription; when the corresponding mutation is executed, AppSync automatically sends (push) the result to all registered customers, without the need for custom connection management code — meeting directly the real-time update requirement.",
+      "hint": "Think about what type of GraphQL operation of AppSync allows customers to receive real-time updates via push when a mutation occurs, without custom connection management.",
+      "optionRationales": [
+        "Correct. AppSync natively manages the life cycle of WebSocket connections for customers registered in a GraphQL subscription; when the corresponding mutation is executed, AppSync automatically sends (push) the result to all registered customers, without the need for custom connection management code — meeting directly the real-time update requirement.",
+        "Incorrect. This introduces a separate and unnecessary real-time mechanism, doubling what AppSync Subscriptions already provide natively as part of the GraphQL scheme — increasing operational complexity without corresponding benefit.",
+        "Incorrect. This reintroduces the overhead/polling ratio that GraphQL Subscriptions were designed to eliminate — exactly the type of solution that the team wants to avoid when looking for real-time updates via push.",
+        "Incorrect. This would require the application to track and manage webhook URLs/connections per client, manually reimplementing what AppSync Subscriptions already natively provide as a real-time mechanism integrated with GraphQL."
+      ]
+    },
+    "dva-avc-062": {
+      "text": "A mobile application authenticates users with the Amazon Cognito User Pools (returning tokens JWT). Now, authenticated users need to upload photos DIRETAMENTE for a specific prefix of a Amazon S3 ('user-uploads/<userId>/'), restricted to your own user ID, using the AWS SDK on the mobile device itself — SEM pass through one API backend for each upload, and SEM Embed credentials AWS long-term application.",
+      "options": [
+        "Embed a couple of access/secret keys IAM, long-term, with 'PutObject' permissions in S3, directly in the mobile application code.",
+        "Make the mobile app call a function Lambda (way API Gateway) for each photo, which uses its own execution roll to upload to S3 on behalf of the application.",
+        "Use access token JWT of the Cognito User Pool directly as the credentials of AWS SDK to call 'PutObject' no S3.",
+        "Use one Amazon Cognito Identity Pool (Federated Identitys), configured to accept the JWT of the Cognito User Pool as an authenticated identity provider; Identity Pool exchanges the JWT by credentials AWS TEMPORARY STS), associated with a role of IAM whose policy restricts access to S3 to the user's own prefix (using policy variables such as '${cognito-identity.amazonaws.com:sub}')."
+      ],
+      "explanation": "Correct.. Cognito Identity Pools exchange an already authenticated identity token (as the JWT of the User Pool) by TEMPORARY and ESCOPADAS of AWS way STS; using policy variables of the IAM based on the federated user ID, the role policy may restrict access to the S3 to the user's own prefix — allowing direct uploads of the mobile device to the S3, no long-term credentials or backend proxy for each upload.",
+      "hint": "Think of what resource the Amazon Cognito exchange an identity token already authenticated by temporary credentials and brushed AWS, usable directly by SDK Customer.",
+      "optionRationales": [
+        "Correct.. Cognito Identity Pools exchange an already authenticated identity token (as the JWT of the User Pool) by TEMPORARY and ESCOPADAS of AWS way STS; using policy variables of the IAM based on the federated user ID, the role policy may restrict access to the S3 to the user's own prefix — allowing direct uploads of the mobile device to the S3, no long-term credentials or backend proxy for each upload.",
+        "Incorrect. Embed long-term credentials in a distributed mobile application is a high security risk (the credentials can be extracted from the binary of the app and used indefinitely) and does not allow scope per individual user — Identity Pools provide temporary credentials and brushed per user instead.",
+        "Wrong. JWT of the Cognito User Pool serve to AUTENTICAR in APIS OF APPLICATION (e.g. API Gateway) — They're NOT credential AWS valid SigV4 and cannot be used directly to call APIs services from AWS as 'PutObject' of S3.",
+        "Incorrect. That's exactly the pattern of 'passing through a API backend for each upload' that the requirement wants EVITAR; Identity Pools allows direct client uploads without a backend proxy."
+      ]
+    },
+    "dva-avc-063": {
+      "text": "A team configures a function AWS Lambda to execute within a VPC (in private subnets), so that it can connect to a database Amazon RDS The team heard that functions Lambda connected to one VPC historically suffered significant additional latency from cold start due to the creation/annexation of an Elastic Network Interface (ENI) by running environment, and is concerned about the impact of this on latency of the function.",
+      "options": [
+        "Use AWS PrivateLink to connect the function Lambda (Other VPC) to the court RDS, completely avoiding the configuration of VPC in function.",
+        "Avoid the problem completely NOT by placing the function in a VPC, and instead connect it to RDS using the public endpoint of the database.",
+        "Recognize that, since 2019, o AWS Lambda uses a model of ENI shared and preheated ('Hyperplane') for network in VPC — ENIs are created once per single subnet combination/security group and shared between execution environments/functions, largely eliminating the delay in creating ENI by invocation that previously caused significant additional latency of cold start for functions connected to VPC.",
+        "Configure the function with Provided Competition dimensioned for expected peak traffic, as the ONLY way to avoid cold startups related to ENI in a position with VPC."
+      ],
+      "explanation": "Right. The Hyperplane network model of Lambda (added to 2019) decoupled the creation of life cycle ENIs from each individual execution environment, sharing pre-created ENIs between executions—this largely eliminated the cold start penalty previously associated with functions Lambda in VPC, making your cold start performance close to that of functions out of VPC.",
+      "hint": "Think of how the network model of Lambda for functions in VPC has changed since 2019, and what this means for cold start latency compared to historical behavior.",
+      "optionRationales": [
+        "Right. The Hyperplane network model of Lambda (added to 2019) decoupled the creation of life cycle ENIs from each individual execution environment, sharing pre-created ENIs between executions—this largely eliminated the cold start penalty previously associated with functions Lambda in VPC, making your cold start performance close to that of functions out of VPC.",
+        "Incorrect. Exposing an instance RDS with a PUBLIC endpoint specifically to avoid cold starts of Lambda in VPC introduces a regression SIGNIFICATIVA (Internet-accessible data bank), and is not the recommended exchange, since the problem of cold start of ENI in VPC has been largely resolved.",
+        "Incorrect. Provided Competition can help with cold startups in general, but the premise of the question (that creating ENI in VPC causes delay ADICIONAL SIGNIFICATIVO of cold start) is, in itself, DESATUALIZADA for the Lambda modern — presenting Provided Competition as the 'one way' to solve an already widely solved problem exaggerates both the problem and the need.",
+        "Incorrect. The PrivateLink (interface endpoints of VPC) is used to access the services of AWS (or services exposed via endpoint services) privately DE DENTRO of a VPC; a function Lambda FORA of a VPC cannot use PrivateLink to reach an instance RDS residing DENTRO of a VPC without public access — the function still needs connectivity of VPC (one ENI the VPC) to achieve a RDS private."
+      ]
+    },
+    "dva-avc-064": {
+      "text": "Multiple functions AWS Lambda can compete to create a 'lock' object (e.g. 'locks/job')-123.lock') no Amazon S3 to claim exclusive processing rights of a job. UMA of competing attempts must succeed when creating the object; others must fail/detect that the lock already exists, SEM a separate sequence of 'check and then write' (vulnerable running condition).",
+      "options": [
+        "Use 'CopyObject' to copy a model lock object to the destination key, since 'CopyObject' is atomic and only one invocation can succeed.",
+        "Use API 'PutObject' with conditional requisition header 'If-None-Match': *' (S3 Conditional Writes) — or S3 only create the object if NENHUM object currently exists in this key; if the key already exists, the request fails with error 412 Precondition Failed.",
+        "Call 'HeadObject' to check if the lock object exists, and just call 'PutObject' if 'HeadObject' returns 404 Not Found.",
+        "Enable S3 Versioning in the pocket and, after writing, check if the version ID of the new object is '1' (the first version) to determine if this invocation created the lock first."
+      ],
+      "explanation": "Correct. 'If-None-Match: *' does the S3 perform the existence verification and the ATOMIC write on the server side: if another invocation has already created the lock object, the request fails with 412, ensuring that only PRIMEIRA Invocation to arrive creates the object successfully — without a running condition window between verification and writing.",
+      "hint": "Think of which conditional header of the S3, introduced to 'PutObject', allows the writing to occur only if the key does not yet exist, atomically.",
+      "optionRationales": [
+        "Correct. 'If-None-Match: *' does the S3 perform the existence verification and the ATOMIC write on the server side: if another invocation has already created the lock object, the request fails with 412, ensuring that only PRIMEIRA Invocation to arrive creates the object successfully — without a running condition window between verification and writing.",
+        "Incorrect. This is a classic 'verify-after-write' pattern vulnerable to running condition: two competing invocations can both call 'HeadObject', both receive 404, and both continue to 'PutObject', both believing they have acquired the lock.",
+        "Incorrect. S3 does not guarantee that the PRIMEIRA version of an object always receives a version ID '1' in a reliably comparable way for this purpose, and this approach still requires that writing occurs unconditionally (potentially overwriting the contents of the lock of another invocation) before any verification — does not prevent writing from occurring..",
+        "Incorrect. Without conditional headers, 'CopyObject' has the same standard behavior as 'PutObject' — overwrites an existing destination object — not providing any additional semantics of 'Only the first writer wins' beyond 'PutObject' (with or without conditionals) already offers."
+      ]
+    },
+    "dva-avc-065": {
+      "text": "A developer needs to run a quick ad-hoc query in a table of DynamoDB to recover items that correspond to a simple condition, and prefer to write it using a family syntax similar to SQL, instead of building a call from API low level 'Query'/ 'Scan' with 'KeyConditionExpression'/'ExpressionAttributeValues'.",
+      "options": [
+        "Use API 'ExecuteStatement' (PartiQL) with an instruction compatible with SQL, as 'SELECT * FROM \"Table\" WHERE \"PartitionKeyAttr\" = ?'.",
+        "Connect to the table of the DynamoDB using a driver JDBC/ODBC and a client SQL traditional.",
+        "Use 'ExecuteStatus' from Amazon RDS Date API to carry out queries SQL against the DynamoDB.",
+        "Export Table from DynamoDB for the Amazon S3 using the AWS Glue, and then use the Amazon Athena to carry out queries SQL on export data."
+      ],
+      "explanation": "Correct. PartiQL support of DynamoDB allows operations 'SELECT'/'INSERT'/'UPDATE'/'DELETE' using syntax SQL family via 'ExecuteStatement', translated internally for equivalent operations ('Query'/'Scan'/'PutItem' etc.) — a 'SELECT' with 'WHERE' on the partition key still operates under the same underlying restrictions as a 'Query', but with a more familiar syntax.",
+      "hint": "Think of which API of the DynamoDB allows you to execute instructions with syntax similar to SQL directly against the table, without using an external database driver.",
+      "optionRationales": [
+        "Correct. PartiQL support of DynamoDB allows operations 'SELECT'/'INSERT'/'UPDATE'/'DELETE' using syntax SQL family via 'ExecuteStatement', translated internally for equivalent operations ('Query'/'Scan'/'PutItem' etc.) — a 'SELECT' with 'WHERE' on the partition key still operates under the same underlying restrictions as a 'Query', but with a more familiar syntax.",
+        "Incorrect. RDS Date API serves to execute SQL against databases Amazon Aurora Serverless — it has no connection with, nor ability to consult, tables of DynamoDB.",
+        "Incorrect. This introduces a pipeline of ETL and operates on a SNAPSHOT/EXPORT of data (not current and real-time data), with significant latency/outdating — for something that PartiQL 'ExecuteStatus' provides directly against the active table.",
+        "Incorrect. DynamoDB does not provide an interface JDBC/ODBC for direct customer connections SQL — PartiQL queries are executed via API of the DynamoDB ('RunStatus'), did not see a database driver protocol."
+      ]
+    },
+    "dva-avc-066": {
+      "text": "A company has multiple independent microservices (Order, Stock, Shipping), each owned by different teams, that need to publish and react to domain events (e.g. 'OrderPlaced', 'InventoryReserved').') SEM that the services of these teams call each other directly (avoiding coupling via calls HTTP Each team should be able to define independently rules for registering for relevant events at its service, including, potentially in the future, events from OUTRAS accounts of AWS.",
+      "options": [
+        "Make every microservice send messages directly via 'SendMessage' from SQS, for the row of CADA other microservices that may be interested.",
+        "Use AWS Step Functions as a central orchestrator that each microservice calls via 'StartExecution' whenever an event occurs, with the state machine then invoking all the services concerned.",
+        "Create an event bus (event bus)) CUSTOMIZADO of the Amazon EventBridge (separate from the 'default' bus account for these domain events; each microservice publishes its events ('PutEvents') in this custom bus, and each team creates its own Rules (Rules) of EventBridge with event patterns (event patterns) corresponding to events of your interest, routing to your own destinations.",
+        "Use topics of the Amazon SNS exclusively, one per microservice, with each interested team entering their own row SQS in each topic of your interest."
+      ],
+      "explanation": "Right. A custom bus ride from EventBridge provides a central and uncoupled point of event routing: each team defines its own rules with event patterns based on the event CONTENT independently; custom barrages also support resource-based policies for publication CROSS-ACCOUNT of events, meeting the requirement of future extensibility.",
+      "hint": "Think of what resource the Amazon EventBridge provides a central point of domain event routing, where each team can define independent rules based on event content, with native support to multi-account scenarios.",
+      "optionRationales": [
+        "Right. A custom bus ride from EventBridge provides a central and uncoupled point of event routing: each team defines its own rules with event patterns based on the event CONTENT independently; custom barrages also support resource-based policies for publication CROSS-ACCOUNT of events, meeting the requirement of future extensibility.",
+        "Incorrect. Step Functions was designed to ORQUESTRAR one FLUXO OF TRABALHO defined (a sequence of steps in a specific business process), not for general purpose pub/sub event routing, where the CONJUNTO of interested consumers varies by type of event and evolves independently by team — this would require updating the definition of a central state machine whenever a new consumer wants to sign up for an existing type of event, the opposite of rules disconnected and independently defined.",
+        "Incorrect. This creates rigid coupling — each publisher needs to know and maintain a list of URLs/permissions of rows of all interested consumers — the opposite of the desired uncoupled architecture, and does not scale as new consumers are added.",
+        "Incorrect. Although functionally similar in some respects, this requires manual sharing of topic RNAs between teams and registration management for each new type of event, without matching standards based on CONTENT of rules of EventBridge on a unified bus, nor the integrated support to cross-account custom bus resource policies."
+      ]
+    },
+    "dva-avc-067": {
+      "text": "A company has an internal microservice that must be accessible APENAS from within your VPC (by other internal services/applications), and should NOT be accessible via the public internet — even if implemented with Amazon API Gateway + AWS Lambda (services typically associated with public endpoints).",
+      "options": [
+        "Place function Lambda which serves API within a private subnet of VPC, no internet gateway.",
+        "Create a REST API standard (Edge-optimized or Regional), and configure a Security Group to block all incoming traffic coming from the internet.",
+        "Create a REST API Private (endpoint type) 'PRIVATE' of the API Gateway), accessible only via an Interface Endpoint of VPC (AWS PrivateLink) for 'execute'-api' the VPC; attach to API a review policy restricting access to requests from this end point of VPC specific (using the condition) 'aws:Source').",
+        "Use AWS WAF with a rule that blocks all IP addresses outside the company's known internal tracks."
+      ],
+      "explanation": "Correct. Private APIs of API Gateway are accessible exclusively through an Interface Endpoint of VPC way AWS PrivateLink; combined with a resource policy restricting access to 'aws:sourceVpce' specific, a API becomes attainable only from within the VPC, never on the public internet — meeting exactly the requirement.",
+      "hint": "Think of what kind of endpoint of API Gateway is only accessible through an Interface Endpoint of VPC, returning to API unattainable by public internet by default.",
+      "optionRationales": [
+        "Correct. Private APIs of API Gateway are accessible exclusively through an Interface Endpoint of VPC way AWS PrivateLink; combined with a resource policy restricting access to 'aws:sourceVpce' specific, a API becomes attainable only from within the VPC, never on the public internet — meeting exactly the requirement.",
+        "Incorrect. API Gateway (Edge/Regional) are endpoints managed by AWS with DNS public; Security Groups apply to resources DENTRO of a VPC (as ENIs of EC2/Lambda) and NOT TOO EFEITO about the publicly roteable endpoint of itself API Gateway — This Does Not Restrict Access to API.",
+        "Incorrect. LAMBDA on a private subnet controls the output network access of the function, but the endpoint of the API GATEWAY in front of it (if Regional/Edge) would still be publicly reachable — the accessibility of API is independent of the configuration of VPC of Lambda that serves you.",
+        "Incorrect. Although the WAF can restrict by IP range, this approach is fragile for originating traffic DENTRO of a VPC (which can use private/dynamic IP tracks and NAT) and does not offer the same architectural guarantee as a API Accessible private only via Endpoint of VPC — Private APIs based on PrivateLink are the mechanism specifically designed for this requirement."
+      ]
+    },
+    "dva-avc-068": {
+      "text": "A function AWS Lambda is configured with an event source mapping from a DynamoDB Stream, but the business logic of the function only cares about records in which the attribute 'status' of the item has changed PARA 'SHIPPED'. Currently, the function receives and discards immediately TODOS the stream records (INSERT, MODIFY for any change of attribute, REMOVE) for each item update — the vast majority irrelevant, wasting invocations.",
+      "options": [
+        "Configure 'Filter Criteria' in event source mapping Lambda, specifying a pattern JSON which corresponds only to records in which 'NewImage.status' is 'SHIPPED' — o Lambda evaluate the filter ANTES to invoke the function, so only corresponding stream records trigger an invocation.",
+        "Change the view type of the DynamoDB Streams 'NEW_AND_OLD_IMAGES' for 'KEYS_ONLY', reducing the data sent to Lambda for irrelevant records.",
+        "Within the function code, add an 'if' check at the beginning that checks 'record'.dynamodb.NewImage.status' and return immediately if not 'SHIPPED'.",
+        "Configure a 'FilterExpression' directly in DynamoDB Stream, similar to 'FilterExpression' of a 'Query''."
+      ],
+      "explanation": "Correct. 'Filter Criteria' in the event source mapping is evaluated by the polling service of Lambda ANTES to invoke the function — only stream records that match the default JSON defined (e.g. 'NewImage.status') = SHIPPED') result in an invocation, reducing the number of invocations (and cost) for irrelevant records, without any change in the function code.",
+      "hint": "Think about what configuration of the event source mapping Lambda allows stream records to be discarded ANTES to invoke the function, based on the content of the record.",
+      "optionRationales": [
+        "Correct. 'Filter Criteria' in the event source mapping is evaluated by the polling service of Lambda ANTES to invoke the function — only stream records that match the default JSON defined (e.g. 'NewImage.status') = SHIPPED') result in an invocation, reducing the number of invocations (and cost) for irrelevant records, without any change in the function code.",
+        "Incorrect. This still results in an Invocation of the Lambda (with its associated cost/time billed, albeit brief) to CADA stream record — only with the function doing almost nothing for irrelevant; 'Filter Criteria' avoids invocation completely.",
+        "Incorrect. 'KEYS_ONLY' reduces the TAMANHO of each stream record, but DO NOT reduce the number of invocations — the function would still be invoked for each change, and 'KEYS_ONLY' would make it impossible to verify the value of the attribute 'status' (since attribute values are not included).",
+        "Incorrect. DynamoDB Streams does not support a 'FilterExpression' parameter (other than 'Query'/'Scan') — filtering stream logs for consumption by Lambda is configured via 'Filter Criteria' of the event source mapping of Lambda, not on the stream itself."
+      ]
+    },
+    "dva-avc-069": {
+      "text": "A function AWS Lambda is invoked asynchronously (activated by notifications of events of the Amazon S3) to send time-sensitive push notifications, such as 'your race is coming now'. When a transient failure occurs, the standard behavior of the Lambda for asynchronous invocations try again the event until 2 In this case of use, a notification delayed for more than a few minutes is useless. The team wants faulty invocations to be discarded quickly, but a registration of the discarded event to be sent for monitoring. Which configuration resolves this requirement in the most direct way.?",
+      "options": [
+        "Reduce function timeout to 1 second, causing faulty invocations to expire faster and trigger retentatives more quickly.",
+        "Configure a Dead-Letter Queue (DLQ) in the function, keeping 'MaximumRetryAttempts' and 'MaximumEventAge' in their default values.",
+        "Change the type of invocation from asynchronous to synchronous, so that the caller implements his own retentive logic with custom timer.",
+        "Configure the asynchronous invocation settings of the function with 'MaximumRetryAttempts' low (ex.: 0 or 1) and 'MaximumEventAge' low (ex.: 60 seconds), plus a destination 'OnFailure' (or DLQ) to capture discarded events."
+      ],
+      "explanation": "Correct. 'MaximumRetryAttempts' and 'MaximumEventAge' respectively control how many times the Lambda try to re-recess an asynchronous event and for how long an event can remain in the queue before being discarded. By reducing both, failed events are quickly discarded (unexpected by long default delays between retensions) and routed to the configured OnFailure destination, allowing monitoring without delay notifications that have lost their relevance.",
+      "hint": "Think of what native asynchronous invocation parameters of AWS Lambda control both the number of attempts and the 'maximum age' of an event before disposal.",
+      "optionRationales": [
+        "Correct. 'MaximumRetryAttempts' and 'MaximumEventAge' respectively control how many times the Lambda try to re-recess an asynchronous event and for how long an event can remain in the queue before being discarded. By reducing both, failed events are quickly discarded (unexpected by long default delays between retensions) and routed to the configured OnFailure destination, allowing monitoring without delay notifications that have lost their relevance.",
+        "Incorrect. DLQ just define ONDE events with definitive failure are sent, but does not alter the CONTAGEM or TEMPO with the standard values, the event would still pass through the 2 with the standard internal delays of the Lambda before being considered a failure and sent to DLQ, maintaining unwanted delay for time-sensitive notifications.",
+        "Incorrect. The function timeout does not control the INTERVALO among asynchronous retentatives — this interval is managed internally by the service Lambda, regardless of the set timeout. Also, a timeout of 1 second it could cause legal invocations, which need more time to conclude, to fail unnecessarily.",
+        "Incorrect. The event notification trigger of S3 invokes the Lambda inherently asynchronous — this cannot be simply changed to synchronous in this scenario. Moreover, this approach transfers complexity to a custom retentive logic, when 'MaximumRetryAttempts' and 'MaximumEventAge' already offer native configuration exactly for this need."
+      ]
+    },
+    "dva-avc-070": {
+      "text": "An application needs to send messages to a row of Amazon SQS, but the payload (a document) JSON representing a generated report) occasionally exceeds 256 KB, the maximum message size limit SQS. The team wants to continue using the line semantics of SQS (visibility timeout, DLQ, etc.) without migrating to another messaging service, supporting payloads from up to some megabytes. Which approach meets this requirement with less implementation effort.?",
+      "options": [
+        "Migration from Amazon SQS for the Amazon Kinesis Data Streams, which supports records from up 1 MB.",
+        "Compress the payload JSON with gzip before sending it to SQS, so that it falls within the limit of 256 KB.",
+        "Split Document JSON large in several messages SQS minor, each below 256 KB, and reassemble them on the consumer side.",
+        "Use Amazon SQS Extended Client Library, which automatically stores payloads that exceed a configurable limit in Amazon S3 and send to SQS a message containing a reference to the object in S3, automatically recovered by customer extended from the consumer side."
+      ],
+      "explanation": "Correct. SQS Extended Client Library was designed exactly for this scenario: it stores the full payload in Amazon S3 when it exceeds the configured threshold and sends a message SQS small containing a pointer for the object in S3. The consumer, using the same extended customer, recovers the full payload of S3 transparently, supporting even payloads 2 GB while keeping all semantics in line with SQS (visibility timeout, DLQ, etc..).",
+      "hint": "Think of which client library of SQS allows, in a transparent way, to 'transship' large payloads for another storage service without changing the row used.",
+      "optionRationales": [
+        "Correct. SQS Extended Client Library was designed exactly for this scenario: it stores the full payload in Amazon S3 when it exceeds the configured threshold and sends a message SQS small containing a pointer for the object in S3. The consumer, using the same extended customer, recovers the full payload of S3 transparently, supporting even payloads 2 GB while keeping all semantics in line with SQS (visibility timeout, DLQ, etc..).",
+        "Incorrect. Compression can reduce the size of ALGUNS payloads, but no GARANTE that larger reports remain below 256 KB in all cases. It is not a general or reliable solution for payloads that can grow significantly.",
+        "Incorrect. This approach requires custom logic to divide, sort and reassemble the parts of the message (in addition to dealing with partial delivery failures of each part), manually reimplementing what the SQS Extended Client Library already provides automatically and transparently.",
+        "Incorrect. The limit of 1 MB of Kinesis Data Streams may still be insufficient for 'some megabytes' payloads. Furthermore, migrating from service completely changes the processing model (shards, consumer groups, sorting), a much larger architectural change than what is needed when the requirement is specifically MANTER the semantics of SQS with larger payloads."
+      ]
+    },
+    "dva-avc-071": {
+      "text": "A financial application needs to read an 'Account' item (containing the 'balance' attribute) and a related 'PendingTransfer' item from a table of the Amazon DynamoDB JUNTOS, as part of a balance consistency check. It is essential to ensure that NENHUM of the two items is modified by another transaction ENQUANTO both are being read — that is, the pair of readings should represent a consistent view at the same time. DynamoDB provides that guarantee?",
+      "options": [
+        "Encapsulate both so-called 'GetItem' into a function Lambda driven by DynamoDB Streams, since Streams guarantee the ordination of readings.",
+        "Use 'TransactGetItems' to read the items 'Account' and 'PendingTransfer' in a single transactional read operation.",
+        "Call 'GetItem' for 'Account' and 'GetItem' for 'PendingTransfer' sequentially, each with 'ConsistentRead: true''.",
+        "Use 'BatchGetItem' to retrieve both items in a single call."
+      ],
+      "explanation": "Correct. 'TransactGetItems' allows you to read up 100 items of one or more tables in a single transaction, with the guarantee that returned items represent a consistent view at the time of the transaction — no other transaction can modify any of the items involved while the 'TransactGetItems' is in progress, avoiding inconsistent combinations between the two readings.",
+      "hint": "Think of what operation the DynamoDB allows you to read multiple items in different tables with the guarantee that none of them is changed by another transaction during the reading.",
+      "optionRationales": [
+        "Correct. 'TransactGetItems' allows you to read up 100 items of one or more tables in a single transaction, with the guarantee that returned items represent a consistent view at the time of the transaction — no other transaction can modify any of the items involved while the 'TransactGetItems' is in progress, avoiding inconsistent combinations between the two readings.",
+        "Incorrect. 'ConsistentRead: true' ensures that CADA individual reading reflects the last confirmed writing NO MOMENTO from that reading, but offers no guarantee about the RELATIONSHIP between the two separate readings. Another transaction could modify either of the items in the interval between the two called 'GetItem', producing an inconsistent combination of the two items..",
+        "Incorrect. 'BatchGetItem' recovers multiple items efficiently in a single network call, but DOES NOT offer transactional or consistent view warranties between items — it is equivalent to multiple grouping independent 'GetItem' operations, without isolation against competing writings on the items involved.",
+        "Incorrect. DynamoDB Streams captures a stream of events from ESCRITA (INSERT/MODIFY/REMOVE) in the table — has no relation to, nor influence, the guarantees of consistency of operations of LEITURA ('GetItem') made by the application code. This option does not solve the scenario presented."
+      ]
+    },
+    "dva-avc-072": {
+      "text": "A team needs to create an endpoint REST single 'GET /items/{id}' which performs only one 'GetItem' directly on Amazon DynamoDB by the primary key and returns the item as JSON, without any business logic besides mapping the path parameter to the key of DynamoDB and transform the response of DynamoDB in JSON. The team wants to minimize latency and avoid the operational cost/overhead of a function Lambda for this trivial operation of direct passage (pass-through). Amazon API Gateway meets this requirement?",
+      "options": [
+        "Create a function Lambda minimal that only calls 'GetItem' and returns the result, optimized with Provisioned Competition to minimize latency.",
+        "Use one Application Load Balancer with a target group pointing to a container service calling the DynamoDB.",
+        "Configure cache from Amazon API Gateway to the method 'GET /items/{id}', maintaining a function Lambda as backend, so that repeated requests with the same {id} are served from the cache without invoking the Lambda.",
+        "Configure the method of API Gateway with a service integration of the AWS (AWS service integration) pointing directly to the GetItem action of DynamoDB, using mapping templates (VTL) of request and response to build the body of the call to DynamoDB and turn your answer into JSON."
+      ],
+      "explanation": "Correct. Direct service integrations of the AWS no API Gateway allows the same API Gateway invokes APIs of services from AWS (like the GetItem of DynamoDB) directly using mapping templates VTL to transform the requisition and the response. This completely eliminates the computer layer (Lambda) of the way of the request, reducing latency and cost for simple operations of direct passage.",
+      "hint": "Think of what resource the API Gateway allows it to communicate directly with a API of service of AWS, without any computational function in the middle of the path.",
+      "optionRationales": [
+        "Correct. Direct service integrations of the AWS no API Gateway allows the same API Gateway invokes APIs of services from AWS (like the GetItem of DynamoDB) directly using mapping templates VTL to transform the requisition and the response. This completely eliminates the computer layer (Lambda) of the way of the request, reducing latency and cost for simple operations of direct passage.",
+        "Incorrect. Even with Provided Competition minimizing cold startups, this approach still incurs the cost and overhead of invoking the Lambda for a trivial operation of direct passage that direct service integrations of the API Gateway can perform without any computer layer.",
+        "Incorrect. This approach introduces a completely new computing layer (containers), ALB) with significant operational overhead (implantation, scaling, patches) for what is only a single trivial getItem in DynamoDB — much more complex than necessary.",
+        "Incorrect. Although the cache reduces invocations of Lambda for applications REPETIDAS with the same parameters, it still maintains a function Lambda in architecture (with cost and cold start for cache masses and {id}s unique), not eliminating the computer layer as a direct service integration makes."
+      ]
+    }
+  }
+}
