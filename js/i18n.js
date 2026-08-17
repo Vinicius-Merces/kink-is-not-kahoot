@@ -145,10 +145,12 @@
         style.textContent = `
             .cp-language-switcher{display:inline-flex;align-items:center;gap:2px;padding:3px;margin-left:auto;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(10,18,34,.48);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex-shrink:0}
             .navbar-landing .user-info .cp-language-switcher{margin-left:0}
+            .nav-menu .cp-language-switcher{margin-left:.25rem;margin-right:.1rem}
             .cp-language-switcher button{min-width:38px;min-height:30px;padding:5px 9px;border:0;border-radius:999px;background:transparent;color:rgba(255,255,255,.68);font:600 11px/1 'Montserrat',sans-serif;letter-spacing:.05em;cursor:pointer;transition:background .2s ease,color .2s ease}
             .cp-language-switcher button:hover,.cp-language-switcher button:focus-visible{color:#fff;outline:none;background:rgba(255,255,255,.08)}
             .cp-language-switcher button[aria-pressed="true"]{color:#fff;background:rgba(78,205,196,.2);box-shadow:inset 0 0 0 1px rgba(78,205,196,.34)}
-            @media(max-width:720px){.cp-language-switcher{padding:2px}.cp-language-switcher button{min-width:31px;min-height:28px;padding-inline:6px}.navbar-landing .user-info{gap:.3rem}.navbar-landing .nav-login-btn{padding-inline:.55rem}}
+            @media(max-width:900px){.nav-menu .cp-language-switcher{margin:.4rem .3rem .8rem;width:max-content}.cp-language-switcher{padding:2px}.cp-language-switcher button{min-width:31px;min-height:28px;padding-inline:6px}}
+            @media(max-width:720px){.navbar-landing .user-info{gap:.3rem}.navbar-landing .nav-login-btn{padding-inline:.55rem}}
             @media(max-width:380px){.cp-language-switcher button{min-width:29px;padding-inline:5px;font-size:10px}}
         `;
         document.head.appendChild(style);
@@ -156,6 +158,7 @@
 
     function switcherHost() {
         return document.querySelector('.navbar-landing .user-info')
+            || document.querySelector('.navbar .nav-menu')
             || document.querySelector('.navbar .nav-container')
             || document.querySelector('.navbar')
             || document.querySelector('nav');
@@ -177,7 +180,13 @@
             button.addEventListener('click', () => setLocale(locale).catch(error => console.error('[i18n] locale switch failed:', error)));
             group.appendChild(button);
         });
-        host.prepend(group);
+
+        if (host.classList.contains('nav-menu')) {
+            const logout = host.querySelector('#logoutBtn, .btn-logout');
+            host.insertBefore(group, logout || null);
+        } else {
+            host.prepend(group);
+        }
         updateLanguageSwitcher();
     }
 
@@ -192,25 +201,32 @@
         });
     }
 
-    function pageAdapterUrl() {
+    function adapterUrls() {
         let path = '/';
         try { path = global.location.pathname || '/'; } catch (_) {}
         const leaf = path.split('/').filter(Boolean).pop() || 'index.html';
-        return leaf === 'index.html' ? 'js/i18n-home.js' : null;
+        const urls = ['js/i18n-shared.js'];
+        if (leaf === 'index.html') urls.push('js/i18n-home.js');
+        return urls;
     }
 
-    function loadPageAdapter() {
-        const path = pageAdapterUrl();
-        if (!path || document.querySelector('script[data-cloudpath-i18n-adapter]')) return Promise.resolve();
+    function loadAdapter(path) {
         return new Promise(resolve => {
+            const existing = Array.from(document.querySelectorAll('script[data-cloudpath-i18n-adapter]'))
+                .find(script => script.dataset.cloudpathI18nAdapter === path);
+            if (existing) { resolve(); return; }
             const script = document.createElement('script');
             script.src = new URL(path, document.baseURI).href;
-            script.dataset.cloudpathI18nAdapter = 'true';
+            script.dataset.cloudpathI18nAdapter = path;
             script.async = true;
             script.onload = resolve;
             script.onerror = () => { console.warn(`[i18n] page adapter unavailable: ${path}`); resolve(); };
             document.head.appendChild(script);
         });
+    }
+
+    async function loadAdapters() {
+        for (const path of adapterUrls()) await loadAdapter(path);
     }
 
     async function init() {
@@ -227,7 +243,7 @@
             if (document.readyState === 'loading') {
                 await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
             }
-            await loadPageAdapter();
+            await loadAdapters();
             apply(document);
             createLanguageSwitcher();
             initialized = true;
