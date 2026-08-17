@@ -22,10 +22,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout do SHA testado
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
+      - name: Checkout isolado da narração da base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          path: __base
+          fetch-depth: 1
+          sparse-checkout: assets/narracao
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -132,13 +140,7 @@ jobs:
           grep -F "data-narration" js/tts-reader.js >/dev/null
           grep -F "const enabled = locale !== 'en';" js/tts-reader.js >/dev/null
           grep -F "audioEl.removeAttribute('src');" js/tts-reader.js >/dev/null
-          BASE_BRANCH='${{ github.event.pull_request.base.ref || 'main' }}'
-          git rev-parse --verify "origin/$BASE_BRANCH" >/dev/null
-          if ! git diff --quiet "origin/$BASE_BRANCH...HEAD" -- assets/narracao; then
-            echo 'ERRO: assets/narracao foi alterado na branch i18n.'
-            git diff --name-only "origin/$BASE_BRANCH...HEAD" -- assets/narracao
-            exit 1
-          fi
+          diff -qr assets/narracao __base/assets/narracao
           echo 'Narration assets untouched; EN disable contract present.'
 
       - name: Exigir rotas e hreflang EN
