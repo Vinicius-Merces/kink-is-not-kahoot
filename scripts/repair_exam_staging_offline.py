@@ -3,7 +3,9 @@
 
 Only human-language staging fields under translations/en/** are changed. The
 canonical PT bank keeps IDs, domains, answer keys and option order. Fields that
-already pass integrity checks are left untouched to preserve higher-quality prose.
+already pass integrity checks are left untouched. Identical PT source strings are
+translated once and reused, which keeps repeated explanations/rationales consistent
+and reduces model work without changing the validation contract.
 """
 from __future__ import annotations
 
@@ -112,24 +114,29 @@ def main() -> int:
         print("No field-local translation drift detected")
         return 0
 
-    translation_sources = []
     jobs = []
+    unique_sources: list[str] = []
+    source_index: dict[str, int] = {}
     for path, qid, source, item, issues in candidates:
         for label, source_text in field_specs(source, issues):
-            jobs.append((path, qid, source, item, label))
-            translation_sources.append(source_text)
+            if source_text not in source_index:
+                source_index[source_text] = len(unique_sources)
+                unique_sources.append(source_text)
+            jobs.append((path, qid, source, item, label, source_index[source_text]))
 
-    print(f"Detected {len(candidates)} question(s) / {len(jobs)} field(s) requiring faithful retranslation")
+    print(
+        f"Detected {len(candidates)} question(s) / {len(jobs)} field(s) requiring faithful retranslation; "
+        f"{len(unique_sources)} unique PT source string(s) after deduplication"
+    )
     translator = OfflineTranslator()
-    translated = translator.translate_many(translation_sources, batch_size=10)
+    translated_unique = translator.translate_many(unique_sources, batch_size=12)
 
     changed_paths = set()
-    for job, value in zip(jobs, translated):
-        path, qid, _source, item, label = job
-        apply_field(item, label, value)
+    for path, qid, _source, item, label, source_idx in jobs:
+        apply_field(item, label, translated_unique[source_idx])
         changed_paths.add(path)
 
-    # Validate the complete repaired question before any file is written.
+    # Validate every repaired question before any file is written.
     failures = []
     for path, qid, source, item, _issues in candidates:
         remaining = question_anchor_errors(source, item)
@@ -141,7 +148,10 @@ def main() -> int:
     for path in sorted(changed_paths):
         path.write_text(json.dumps(file_payloads[path], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"repaired: {path.relative_to(ROOT)}")
-    print(f"Repaired {len(jobs)} field(s) across {len(changed_paths)} staging file(s)")
+    print(
+        f"Repaired {len(jobs)} field occurrence(s) from {len(unique_sources)} unique source string(s) "
+        f"across {len(changed_paths)} staging file(s)"
+    )
     return 0
 
 
