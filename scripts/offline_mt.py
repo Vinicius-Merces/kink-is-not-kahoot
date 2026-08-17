@@ -31,20 +31,29 @@ LETTER_RE = re.compile(r"[A-Za-zÀ-ÿ]")
 
 
 def _protected_spans(text: str):
-    """Return non-overlapping immutable spans, preferring longest match at a position."""
-    spans = []
+    """Return immutable source intervals covering every protected anchor.
+
+    Matches from different detectors can overlap. Never discard a later overlap:
+    merge the intervals and preserve the exact original source slice. This guarantees
+    that a numeric fact cannot disappear merely because another technical pattern
+    overlaps the same source region.
+    """
+    source = text or ""
+    intervals: list[tuple[int, int]] = []
     for regex in (EXTRA_PROTECTED_RE, TECHNICAL_RE, NUMBER_RE):
-        for match in regex.finditer(text or ""):
-            spans.append((match.start(), match.end(), match.group(0)))
-    spans.sort(key=lambda row: (row[0], -(row[1] - row[0])))
-    result = []
-    last_end = -1
-    for start, end, value in spans:
-        if start < last_end:
-            continue
-        result.append((start, end, value))
-        last_end = end
-    return result
+        for match in regex.finditer(source):
+            intervals.append((match.start(), match.end()))
+    if not intervals:
+        return []
+
+    intervals.sort(key=lambda row: (row[0], row[1]))
+    merged: list[list[int]] = []
+    for start, end in intervals:
+        if not merged or start > merged[-1][1]:
+            merged.append([start, end])
+        else:
+            merged[-1][1] = max(merged[-1][1], end)
+    return [(start, end, source[start:end]) for start, end in merged]
 
 
 def _chunk(text: str, max_chars: int = 1050):
