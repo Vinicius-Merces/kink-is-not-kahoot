@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "038-049",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-038": {
+      "text": "A company created a VPC Endpoint interface for the AWS Secrets Manager, allowing for instances EC2 in private sub-networks recover secrets without internet access. IAM of the instances has wide permissions in the Secrets Manager (secretsmanager:GetSecretValue in \"*\" features, because it is shared with other purposes. The security team wants to add an extra layer of defense in depth so that, specifically through DESSE endpoint, only the secrets of a specific path (e.g. arn):aws:secretsmanager:*:111122223333:secret:prod/app/*) can be recovered, blocking any other call made by this network path. What configuration implements this additional layer?",
+      "options": [
+        "Reducing the scope of policy IAM of the role of the bodies EC2 to allow secretsmanager:GetSecretValue only in RNAs under prod/app/*.",
+        "Configure the Security Group associated with network interface (ENI) of the endpoint to allow only traffic at the door 443 originating in the private sub-network.",
+        "Attach an Endpoint Policy (VPC Endpoint Policy) to the Endpoint Interface of Secrets Manager allowing secretsmanager:GetSecretValue only for secret RNAs under the prod/app/* path, implicitly denying all other actions and resources for calls made through this endpoint.",
+        "Configure Network ACLs in the sub-network to block all traffic destined for IP bands of Secrets Manager, except for addresses associated with secrets under prod/app/*."
+      ],
+      "explanation": "Policy VPC Endpoint act as an additional and independent layer of permission IAM: a call is only allowed if TANTO policy IAM identity QUANTO the endpoint policy allow. Restricting the endpoint policy to RNAs under prod/app/* ensures that even if the role of the IAM have wider permissions, any call via this endpoint for other secrets be denied — a specific in-depth defense to the network path.",
+      "hint": "Think of the policy layer that applies specifically to traffic that passes through a VPC Endpoint, acting together (and not in place) at permissions IAM identity.",
+      "optionRationales": [
+        "Policy VPC Endpoint act as an additional and independent layer of permission IAM: a call is only allowed if TANTO policy IAM identity QUANTO the endpoint policy allow. Restricting the endpoint policy to RNAs under prod/app/* ensures that even if the role of the IAM have wider permissions, any call via this endpoint for other secrets be denied — a specific in-depth defense to the network path.",
+        "Security Groups control access at network level (IP addresses and ports), but have no knowledge of what actions the API or which resource RNAs are being requested within traffic HTTPS, not meeting the requirement to restrict which specific secrets can be recovered.",
+        "Although it is a good practice of lesser privilege, this change changes the identity permissions globally (affecting any path of access, not only this endpoint) and does not add the specific deep defense layer to the network path of the VPC Endpoint requested by the security team.",
+        "The IP addresses of service endpoints AWS are not granularly assigned by individual (secret) recourse; and NACLs operate only with IP addresses and ports, it is impossible to use this approach to restrict access to specific secrets by ARN."
+      ]
+    },
+    "saa-avc-039": {
+      "text": "A DevSecOps team needs continuous and automated vulnerability scanning (VECs) in operating system for instance packages EC2, in images of container stored in Amazon ECR (including at the time of push) and in service AWS Lambda, with the centrally located findings in AWS Security Hub, without the team having to operate any of its own scanning infrastructure. What service meets this requirement?",
+      "options": [
+        "AWS Trusted Advisor, with the Business plan, which performs vulnerability scanning CVE in operating system packages, container images and function code Lambda.",
+        "Amazon Inspector, enabled for discovery and continuous scanning of instances EC2 (way SSM Agent), images in Amazon ECR and functions Lambda, with native integration to AWS Security Hub.",
+        "Amazon GuardDuty, analyzing logs of CloudTrail, VPC Flow Logs and Logs DNS to identify known software vulnerabilities (CVEs) in instances EC2 and images ECR.",
+        "Develop a function AWS Lambda customized that runs an open source scanning tool at each push in ECR, storing the results in a pocket S3."
+      ],
+      "explanation": "The Amazon Inspector automatically discover instances EC2, repositories ECR and functions Lambda eligible, performing continuous vulnerability scans (VECs) of software and, in the case of EC2, also network exposure evaluation; the finding is automatically sent to the Security Hub, without the need for customer-managed scanning infrastructure.",
+      "hint": "Think of the service whose main purpose is the continuous scanning of software vulnerabilities (CVEs) in computer workloads, with native integration to the central hub of security finding.",
+      "optionRationales": [
+        "The Amazon Inspector automatically discover instances EC2, repositories ECR and functions Lambda eligible, performing continuous vulnerability scans (VECs) of software and, in the case of EC2, also network exposure evaluation; the finding is automatically sent to the Security Hub, without the need for customer-managed scanning infrastructure.",
+        "The Trusted Advisor provides general verifications of good practices (cost, basic safety, performance, service limits), but does not perform deep scanning of vulnerabilities CVE in SO packages, container images or function code dependencies Lambda.",
+        "The GuardDuty is a threat detection service based on behavioral log analysis (CloudTrail, VPC Flow Logs, DNS), identifying suspicious activities in execution time, but does not perform static vulnerability scanning (VECs) in installed software packages or container images.",
+        "This approach requires the development, maintenance and operation of a custom scanning pipeline, reimplementing with significant effort a capacity that Amazon Inspector already offers natively, managed and integrated to the Security Hub."
+      ]
+    },
+    "saa-avc-040": {
+      "text": "A financial institution needs to store critical backups in Amazon S3 for a mandatory regulatory period of 7 years, during which NENHUM user — including account root user and administrators with AdministratorAccess — can delete or overwrite these objects, such as ransomware protection and internal threats. What configuration ensures this immutability throughout the retention period?",
+      "options": [
+        "Enable S3 Object Lock in Compliance mode with a retention period of 7 years for objects.",
+        "Enable S3 Object Lock in Governance mode with a retention period of 7 years for objects.",
+        "Enable S3 Versioning combined with MFA Delete No Bucket.",
+        "Configure a Lifecycle Policy (Lifecycle Policy) that transitions objects to the storage class S3 Glacier Deep Archive after 30 days."
+      ],
+      "explanation": "The S3 Object Lock in Compliance mode prevents any principal — including root user and administrators with total permissions — from excluding or overwriting objects during the defined retention period; even changing the retention period to a lower value is not permitted in this way, fully meeting the regulatory requirement of immutability.",
+      "hint": "Think about the resource of S3 which offers two modes of protection WORM (write-once-read-many), where only one of them prevents absolutely any exclusion, even by administrators, during the retention period.",
+      "optionRationales": [
+        "The S3 Object Lock in Compliance mode prevents any principal — including root user and administrators with total permissions — from excluding or overwriting objects during the defined retention period; even changing the retention period to a lower value is not permitted in this way, fully meeting the regulatory requirement of immutability.",
+        "In Governance mode, users with permission s3:BypassGovernanceRetention (which may be granted to administrators) may exclude or overwrite objects before the end of the retention period, not meeting the requirement that NENHUM user, including administrators, can do this.",
+        "The MFA Delete requires a second factor to delete versions of objects or change the versioning configuration, but does not require a fixed retention period or prevent an account with access to the device MFA (including root) disables this protection and excludes data before 7 years.",
+        "Glacier Deep Archive is a low-cost storage class for long-term retention, but does not provide any guarantee of immutability in itself (WORM); objects in this class can still be excluded by users with sufficient permissions."
+      ]
+    },
+    "saa-avc-041": {
+      "text": "A company has an instance Amazon RDS for MySQL in production that was created SEM a new compliance requirement determines that the data at rest of this bank must be encrypted with a key to the KMS, with the minimum downtime possible. Which sequence of actions allows to meet this requirement?",
+      "options": [
+        "Create an instance manual snapshot RDS and restore a new instance directly from this snapshot, keeping the default settings.",
+        "Access the Console of RDS, select the existing instance, choose 'Modify' and enable the 'Enable encryption' option, applying the change immediately.",
+        "Create an instance manual snapshot RDS unencrypted, copy this snapshot by enabling encryption and specifying a key to the KMS, and then restore a new instance RDS from the encrypted snapshot, promoting it for production in a maintenance window.",
+        "Access the Console of EC2, locate the volumes EBS underlying the proceeding RDS and enable encryption directly in these volumes."
+      ],
+      "explanation": "The storage encryption of the RDS cannot be enabled in an existing instance; the supported path is to create a snapshot of the unencrypted instance, copy it specifying a key of the KMS (which generates an encrypted snapshot copy) and restore a new instance from this encrypted copy, with the downtime limited to the cutover window for the new instance.",
+      "hint": "The storage encryption configuration of the RDS is defined in the creation of the instance (or restoration); think in which intermediate step of the snapshot process allows introducing the encryption that did not originally exist.",
+      "optionRationales": [
+        "The storage encryption of the RDS cannot be enabled in an existing instance; the supported path is to create a snapshot of the unencrypted instance, copy it specifying a key of the KMS (which generates an encrypted snapshot copy) and restore a new instance from this encrypted copy, with the downtime limited to the cutover window for the new instance.",
+        "The storage encryption option of RDS is not available for modification in an existing and unencrypted instance; this configuration can only be defined at the time of creation of the instance or when restoring from a snapshot.",
+        "Courts RDS are fully managed by AWS, and the underlying storage volumes are not exposed or accessible directly by the customer through the console of EC2 for modification.",
+        "Restoring a snapshot without performing the intermediate copy step with explicitly enabled encryption results in a new instance that is equally unencrypted, because a snapshot of an instance that is not encrypted is also not encrypted by default."
+      ]
+    },
+    "saa-avc-042": {
+      "text": "An organization with 40 accounts no AWS Organizations You need to TODOS the events of the CloudTrail of TODAS the accounts (current and future) are automatically delivered to a single pocket S3 centralized in a dedicated log archive account, without member account administrators being able to disable this collection or modify the track. Which configuration meets this requirement?",
+      "options": [
+        "Configure subscriptions between accounts (cross-account subscriptions) Amazon CloudWatch Logs, sending logs from each account to the log file account.",
+        "Create an organization trail of AWS CloudTrail in the management account (or in an account with managing director), configured to deliver logs to a pocket S3 in the log file account; the organization trail is automatically applied to all member accounts, current and future, and can only be managed by the managing/manager's account delegate.",
+        "Create individual trails of CloudTrail in each of the 40 accounts, each set to deliver logs to the pocket S3 of the log file account through a pocket policy that allows writing between accounts.",
+        "Configure a AWS config aggregator in the log file account to collect events from CloudTrail of all 40 accounts."
+      ],
+      "explanation": "An organization trail created with the option 'Apply trail to all accounts in my organization' is automatically enabled on all member accounts (including new accounts created later), delivery logs to a bucket S3 centralized, and member account administrators cannot disable or modify it — only the management account or the delegated administrator of the CloudTrail It's got that control..",
+      "hint": "Think about the specific type of trail CloudTrail that, when created in the management account with a specific option, it automatically spreads to all the accounts of the organization and cannot be changed by them.",
+      "optionRationales": [
+        "An organization trail created with the option 'Apply trail to all accounts in my organization' is automatically enabled on all member accounts (including new accounts created later), delivery logs to a bucket S3 centralized, and member account administrators cannot disable or modify it — only the management account or the delegated administrator of the CloudTrail It's got that control..",
+        "Although technically each individual track could be configured to write in the centralized pocket, this approach requires separate configuration and maintenance in 40 accounts, and administrators of each member account would still have permission to disable or modify their own local tracks, which does not meet the requirement that they cannot do so.",
+        "Signatures of CloudWatch Logs transmit log events between accounts, but do not replace the creation and centralized application of a CloudTrail throughout the organisation, do not prevent member account administrators from disabling their own trails or log delivery.",
+        "The aggregates of the AWS Config collects configuration and compliance data from resources (not API of the CloudTrail) of multiple accounts and regions; they are not the mechanism used to centralize the delivery of logs of CloudTrail."
+      ]
+    },
+    "saa-avc-043": {
+      "text": "The security team of a company wants to prevent, at the level of resolution of DNS, that resources within a VPC manage to resolve domain names known to host malware or command and control servers, and also ensure that an isolated sub-network (used for sensitive data processing) can only resolve a specific set of permitted domains (allowlist), blocking any other resolution of DNS. Which service implements this control directly in the resolution layer of DNS of VPC?",
+      "options": [
+        "AWS Network Firewall, configured only with domain filtering rules based on SNI for traffic HTTPS of VPC.",
+        "A function AWS Lambda customized processing the VPC Real-time Flow Logs, identifying and reporting queries to malicious domains.",
+        "Amazon GuardDuty, configured to analyze query logs DNS of VPC and automatically block identified malicious domains.",
+        "Amazon Route 53 Solve DNS Firewall, associating with VPC a set of rules with a managed list of threat intelligence domains (to block known malicious domains) and a custom domain list (allowlist) for the isolated subnet."
+      ],
+      "explanation": "The Route 53 Solve DNS Firewall operates directly in the resolution layer of DNS of VPC, allowing you to associate lists of managed domains (with updated threat intelligence feeds by AWS) to block known malicious domains, in addition to customized domain lists that can implement an allowlist model (blocking everything that is not on the list) for specific sub-networks.",
+      "hint": "Think about the managed service of DNS of AWS which offers a firewall with domain lists (managed and customized) applied directly to name resolution queries originating in the VPC.",
+      "optionRationales": [
+        "The Route 53 Solve DNS Firewall operates directly in the resolution layer of DNS of VPC, allowing you to associate lists of managed domains (with updated threat intelligence feeds by AWS) to block known malicious domains, in addition to customized domain lists that can implement an allowlist model (blocking everything that is not on the list) for specific sub-networks.",
+        "The AWS Network Firewall can filter domains by inspecting the field SNI Connections TLS already established, but this occurs after the resolution of DNS has occurred and applies only to traffic HTTPS, not blocking the consultation itself DNS not covering other protocols that depend on name resolution.",
+        "The GuardDuty analyze query logs DNS to generate detection finding (e.g. an instance consulting a domain associated with C2), but is a passive detection service — it does not have the ability to actively block the resolution of a query DNS.",
+        "Process VPC Flow Logs is a reactive and analytical approach (after the fact), unable to block in real time the resolution of a query DNS before the subsequent connection is established."
+      ]
+    },
+    "saa-avc-044": {
+      "text": "An e-commerce site, served through the Amazon CloudFront and of a Application Load Balancer, is suffering two simultaneous problems: automated bots are scraping (scraping) high-frequency product prices, and other bots are making attempts at credential stuffing on login pages, using constantly changing IPs and user agents. The company wants to detect and manage this traffic of bots granularly — allowing legitimate bots (such as search engine crawlers) but blocking or challenging (CAPTCHA) the others — without writing a large set of customised rules.?",
+      "options": [
+        "Create rate-based rules (rate-based rules) on AWS WAF blocking any IP exceeding a certain number of requests per minute.",
+        "Enable adaptive authentication of Amazon Cognito to detect login attempts with compromised credentials.",
+        "Enable managed rule group AWS WAF Bot Control on the Web ACL associated with CloudFront/ALB, setting up rules to allow verified bots (such as search crawlers) and block or challenge (CAPTCHA) categories of unwanted bots, such as scrapers and automation tools.",
+        "Sign the AWS Shield Advanced, which automatically classifies and blocks traffic from scraping and credible stuffing bots as part of its protection against DDoS."
+      ],
+      "explanation": "The AWS WAF Bot Control automatically classifies incoming traffic by bot categories (verified, scrapers, automation tools, etc.) using signatures maintained by AWS, allowing the company to create granular rules to allow legitimate bots (such as verified search crawlers) while blocking or applying challenges CAPTCHA a bots of scratching and credential stuffing, without the need to write a large set of custom rules of zero.",
+      "hint": "Look for the group of rules managed from AWS WAF created specifically to classify bot traffic into categories and allow differentiated actions (allow, block, challenge) by category.",
+      "optionRationales": [
+        "The AWS WAF Bot Control automatically classifies incoming traffic by bot categories (verified, scrapers, automation tools, etc.) using signatures maintained by AWS, allowing the company to create granular rules to allow legitimate bots (such as verified search crawlers) while blocking or applying challenges CAPTCHA a bots of scratching and credential stuffing, without the need to write a large set of custom rules of zero.",
+        "The AWS Shield Advanced focus on mitigation of volumetric and protocol DDoS attacks (layers 3/4) and of application (chamber) 7), but does not perform granular classification of bot types (scrapers, crawlers, automation tools) nor offers challenges CAPTCHA — this is the functionality of AWS WAF Bot Control.",
+        "Rate-based rules help to mitigate volumetric abuse of a single IP, but fail to distinguish between types of bots (good vs. malicious) or effectively deal with distributed and low frequency IP attacks (such as credential stuffing distributed among many IPs), which is precisely the scenario described.",
+        "Adaptive authentication of the Cognito helps to detect and respond to suspicious login attempts in the application's own authentication stream, but does not treat the scraping traffic on pages that do not require login, nor operates on the edge layer (CloudFront/WAF) where bot traffic in general should be managed."
+      ]
+    },
+    "saa-avc-045": {
+      "text": "From now on, a company wants to ensure that TODOS the new volumes EBS, snapshots and copies of snapshots for other regions, created in a given region of AWS, are automatically encrypted with a key of the KMS — without depending on which developers manually mark an encryption option at each instance launch EC2 or volume creation. Which configuration meets this requirement in a transparent manner, without interrupting existing workflows?",
+      "options": [
+        "Add a tag 'encrypted=true' to all AMIs used by the company, making volumes released from them automatically encrypted.",
+        "Create a rule of AWS Config ('encrypted-volumes') with automatic remediation that encrypts non-compliant volumes after creation.",
+        "Create a Service Control Policy (SCP) denying the action ec2:CreateVolume unless the Encrypted parameter is equal to true.",
+        "Enable Configuration 'EBS encryption by default' at the account level for the desired region, optionally specifying a CMK of the KMS as standard key for new volumes and snapshots."
+      ],
+      "explanation": "The configuration 'EBS encryption by default' makes all new volumes EBS and snapshots created in the region (including those created implicitly by launching instances EC2) are automatically encrypted, without requiring any additional action from developers, and allows specifying a CMK customized as a standard.",
+      "hint": "Look for a configuration at the account level/region of the service EC2 which alters the standard behavior of creating new volumes and snapshots, without requiring explicit action in each operation.",
+      "optionRationales": [
+        "The configuration 'EBS encryption by default' makes all new volumes EBS and snapshots created in the region (including those created implicitly by launching instances EC2) are automatically encrypted, without requiring any additional action from developers, and allows specifying a CMK customized as a standard.",
+        "Although this SCP block the creation of unencrypted volumes, it would also disruptively block any existing workflow (such as AMIs and launch templates) that does not explicitly specify the Encrypted=true parameter, breaking legitimate releases instead of applying encryption transparently.",
+        "This approach is reactive: the volume is created without cryptography and is only treated later, and the remediation for cryptography of the EBS usually requires replacing the volume (create a new encrypted volume and migrate the data), causing interruption, instead of ensuring encryption already at the time of creation.",
+        "Tags in AMIs are only informative metadata and do not control the cryptography behavior of the volumes EBS created from them; encryption is determined by the volume/account configurations, not by tags in AMI of origin."
+      ]
+    },
+    "saa-avc-046": {
+      "text": "The Amazon GuardDuty generates a finding indicating that an instance EC2 is communicating with an IP address associated with known malicious infrastructure, suggesting possible compromise. The security team wants that, automatically from this finding, a malware scan on the volumes is performed. EBS attached to this instance specifically, without impacting the performance of the instance being executed and without having to install permanent antivirus agents in all instances of the fleet.?",
+      "options": [
+        "Enable GuardDuty Malware Protection for EC2, that, when detecting a finding of possible involvement in an instance, automatically performs a malware scan without agentless in the volumes EBS attached, by means of snapshots, generating a separate malware finding.",
+        "Use Amazon Inspector to perform the malware scan on the volumes EBS of the arbitration panel.",
+        "Install a third-party antivirus agent in all instances EC2 fleet and schedule complete disk sweeps every night via AWS Systems Manager.",
+        "Use Amazon Macie to scan the volumes EBS of the instance in search of signatures of malware."
+      ],
+      "explanation": "The GuardDuty Malware Protection for EC2 is automatically triggered by engagement findings of the GuardDuty, performing an agentless scan (via snapshot of the volumes EBS) in search of malware, without impact on the instance running and without requiring permanent agents installed throughout the fleet.",
+      "hint": "Think about the functionality of the threat detection service which, when identifying a possible compromise, automatically triggers a scan without storage agent associated with the affected resource.",
+      "optionRationales": [
+        "The GuardDuty Malware Protection for EC2 is automatically triggered by engagement findings of the GuardDuty, performing an agentless scan (via snapshot of the volumes EBS) in search of malware, without impact on the instance running and without requiring permanent agents installed throughout the fleet.",
+        "This approach carries out scheduled scans throughout the fleet regardless of any finding of the GuardDuty, adds continuous performance overhead to the running instances and is not automatically coupled to the engagement detection event.",
+        "The Amazon Inspector is focused on vulnerability assessment (VECs) in installed software packages and network exposure, not scanning malware signatures in disk volume content.",
+        "The Amazon Macie is designed for discovery and classification of sensitive data (as PII) stored in Amazon S3, not to scan malware in volumes EBS."
+      ]
+    },
+    "saa-avc-047": {
+      "text": "Business developers authenticate themselves using the Corporate Active Directory (Identity Provider) SAML 2.0). They need to execute commands from AWS CLI and calls from SDK (not only access the console) using temporary credentials derived from your corporate identity, without being created users IAM or Access Keys long-term for each developer. Which architecture meets this requirement?",
+      "options": [
+        "Configure the AWS IAM Identity Center, but guide developers to use only the portal of access to the AWS in a browser for access to the console, avoiding the use of CLI.",
+        "Create a user IAM individual for each developer, with the user name corresponding to your user name in the Active Directory, and generate Access Keys of long duration for use in CLI.",
+        "Configure an identity provider SAML 2.0 no IAM pointing to the Corporate Active Directory, create IAM roles with a policy of trust that allows federation SAML, and developers use the operation AWS STS TakeRoleWithSAML (via tools that process the assertion) SAML) to obtain temporary credentials for use in CLI and SDKs.",
+        "Configure Amazon Cognito Identity Pools with Active Corporate Directory as an Identity Provider SAML, issuing credentials of the STS for use in CLI."
+      ],
+      "explanation": "The Federation SAML 2.0 with the IAM allows assertions SAML issued by the Corporate Active Directory are exchanged, via AWS STS TakeRoleWithSAML, by temporary credentials (Access Key, Secret Key, Session Token) that can be used directly by AWS CLI and SDKs, without the need for users IAM or Access Keys long-term.",
+      "hint": "Think of the operation of AWS STS specifically designed to exchange an assertion SAML by temporary credentials usable by AWS CLI and SDKs.",
+      "optionRationales": [
+        "The Federation SAML 2.0 with the IAM allows assertions SAML issued by the Corporate Active Directory are exchanged, via AWS STS TakeRoleWithSAML, by temporary credentials (Access Key, Secret Key, Session Token) that can be used directly by AWS CLI and SDKs, without the need for users IAM or Access Keys long-term.",
+        "Create Users IAM individuals with long-term Access Keys is exactly what the requirement seeks to avoid, besides not taking advantage of the federation with the Corporate Active Directory nor providing temporary credentials.",
+        "Cognito Identity Pools were designed to provide temporary credentials to end-user identities of applications (mobile/web), not to corporate labor force federation with access to AWS CLI/SDK; the federation SAML direct with the IAM via AssumeRoleWithSAML is the appropriate mechanism for this use case.",
+        "Orient developers to avoid CLI does not meet the explicit requirement that they need to execute commands of the AWS CLI and calls from SDK using their corporate identities; the solution should enable this programmatic access, not circumvent it."
+      ]
+    },
+    "saa-avc-048": {
+      "text": "A company's central network team maintains a AWS Transit Gateway and sub-networks shared in a dedicated network account, within the AWS Organizations. Dozens of application accounts in the organization need to attach their VPCs to that Transit Gateway and launch resources in shared sub-networks, without the network team having to grant full access to their account or recreate resources in each application account. What service allows this sharing in a secure and centralized way?",
+      "options": [
+        "Create IAM roles between accounts that allow application accounts to assume a role in the network account to create their resources directly in that account.",
+        "AWS Resource Access Manager (RAM), sharing the Transit Gateway and network account sub-networks with application accounts (or OUs) in the organization, allowing each account to create its own attachments and resources using shared resources.",
+        "Establish VPC Peering between the VPC of the network account and the VPC of each of the dozens of application accounts.",
+        "Manually recreate the configuration of Transit Gateway in each of the application accounts."
+      ],
+      "explanation": "The AWS RAM allows you to share features like Transit Gateways and sub-networks directly with other accounts or ORs within the AWS Organizations; the application accounts can then create attachments to the Transit Gateway or launch resources on shared sub-networks from their own accounts, without doubling the infrastructure or receiving full access to the network account.",
+      "hint": "Think about the service created specifically to share the resources of AWS between accounts of an organisation without doubling them or granting full access to the ownership account.",
+      "optionRationales": [
+        "The AWS RAM allows you to share features like Transit Gateways and sub-networks directly with other accounts or ORs within the AWS Organizations; the application accounts can then create attachments to the Transit Gateway or launch resources on shared sub-networks from their own accounts, without doubling the infrastructure or receiving full access to the network account.",
+        "This approach would cause the resources of the application teams to be created within the network account (infringing the isolation of accounts) and does not allow each application account to use the Transit Gateway shared from your own VPC, which is the real goal.",
+        "VPC Peering doesn't share his own Transit Gateway, would require dozens of individual (non-scalable) peering connections and peering connections are not transitory, not replacing the functionality of a Transit Gateway shared.",
+        "Duplicate the configuration of the Transit Gateway in each account creates configuration deviation (configuration drift), dramatically increases the cost and operational complexity, and eliminates the purpose of centralized network management."
+      ]
+    },
+    "saa-avc-049": {
+      "text": "The security team of an organization with 50 accounts no AWS Organizations needs to ensure that a web ACL of the AWS WAF, with groups of rules managed against SQL injection e XSS, is automatically applied to TODOS the Application Load Balancers and Distributions CloudFront In addition, the team wants that any existing and future accounts — without any member account administrators being able to remove or modify these basic rules. Security Group in any account that allows SSH unrestricted (0.0.0.0/0 at the door 22) is automatically identified and corrected. Which service meets these two requirements?",
+      "options": [
+        "AWS Firewall Manager, configured with an administrator account via AWS Organizations, defining a policy of WAF applying to the Web ACL base for all ALBs and distributions CloudFront in scope, and a policy of Security Group auditing and automatically correcting rules that allow SSH unrestricted.",
+        "Create Service Control Policies (SCPs) which deny the actions wafv2:DeleteWebACL and ec2:RevokeSecurityGroupIngress throughout the organization.",
+        "Implement a Compliance Pack of AWS Configure with a custom rule that signals Security Groups with SSH open for manual review by the security team.",
+        "Create and attach the same Web manually ACL each ALB and distribution CloudFront in each of the 50 accounts."
+      ],
+      "explanation": "The AWS Firewall Manager allows an administrator account to define security policies (WAF, Security Groups, Shield Advanced, Network Firewall) which are automatically applied to resources in all the organization's accounts, including resources created in the future; member account administrators cannot remove those policies, and Security Group can automatically identify and repair non-compliant settings, such as SSH open for 0.0.0.0/0.",
+      "hint": "Think of the security service specifically designed to implement and enforce policies of WAF, Shield and Security Groups in all the resources of an organization AWS, with automatic remediation.",
+      "optionRationales": [
+        "The AWS Firewall Manager allows an administrator account to define security policies (WAF, Security Groups, Shield Advanced, Network Firewall) which are automatically applied to resources in all the organization's accounts, including resources created in the future; member account administrators cannot remove those policies, and Security Group can automatically identify and repair non-compliant settings, such as SSH open for 0.0.0.0/0.",
+        "This manual approach does not scale, does not automatically apply to resources created in the future, and administrators of each member account would still have permission to remove or modify the Web ACL associated with its own resources.",
+        "SCPs may restrict which actions are allowed, but do not have the ability to create and apply Web ACLs of WAF to specific resources not to automatically remedy Security Groups non-compliant; they are a negation, non-implement or remedy mechanism.",
+        "This approach is purely detective (signature for manual revision) and does not automatically implement the Web ACL base on ALBs/CloudFront throughout the organization does not automatically correct Security Groups non-compliant."
+      ]
+    }
+  }
+}

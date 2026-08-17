@@ -1,0 +1,182 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "206-217",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-206": {
+      "text": "A company has enabled the Amazon S3 Transfer Acceleration in a pocket used by an application whose customers (instances EC2 and on-premises servers connected via AWS Direct Connect) are TODOS localized in MESMA Region AWS After enabling the Transfer Acceleration, the team perceives a AUMENTO in the costs of data upload, without any measurable improvement in the speed of transfer to these customers who are already in the same region. The team wants to understand the reason and correct the configuration to avoid unnecessary charges.",
+      "options": [
+        "Disable or S3 Transfer Acceleration to this pocket (or to these transfer paths within the same region).",
+        "Keep the Acceleration Transfer enabled, but change the bucket to S3 One Zone-IA to compensate for increased transfer cost with lower storage cost.",
+        "Change the connection of on-premises servers from Direct Connect for VPN, since the Acceleration Transfer is mandatory for connections via Direct Connect.",
+        "Switch to S3 Multipart Upload instead of Transfer Acceleration, which is always faster for large objects regardless of customer location."
+      ],
+      "explanation": "Correct. The Transfer Acceleration works by routing uploads through edge locations of the CloudFront to reach the point of presence AWS closer, which brings speed benefits mainly to customers GEOGRAFICAMENTE DISTANTES from the region of the pocket. For customers already in MESMA Bucket region, this border routing does not bring relevant speed benefit (the direct path is already great), but AINDA GERA the GB rate of Transfer Acceleration on normal data transfer — disable it for customers in the same region eliminates this unnecessary rate without any loss of performance.",
+      "hint": "Think about which geographic scenario the Transfer Acceleration was designed to bring speed benefit, and what happens when customers are already in the same region of the pocket.",
+      "optionRationales": [
+        "Correct. The Transfer Acceleration works by routing uploads through edge locations of the CloudFront to reach the point of presence AWS closer, which brings speed benefits mainly to customers GEOGRAFICAMENTE DISTANTES from the region of the pocket. For customers already in MESMA Bucket region, this border routing does not bring relevant speed benefit (the direct path is already great), but AINDA GERA the GB rate of Transfer Acceleration on normal data transfer — disable it for customers in the same region eliminates this unnecessary rate without any loss of performance.",
+        "Incorrect. Multipart Upload is a good practice valid for large objects (better throughput and resilience to network errors via parallel upload parts) and does not have the rate of Transfer Acceleration, but addresses optimization DIFERENTE (parallelization of uploads of large objects) of the described issue (pay for the benefit of border routing of the Transfer Acceleration that customers in the same region do not need) — the direct correction for the described cost is to disable the Transfer Acceleration, regardless of also using Multipart Upload.",
+        "Incorrect. S3 One Zone-IA reduces the cost of ARMAZENAMENTO (with durability trade-off), but does not solve the unnecessary rate of TRANSFER ACCELERATION being charged for transfers that do not get speed benefit — mix a storage class change to 'compensate' a preventable and unrelated transfer rate does not solve the root cause.",
+        "Incorrect. This statement is factually incorrect — Transfer Acceleration is not 'mandatory' to Direct Connect; are independent mechanisms. Direct Connect for VPN usually REDUZIRIA the network performance/reliability without solving the real problem (a unnecessary rate of Transfer Acceleration for transfers within the same region))."
+      ]
+    },
+    "saa-avc-207": {
+      "text": "A company uses AWS Backup to create daily backups of your volumes Amazon EBS and databases Amazon RDS, withheld by regulatory requirement of compliance by 7 years. Currently, all backups remain at the standard (hot) storage level of the AWS Backup throughout the retention period of 7 years, which is costly given the accumulated volume of backups. Backups with more than 90 days are virtually never restored (only ~90 more recent days are effectively used for recovery), but they need to remain recoverable (being acceptable a recovery time of several hours) throughout the entire compliance period of 7 years.",
+      "options": [
+        "Switch daily backups to weekly backups for volumes/databanks with more than 90 days, reducing the number of recovery points stored.",
+        "Reduce retention period of backups from 7 years to 90 days to reduce storage cost.",
+        "Copy, via custom script, backups with more than 90 days for a bucket from Amazon S3 Glacier Deep Archive and delete them from AWS Backup.",
+        "Configure life cycle definitions of the plan AWS Backup to transition recovery points to the cold storage level after 90 days, keeping the total retention of 7 years."
+      ],
+      "explanation": "Correct. Cold storage level of the AWS Backup offers storage cost per GB significantly lower than standard (hot) storage while still meeting the multi-hour recovery time considered acceptable for the oldest rarely needed backups — and the AWS Backup imposes a minimum period of 90 days in cold storage before deletion. This directly aligns the storage cost to the actual recovery time target of the old backups, maintaining the regulatory requirement of retention of 7 years.",
+      "hint": "Think of a native resource of AWS Backup that moves older recovery points to a cheaper storage level without removing them from the backup catalog.",
+      "optionRationales": [
+        "Correct. Cold storage level of the AWS Backup offers storage cost per GB significantly lower than standard (hot) storage while still meeting the multi-hour recovery time considered acceptable for the oldest rarely needed backups — and the AWS Backup imposes a minimum period of 90 days in cold storage before deletion. This directly aligns the storage cost to the actual recovery time target of the old backups, maintaining the regulatory requirement of retention of 7 years.",
+        "Incorrect. Reduce retention below regulatory requirement (7 years) would create a COMPLIANCE; the scenario explicitly states that the retention of 7 years is a regulatory requirement and cannot simply be reduced to reduce costs.",
+        "Incorrect. This would require building and maintaining a process CUSTOMIZADO export/migration out of native life cycle management of AWS Backup, and remove those backups from the unified recovery point/restore flow catalog of AWS Backup — the native transition to cold storage AWS Backup achieves cost reduction without custom tools and without losing the unified backup management interface.",
+        "Incorrect. Change backup frequency to data ANTIGOS does not make sense (backups already exist; it is not possible to retroactively reduce the frequency of past backups), and reduce the future frequency does not solve the CUSTO THE LEVEL OF ARMAZENAMENTO of the already accumulated backups, which is the cost factor described — is a different (and partially inconsistent) lever than is being requested."
+      ]
+    },
+    "saa-avc-208": {
+      "text": "A company maintains separate environments from Amazon RDS for MySQL for production, staging and development. The three environments are currently configured with Multi-AZ implementations (synchronous standby replica in a second AZ), configured uniformly via a template of the CloudFormation shared 'by consistency'. The staging and development environments are used only during the commercial time for tests and are NOT subject to the same SLAs of production availability — a brief unavailability during a maintenance window or instance failure in these environments is acceptable and does not impact customers. The team wants to reduce the costs of the RDS for staging and development without affecting the position of production availability.",
+      "options": [
+        "Disable Multi-AZ for instances RDS of staging and development, keeping the Multi-AZ enabled for production.",
+        "Configure instances RDS staging and development to automatically stop off business hours, keeping Multi-AZ enabled during the hours in which they are running.",
+        "Use Reserved Instances of the RDS for the staging and development databases to reduce the cost of Multi-AZ.",
+        "Migrate the staging and development databases to Amazon Aurora Serverless v2, maintaining Multi-AZ, to reduce costs."
+      ],
+      "explanation": "Correct. Multi-AZ deployments approximately double the cost of the instance RDS (running and replicating synchronously to a standby in a second AZ) to provide automatic failover for ALTA DISPONIBILIDADE; as staging and development explicitly do not require the same SLA production availability (short availability is acceptable), disable Multi-AZ in these non-productive environments removes the cost of the standby instance, while production maintains its Multi-AZ protection — aligning directly the infrastructure configuration to the actual requirement of availability of each environment.",
+      "hint": "Think about which configuration of the RDS approximately doubles the cost of the instance to provide a level of availability that non-productive environments may not need.",
+      "optionRationales": [
+        "Correct. Multi-AZ deployments approximately double the cost of the instance RDS (running and replicating synchronously to a standby in a second AZ) to provide automatic failover for ALTA DISPONIBILIDADE; as staging and development explicitly do not require the same SLA production availability (short availability is acceptable), disable Multi-AZ in these non-productive environments removes the cost of the standby instance, while production maintains its Multi-AZ protection — aligning directly the infrastructure configuration to the actual requirement of availability of each environment.",
+        "Incorrect. Aurora Serverless v2 SUPORTA Multi-AZ, but this introduces a MIGRATION OF ENGINE of database (of RDS for MySQL for Aurora MySQL) as a cost reduction mechanism, which is a much larger change (compatibility tests, migration effort) than simply disable Multi-AZ in the existing engine — and KEEP Multi-AZ (the cost factor identified) instead of removing it to environments that do not need it.",
+        "Incorrect. Reserved Instances offer a discount on the invoice on the contracted instance configuration, but do not eliminate the fundamental duplication of resources that the Multi-AZ requires (the reservation would cover both the primary instance and QUANTO the standby, with discount, but still paying for two instances) — reduces the cost partially, but does not resolve the root inefficiency of maintaining unnecessary standby replicas for environments that do not need high availability.",
+        "Incorrect. Stop instances outside business hours REDUZ some cost (no computer charge while stopping), but instances RDS Multi-AZ continue to incur the duplicate cost (primary + standby) during the hours when they are running, which is precisely when the unnecessary cost of high availability occurs — it is a complementary optimization (reducing run-times), but does not resolve the multi-AZ configuration breakdown itself."
+      ]
+    },
+    "saa-avc-209": {
+      "text": "A company operates a table of Amazon DynamoDB in Provisioned Capacity Mode, with Read Capacity Units (RCUs) and Write Capacity Units (WCUs) configured based on initial estimates made over a year ago, without Auto Scaling set up. The team suspects that the capacity provided today is significantly above the required (super-provided), resulting in unnecessary cost, but wants CONFIRMAR this with DADOS before reducing the provided values, to avoid causing throttling if the reduction is very aggressive.",
+      "options": [
+        "Reduce RCUs and WCUs provided in 50% immediately as a quick first step, monitoring the throttling after.",
+        "Enable DynamoDB Accelerator (DAX) in front of the table to reduce the reading capacity required.",
+        "Change the table immediately to On-Demand capacity mode of the DynamoDB, which automatically charges only for actual use.",
+        "Analyze the metrics of the Amazon CloudWatch ConsumedReadCapacityUnits and ConsumedWriteCapacityUnits of the table over a representative period (including peaks), compare with currently provided RCUs/WCUs, adjust the provided capacity to align with observed peak consumption (plus one margin) and/or enable the DynamoDB Auto Scaling."
+      ],
+      "explanation": "Correct. Using the actual ConsumedCapacity metrics provides the data-oriented base to correctly dimension the provided capacity without guessing, avoiding directly both over-supply (spent cost) and under-supply (throttling) — and enable the Auto Scaling from front to front automatically adjusts capacity within defined limits based on real traffic.",
+      "hint": "Think of what metrics of CloudWatch reveal consumption REAL of a table capacity DynamoDB, allowing comparison with what is provided before any change.",
+      "optionRationales": [
+        "Correct. Using the actual ConsumedCapacity metrics provides the data-oriented base to correctly dimension the provided capacity without guessing, avoiding directly both over-supply (spent cost) and under-supply (throttling) — and enable the Auto Scaling from front to front automatically adjusts capacity within defined limits based on real traffic.",
+        "Incorrect. On-Demand mode It is a valid alternative that removes the need to manage provided capacity, but for a table with STABLE and PREVIOUS traffic (what the analysis of Consumed metrics would reveal), the provided capacity (especially with Reserved Capacity or Auto Scaling) It's usually SIGNIFICATIVAMENTE MAIS BARATA by request than On-Demand — moving to On-Demand without first analyzing the consumption pattern (the scenario asks 'confirm with data before') ignores the analysis stage and may not be the most economical choice for stable workloads.",
+        "Incorrect. Reduce capacity PRIMEIRO and monitor throttling DEPOIS is a reactive and risky approach that can cause throttling/errors in production for end users before the team perceives and corrects — the scenario explicitly asks 'confirm with data ANTES to reduce', i.e. the analysis should precede the change of capacity, not follow.",
+        "Incorrect. DAX is a cache layer in memory that can reduce the load of LEITURA that reaches the table DynamoDB for intense reading workloads with repeatedly accessed items, but ADICIONA its own infrastructure cost (the cluster us) DAX) and does not directly answer the question of whether the values ATUAIS of RCU/WCU provided are already over-provided in relation to real demand — it is a different optimization (cache), not the correct dimensioning of the provided capacity based on consumption data."
+      ]
+    },
+    "saa-avc-210": {
+      "text": "A company has a data center on-premises that transfers approximately 50 TB Data POR MONTHS for the Amazon S3 through a connection VPN based on the internet, incurring substantial data transfer charges from AWS for on-premises (and the internet connection occasionally becomes a gargalo during peak transfer windows). This transfer volume should remain stable or grow. The team wants to reduce the costs per GB of this consistent and high volume hybrid connectivity, also improving the transfer reliability/throughput.",
+      "options": [
+        "Enable S3 Transfer Acceleration in destination bucks to accelerate and reduce the cost of uploads coming from on-premises.",
+        "Establish a connection AWS Direct Connect between the data center on-premises and the AWS.",
+        "Using Devices AWS Snowball on a recurring monthly basis to physically transport the 50 TB of/to the data centre.",
+        "Move data to Amazon S3 Glacier Deep Archive before transferring them to on-premises, since Glacier has the lowest storage cost."
+      ],
+      "explanation": "Correct. Direct Connect provides a dedicated network connection with data transfer fees SAID significantly MENORES by GB than standard Internet transfer rates, besides providing more consistent network throughput and less latency than a VPN internet-based — for a standard of hybrid transfer ALTO VOLUME (50 TB/month), the reduced price of exit via Direct Connect typically generates substantial economy compared to Internet output, besides improved reliability/throughput.",
+      "hint": "Think about what kind of dedicated connection between on-premises and AWS is designed to reduce the cost per GB of recurrent and high volume output transfers.",
+      "optionRationales": [
+        "Correct. Direct Connect provides a dedicated network connection with data transfer fees SAID significantly MENORES by GB than standard Internet transfer rates, besides providing more consistent network throughput and less latency than a VPN internet-based — for a standard of hybrid transfer ALTO VOLUME (50 TB/month), the reduced price of exit via Direct Connect typically generates substantial economy compared to Internet output, besides improved reliability/throughput.",
+        "Incorrect. Transfer Acceleration optimizes speed UPLOAD for the S3 via edge locations of the CloudFront (for data entering the AWS), but the cost concern of the scenario is about data transfer from AWS for on-premises — the Transfer Acceleration does not apply or reduce costs of exit transfer (egress), and it adds its own fee for input transfers that accelerate.",
+        "Incorrect. The cost concern described is about the costs of TRANSFER OF DADOS (egress) for a recurrent flow of 50 TB/month, not about the cost of ARMAZENAMENTO of data S3 — move the data to the Glacier first would add time/recovery rates before even the transfer could occur, and does not address the price of the output transfer by GB at all.",
+        "Incorrect. Snowball is designed for single mass transfers, or INFREQUENTES (e.g. initial migrations), where the volume of data makes the transfer via network impractical; use it in a database MENSAL RECORRENTE for the continuous operating flow introduces a significant operating overload (device logistics, handling) compared to a link. Direct Connect persistent, which is designed exactly for sustained and recurrent hybrid connectivity with lower cost per GB."
+      ]
+    },
+    "saa-avc-211": {
+      "text": "A company owns a Amazon S3 containing 200 millions of existing objects, accumulated over several years, all currently in the storage class S3 Standard. The team determined (via S3 Storage Class Analysis) that most of these objects EXISTENTES should be moved to the S3 Flexible Retrieval Glacier to reduce costs. However, life cycle rules of S3 based on age of the object are applied considering the date of CREATION of each object from the creation of the rule — for objects that are already above the desired age threshold, the team wants the transition to be applied to objects EXISTENTES controlled, traceable and RETROATIVA, instead of depending on the time of assessment of life-cycle rules for objects that already exceed the threshold.",
+      "options": [
+        "Use command `aws s3 cp AWS CLI with the flags `--recursive` and `--storage-class` to copy each object over itself with the new storage class.",
+        "Use Amazon S3 Batch Operations with a storage class copy/change job to retroactively apply the transition to S3 Flexible Glacier Retrieval to 200 millions of existing objects based on a manifest (e.g. via S3 Inventory).",
+        "Enable S3 Intelligent-Tiering in the pocket, which will automatically move all existing objects to the appropriate level based on the results of the Storage Class Analysis.",
+        "Simply create a Lifecycle rule of S3 which transitions objects to Glacier Flexible Retrieval after the desired number of days; S3 automatically apply retroactively to all existing objects in up to 48 hours."
+      ],
+      "explanation": "Correct. S3 Batch Operations was specifically designed to perform a specified operation (including storage class transitions) in a large, defined list of objects EXISTENTES, in a single traceable job (with completion reports), providing a controlled and auditable mechanism for retroactively trading existing objects — separated from (and complementing a) continuous Lifecycle rules dealing with objects NOVOS from now on.",
+      "hint": "Think of what resource the S3 was designed to perform a mass operation, traceable and with completion report, on a list of existing objects.",
+      "optionRationales": [
+        "Correct. S3 Batch Operations was specifically designed to perform a specified operation (including storage class transitions) in a large, defined list of objects EXISTENTES, in a single traceable job (with completion reports), providing a controlled and auditable mechanism for retroactively trading existing objects — separated from (and complementing a) continuous Lifecycle rules dealing with objects NOVOS from now on.",
+        "Incorrect. Although Lifecycle rules of the S3 SE APLIQUEM existing objects that already meet the age criterion (the S3 evaluates and transitions, usually around a day after the rule is created, not instantly), the scenario specifically asks for a process CONTROLADO AND RATREAVABLE FOR 200 millions of objects — the evaluation of Lifecycle rules for a massive backlog of existing objects does not provide the same level of conclusion/trace/grain retry report as a dedicated job of S3 Batch Operations, which is the approach recommended by AWS for large-scale retroactive operations.",
+        "Incorrect. Although technically that PUDESSE change the storage class via copy operation, execute this against 200 millions of objects via CLI would be extremely slow (sequential/limited parallelism), does not have the mechanisms of job tracking/conclusion reports/retry of S3 Batch Operations, and it is not a scalable or recommended approach by AWS for operations on this scale.",
+        "Incorrect. Enable Intelligent-Tiering as a storage class for objects NOVOS does not retroactively alter the storage class of objects EXISTENTES already stored as S3 Standard — Intelligent-Tiering needs to be explicitly DEFINIDO as the storage class of the objects (existing objects maintain their current class unless explicitly transitioned), so this does not solve the declared need to migrate 200 millions of existing Standard objects."
+      ]
+    },
+    "saa-avc-212": {
+      "text": "A company operates a cluster Amazon Redshift for its production data warehouse, used by the analysis team. In addition to the production cluster, the team maintains a cluster Redshift separate used exclusively for the development/test of new pipelines from ETL and consultations — this dev/test cluster is used actively only during business hours on working days (approximately 50 of the 168 hours of the week), but currently it rotates continuously, generating computer charges 24/7. The team wants to reduce the cost of computing this dev/test cluster during the ~118 weekly hours in which it gets idle, without losing the cluster configuration, the data loaded, or having to recreate it at a time.",
+      "options": [
+        "Use pause and summary functionality of Amazon Redshift for PAUSAR the dev/test cluster during the ~118 weekly hours without use (for example, I saw an action scheduled to pause at the end of the day and resume every morning)).",
+        "Create a manual snapshot of the cluster, delete the cluster completely during idle periods and restore it from the snapshot every morning.",
+        "Resize the dev/test cluster to use less us or smaller us, reducing its cost per hour while continuing to run 24/7.",
+        "Migrate the dev/test workload to Amazon Redshift Serverless, which charges only when queries are running, eliminating the need for cluster scheduling."
+      ],
+      "explanation": "Right, while a cluster Redshift is paused, the computer collections (us) PARAM to be generated (only storage charges continue), and the configuration, data and endpoint of the cluster are PRESERVADOS for when it is resumed — directly eliminating the cost of computing during idle periods without losing configuration or data, and this can be automated via scheduled actions of Redshift.",
+      "hint": "Think of a functionality of Redshift which interrupts the computer collection while preserving the configuration and data of the cluster, without requiring re-creation or endpoint change.",
+      "optionRationales": [
+        "Right, while a cluster Redshift is paused, the computer collections (us) PARAM to be generated (only storage charges continue), and the configuration, data and endpoint of the cluster are PRESERVADOS for when it is resumed — directly eliminating the cost of computing during idle periods without losing configuration or data, and this can be automated via scheduled actions of Redshift.",
+        "Incorrect. Resize for us smaller reduces the rate POR HORA, But it doesn't solve the fact that ~118 of the 168 weekly hours ZERO active use — pay a reduced rate per 168 hours is still more than paying the full fee for just the ~50 hours really needed; is an incremental reduction, not the elimination of idle time cost.",
+        "Incorrect. Delete and restore from snapshot PARA the computer charges during the 'excluded' period (cost benefit similar to the pause), but restoring a cluster from a snapshot is a very MAIS LENTA (potentially dozens of minutes to hours, depending on the volume of data) compared to resuming a paused cluster (typically faster), and the ENDPOINT cluster changes after restoration (requiring connection string update) — pause/summary preserves the endpoint and is the least overloaded native mechanism for exactly this use case.",
+        "Incorrect. Redshift Serverless is a valid payment-by-use alternative, but migrate the dev/test workload from a cluster PROVISIONADO existing for Serverless is a wider MUDANÇA (different collection/configuration model, based on RPUs, possible differences in query performance characteristics) than simply enable pause/summary scheduling in the cluster EXISTENTE — pause/summary is the direct and minimal change solution to the idle time cost problem described in an existing provided cluster."
+      ]
+    },
+    "saa-avc-213": {
+      "text": "A daily job of the AWS Glue processes files from a prefix of S3 which receives new files continuously. At each execution, the job reprocesses TODOS the historical files, increasing cost and duration. The team wants each execution to process only the data that have not yet been processed. Glue implements this incremental processing?",
+      "options": [
+        "Enable Job Bookmarks in the job of Glue",
+        "Increase the number of job DPUs",
+        "Create a second crawler for the same prefix",
+        "Enable versioning in the pocket S3"
+      ],
+      "explanation": "A) Correct: Job Bookmarks do the Glue track the state of what has already been processed (archives/partitions), making each execution incremental. B) Incorrect: more DPUs accelerate reprocessing, but do not prevent it from happening — cost continues to grow. C) Incorrect: crawler catalog metadata; does not control what the job has already processed. D) Incorrect: versioning protects objects against overwritten; does not influence the scope of the job."
+    },
+    "saa-avc-214": {
+      "text": "A job of ETL need to transform 800 GB data with Spark, with estimated duration of 50 minutes per execution. The team evaluated using AWS Lambda, But you've ruled out the option. DECISIVA of the Lambda in this scenario and which serverless service adequately replaces it?",
+      "options": [
+        "The Lambda does not access the S3; replace by Amazon EC2",
+        "The maximum timeout of 15 minutes of Lambda; replace by AWS Glue (Spark serverless)",
+        "The Lambda does not support Python; replace by Amazon Redshift",
+        "The Lambda requires VPC; replace by Amazon Lighttail"
+      ],
+      "explanation": "A) Incorrect: Lambda access S3 usually saw SDK. B) Correction: 50 minutes exceed the ceiling of 15 minutes by invocation of Lambda; o Glue runs Spark serverless without practical limit for jobs in ETL (c) Incorrect: Lambda supports Python; Redshift is warehouse, not engine of ETL Spark. D) Wrong: VPC is optional no Lambda; Lightsail is not a service ETL."
+    },
+    "saa-avc-215": {
+      "text": "BI Dashboards connected to a cluster Amazon Redshift They are slow only on Monday mornings, when hundreds of analysts perform consultations simultaneously. The rest of the week the cluster attends well, and the team DOES NOT want to pay for a larger cluster all the time. What resource solves the peaks of competition?",
+      "options": [
+        "Redshift Spectrum",
+        "Elastic Resize permanent for double us",
+        "Competition Scaling, adding automatic transitory capacity during simultaneous consultation peaks",
+        "Migrate queries to the Athena"
+      ],
+      "explanation": "A) Incorrect: Spectrum extends consultations to S3; It does not add competition capacity to the cluster. B) Incorrect: doubling the cluster permanently is exactly the fixed cost that is to be avoided. C) Correct: Competition Scaling adds automatic transitory clusters to peaks of competition and then removes them — with daily free credits that usually cover the use. D) Incorrect: migrate the BI to Athena changes the whole architecture to solve a one-time competition problem."
+    },
+    "saa-avc-216": {
+      "text": "A startup needs a data warehouse for ESPORADIC and unpredictable analytical loads (some hours of use per week, with idle weeks), without administering clusters and paying only for the effectively consumed processing. Which option meets the best cost?",
+      "options": [
+        "Cluster Redshift provided with 3 we ra3 reserved by 3 years",
+        "Amazon Redshift Serverless, with charge for RPU-time only during consultations",
+        "Cluster Redshift dc2 connected 24/7 with manual pause",
+        "Amazon RDS PostgreSQL with read replicas"
+      ],
+      "explanation": "A) Incorrect: reserve capacity by 3 years for sporadic use waste money — reservations serve for constant use. Redshift Serverless automatically scales and charges by RPU-time only while there is processing — perfect for intermittent use. C) Incorrect: depending on manual pause generates cost by forgetfulness and operational friction. D) Incorrect: RDS It's OLTP; is not the tool for analytical warehouse loads."
+    },
+    "saa-avc-217": {
+      "text": "The data warehouse Redshift of a company is critical and the DR strategy requires recovery in OUTRA Region in case of regional disaster, with maximum loss of a few hours of data and no permanent secondary cluster (minimum cost).?",
+      "options": [
+        "Enable cross-region snapshot automatic copy of Redshift for the DR Region and restore the cluster from snapshot when necessary",
+        "Keep a second identical cluster always active in the other region",
+        "Export the tables to CSV every hour with UNLOAD manual",
+        "Use Multi-AZ, which already protects against regional disaster"
+      ],
+      "explanation": "A) Correct: automatic copy of snapshots between regions gives RPO Incorrect: duplicate permanent cluster meets but violates the minimum cost requirement. C) Incorrect: manual and fragile process; automated snapshots already resolve. D) Incorrect: Multi-AZ protects against AZ failure — a disaster REGIONAL takes down all the AZs in the region."
+    }
+  }
+}

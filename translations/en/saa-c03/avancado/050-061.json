@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "050-061",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-050": {
+      "text": "A large company with thousands of employees distributed in dozens of departments and hundreds of projects wants to avoid creating a Permission Set of IAM Identity Center for each combination of department and project (which would result in hundreds of Permission Sets). Instead, it wants access to resources to be determined dynamically, comparing user attributes (such as department=finances, costCenter).=1234), coming from the corporate identity provider, with tags applied to the own resources of AWS. Which approach meets this requirement in a scalable manner?",
+      "options": [
+        "Configure the IAM Identity Center with Attributes for Access Control (ABAC), mapping attributes of the identity provider SAML (as department and costCenter) for session tags, and create a small number of Permission Sets whose policies IAM use conditions aws:MainTags Compared to Resource Tags (aws:ResourceTag).",
+        "Create a Permission Set IAM Identity Center separate for each combination of department and project, each with a fixed list of allowed resource RNAs.",
+        "Use Service Control Policies (SCPs) no AWS Organizations to dynamically grant access based on user department attributes.",
+        "Create a user IAM individual for each employee, with inline policies specifically referring to the resources of this employee's department."
+      ],
+      "explanation": "The ABAC no IAM Identity Center map user attributes coming from IdP for session tags; policies IAM with conditions aws:MainTags compared to aws:ResourceTag allows access to be dynamically granted based on attribute matching, eliminating the need for a Permission Set by department/project combination and automatically scaling as new departments or projects arise.",
+      "hint": "Think of the access control model in which permissions are dynamically determined by matching user attributes (tags) with resource tags, instead of fixed permission lists per group.",
+      "optionRationales": [
+        "The ABAC no IAM Identity Center map user attributes coming from IdP for session tags; policies IAM with conditions aws:MainTags compared to aws:ResourceTag allows access to be dynamically granted based on attribute matching, eliminating the need for a Permission Set by department/project combination and automatically scaling as new departments or projects arise.",
+        "This approach results in a combined explosion of Permission Sets (potentially hundreds), with high maintenance cost and which does not scale as departments and projects change — exactly the problem the company wants to avoid.",
+        "SCPs define only the maximum permission limit for accounts/OUs and do not evaluate session tags of individual users from an identity provider SAML to provide dynamic access; they do not replace policies IAM based on ABAC.",
+        "This approach reintroduces individual user management IAM on a massive scale, with policies that need to be maintained manually for each employee — exactly the type of administrative overload that the IAM Identity Center with ABAC was designed to eliminate."
+      ]
+    },
+    "saa-avc-051": {
+      "text": "A central security account stores credentials of a shared database in AWS Secrets Manager, Encrypted with a CMK of the KMS. Multiple application accounts need to recover this MESMO secret in execution time (e.g. credentials of a shared read replica), and the company requires that the secret rotation, done once in the central account, be automatically reflected for all consumers — without doubling the secret in each account.?",
+      "options": [
+        "Export the value of the secret and store a copy of it in Secrets Manager of each application account.",
+        "Create a IAM roll in the security account with permission to read the secret, and have the application accounts call AssumeRole in the security account every time you need the secret.",
+        "Attach to the secret in Secrets Manager (in the central account) a resource policy secretsmanager:GetSecretValue at IAM roles of the implementation accounts, and update the policy of the CMK of the KMS to allow kms:Decrypt to those same roles.",
+        "Use AWS Resource Access Manager (RAM) to share the secret of Secrets Manager with the application accounts."
+      ],
+      "explanation": "Resource-based policies Secrets Manager allow principals of other accounts to call GetSecretValue directly on the centralized secret, without duplication; how the secret is encrypted with a CMK, key policy also needs to grant kms:Decrypt the roles of the application accounts. The rotation done once in the central account is reflected immediately for all consumers, because everyone reads the same secret.",
+      "hint": "Think of the type of policy that can be attached directly to the secret itself to grant access between accounts, without doubling the secret or creating additional authentication jumps.",
+      "optionRationales": [
+        "Resource-based policies Secrets Manager allow principals of other accounts to call GetSecretValue directly on the centralized secret, without duplication; how the secret is encrypted with a CMK, key policy also needs to grant kms:Decrypt the roles of the application accounts. The rotation done once in the central account is reflected immediately for all consumers, because everyone reads the same secret.",
+        "Duplicate the secret in each account creates multiple real sources; when rotation occurs in the central account, copies in the application accounts will be outdated, requiring manual synchronization and violating the requirement that rotation be automatically reflected for all consumers.",
+        "The AWS Secrets Manager is not a type of resource supported for sharing via AWS RAM; the sharing between secret accounts is done through resource-based policies (resource policies) attached directly to the secret..",
+        "This approach adds an extra layer of indirection (to assume one role in another account at each call) and concentrates all calls from all consumer accounts through the STS of the security account, creating complexity and an unnecessary potential centralized dependence, when a policy of direct recourse in secret would solve this in a simpler way."
+      ]
+    },
+    "saa-avc-052": {
+      "text": "A requirement of compliance determines that TODAS connections between application servers (EC2) and a database Amazon RDS for PostgreSQL must be encrypted in transit (TLS), and that the database REJEITE actively any unencrypted connection attempt. Which configuration meets this requirement?",
+      "options": [
+        "Use AWS Certificate Manager to issue a certificate TLS public and install it manually in the instance RDS.",
+        "Configure the parameter group of RDS to require SSL/TLS (defining rds.force_sl=1 for PostgreSQL) and make applications connect using the Certificate Package of the Certification Authority of RDS to validate the server certificate.",
+        "Enable storage encryption (encryption at rest) in instance RDS.",
+        "Place the instance RDS in a private sub-network and rely on the network isolation of VPC to protect data in transit."
+      ],
+      "explanation": "Set rds.force_sl=1 in the parameter group causes the instance RDS for PostgreSQL rejects unencrypted connections; applications use the CA certificate of RDS (provided by AWS) to validate the server identity during the handshake TLS, taking into account both the requirement for compulsory encryption and the rejection of unencrypted connections.",
+      "hint": "Think of the database engine configuration that forces the rejection of unencrypted connections, and the mechanism by which the client validates the managed server certificate.",
+      "optionRationales": [
+        "Set rds.force_sl=1 in the parameter group causes the instance RDS for PostgreSQL rejects unencrypted connections; applications use the CA certificate of RDS (provided by AWS) to validate the server identity during the handshake TLS, taking into account both the requirement for compulsory encryption and the rejection of unencrypted connections.",
+        "Network isolation (private sub-networks), Security Groups) controls who can reach the database, but does not encrypt the data transmitted between the client and the engine of the bank; an instance committed in the same sub-network could still capture unencrypted traffic.",
+        "Rest cryptography protects data stored on disk and snapshots, but has no relation to encryption of the network connection between the client and the database, which is what the 'in transit' requirement requires.",
+        "Cannot install certificates TLS customised in fora RDS managed; or RDS it already provides its own certificates issued by its Certification Authority, and the requirement of TLS is applied via parameter group configuration, not by manual installation of certificates of the ACM."
+      ]
+    },
+    "saa-avc-053": {
+      "text": "In an organization with 30 accounts AWS, o Amazon GuardDuty generates a finding indicating that an instance EC2 You're making calls from API The security team needs to investigate the root cause — visualizing related finding, history of calls from API and relationships between resources over time — in multiple accounts, without manually correlating data from CloudTrail, VPC Flow Logs and GuardDuty in separate tools. Which service was specifically designed for this research?",
+      "options": [
+        "Manually consult or CloudTrail Lake, the VPC Flow Logs via Athena and the findings of the GuardDuty separately, correlating the results in a spreadsheet.",
+        "Use only the AWS Security Hub to investigate root cause of finding.",
+        "Use AWS Configure to view instance configuration history EC2 affected.",
+        "Amazon Detective, enabled with data sources at organizational level and delegated administrator, who automatically ingests and correlates data from GuardDuty, CloudTrail and VPC Flow Logs in interactive visualizations for root cause investigation between accounts."
+      ],
+      "explanation": "The Amazon Detective was designed specifically for security investigation: he automatically ingests and correlates data from GuardDuty, CloudTrail and VPC Flow Logs, building interactive behavior graphs and timelines that allow the security team to identify the root cause of a finding between multiple accounts, without manual correlation.",
+      "hint": "Think of the service whose main purpose is to automatically correlate multiple security data sources into visual graphics to speed up root cause investigations.",
+      "optionRationales": [
+        "The Amazon Detective was designed specifically for security investigation: he automatically ingests and correlates data from GuardDuty, CloudTrail and VPC Flow Logs, building interactive behavior graphs and timelines that allow the security team to identify the root cause of a finding between multiple accounts, without manual correlation.",
+        "Security Hub aggregates multiple service finding in a standardized format and calculates compliance scores, but does not provide visualization of behavior graphs, timelines, and deep correlation between CloudTrail, VPC Flow Logs and GuardDuty that the Amazon Detective offers for root cause investigation.",
+        "This is exactly the manual process, delayed and prone to errors that the team wants to avoid; the Amazon Detective automates this correlation between the three data sources.",
+        "The AWS config tracks the history of resource configuration changes over time, but does not correlate security finding, API and network traffic for threat investigation."
+      ]
+    },
+    "saa-avc-054": {
+      "text": "In a hybrid environment, servers DNS on-premises need to resolve names hosted in a Route 53 private hosted zone associated with a VPC, and resources within that VPC need to resolve host names on servers DNS on-premises (e.g. body.example.internal) — all through a connection Direct Connect or VPN existing, without exposure to DNS Publicly. Which configuration meets the AMBAS the resolution directions?",
+      "options": [
+        "Implement Route 53 Solve inbound endpoints (for servers DNS on-premises forward private host zone queries to the VPC) and Route 53 Solve outbound endpoints with referral rules (for which resources the VPC forward on-premises domain queries to servers DNS on-premises), both about the connection Direct Connect/VPN existing.",
+        "Install a server DNS customised (as BIND) in an instance EC2 the VPC, configured as conditional forwarder for both directions.",
+        "Return to private hosted public area, allowing servers DNS on-premises to consult over the internet.",
+        "Configure only one Route 53 Solve inbound endpoint to deal with resolution DNS bidirectional between on-premises and VPC."
+      ],
+      "explanation": "Inbound endpoints of Route 53 Solving allows you to consult DNS originating outside the VPC (as on-premises servers) are solved by solving the VPC, including records of private hosted areas; outbound endpoints with referral rules allow you to VPC forward specific domain queries (such as body.example.internal) to servers DNS on-premises. Together, on the existing hybrid connection, meet bidirectional resolution without exposing DNS Publicly.",
+      "hint": "Think of the two types of endpoint of Route 53 Solve: one for queries that enter the VPC coming from outside, and another for consultations that come out of VPC towards external servers.",
+      "optionRationales": [
+        "Inbound endpoints of Route 53 Solving allows you to consult DNS originating outside the VPC (as on-premises servers) are solved by solving the VPC, including records of private hosted areas; outbound endpoints with referral rules allow you to VPC forward specific domain queries (such as body.example.internal) to servers DNS on-premises. Together, on the existing hybrid connection, meet bidirectional resolution without exposing DNS Publicly.",
+        "Convert area to public display records DNS the Internet, violating the requirement not to expose the DNS Publicly, and still would not solve the reverse direction (resources of the VPC solving on-premises names).",
+        "Inbound endpoints deal only with queries that reach the VPC from outside; solving on-premises domains from resources within the VPC requires outbound endpoints with forwarding rules — a single inbound endpoint does not cover both directions.",
+        "This customized solution requires operation and maintenance of a server DNS in its own, reimplementing with significant effort a functionality that the Route 53 Solving already offers natively, managed and highly available through your input and output endpoints."
+      ]
+    },
+    "saa-avc-055": {
+      "text": "A company has standardized the use of a third-party virtual firewall application (available in the AWS Marketplace) for deep packet inspection, and needs to insert this application in a transparent way in the traffic flow of multiple VPCs through a VPC Centralized inspection, with automatic scaling according to the volume of traffic and ensuring that the return traffic of a flow passes through MESMA application instance (symmetric rotation). Which architecture meets this requirement?",
+      "options": [
+        "Use AWS Gateway Load Balancer (GWLB) to distribute traffic between a fleet of third-party firewall application instances in VPC Centralized Inspection, with Gateway Load Balancer Endpoints (GWLBe) in Spoke VPCs (or via Transit Gateway) directing traffic transparently to applications.",
+        "Use one Application Load Balancer to distribute traffic between the instances of the firewall application.",
+        "Install the firewall application in a single instance EC2 large capacity in each VPC, routing all the traffic to it through entries in the route table.",
+        "Use AWS Network firewall to execute third-party firewall application AWS Marketplace within the VPC Centralized Inspection."
+      ],
+      "explanation": "The Gateway Load Balancer was designed specifically to insert third-party applications (firewalls), IDS/IPS) transparently in the traffic flow, operating in the layer 3 with encapsulation GENEVE; it guarantees 'flow stickiness' (symmetric rotation, maintaining a flow in the same instance of the application) and automatically scales the fleet of applications according to the volume of traffic, meeting all the requirements.",
+      "hint": "Think about the type of load balancer specifically designed to insert transparent third-party applications on the road to traffic, ensuring that traffic from the same flow always returns to the same instance.",
+      "optionRationales": [
+        "The Gateway Load Balancer was designed specifically to insert third-party applications (firewalls), IDS/IPS) transparently in the traffic flow, operating in the layer 3 with encapsulation GENEVE; it guarantees 'flow stickiness' (symmetric rotation, maintaining a flow in the same instance of the application) and automatically scales the fleet of applications according to the volume of traffic, meeting all the requirements.",
+        "The AWS Network Firewall is the own managed firewall service AWS (based on Suricata) and does not allow execution of virtual applications of third parties of AWS Marketplace within it; it does not meet the requirement to use the specific application already standardized by the company.",
+        "The Application Load Balancer operates in the layer 7 (HTTP/HTTPS) and terminates connections, which is inadequate for inspection of network traffic in layer 3/4 by a firewall application, besides not preserving the original headers necessary for inspection and not offering symmetrical flow routing.",
+        "A single instance represents a single point of failure and a fixed scalability limit, without automatic scaling, health check and symmetrical flow routing that the Gateway Load Balancer natively provides for fleets of applications."
+      ]
+    },
+    "saa-avc-056": {
+      "text": "The security team suspects that an instance EC2 committed is exfiltrating large volumes of data to an unknown external IP address over several months. They need to analyze historical network flow data from all VPCs to identify abnormal patterns of output data transfer (e.g. sustained bytes count for a specific destination), economically, without high storage/consult costs for a multiple-month history. What approach meets this requirement?",
+      "options": [
+        "Use data events of AWS CloudTrail for S3 and EC2 to identify the exfiltration, since the CloudTrail records all network traffic.",
+        "Ensure that VPC Flow Logs are enabled and delivered to a pocket Amazon S3 (in Parquet format, partitioned by date), and use the Amazon Athena to carry out queries SQL on the historical data of flow logs, filtering and adding by transferred bytes, IPs of origin/destination and time interval.",
+        "Enable VPC Flow Logs delivered only to Amazon CloudWatch Logs, and use the CloudWatch Logs Insights to consult several months of historical data.",
+        "Enable Amazon GuardDuty and rely exclusively on your finding to identify the specific flow of exfiltration and destination IP, without analyzing the flow logs."
+      ],
+      "explanation": "Deliver VPC Flow Logs to S3 in partitioned Parquet format significantly reduces the storage cost and data volume scanned by query; Amazon Athena allows queries SQL ad-hoc about months of historical data, filtering by transferred bytes and specific IPs, in an economical and scalable way — ideal to identify patterns of exfiltration over time.",
+      "hint": "Think of the combination of a low-cost storage destination for historical network flow data in columnar format and a query service SQL on request.",
+      "optionRationales": [
+        "Deliver VPC Flow Logs to S3 in partitioned Parquet format significantly reduces the storage cost and data volume scanned by query; Amazon Athena allows queries SQL ad-hoc about months of historical data, filtering by transferred bytes and specific IPs, in an economical and scalable way — ideal to identify patterns of exfiltration over time.",
+        "Maintain several months of high volume flow logs in CloudWatch Logs has a significantly higher storage cost than in S3, and consultations of the CloudWatch Logs Insights on large volumes of historical data tend to be slower and more expensive than queries Athena on data partitioned in columnal format in S3.",
+        "The GuardDuty may generate a relevant finding (e.g. abnormal volume of traffic), but for a detailed forensic analysis of historical flow patterns (bytes over time, IPs/specific ports for months), it is necessary to direct analysis of flow logs, which the GuardDuty does not replace.",
+        "The CloudTrail records calls from API (management and service data events supported), non-gross network traffic between IP addresses; it would not capture a compromised instance exfiltrating data via a network socket directly to an arbitrary external IP."
+      ]
+    },
+    "saa-avc-057": {
+      "text": "A company needs to ensure that TODO object sent to a pocket S3 specific is encrypted with a CMK of the KMS and that uploads that do not specify that encryption are REJEITADOS when uploading — regardless of permissions IAM granted to the user who is uploading (deep defense). Which configuration meets this requirement?",
+      "options": [
+        "Enable default encryption of the pocket with SSE-KMS using the CMK designated, without any additional Bucket Policy.",
+        "Create a rule of AWS Configure ('s3-Bucket-server-side-encryption-enabled') with automatic repair that re-crypts non-compliant objects after upload.",
+        "Attach to each user IAM a policy that requires the cryptography header in calls s3:PutObject.",
+        "Create a Bucket Policy with a Deny Instruction for Action s3:PutObject when the condition 's3:x-amz-server-side-encryption-aws-kms-key-id' do not match ARN of CMK (or the cryptography header is not 'aws:kms')."
+      ],
+      "explanation": "An explicit Deny Bucket Policy is evaluated independently of permissions IAM the main one that makes the request; condition this denial to the cryptography header (and the ID of the CMK specific) ensures that any upload that does not specify the correct encryption is rejected at the resource level, even if the user has permissions IAM wide s3:PutObject.",
+      "hint": "Think about the type of policy applied directly to the resource (not to identity) that can deny an action based on conditions on the headings of the request itself, regardless of who does it.",
+      "optionRationales": [
+        "An explicit Deny Bucket Policy is evaluated independently of permissions IAM the main one that makes the request; condition this denial to the cryptography header (and the ID of the CMK specific) ensures that any upload that does not specify the correct encryption is rejected at the resource level, even if the user has permissions IAM wide s3:PutObject.",
+        "Standard encryption automatically applies specified encryption to objects that do not explicitly specify an encryption configuration, but do not REJEITA uploads that explicitly specify a different encryption (or none depending on the client's configuration); it does not act as a rejection control.",
+        "A restriction only in politics IAM the user would not protect against uploads made by other identities (such as administrative roles) whose policy IAM does not include this restriction, not taking into account the requirement that rejection takes place regardless of the permissions IAM of applicant.",
+        "This approach is detective and reactive: the object is first accepted without the correct encryption and only then corrected, which does not meet the REJECTION requirement at the time of upload."
+      ]
+    },
+    "saa-avc-058": {
+      "text": "Courts EC2 in private sub-networks (without NAT Gateway or Internet Gateway) run an application that makes frequent calls to kms:Decrypt and kms:GenerateDataKey to describe data on the client's side. The security team requires that TODAS these calls from API to KMS remain within the private network of AWS, without any dependence on internet connectivity. Which configuration meets this requirement?",
+      "options": [
+        "Provide one NAT Gateway in a public sub-network and route the outbound traffic of private sub-networks to the internet through it.",
+        "Use AWS Encryption SDK to make local cache of data keys, eliminating the need for calls to KMS.",
+        "Create a Gateway VPC Endpoint for the AWS KMS in private sub-networks.",
+        "Create a VPC Interface Endpoint (powered by AWS PrivateLink) for the AWS KMS in private sub-networks, allowing for the EC2 make calls from API to KMS through private connectivity, without need of internet access."
+      ],
+      "explanation": "The AWS KMS offers support to VPC Interface Endpoints via PrivateLink, allowing calls from API as kms:Decrypt and kms:GenerateDataKey are made entirely through the private network of AWS, without depending on a NAT Gateway, Internet Gateway or any route to the public internet.",
+      "hint": "Think about the specific type of VPC Endpoint KMS supports, based on technology that provides private connectivity to services of the AWS through a network interface in the sub-network.",
+      "optionRationales": [
+        "The AWS KMS offers support to VPC Interface Endpoints via PrivateLink, allowing calls from API as kms:Decrypt and kms:GenerateDataKey are made entirely through the private network of AWS, without depending on a NAT Gateway, Internet Gateway or any route to the public internet.",
+        "The AWS KMS does not support Gateway VPC Endpoints — this type of endpoint is only available for Amazon S3 and Amazon DynamoDB; for the KMS, the type of endpoint supported is the Interface Endpoint via PrivateLink.",
+        "Although one NAT Gateway allow the bodies to reach the public endpoint of the KMS, this makes calls depend on connectivity with the internet (even within the backbone of the AWS), violating the explicit requirement of no internet dependence, besides incuring data processing costs of the NAT Gateway.",
+        "Data key cache reduces call frequency to KMS, but does not completely eliminate the need for periodic calls (when the cache expires) nor does it establish private connectivity for such calls by itself — does not solve the network path requirement."
+      ]
+    },
+    "saa-avc-059": {
+      "text": "In a security audit, the team needs to check, in a complex architecture with multiple route tables, NACLs, Security Groups, peering connections and attachments to Transit Gateway, if there is any unintentional network path that allows access from the Internet (via Internet Gateway) even a set of sensitive internal databases — even if this path has never been effectively used. TODOS the possible paths that correspond to this unwanted access pattern throughout the network configuration?",
+      "options": [
+        "AWS Network Access Analyzer, defining a Network Access Scope that describes the unwanted access pattern (e.g., a Internet Gateway even resources with the tag 'sensitive'), generating finding for all network paths that correspond to this scope.",
+        "Use security checks of the AWS Trusted Advisor to identify Security Groups with open rules.",
+        "Analyze the VPC Flow Logs with Amazon Athena to identify traffic originating from the internet towards internal databases.",
+        "VPC Reachability Analyzer, testing the connectivity between a specific pair of origin and destination."
+      ],
+      "explanation": "The AWS Network Access Analyzer was designed to analyze the entire network configuration (road tables), NACLs, Security Groups, peering, Transit Gateway, etc.) in search of paths that correspond to a user-defined Network Access Scope, proactively identifying unintentional access paths — even if never used — without requiring point-to-point manual testing.",
+      "hint": "Think of the service that allows you to formally define an unwanted 'access scope' and sweep all network configuration in search of any possible path that satisfies it, even if it has never been used.",
+      "optionRationales": [
+        "The AWS Network Access Analyzer was designed to analyze the entire network configuration (road tables), NACLs, Security Groups, peering, Transit Gateway, etc.) in search of paths that correspond to a user-defined Network Access Scope, proactively identifying unintentional access paths — even if never used — without requiring point-to-point manual testing.",
+        "The Reachability Analyzer tests point-to-point connectivity between a specific source and destination, being useful to diagnose a known connectivity problem; it was not designed to scan the entire network for TODOS the paths that correspond to a general pattern of unwanted access among many resources.",
+        "The VPC Flow Logs show the traffic effectively observed, not potential paths that could exist in the configuration but were never used; this analysis would not identify an unintentional path that has not yet been explored.",
+        "The Trusted Advisor offers general checks of good practice (such as Security Groups with open doors), but does not perform an analysis of end-to-end network paths through multiple components (wheels), NACLs, peering, Transit Gateway) to identify a specific unwanted access scope."
+      ]
+    },
+    "saa-avc-060": {
+      "text": "An event-oriented architecture uses rows Amazon SQS and topics Amazon SNS to transmit messages containing sensitive customer data (PII) a compliance requirement determines that the body of these messages is encrypted EM REPOUSO while in line/topic, using a key under company control (rotational and auditable). Which configuration meets this requirement with the least implementation effort?",
+      "options": [
+        "Trust only in transit encryption (TLS) of calls from API to SQS and SNS, since the messages remain in the queue/topic for a short time.",
+        "Replace SQS and the SNS by storing messages in pocket S3 with SSE-KMS, since the S3 natively supports cryptography with KMS.",
+        "Encrypt the body of messages in the application layer using a key AES fixed embedded in the code, before publishing them in SQS/SNS.",
+        "Enable server side encryption (SSE) in rows SQS and on topics SNS using a CMK managed by the customer at AWS KMS, ensuring that producers and consumers are allowed kms:GenerateDataKey and kms:Decrypt required."
+      ],
+      "explanation": "Both SQS the SNS natively support server side encryption (SSE) using a CMK of the client; this encrypts the body of the messages at rest while they remain in the queue/topic, with the key being fully controlled, rotateable and auditable (via CloudTrail) by the company, requiring only the configuration of the SSE and the permissions of KMS for producers/consumers.",
+      "hint": "Both the rows and the message topics of this architecture have native support for a specific type of cryptography at rest using customer-managed keys — it is not necessary to reinvent this in the application layer.",
+      "optionRationales": [
+        "Both SQS the SNS natively support server side encryption (SSE) using a CMK of the client; this encrypts the body of the messages at rest while they remain in the queue/topic, with the key being fully controlled, rotateable and auditable (via CloudTrail) by the company, requiring only the configuration of the SSE and the permissions of KMS for producers/consumers.",
+        "Encryption in transit (TLS) protects the data during transmission to/from the service, but does not meet the explicit requirement that the body of the message be encrypted EM REPOUSO while stored in the queue or topic, nor does it provide a key under company control/audit for those stored data.",
+        "This approach introduces a significant burden of key management (safe storage, rotation, auditing of a custom key) that the KMS it is natively solved; encrypting with a fixed key embedded in the code is also a bad safety practice compared to the SSE native based CMK.",
+        "Replace rows and topics by storage in S3 would fundamentally change the event-oriented decoupling architecture (files/pub-sub) to an object storage model, an unnecessary change since both the SQS the SNS support natively SSE with customer CMKs."
+      ]
+    },
+    "saa-avc-061": {
+      "text": "A SaaS company exposes a service through a AWS PrivateLink VPC Endpoint Service. SOMENTE a specific list of account IDs AWS (your paying customers) can create Interface VPC Endpoints connecting to this service — connection requests from any other account AWS must be automatically rejected — and new customers added to the list without requiring individual manual approval for each connection attempt.?",
+      "options": [
+        "Restrict access using a Security Group no Network Load Balancer behind the service, allowing only the blocks CIDR of customers' VPCs.",
+        "Enable 'Acceptance required' no VPC Endpoint Service, and have a team member manually approving each connection request as you arrive.",
+        "Configure the VPC Endpoint Service with 'Acceptance required' disabled, and add main account RNAs AWS Allowed (paying customers) to the list of permitted service principals (via ModifyVpcEndpointServicePermissions).",
+        "Use a resource-based policy in a IAM roll to control which accounts can create the VPC Endpoint Service."
+      ],
+      "explanation": "The list of 'allowed mains' of a VPC Endpoint Service determines which accounts AWS can create Interface VPC Endpoints for service; with 'Acceptance required' disabled, account connections present in this list are automatically established (without manual approval), while off-list attempts are automatically rejected — meeting both requirements.",
+      "hint": "Think about the configuration of your own VPC Endpoint Service which defines, in a self-service manner, which accounts AWS are allowed to connect without requiring manual approval for each new request.",
+      "optionRationales": [
+        "The list of 'allowed mains' of a VPC Endpoint Service determines which accounts AWS can create Interface VPC Endpoints for service; with 'Acceptance required' disabled, account connections present in this list are automatically established (without manual approval), while off-list attempts are automatically rejected — meeting both requirements.",
+        "This approach directly contradicts the requirement that new customers be added without requiring individual manual approval for each connection attempt, and does not scale operationally as the number of customers grows.",
+        "In connections via PrivateLink, the blocks CIDR of the VPCs of customers are not directly visible or relevant to the Security Groups of the provider in the form required for an account AWS, in addition to CIDRs of customers can overlap or be unknown by the provider; access control to the service is done by the list of main allowed, not by Security Groups.",
+        "Control of which accounts AWS can connect to a VPC Endpoint Service is done through the list of 'allowed mains' configured directly in the service itself (ModifyVpcEndpointServicePermissions), not through policies based on resource IAM roles."
+      ]
+    }
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "001-013",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-001": {
+      "text": "A company with multiple accounts AWS organized in an OR in AWS Organizations needs to ensure that no member account can create resources outside the 'sa-east region-1', irrespective of the permissions of the IAM What is the correct approach??",
+      "options": [
+        "Apply one Service Control Policy (SCP) in OR denying shares outside the permitted region using the condition key aws:RequiredRegion",
+        "Create a IAM Policy on each account restricting the Region",
+        "Use only resource tags to identify the Region",
+        "Request each team to manually configure the console for the correct Region"
+      ],
+      "explanation": "SCPs the OU represent a limit of permissions that no policy of IAM within the member accounts may exceed; use the condition aws:RequestedRegion allows you to deny actions outside the desired Region in all OR accounts."
+    },
+    "saa-avc-002": {
+      "text": "A multi-tenant application in DynamoDB it needs to ensure that each end user can only access the items in the table that belong to him, identified by a partition key equal to his user ID. Which feature allows to apply this restriction directly to the user's temporary credentials?",
+      "options": [
+        "IAM Policy with conditions based on policy variables (LeadingKeys) combined with Web Identity Federation",
+        "Use only Security Groups to restrict access",
+        "Create a table DynamoDB separate for each user",
+        "Allow full access to DynamoDB for all authenticated users"
+      ],
+      "explanation": "Policy IAM with conditions such as dynamodb:LeadingKeys allow you to restrict a federated user access only to items whose partition key corresponds to your own identifier, a common pattern in multi-tenant applications."
+    },
+    "saa-avc-003": {
+      "text": "A company needs to expose a API private which should be accessible only from within your VPC, without going through the public internet. What configuration of Amazon API Gateway meets this requirement?",
+      "options": [
+        "Expose the API directly via Elastic IP in an instance EC2",
+        "API Private Gateway, accessed via VPC Interface Endpoint (PrivateLink)",
+        "API Regional Gateway, publicly exposed",
+        "API Edge-Optimized Gateway"
+      ],
+      "explanation": "Private APIs of API Gateway can only be accessed from a VPC by means of a VPC Interface Endpoint (AWS PrivateLink), keeping traffic out of the public internet."
+    },
+    "saa-avc-005": {
+      "text": "A critical application uses the Amazon Aurora and needs a RPO (Recovery Point Objective) close to zero and RTO (Recovery Time Objective) low in case of failure of an entire Region. Which configuration is most suitable?",
+      "options": [
+        "Migratory to Amazon DynamoDB without changing the rest of the architecture",
+        "Monthly manual backup exported to the S3",
+        "Aurora with a single instance in an AZ and daily snapshots",
+        "Aurora Global Database, with secondary replicas in another region with low latency replication"
+      ],
+      "explanation": "The Aurora Global Database replicates data between regions with latency typically below 1 second, allowing RPO close to zero and quick recovery (RTO low) in case of regional failure."
+    },
+    "saa-avc-006": {
+      "text": "A serverless architecture uses AWS Lambda integrated into one Amazon SQS Standard Queue. Consumers occasionally process the same message more than once, causing duplicate side effects. What is the explanation and best mitigation?",
+      "options": [
+        "The problem is caused by Lambda, that always processes every message exactly 3 times",
+        "SQS Standard offers delivery 'at least once' (at-last-once); the application must be designed to be idempotent, or use a row FIFO with deduplication if order and uniqueness are critical",
+        "SQS Standard guarantees exactly-once delivery; the problem is in the consumer code, which must be fixed without changes in the queue",
+        "It is not possible to solve this problem with SQS; it is necessary to migrate Kinesis"
+      ],
+      "explanation": "Rows SQS Standard deliver 'at-least-once', and can generate duplicate messages. The recommended solution is to make the processing idepotent or use a row FIFO with content deduplication when uniqueness is essential."
+    },
+    "saa-avc-007": {
+      "text": "A company uses Amazon S3 as the origin of CloudFront and it needs to ensure that even during a planned maintenance in primary origin, the requests are met by a secondary origin in another Region. CloudFront enable it?",
+      "options": [
+        "Origin Failover with Origin Groups",
+        "Field-Level Encryption",
+        "Lambda@Edge for cache only",
+        "Signed URLs"
+      ],
+      "explanation": "Origin Groups no CloudFront allow setting up a primary and secondary source; in case of faults (configurable error codes), CloudFront automatically fails to cause secondary origin."
+    },
+    "saa-avc-008": {
+      "text": "A video processing application needs storage of extremely high throughput and low latency shared between hundreds of instances EC2 for workloads of HPC. Which service is most appropriate?",
+      "options": [
+        "Amazon EBS gp2 with a single instance",
+        "AWS Storage Gateway in Tape mode",
+        "Amazon FSx for Lustre",
+        "Amazon S3 Deep Archive Glacier"
+      ],
+      "explanation": "The Amazon FSx for Lustre is optimized for high performance computing workloads (HPC) which require very high throughput and low latency, and can be integrated into S3 as a data layer."
+    },
+    "saa-avc-009": {
+      "text": "A global application needs to route users to the lowest latency endpoint between multiple regions, with automatic failover if a region is unavailable. Route 53 is more suitable?",
+      "options": [
+        "Latency-based Routing combined with health checks",
+        "Fixed geographic route, no health checks",
+        "Simple Routing (Simple Routing))",
+        "Weighted Rotation (Weighted) with Fixed Weight 100% for a single region"
+      ],
+      "explanation": "Latency routing directs the user to the Region with less latency; combined with health checks, allows automatic failure to another healthy Region."
+    },
+    "saa-avc-010": {
+      "text": "A table of the DynamoDB face 'hot partitions' because many items share the same key partition, causing throttling even with sufficient capacity. What design strategy best solves this problem?",
+      "options": [
+        "Disable the DynamoDB Streams",
+        "To increase the capacity provided indefinitely (RCU/WCU)",
+        "Redesign the partition key to better distribute the items (write sharding), for example by adding a random or calculated suffix",
+        "Migrate the entire table to the Amazon S3"
+      ],
+      "explanation": "Hot partitions occur when the key distribution is uneven. The design solution is to distribute the load by adding a suffix (sharding) to the key partition, spreading the items for more physical partitions."
+    },
+    "saa-avc-011": {
+      "text": "A company performs batch processing workloads that can be paused and resumed, distributed in thousands of instances EC2 of various types, with the aim of minimizing cost. Which approach combines economy and resilience to interruptions?",
+      "options": [
+        "Use only single-type On-Demand instances",
+        "Use EC2 Auto Scaling with a combination of Spot Instances of multiple types and instances on-demand as failback (assignment strategy 'capacity-optimized')",
+        "Use only Reserved Instances of 3 years",
+        "Migrate workload to AWS Lambda No adjustments"
+      ],
+      "explanation": "Combine Spot Instances of multiple types/AZs with the \"capacity-optimized\" strategy and an On-Demand failback significantly reduces costs for interrupt-tolerant loads, maintaining resilience."
+    },
+    "saa-avc-012": {
+      "text": "A company with multiple accounts AWS or optimize costs by taking advantage of discounts per aggregate volume of Savings Plans between all accounts. AWS Organizations allows the sharing of discounts between member accounts?",
+      "options": [
+        "Consolidated Billing)",
+        "AWS Configure Aggregator",
+        "AWS Resource Access Manager only",
+        "Cross-account IAM Roles only"
+      ],
+      "explanation": "The Consolidated Billing of AWS Organizations allows you to discounts by volume and benefits of Savings Plans/Reserved Instances are shared between the member accounts, optimizing aggregate costs."
+    },
+    "saa-avc-013": {
+      "text": "A SaaS company B2B you need to allow your corporate client systems (each with its own account) AWS) temporarily access one API internal reading data from a pocket Amazon S3, without sharing long-term credentials and without creating a user IAM per client. Each client must provide a unique identifier to avoid the problem of 'confused deputy'. Which architecture meets these requirements with the lowest risk of security?",
+      "options": [
+        "Create a user IAM dedicated to each client in the SaaS account, generating long-term Access Keys and sharing them via encrypted email.",
+        "Create a IAM Role in the SaaS account with a trust policy that allows sts:AssumeRole by customers' accounts, requiring a unique ExternalId value per customer in the condition of the policy.",
+        "Returning the Bucket S3 public with a policy that allows reading of any main authenticated in AWS (Main: \"*\" with condition aws:MainType=AWS).",
+        "Configure AWS Organizations to place each client's account as a member of the SaaS organization and use one SCP to free up access to the pocket."
+      ],
+      "explanation": "The use of AssumeRole between accounts with the sts:ExternalId condition is the standard recommended by AWS for integrations of third parties, because it generates temporary credentials via STS and the unique ExternalId per client prevents a malicious client from prompting SaaS to take over the role on behalf of another client (confused deputy)).",
+      "hint": "Think of the pattern of account access that uses temporary credentials via STS and a condition that uniquely identifies who is requesting access.",
+      "optionRationales": [
+        "The use of AssumeRole between accounts with the sts:ExternalId condition is the standard recommended by AWS for integrations of third parties, because it generates temporary credentials via STS and the unique ExternalId per client prevents a malicious client from prompting SaaS to take over the role on behalf of another client (confused deputy)).",
+        "Long-term Access Keys violate the principle of lower exposure of credentials, require constant manual rotation and do not scale operationally to multiple clients, besides not solving the problem of confused deputy.",
+        "Make the bucket accessible to any authenticated principal in AWS exposes data to all accounts AWS of the world, a serious security failure that does not meet the requirement of restricted access per customer.",
+        "It is neither feasible nor desirable to add external client accounts to the organization AWS of SaaS, because this implies in centralized management of billing and governance that the client would not accept, in addition to SCPs do not grant permission, only restrict what is already allowed."
+      ]
+    }
+  }
+}

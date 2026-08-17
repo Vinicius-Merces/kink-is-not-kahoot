@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "086-097",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-086": {
+      "text": "A company is migrating to the AWS an on-premises application that uses Apache ActiveMQ for messaging (via protocol) JMS), and wants to minimize code changes in the application while getting high availability between Availability Zones with automatic failover of the message broker. What approach meets this requirement?",
+      "options": [
+        "Run two brokers Amazon independent MQ in different AZs and configure the application to post messages on both.",
+        "Migrate the application to use the Amazon SQS, which is inherently highly available.",
+        "Implant Amazon MQ in cluster mode with multiple active brokers sharing the load.",
+        "Use Amazon MQ for ActiveMQ in active/standby deployment mode between two Availability Zones."
+      ],
+      "explanation": "In active/standby mode, or Amazon MQ replicates broker message storage data to a standby broker in another AZ and performs automatic failover to the standby (keeping the same endpoint) if the active broker is unavailable — without requiring changes to the application protocol, which continues to use APIs JMS/ActiveMQ.",
+      "hint": "Think of the model of high availability that Amazon MQ for ActiveMQ offers natively between Availability Zones, preserving the same endpoint and protocol.",
+      "optionRationales": [
+        "In active/standby mode, or Amazon MQ replicates broker message storage data to a standby broker in another AZ and performs automatic failover to the standby (keeping the same endpoint) if the active broker is unavailable — without requiring changes to the application protocol, which continues to use APIs JMS/ActiveMQ.",
+        "Although the SQS is highly available, this approach would require REESCREVER the application to use the API of the SQS instead of protocol JMS/ActiveMQ, contrary to the requirement to minimize code changes.",
+        "The Amazon MQ for ActiveMQ does not offer a cluster mode with multiple active brokers simultaneously sharing the same rows; its high availability model for ActiveMQ is active/standby (an active broker + a standby) — the cluster mode with multiple active node is available for Amazon MQ for RabbitMQ.",
+        "Independent brokers without shared storage/replication would result in messages divided between brokers (without shared queue state), requiring consumers to consume both — this does not provide adequate failover and completely alters the semantics of messages."
+      ]
+    },
+    "saa-avc-087": {
+      "text": "One Auto Scaling Group of a critical application is distributed in only 2 Availability Zones, with desired capacity of 10 cases (5 If an AZ fails, only one remains. 50% the total capacity, potentially overloading the surviving AZ. The architecture team wants to redesign to increase the resilience to failures of a single AZ, maintaining the same total capacity and with minimal cost increase.?",
+      "options": [
+        "Increase the desired capacity of Auto Scaling Group for 200% of the normally necessary, while maintaining the distribution in the 2 Existing AZs.",
+        "Redesign VPC and the Auto Scaling Group to cover 3 Availability zones, distributing the same total capacity between the 3 AZs instead of 2.",
+        "Configure the Auto Scaling Group with a 'Single AZ' positioning strategy to simplify network configuration.",
+        "Use the 'Capacity Rebalancing' feature of Auto Scaling configured for On-Demand instances in 2 Existing AZs."
+      ],
+      "explanation": "Distributing the same total capacity (10 (a) between 3 AZs (approximately 3-4 by AZ), if an AZ fails, the 2 Remaining AZs retain approximately 2/3 total capacity (instead of 50% with 2 AZs) — reducing the impact of a single AZ failure, with minimal additional cost (even the total number of instances, only distributed among more AZs, requiring the creation of additional sub-networks).",
+      "hint": "Think of how the number of Availability Zones used affects the fraction of total capacity that remains available after the loss of a single AZ.",
+      "optionRationales": [
+        "Distributing the same total capacity (10 (a) between 3 AZs (approximately 3-4 by AZ), if an AZ fails, the 2 Remaining AZs retain approximately 2/3 total capacity (instead of 50% with 2 AZs) — reducing the impact of a single AZ failure, with minimal additional cost (even the total number of instances, only distributed among more AZs, requiring the creation of additional sub-networks).",
+        "Folding the ability to oversupply against AZ failures significantly increases the cost (executing twice as many instances required all the time), compared to simply distributing the same capacity between 3 Azs.",
+        "Deliberately running in a single AZ would make the availability of all the application dependent on that AZ, the opposite of improving resilience.",
+        "Capacity Rebalancing is specific to proactively replace Spot Instances with high risk of interruption; it does not apply significantly to On-Demand instances nor solves the problem of capacity distribution between AZs described."
+      ]
+    },
+    "saa-avc-088": {
+      "text": "A Network Load Balancer has 2 Registered availability zones, but with different numbers of healthy targets in each (AZ-A has 8 targets, AZ-B has 2 targets after a recent scale-in). NLB distributes traffic in approximately the same way ENTRE The Azs (50/50), not between individual targets — making the 2 targets AZ-B receive, each, much more traffic than 8 targets AZ-A, overloading them. Which configuration corrects this unbalanced?",
+      "options": [
+        "Manually record additional 'placeholder' targets at AZ-B to balance the target count.",
+        "Enable 'Slow Start' mode in target group of NLB.",
+        "Replace Network Load Balancer by a Classic Load Balancer, which always balances equally between all targets regardless of AZ.",
+        "Enable Cross-Zone Load Balancing on Network Load Balancer."
+      ],
+      "explanation": "With Cross-Zone Load Balancing enabled, or NLB distributes traffic equally between TODOS the registered healthy targets, regardless of AZ; thus, each of the 10 targets (sounding the two AZs) receive approximately the same fraction of traffic, instead of the traffic being divided first equally by AZ.",
+      "hint": "Think about the configuration of NLB determining whether traffic is distributed by AZ first or directly among all healthy targets, regardless of their AZ.",
+      "optionRationales": [
+        "With Cross-Zone Load Balancing enabled, or NLB distributes traffic equally between TODOS the registered healthy targets, regardless of AZ; thus, each of the 10 targets (sounding the two AZs) receive approximately the same fraction of traffic, instead of the traffic being divided first equally by AZ.",
+        "Slow Start gradually increases the proportion of requests sent to newly registered targets during a configurable heating period; it does not resolve the imbalance in traffic distribution between AZs caused by uneven target counts by AZs.",
+        "Fictitious targets would receive real production traffic and could not meet it properly (returning errors) or waste resources — an inadequate solution instead of correcting the distribution mechanism.",
+        "Although the Classic Load Balancer have cross-zone load balancing enabled by default, replace the TIPO of load balancer is an unnecessarily disruptive change (losing specific resources of the NLB, as static IPs and very high transfer rate) when simply enable the existing cross-zone configuration in NLB solve the problem directly."
+      ]
+    },
+    "saa-avc-089": {
+      "text": "A development team accidentally executed, 2 hours, a failed migration script against the bank Amazon RDS for MySQL production, corrupting several tables. It is necessary to recover the database for the exact state IMEDIATAMENTE ANTES the execution of the faulty script (a point in the specific time, not necessarily aligned to a daily snapshot), with minimal loss of data from transactions occurring between the last snapshot and that point in time. RDS meets this requirement?",
+      "options": [
+        "Enable binary logging in instance RDS and manually reproduce the binary logs to the desired point in the same instance.",
+        "Restore the latest automated daily snapshot, which contains data from the backup window of the previous night.",
+        "Use the 'Reboot with failover' option RDS in the Multi-AZ implementation to reverse for standby data.",
+        "Use automated backups from RDS with Point-in-Time Recovery (PITR), restoring one NOVA instance for the exact timestamp immediately prior to running the faulty script."
+      ],
+      "explanation": "The PITR of the RDS reproduces transaction logs from the latest automated backup to the specified second exact, creating a new instance with the data as they were at that time; this new instance can then be used to redirect the application or migrate the required data, taking into account the recovery requirement for an exact point in time with minimal data loss.",
+      "hint": "Think about the resource of RDS which allows restoring a new instance to an exact timestamp, instead of relying only on the nearest daily snapshot.",
+      "optionRationales": [
+        "The PITR of the RDS reproduces transaction logs from the latest automated backup to the specified second exact, creating a new instance with the data as they were at that time; this new instance can then be used to redirect the application or migrate the required data, taking into account the recovery requirement for an exact point in time with minimal data loss.",
+        "The most recent daily snapshot may have been done before the script is executed in some cases, but it may also be many hours before the required (losing additional valid transactions) or, if done after the script, already contain corruption; the requirement asks for recovery for the PONTO EXATO in the time immediately prior to the script, not for the nearest daily snapshot.",
+        "The reboot with failover alternates to the standby instance, but the standby is replicated in a SYNCRON way and would also contain the corrupted data by the faulty script (already replicated to it); this option does not offer any recovery capacity for a specific point in time.",
+        "The RDS does not expose direct manual binary logs management/playing in the production instance in this way for point-in-time recovery of MySQL; the PITR via automated backups + transaction logs (restoring for one NOVA instance) is the mechanism supported by RDS."
+      ]
+    },
+    "saa-avc-090": {
+      "text": "A company executes an application with intermittent traffic in Amazon Aurora Serverless v2 (compatible with PostgreSQL), with significant traffic variation throughout the day. It needs this database to maintain high availability with automatic failover between Availability Zones, similar to Aurora the provisioning, continuing to benefit from automatic capacity scaling of the Aurora Serverless v2. This is possible, and how?",
+      "options": [
+        "No — Aurora Serverless v2 supports only one instance write in a single AZ, without replica options; for HA Multi-AZ, the cluster needs to be converted entirely to instances Aurora Provisioned.",
+        "No — achieving HA Multi-AZ would require manually routing snapshots between AZs and restoring a new Serverless v2 instance from the snapshot if the primary AZ fails.",
+        "Yeah, but just using the Aurora Global Database, with a secondary region configured as the 'standby' Multi-AZ.",
+        "Yes — Aurora Serverless v2 supports Multi-AZ deployments by adding one or more Aurora Replicas (which can also be Serverless v2) in different AZs within the same cluster Aurora; the automatic failover mechanism of the Aurora promotes a replica to write if the primary instance is unavailable, while each Serverless v2 instance of the cluster scales its capacity (ACUs) independently, according to its own load."
+      ],
+      "explanation": "The Aurora Serverless v2 can coexist with Aurora Replicas (Serverless v2 or provided) within the same cluster, in different AZs; the native automatic failover Aurora promotes one of these replicas to write in case of failure of the primary instance, and each instance continues to scale its capacity independently — providing Multi-AZ HA without losing automatic scaling.",
+      "hint": "Think of how the Aurora separates the concept of 'instance within a cluster' from the concept of 'capacity mode (provided vs. serverless)' — and if replicas in other AZs can use any of these modes.",
+      "optionRationales": [
+        "The Aurora Serverless v2 can coexist with Aurora Replicas (Serverless v2 or provided) within the same cluster, in different AZs; the native automatic failover Aurora promotes one of these replicas to write in case of failure of the primary instance, and each instance continues to scale its capacity independently — providing Multi-AZ HA without losing automatic scaling.",
+        "This statement is incorrect: instances Aurora Serverless v2 can be combined with other Serverless v2 instances or provided as Aurora Replicas within the same cluster, supporting Multi-AZ HA without need of total conversion to provided.",
+        "The Aurora Global Database is intended for disaster recovery between REGIONS (secondary regions are read-only, and failure involves a promotion that takes longer than Multi-AZ within the same region); it is a different resource from the high availability Multi-AZ within a single region via Aurora Replicas, and is not required only to get Multi-AZ HA within a region.",
+        "This approach describes a manual, slow and RTO/RPO the native mechanism of Aurora Replica + Multi-AZ automatic failover Aurora already provides this without the need for manual snapshot scripts."
+      ]
+    },
+    "saa-avc-091": {
+      "text": "Three independent consumer applications (analytics, fraud detection and archiving) read about it Amazon Kinesis Data Stream. As the number of consumers grows, they start to compete for the fixed reading rate of each shard (2 MB/s, shared among all consumers who use GetRecords), causing increasing reading latency and occasional throttling for all — impacting the consumer's near-real-time requirement for fraud detection. How to resolve this without excessively increasing the number of shards (and cost), ensuring that each consumer reliably receives their own dedicated transfer rate by shard?",
+      "options": [
+        "Increase the number of shards in Kinesis Data Stream proportional to the number of consumers.",
+        "Configure each consumer with a different consumer group name, similar to Apache Kafka, to receive independent reading rate.",
+        "Make every consumer application read from a row SQS separate, populated by a function Lambda activated by the Kinesis stream.",
+        "Enable Enhanced Fan-Out and make every consumer register as an enhanced fan-out consumer using the API SubscribeToShard."
+      ],
+      "explanation": "With Enhanced Fan-Out, every registered consumer receives their own dedicated pipe from 2 MB/s by shard (deliver via HTTP/2, by push), eliminating the consumer transfer fee dispute without requiring additional shards.",
+      "hint": "Think about the resource of Kinesis Data Streams delivering records via push (HTTP/2) and provides each registered consumer with their own dedicated shard transfer fee.",
+      "optionRationales": [
+        "With Enhanced Fan-Out, every registered consumer receives their own dedicated pipe from 2 MB/s by shard (deliver via HTTP/2, by push), eliminating the consumer transfer fee dispute without requiring additional shards.",
+        "Increase shards raises the total transfer rate and the cost, but in the standard fan-out model (non-enhanced), the read rate per shard (2 MB/s) remains COMPARTILHADA among all consumers who use GetRecords in that shard, regardless of the total number of shards — the dispute between consumers in a given shard remains.",
+        "Add a layer of fan-out via SQS+Lambda introduces latency, complexity and additional cost, compared to the use of the native Enhanced Fan-Out resource Kinesis, designed exactly for this multi-consumer throughput problem.",
+        "The Amazon Kinesis Data Streams does not have a native partitioning model by 'Consumer Group' such as Kafka, in which readings are automatically isolated; the reading rate isolation feature in the Kinesis is the Enhanced Fan-Out via SubscribeToShard."
+      ]
+    },
+    "saa-avc-092": {
+      "text": "An order processing system publishes OrderPlaced events in a topic SNS, that makes fanout for 3 rows SQS consumed by independent microservices (Storage, Invoicing and Shipping). SQS the sending service is occasionally incorrectly configured by the responsible team, causing the deliveries of the SNS for this row fail; after attempts to forward, these notifications are PERDIDAS (the Send team has no way of knowing which OrderPlaced events have stopped arriving. The architecture team wants faulty deliveries for a specific subscriber to be captured for later reprocessing., SEM require changes in how Stock and Invoicing signatures operate. Which configuration meets this requirement?",
+      "options": [
+        "Configure a reddrive policy with a dead-letter queue (DLQ) specifically in ASSINATURA SNS corresponding to the row SQS Sending.",
+        "Change Topic SNS for a topic FIFO, so that the delivery order guarantees avoid delivery failures.",
+        "Add a retry loop in the Send microservice code to repeatedly consult the SNS in search of lost notifications.",
+        "Configure a single dead-letter queue at the TOPIC level SNS, shared by all signatures."
+      ],
+      "explanation": "The DLQs of SNS are configured by ASSINATURA (subscription), not at the topic level; after the SNS to exhaust its policy of retentatives for deliveries to this specific signature, the failed notification is sent to the DLQ configured in this signature, for subsequent inspection/reprocessing — independently of other signatures (Storage and Invoice), which continue to operate normally.",
+      "hint": "Think about what level of configuration of the SNS — topic or individual signature — allows to isolate the treatment of delivery failures for a single subscriber.",
+      "optionRationales": [
+        "The DLQs of SNS are configured by ASSINATURA (subscription), not at the topic level; after the SNS to exhaust its policy of retentatives for deliveries to this specific signature, the failed notification is sent to the DLQ configured in this signature, for subsequent inspection/reprocessing — independently of other signatures (Storage and Invoice), which continue to operate normally.",
+        "The dead-letter tails of SNS are configured by ASSINATURA, not at the topic level; a DLQ shared at the topic level is not like the redrive policies of the SNS work, and mix failed messages from different subscribers without clear attribution.",
+        "The SNS does not offer one API for consumers to 'consult lost notifications'; SNS performs push delivery for subscribers (SQS, Lambda, HTTP, etc.) and is not a log pull-based and replayable as the Kinesis.",
+        "Topics FIFO ensure ordination and delivery characteristics accurately-once, but do not prevent or resolve delivery failures caused by a poorly configured subscriber queue policy; ordination guarantees are not related to the treatment of delivery failures to a specific subscriber."
+      ]
+    },
+    "saa-avc-093": {
+      "text": "An application in containers is executed as a service ECS no Fargate, with all the tasks of the service being launched currently in sub-networks of a ONLY Availability Zone (because the configuration of the service specifies only one sub-network). If this AZ suffers an interruption, all the tasks are unavailable. ECS must be configured to ensure resilience to a single AZ failure?",
+      "options": [
+        "Increase the 'desired count' of service tasks ECS to perform more replicas within the same single AZ.",
+        "Configure a health check Route 53 automatically restart the tasks ECS in another AZ if the current AZ becomes unhealthy.",
+        "Configure the network configuration (awsvpcConfiguration) of the service ECS to specify subnets in MULTIPLES Availability Zones.",
+        "Use a Placement Group from EC2 with spread strategy for the underlying clusters ECS."
+      ],
+      "explanation": "The ECS automatically distributes the service tasks between the specified sub-networks/AZs; thus, an AZ failure affects only the tasks running in that AZ, and the ECS can restart lost tasks in remaining healthy AZs to maintain desired count.",
+      "hint": "Think about what part of the service network configuration ECS determines in which Availability Zones your tasks can be launched.",
+      "optionRationales": [
+        "The ECS automatically distributes the service tasks between the specified sub-networks/AZs; thus, an AZ failure affects only the tasks running in that AZ, and the ECS can restart lost tasks in remaining healthy AZs to maintain desired count.",
+        "More replicas in a ONE AZ does not provide resilience to the failure of that AZ; all replicas would be unavailable simultaneously if that AZ fails.",
+        "The Fargate does not use instances EC2 managed by the client or placement groups (is serverless); even in ECS based on EC2, the distribution between AZs of tasks is controlled by the sub-networks specified in the service network configuration and by task positioning strategies, not by placement groups of the EC2.",
+        "Health checks Route 53 are used to fail DNS between ENDPOINTS, not to trigger task scheduling/positioning actions of the ECS; the distribution of tasks between AZs is determined by the configuration of sub-networks of the service, not by Route 53."
+      ]
+    },
+    "saa-avc-094": {
+      "text": "One Auto Scaling Group executes application servers that, when finished (for example during a scale-in), need to complete an ordered shutdown procedure — unregister a service registry, save buffers to memory in S3 and notify a monitoring system — leading up to 3 minutes, ANTES that the instance is effectively terminated. Currently, the instances are terminated immediately in the scale-in, causing data loss in buffers. ASG must be configured to allow this graceful closing process to be completed?",
+      "options": [
+        "Configure a lifecycle hook Auto Scaling for the transition 'Terminating'' (autoscaling:EC2_INSTANCE_TERMINATING).",
+        "Set the 'shutdown behavior' of the instances EC2 like stop instead of finish.'.",
+        "Use Amazon EventBridge to schedule a function Lambda performing cleaning tasks 3 minutes ANTES of each scheduled scale-in event.",
+        "Increase health check grace period Auto Scaling Group for 3 minutes."
+      ],
+      "explanation": "The lifecycle hook places the instance in the state 'Terminating:Wait' by a configurable heartbeat timeout (which can cover the 3 necessary minutes, or more with heartbeat records); during this period, the instance closing script can complete its cleaning tasks before signaling completion (CompleteLifecycleAction) or before the timeout expires and the termination continues.",
+      "hint": "Think of the mechanism of Auto Scaling which places an instance in a waiting state during a transition (as termination), allowing a script to complete tasks before the action continues.",
+      "optionRationales": [
+        "The lifecycle hook places the instance in the state 'Terminating:Wait' by a configurable heartbeat timeout (which can cover the 3 necessary minutes, or more with heartbeat records); during this period, the instance closing script can complete its cleaning tasks before signaling completion (CompleteLifecycleAction) or before the timeout expires and the termination continues.",
+        "The health check grace period applies to newly-launched instances (giving time to pass the health checks before being considered for replacement), not to instances being TERMINADAS during the stairway; it does not delay or control the termination process.",
+        "The Shutdown behavior attribute of EC2 controls what happens when the SISTEMA OPERACIONAL starts a shutdown (stop vs. finish the instance), but does not provide a hook for the ASG wait for a graceful closure procedure at the application level before proceeding with the end of the scale-in.",
+        "This approach would require precise provision of QUANDO the scale-in events will occur (which are driven by dynamic scaling policies based on metrics, not by a fixed schedule), making this approach unreliable; the same ASG needs to pause the termination via lifecycle hook, not depend on external scheduling."
+      ]
+    },
+    "saa-avc-095": {
+      "text": "A company executes an active-passive multi-region application (us-east)-1 primary, eu-west-1 secondary), currently using simple failover routing of Route 53 with health checks. She wants a more robust and auditable mechanism for INICIAR a regional failure that: (a) can be safely activated even if the plane/API control of the failed region is degraded (the failure decision should not depend on the unhealthy region being accessible); (b) includes built-in security mechanisms to avoid accidental failure simultaneously for multiple regions ('split-brain'); and (c) provides promptness checks (readiness checks) to confirm that the secondary region can actually withstand total traffic before failure. AWS meets these three requirements?",
+      "options": [
+        "AWS Global Accelerator with custom bearing weights manually adjusted by the console during a failover event.",
+        "Amazon Route 53 Application Recovery Controller (ARC).",
+        "Simple failover routing policy of Route 53 with a manually updated health check.",
+        "Runbooks automation of AWS Systems Manager combined with CloudWatch to update records of the Route 53 way API during an interruption."
+      ],
+      "explanation": "The ARC provides Routing Controls (simple turn-on/off switches that can be safely activated even during a regional break, as the flat control and the flat date of the ARC are highly distributed between regions and do not depend on the health of the affected region), Routing Control Safety Rules (e.g. 'at least one of these two controls should be ON', avoiding split-brain or all off controls) and Readiness Checks (continually check if the recovery region has sufficient resources/configuration to take over traffic).",
+      "hint": "Think of the service of Route 53 designed specifically to orchestrate regional failures in a safe, auditable and independent manner of health of the affected region.",
+      "optionRationales": [
+        "The ARC provides Routing Controls (simple turn-on/off switches that can be safely activated even during a regional break, as the flat control and the flat date of the ARC are highly distributed between regions and do not depend on the health of the affected region), Routing Control Safety Rules (e.g. 'at least one of these two controls should be ON', avoiding split-brain or all off controls) and Readiness Checks (continually check if the recovery region has sufficient resources/configuration to take over traffic).",
+        "That's the mechanism ATUAL, less robust, that the company wants to replace; the failure based only on standard health check does not provide explicit and auditable routing control switches, the rules of safety against split-brain, nor the readiness checks that the ARC add.",
+        "Although technically possible to build custom automation, this is an 'make yourself' approach that does not have the specific safety rules of ARC (prevention of split-brain), readiness checks, nor a highly available and independent regional health control plan — ARC is the service of the AWS designed specifically for this use case.",
+        "The Global Accelerator provides static anycast IPs and can redistribute traffic by weight between endpoints, but manually adjust weights during an interruption does not provide structured routing control safety mechanisms, readiness checks, or the guarantee of accessibility of the flat control during a regional interruption that the ARC Provides specifically."
+      ]
+    },
+    "saa-avc-096": {
+      "text": "An architecture team wants to proactively validate that the mechanisms of resilience of the application (substitution of unhealthy instances by Auto Scaling, cause RDS Multi-AZ, etc.) actually work as expected, deliberately injecting controlled failures (e.g. finishing a percentage of instances EC2 of a ASG, or trigger a failover of the RDS) in a secure, monitored and reversible staging environment — following the principles of chaos engineering. AWS is designed specifically for this?",
+      "options": [
+        "AWS Configure with custom remediation actions configured to 'fail' resources for test purposes.",
+        "Verifications of tolerance to faults of the AWS Trusted Advisor, periodically executed against the staging environment.",
+        "Canary Islands Amazon CloudWatch Synthetics configured to simulate traffic peaks against application.",
+        "AWS Fault Injection Simulator (AWS FIS)."
+      ],
+      "explanation": "The AWS FIS is a fully managed service to perform controlled failure injection experiments (e.g.: 'stop X% of instances EC2', 'trigger throttling from API', 'cause a cluster to fail RDS Multi-AZ'), with stop conditions based on alarms of CloudWatch which automatically interrupt the experiment if they cause unexpected impact — supporting chaos engineering to validate resilience.",
+      "hint": "Think about the managed service of AWS specifically designed to perform chaos engineering experiments with automatic safety shutdown mechanisms.",
+      "optionRationales": [
+        "The AWS FIS is a fully managed service to perform controlled failure injection experiments (e.g.: 'stop X% of instances EC2', 'trigger throttling from API', 'cause a cluster to fail RDS Multi-AZ'), with stop conditions based on alarms of CloudWatch which automatically interrupt the experiment if they cause unexpected impact — supporting chaos engineering to validate resilience.",
+        "The AWS Config evaluates resource settings against rules and can trigger remediation for resources NO CONFORMES; it was not designed to deliberately inject failures into healthy resources as part of chaos engineering experiments..",
+        "Synthetics canaries are roteirized tests that monitor the availability/performance of out-of-the-box endpoints (synthetic monitoring); they do not inject infrastructure-level failures (such as finishing instances or trigger database failures) into the environment.",
+        "The Trusted Advisor provides recommendations/verifications PASSIVAS on good configuration practices (e.g.: 'east ASG covers only 1 AZ'); it does not inject faults actively or perform controlled experiments."
+      ]
+    },
+    "saa-avc-097": {
+      "text": "An instance EC2 standalone (out of a Auto Scaling Group, for example, a legacy application that requires a stable ID Forum and volumes EBS/Private IP attached) occasionally becomes inaccessible due to an underlying hardware failure detected by the status checks of EC2 (The team wants this instance to be automatic. RECUPERADA (restarted in new underlying hardware, preserving the same ID, private IP, Elastic IP and volume attachments EBS) when this hardware failure is detected — without manual intervention and without using a ASG. Which configuration meets this requirement?",
+      "options": [
+        "Create an alarm from CloudWatch in the metric 'StatusCheckFailed_Instruction', with the alarm action defined as 'Reboot this instance'.",
+        "Create an alarm from CloudWatch in the instance 'StatusCheckFailed_System' metric, with the alarm action defined as 'Recover this instance'' (EC2 Auto Recovery).",
+        "Place the instance in a Auto Scaling Group with minimum, maximum and desired capacity defined as 1.",
+        "Configure the AWS Systems Manager Automation to execute a document SSM that stops and starts the instance every hour as a preventive measure."
+      ],
+      "explanation": "The StatusCheckFailed_System metric reflects underlying hardware/hypervisor problems (non-OS level checks); by triggering the 'Recover this instance' action, the AWS migrates and automatically restarts the instance into new underlying hardware, preserving your ID Forum, private IPs, Elastic IPs and Volume Attachments EBS.",
+      "hint": "Think about which specific status check metric EC2 reflects underlying hardware failures (instead of operating system problems), and in which alarm action migrates the instance preserving its identity.",
+      "optionRationales": [
+        "The StatusCheckFailed_System metric reflects underlying hardware/hypervisor problems (non-OS level checks); by triggering the 'Recover this instance' action, the AWS migrates and automatically restarts the instance into new underlying hardware, preserving your ID Forum, private IPs, Elastic IPs and Volume Attachments EBS.",
+        "StatusCheckFailed_Instruction reflects SO/software level problems in MESMO underlying host; a simple reboot would not help with a failure of HARDWARE underlying (the instance would probably fail again on the same defective hardware), and the reboot does not migrate the instance to new hardware as Auto Recovery does.",
+        "This would change the identity of the instance in the substitution: substitution instances launched by the ASG receive one NOVO Mechanism ID (and usually a new private IP, unless you use a ENI the Auto Recovery preserves the identity of the original instance, while the replacement by ASG creates a new instance.",
+        "A fixed-time stop/start is not triggered by a truly detected hardware failure (it is a 'dark' preventive action), causing unnecessary unavailability during normal operation and not specifically treating detected hardware failures via status checks."
+      ]
+    }
+  }
+}

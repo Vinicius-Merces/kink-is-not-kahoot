@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "134-145",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-134": {
+      "text": "A workload of HPC (High Performance Computing) strongly coupled (e.g., scientific simulation based on MPI) is executed in many instances EC2 that communicate frequently with each other, requiring the lowest possible network latency and the highest possible network throughput between the instances. The team wants to ensure that these instances are physically close to each other within a single AZ to minimize network latency between instances.",
+      "options": [
+        "Launch instances in a Partition Placement Group with multiple partitions",
+        "Distribute instances among multiple Availability Zones using one Auto Scaling Resilience Group",
+        "Launch instances in a Spread Placement Group distributed by multiple AZs to maximize availability",
+        "Launch instances in a Cluster Placement Group, within a single AZ"
+      ],
+      "explanation": "Correct. A Cluster Placement Group groups nearby instances within a Availability Zone, providing low latency and high throughput network performance between instances, ideal for working loads of HPC strongly coupled that require frequent communication between us.",
+      "hint": "Think of what type of placement group groups as physically close as possible within a single Availability Zone, to minimize network latency between them.",
+      "optionRationales": [
+        "Correct. A Cluster Placement Group groups nearby instances within a Availability Zone, providing low latency and high throughput network performance between instances, ideal for working loads of HPC strongly coupled that require frequent communication between us.",
+        "Incorrect. A Spread Placement Group positions instances in distinct underlying hardware to MINIMIZAR correlated failures (maximizing availability), which is the OPOSTO of the objective here — that AUMENTARIA the network latency between instances when distributing them between racks/AZs, instead of minimizing it.",
+        "Incorrect. Partition Placement Groups are designed for large scale distributed/replicated workloads (ex.: HDFS, Cassandra, Kafka), where you want to limit the impact of a hardware failure to a partition, but do not provide the same lower latency network performance and physical grouping as a Cluster Placement Group for communication HPC strongly coupled.",
+        "Incorrect. Distributing instances between AZs increases network latency between them (latency between AZs is greater than within an AZ), which is contrary to the requirement of the workload of HPC of less latency possible between instances."
+      ]
+    },
+    "saa-avc-135": {
+      "text": "A machine learning team performs training jobs distributed in a cluster of instances EC2 based on GPU (ex.: P4d), using collective communication based on MPI (ex.: NCCL) between instances. The network performance between instances is currently limited by the overhead of the network stack. TCP/standard IP, and the team wants to achieve the lowest possible latency between us and the largest throughput for this strongly coupled and compatible communication pattern OS-bypass.",
+      "options": [
+        "Replace instances with GPU by Compute Optimized (family C) instances, which have higher base network performance",
+        "Enable Only Enhanced Networking (ENA) standard, without the EFA",
+        "Enable Elastic Fabric Adapter (EFA) in the forums (in addition to placing them in a Cluster Placement Group))",
+        "Use Jumbo Frames (MTU 9001) the VPC cluster to reduce overhead per package"
+      ],
+      "explanation": "Correct. EFA is a network device that provides communication with OS-bypass, allowing applications that use libraries like libfabric (and frameworks like NCCL/MPI) communicate directly with the network hardware, bypassing the stack TCP/Traditional IP, drastically reducing latency and improving throughput for working loads of HPC/Highly coupled training ML — exactly the scenario described.",
+      "hint": "Think of a network device that allows applications to bypass the network stack of the operating system for direct communication with hardware, complementing the Enhanced Networking default.",
+      "optionRationales": [
+        "Correct. EFA is a network device that provides communication with OS-bypass, allowing applications that use libraries like libfabric (and frameworks like NCCL/MPI) communicate directly with the network hardware, bypassing the stack TCP/Traditional IP, drastically reducing latency and improving throughput for working loads of HPC/Highly coupled training ML — exactly the scenario described.",
+        "Incorrect. ENA Improve Throughput/PPS/general network latency in relation to the standard virtualized network stack, but still passes through the network stack of the operating system (TCP/IP); does not provide the ability to OS-bypass required for the lowest possible latency in collective communication based on MPI/NCCL — o EFA specifically extends the ENA with OS-bypass for use of HPC/ML.",
+        "Incorrect. Jumbo frames can modestly reduce overhead per package in large transfers, but this is a lower optimization compared to the way of communication with OS-bypass at hardware level provided by EFA, and does not fundamentally change the latency characteristics of collective communication patterns used in distributed training.",
+        "Incorrect. Family C instances are not designed for ML training based on GPU (do not have GPUs); replace the instances with GPU would eliminate acceleration by GPU on which the training job depends — this does not address the network requirement and still breaks the main computing requirement of the workload."
+      ]
+    },
+    "saa-avc-136": {
+      "text": "One API latency-sensitive synchrony (via API Gateway → Lambda) has occasional peaks in latency p99. The investigation shows that these peaks correlate with 'cold startups' — when the Lambda it needs to initialize a new execution environment (loading code, executing initialization code) before meeting a request, adding hundreds of milliseconds to seconds of latency, especially after periods of low traffic or during sudden increases in traffic. The team wants to ensure that a base number of execution environments is always pre-initialized and ready to respond immediately, even during periods of low traffic.",
+      "options": [
+        "Change function runtime Lambda from an interpreted language (e.g. Python) to a compiled language (e.g. Go) to reduce cold start time",
+        "Increase function memory allocation Lambda for maximum (10.240 MB)",
+        "Configure Provided Competition in function Lambda (and consider the Application Auto Scaling to adjust the level of competition provided on the basis of a target schedule or use)",
+        "Configure Reserved Competition equal to the expected peak of competing requests"
+      ],
+      "explanation": "Correct. Provided Competition maintains a specified number of run environments initialized and ready to respond in milliseconds of a single digit, eliminating cold start latency for this basic capacity, directly solving p99 latency peaks caused by cold start.",
+      "hint": "Think of a resource of the Lambda which keeps running environments already 'heated' and ready to respond immediately, eliminating the need for on-demand initialization.",
+      "optionRationales": [
+        "Correct. Provided Competition maintains a specified number of run environments initialized and ready to respond in milliseconds of a single digit, eliminating cold start latency for this basic capacity, directly solving p99 latency peaks caused by cold start.",
+        "Incorrect. Increasing memory increases proportionally the allocation of CPU and can accelerate the execution of function code itself (and even the initialization code to some extent), but does not eliminate the fundamental phenomenon of cold start (the need to create a new running environment) — a cold start with maximum memory is still a cold start, possibly just faster.",
+        "Incorrect. Reserved Competition sets a maximum (and minimum guaranteed available) limit of competition for the function, avoiding high-competitive throttling and ensuring that the capacity is not consumed by other functions, but does NOT pre-initialize running environments — does not solve cold startups; moreover, setting it very low could cause throttling.",
+        "Incorrect. Although different runs have different basic cold start characteristics (languages compiled with smaller runs usually have faster cold start), this requires rewriting the function in another language (a considerable effort) and AINDA does not eliminate cold starters completely — the Provided Competition eliminates them for the provided capacity, regardless of runtime."
+      ]
+    },
+    "saa-avc-137": {
+      "text": "A company uses CloudFront to serve a site and needs to perform a very light and high volume operation in CADA the viewer's request on the edge: inspect a header of the request and, based on the value, modify the URI of the request ANTES of it to be evaluated by the cache behaviors (e.g. for A/B tests or normalization of URL). The operation must run with sub-millimeter overhead and minimum cost in extremely high volumes of requests (potentially millions of requests per second in all edge locations), and does not need access to the body of the request or the network/file system.",
+      "options": [
+        "Implement this logic using CloudFront Functions (executed in the 'viewer request' event')",
+        "Implement this logic using Lambda@Edge no event 'origin request'",
+        "Implement this logic using Lambda@Edge in event 'viewer request''",
+        "Implement this logic in the application code on the source server, after the CloudFront re-apply"
+      ],
+      "explanation": "Correct.. CloudFront Functions are designed for lightweight JavaScript operations, of very high scale and latency reviews, natively executed at each edge location of the CloudFront with sub-millisecond initialization times and an optimized cost model for high volume invocations — ideal for simple head/rewrite inspection of URL no stage of viewer request.",
+      "hint": "Think of what computational mechanism on the edge of the CloudFront it was designed specifically for extremely light operations, of very high volume and very low latency in the event of request of the viewer.",
+      "optionRationales": [
+        "Correct.. CloudFront Functions are designed for lightweight JavaScript operations, of very high scale and latency reviews, natively executed at each edge location of the CloudFront with sub-millisecond initialization times and an optimized cost model for high volume invocations — ideal for simple head/rewrite inspection of URL no stage of viewer request.",
+        "Incorrect. Lambda@Edge supports the viewer request event and PODE execute this kind of logic, but it rotates in an execution environment Lambda Node.js/Python with overhead and invocation cost greater than the CloudFront Functions, usually recommended for more complex operations requiring network access, more computing/memory or longer execution times — for this simple and very high volume case, the CloudFront Functions is the most economical, native choice and less latency.",
+        "Incorrect. The origin request event is only triggered in cache MISSES (after the behavior cache has already been evaluated), therefore it would be too late to modify the URI of the request ANTES of it to be evaluated by cache behaviors, as required by the scenario.",
+        "Incorrect. Executing this logic at source means that TODA requisition (even those that could be served identically by the cache after normalization of the URI) would need to arrive at the origin, nullifying the purpose of normalizing the URI before evaluating the behavior cache, and adds latency when demanding a go back and forth to the origin for a logic that could run on the edge."
+      ]
+    },
+    "saa-avc-138": {
+      "text": "A team is choosing an ElastiCache engine for a simple cache layer and statess in front of a relational database, storing mainly results from read-heavy queries as simple key-value pairs (strings)/JSON). The application was built to scale horizontally with many small cache nodes, requires multi-thread access to maximize the use of CPU by node, and explicitly NOT need data persistence, replication, complex data structures (lists, sets, sorted sets) or pub/sub — only the simplest and most horizontally scalable key-value cache possible.",
+      "options": [
+        "Choose the Amazon ElastiCache for Redis with cluster mode disabled",
+        "Choose the Amazon ElestiCache for Memcached",
+        "Choose the Amazon ElastiCache for Redis with cluster mode enabled and Multi-AZ with automatic failover",
+        "Choose the Amazon DynamoDB Accelerator (DAX) as a cache layer"
+      ],
+      "explanation": "Correct. Memcached is a memory key-value storage, simple, multi-thread, without persistence, replication or complex data structures, designed to be easily scaled horizontally by adding us (with partitioning on the client side/auto discovery), making it suitable for this case of simple and horizontally scalable use, just for cache, which explicitly does not need the advanced resources of Redis.",
+      "hint": "Think of which ElastiCache engine is, by design, simpler, multi-threaded and optimized for pure horizontal scaling as key-value cache, without advanced persistence/replication features.",
+      "optionRationales": [
+        "Correct. Memcached is a memory key-value storage, simple, multi-thread, without persistence, replication or complex data structures, designed to be easily scaled horizontally by adding us (with partitioning on the client side/auto discovery), making it suitable for this case of simple and horizontally scalable use, just for cache, which explicitly does not need the advanced resources of Redis.",
+        "Incorrect. Redis (even with cluster mode disabled) is single-threaded by shard (limiting the use of CPU by node for this workload that wants multi-thread access), and provides persistence, replication and complex data structures that this use case explicitly does not need — choosing the Redis here adds capacity/complexity beyond what is needed.",
+        "Incorrect. This adds the replication/failover capabilities of Redis (and associated cost/complexity), none of which is necessary for a workload that explicitly does not require persistence or replication — and the single-threaded model by Redis shard does not align with the declared need for multi-thread access by node.",
+        "Incorrect. DAX is designed specifically as a cache in memory NA FRENTE Tables DynamoDB (using the API of the DynamoDB), not as a general use cache for query results from a relational database — is the wrong tool to cache results from a relational database."
+      ]
+    },
+    "saa-avc-139": {
+      "text": "A team is implementing a cluster application (e.g. a cluster recognition file system or a cluster database that manages its own consistency/lock between us) in EC2, where multiple instances EC2 within the same AZ need concurrent read/write access to MESMO underlying block storage volume, and the application itself treats the sorting of writings and the consistency between knots (the storage layer does not need to provide this).",
+      "options": [
+        "Use a volume EBS (i1 or i2) with Multi-Attach enabled, attached to multiple instances EC2 within the same Availability Zone",
+        "Use Amazon EFS (Elastic File System) mounted in all instances",
+        "Use a volume EBS gp3 with Multi-Attach enabled",
+        "Create a single volume EBS and attach it to an instance EC2, and then use this instance as a server NFS for the other instances"
+      ],
+      "explanation": "Correct. EBS Multi-Attach allows a single volume provided IOPS SSD (Io1/io2) is simultaneously attached to multiple instances in the same AZ, each with complete read/write permissions; the APPLICATION should coordinate the writings (e.g. via cluster recognition file system or localization at application level), since the same EBS does not provide orderly consistency of writing between the annexes — aligned with the premise of the scenario that the application deals with this.",
+      "hint": "Think about what kind of volume EBS supports being simultaneously attached to multiple instances in the same AZ, with reading/writing, leaving consistency coordination for application.",
+      "optionRationales": [
+        "Correct. EBS Multi-Attach allows a single volume provided IOPS SSD (Io1/io2) is simultaneously attached to multiple instances in the same AZ, each with complete read/write permissions; the APPLICATION should coordinate the writings (e.g. via cluster recognition file system or localization at application level), since the same EBS does not provide orderly consistency of writing between the annexes — aligned with the premise of the scenario that the application deals with this.",
+        "Incorrect. Although the EFS support concurrent access of many instances (including between AZs) and technically allow shared access, the scenario specifically describes storage requirements in BLOCO for an application with cluster recognition managing its own block level consistency (common in certain database architectures/cluster file system) — the EFS is a shared storage system at file level (NFS), a different storage paradigm from the one described.",
+        "Incorrect. This introduces a single point of failure/gargalo (the instance that serves NFS) and an additional I/O network/latence jump from all other instances, instead of providing direct concurrent block-level access to the underlying volume from multiple instances, as Multi-Attach provides.",
+        "Incorrect. Multi-Attach is supported only in Volumes Provided IOPS SSD (i1 and i2), not in gp3 volumes (General Purpose SSD) — gp3 does not support Multi-Attach feature."
+      ]
+    },
+    "saa-avc-140": {
+      "text": "An application uploads large files (from several GB to TB) to the Amazon S3. Using uploads from PUT unique standard, the team observes that any network interruption during upload requires rebooting TODO the upload from the beginning, wasting significant bandwidth and time for large files, and the general upload throughput is limited by the bandwidth of a single connection TCP. They want to improve the resilience of upload (avoid sending the entire file after a transient failure) and increase the overall throughput by parallelizing the transfer of a single large object.",
+      "options": [
+        "Enable S3 Transfer Acceleration to these uploads",
+        "Use Multipart Upload from Amazon S3",
+        "Compress files before upload to reduce your size and upload time",
+        "Use AWS Snowball to physically transfer the large files to AWS"
+      ],
+      "explanation": "Right. The large object is divided into multiple parts (each sent independently, potentially in parallel by multiple connections), and if a part fails in upload, only ESSA part needs to be sent (not the whole object); once all parts are sent, the S3 the mounts in the final object — directly improving both the resilience (partial retry) and the throughput (parallel sending of parts) for large objects.",
+      "hint": "Think of a resource of the S3 which divides a large object into smaller parts, sent independently and possibly in parallel, allowing retry only by the party that fails.",
+      "optionRationales": [
+        "Right. The large object is divided into multiple parts (each sent independently, potentially in parallel by multiple connections), and if a part fails in upload, only ESSA part needs to be sent (not the whole object); once all parts are sent, the S3 the mounts in the final object — directly improving both the resilience (partial retry) and the throughput (parallel sending of parts) for large objects.",
+        "Incorrect. Transfer Acceleration optimizes the CAMINHO OF REDE (routing through edge locations of the CloudFront) even the Bucket Region, which can help with latency for geographically distant uploaders, but does not, by itself, divide a large object into independently re-enviable and parallelizable parts — can be used together with the multipart upload for additional benefit, but does not replace it for declared requirements (partial retry in case of failure, parallelization of the transfer of a single object).",
+        "Incorrect. Compression may reduce the amount of data transferred (useful for upload time), but does not solve the fundamental problem of uploading data to the PUT only need to restart entirely in case of failure, nor does it provide parallelization of the upload of a single object in multiple connections.",
+        "Incorrect. Snowball is designed for mass data transfer, offline (often for initial migrations involving very large datasets, e.g.: many TB to PB, over weeks), not for the continuous and online upload flow of an application that needs resilience and improved throughput for individual uploads of large files."
+      ]
+    },
+    "saa-avc-141": {
+      "text": "An e-commerce application has a table DynamoDB 'Orders' with OrderId partition key and a 'Status' attribute (ex.: 'PENDING', 'SHIPPED', 'DELIVERED'). To find all the requests 'PENDING' for processing, the application currently performs a Scan operation in the entire table, filtering by Status='PENDING' — this is slow and consumes RCUs proportionally to the size of TODA the table, even if requested PENDING are a small fraction of the total. How to make this consultation efficient (avoiding full scans) as the table grows for millions of items?",
+      "options": [
+        "Create a Global Secondary Index (GSI) scattered, where the partition key of the GSI is a dedicated attribute (ex.: 'GSI_PK') Population APENAS for requests with Status=PENDING (omitted/removed for other statuses)",
+        "Increase the Read Capacity Units provided in the table to deal with the cost of Scan operation more efficiently",
+        "Add a Secondary Index Location (LSI) about the attribute 'Status''",
+        "Use DynamoDB Streams to keep a separate list of 'orders' PENDING' in an external system such as the Amazon S3, and consult this list instead of the table"
+      ],
+      "explanation": "Correct. DynamoDB index in one GSI only items containing the key attributes of the GSI; a scattered index containing only requests PENDING allows a Query (not Scan) operation that reads only the relevant items, with reading cost proportional to the number of corresponding items, not the whole table.",
+      "hint": "Think of how a secondary index can contain only a subset of the items in the table, populating its key attribute only for items that should be indexed.",
+      "optionRationales": [
+        "Correct. DynamoDB index in one GSI only items containing the key attributes of the GSI; a scattered index containing only requests PENDING allows a Query (not Scan) operation that reads only the relevant items, with reading cost proportional to the number of corresponding items, not the whole table.",
+        "Incorrect. LSIs should share the same partition key from the base table (OrderId, in this case) and provide only one CHAVE OF alternative ordering within the same partition; as each request has a single OrderId (each one of its own partition), a LSI would not allow to consult 'all requests with Status=PENDING' between different partitions of OrderId — LSIs do not resolve this need for consultation between partitions.",
+        "Incorrect. Increasing the RCUs allows the Scan to be completed with less throttling, but does not reduce the fundamental cost/latence characteristic of the Scan (read all items in the table); treats a symptom (throttling), not the root cause (inefficient access standard)).",
+        "Incorrect. This introduces a separate and eventually consistent external system that needs to be synced via Streams/Lambda, adding architectural complexity and a new source of consistency lag, when a GSI sparso (a native resource of the DynamoDB designed exactly for this) solves the problem more simply within itself DynamoDB."
+      ]
+    },
+    "saa-avc-142": {
+      "text": "The database RDS Primary postgreSQL of a company is in us-east-1, serving a global application. Users in Europe face higher reading latency for reports/dashboards queries, as each consultation needs to cross the Atlantic to us-east-1 and back. Writing operations remain centralized in us-east-1 (acceptable), but the team wants to reduce latency of LEITURA specifically for European users who perform reports queries, without changing the way the application is written.",
+      "options": [
+        "Create a Cross-Region Read instance replica RDS PostgreSQL in a European Region (e.g. eu-west)-1), and direct the European reading traffic/reports to the endpoint of this replica",
+        "Use AWS Database Migration Service (DMS) to continuously replicate data for a new instance RDS in me-west-1, configured as the new primary for both readings and writings of Europe",
+        "Enable Multi-AZ deployment for instance RDS in us-east-1",
+        "Implement o Amazon ElestiCache in us-east-1 to cache the results of queries from European users"
+      ],
+      "explanation": "Correct. A replica of reading between regions replicates asynchronously from the primary, providing a local and low latency reading endpoint for European users to perform reports queries, while all writings continue to go to the primary in us-east-1, No change.",
+      "hint": "Think of a resource of the RDS which creates a read only copy, asynchronous, in another region, without changing where the writings occur.",
+      "optionRationales": [
+        "Correct. A replica of reading between regions replicates asynchronously from the primary, providing a local and low latency reading endpoint for European users to perform reports queries, while all writings continue to go to the primary in us-east-1, No change.",
+        "Incorrect. Multi-AZ creates a standy replica synchronous in an AZ DIFERENTE within the MESMA Region (us-east-1) for the purpose of failure/sustainability; standby is not used for reading traffic (in the standard Multi-AZ RDS) and does not reduce transatlantic latency at all for European reading consultations.",
+        "Incorrect. A cache in us-east-1 does not reduce the network latency of European users' requests for CHEGAR us-east-1 first (the latency of going back and forth to the cache is the same as to the database); does not solve the problem of distance between regions.",
+        "Incorrect. To make a second instance a 'first for writing' would create a multi-master/dual-write topology, that the RDS standard does not support and would introduce complexity of conflict resolution; the scenario explicitly states that the writings should remain centralized in us-east-1 without changes — this transforms a reading latency problem into a disproportionate writing architecture change."
+      ]
+    },
+    "saa-avc-143": {
+      "text": "An application uses a volume EBS gp2 of 100 GB for your database. The gp2 provides 300 IOPS Baseline (3 IOPS by GB), which is insufficient for the demand for I/O of the workload, but the real data only occupy about 100 GB capacity — the team does not want to pay for a much larger volume (which the gp2 would require to obtain more IOPS of baseline) just to win IOPS. They want to increase IOPS (ex: for 6.000) and throughput (e.g. for 250 MB/s) regardless of volume storage capacity, the most economical way for this moderate requirement of IOPS (without the need for IOPS extremities of i2).",
+      "options": [
+        "Increase the size of the gp2 volume to 2.000 GB to reach the IOPS necessary (as gp2 provides 3 IOPS per GB)",
+        "Add a second volume gp2 of 100 GB and combine them (stripe) with RAID 0 to double the IOPS available",
+        "Migrate to i2 Block Express and provide exactly 6.000 IOPS",
+        "Migrate volume to gp3 (General Purpose SSD) and configure the IOPS (until 16.000) and throughput (up to 1.000 MB/s) desired regardless of size of 100 GB, paying separately for IOPS/throughput above gp3 baseline (3.000 IOPS / 125 MB/s included in any size)"
+      ],
+      "explanation": "Correct. The gp3 disconnects the provisioning of IOPS and throughput of volume size, unlike gp2, where the IOPS scale with (and are limited by) the size provided, allowing the team to get exactly the IOPS/throughput needed for a volume of 100 GB without oversupplying capacity.",
+      "hint": "Think about what kind of volume EBS allows you to configure IOPS and throughput as independent parameters of the volume size provided.",
+      "optionRationales": [
+        "Correct. The gp3 disconnects the provisioning of IOPS and throughput of volume size, unlike gp2, where the IOPS scale with (and are limited by) the size provided, allowing the team to get exactly the IOPS/throughput needed for a volume of 100 GB without oversupplying capacity.",
+        "Incorrect. 6.000 IOPS see stepping IOPS based on gp2 size, but would require payment for 2.000 GB Storage (20x the real need for 100 GB) only to unlock the IOPS — a expensive and wasteful way to get IOPS compared to the independent provisioning of gp3.",
+        "Incorrect. Volumes io2 (and io2 Block Express) are designed for the most demanding workloads in IOPS and have a cost per IOPS provided greater than gp3; for a requirement MODERADO of IOPS as 6.000 (right inside the ceiling of 16.000 IOPS of gp3), gp3 is the most economical choice — io2 Block Express is unnecessary here.",
+        "Incorrect. RAID 0 adds operational complexity (management of RAID in software, double failure risk since the failure of any volume loses all data) and doubles the paid storage (200 GB) without solving the underlying problem that the gp3 resolves natively and in a simpler way: uncouple IOPS size."
+      ]
+    },
+    "saa-avc-144": {
+      "text": "A global application has users in EUA and in Asia. The application uses ElastiCache for Redis in us-east-1 for cache reference data read frequently (e.g. product catalogs) that rarely change. Users in Asia face higher latency in cache readings because each cache request crosses the Pacific to us-east-1. The team wants Asian users to read a Redis cache LOCAL, low latency, which remains automatically synchronized with us-east cache-1 (the writings continue to occur in us-east-1), without building custom replication logic.",
+      "options": [
+        "Configure ElastiCache for Redis with Cluster Mode Enabled, with shards distributed between us-east-1 and ap-souteast-1",
+        "Configure ElastiCache for Redis Global Datastore with the us-east cluster-1 as a primary and a secondary cluster in an Asia-Pacific region (e.g. ap-souteast)-1)",
+        "Use Amazon CloudFront to cache the results of Redis consultations in border locations close to Asian users",
+        "Configure a second ElastiCache for Redis cluster independent in ap-souteast-1 and make the application write in AMBOS clusters in each cache update"
+      ],
+      "explanation": "Correct. Global Datastore provides fully managed and fast (usually sub-second) replication between regions for Redis, allowing the LEITURAS of the secondary cluster be attended locally, with low latency, in the Asia-Pacific region, while the writings continue to be done in the primary cluster in us-east-1 and are propagated asynchronously.",
+      "hint": "Think of an ElastiCache for Redis feature designed specifically for quick and managed replication between regions, maintaining a primary for writing and secondary for local readings.",
+      "optionRationales": [
+        "Correct. Global Datastore provides fully managed and fast (usually sub-second) replication between regions for Redis, allowing the LEITURAS of the secondary cluster be attended locally, with low latency, in the Asia-Pacific region, while the writings continue to be done in the primary cluster in us-east-1 and are propagated asynchronously.",
+        "Incorrect. ElastiCache's fashion cluster shards (and their replicas) must reside within a Multi-AZ deployment of a ONLY Region; ElastiCache's clusters cannot have shards covering Regions AWS DIFERENTES — replication between regions for ElastiCache Redis requires Global Datastore, not multi-region sharding within a cluster.",
+        "Incorrect. Constructing custom double writing logic in the application is operationally complex and prone to errors (to deal with partial faults, to ensure consistency between the two independent caches) — exactly what the managed replication of Global Datastore was designed to avoid.",
+        "Incorrect. CloudFront cached responses HTTP/HTTPS of a source server, not data from the gross Redis protocol; this would require building a layer of API HTTP in front of the Redis and would not provide the pattern of access to native reading and low latency of the Redis that the application currently uses directly."
+      ]
+    },
+    "saa-avc-145": {
+      "text": "An analytics application stores files CSV large (several GB each) in S3, where each file contains many columns, but a typical query needs only 2-3 specific columns and a filter in one of them (e.g. 'lines where region = EU'). Currently, the application lowers the file CSV INTEIRO to obtain the necessary subset, consuming significant bandwidth and processing time for data that are immediately discarded. How the application can reduce the amount of data transferred from the S3 for these consultations?",
+      "options": [
+        "Enable S3 Transfer Acceleration to speed up file download CSV whole",
+        "Use Amazon S3 Select to recover only the required subset of data using a similar expression to SQL (SELECT specific columns WHERE region='EU') directly on the object S3",
+        "Convert files CSV for a compressed format (e.g. gzip) before storing them in S3",
+        "Use multipart download of S3 (Parallel byte-range GETs) to download the file faster"
+      ],
+      "explanation": "Correct. S3 Select performs filtering/projecting of the LADO DO SERVIDOR within S3, returning by the network only the corresponding lines and the requested columns, drastically reducing the amount of data transferred and the necessary processing in the client, compared to downloading the entire object.",
+      "hint": "Think of a resource of the S3 which allows filtering and projection of columns, similar to SQL, directly on the stored object, before the transfer.",
+      "optionRationales": [
+        "Correct. S3 Select performs filtering/projecting of the LADO DO SERVIDOR within S3, returning by the network only the corresponding lines and the requested columns, drastically reducing the amount of data transferred and the necessary processing in the client, compared to downloading the entire object.",
+        "Incorrect. Transfer Acceleration accelerates or CAMINHO OF REDE data transfer, but does not reduce the QUANTIDADE of transferred data — the entire file would still be downloaded, only potentially faster; does not resolve the main inefficiency of transferring unnecessary columns/lines.",
+        "Incorrect. Compression reduces the TAMANHO of the file (and therefore the time of file transfer INTEIRO), but the application would still need to download and decompress the file COMPLETO to extract the necessary subset — does not allow the selective recovery of specific columns/lines such as the S3 Select.",
+        "Incorrect. Parallel downloads by byte-range can speed up the obtaining of the object INTEIRO using multiple connections, but the application would still receive (and need to process/discard) all unnecessary columns and lines — improves the download speed of the complete file, not the SELETIVIDADE of which is recovered."
+      ]
+    }
+  }
+}
