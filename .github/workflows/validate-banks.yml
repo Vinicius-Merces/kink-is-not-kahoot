@@ -1,6 +1,9 @@
 name: Validar conteúdo e i18n
 
 # Valida bancos, overlays do CloudArena e a camada de internacionalização.
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main, master ]
@@ -45,6 +48,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -96,6 +102,21 @@ jobs:
           path: data/exams-en/clf-c02/iniciante.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Versionar banco EN validado no PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add data/exams-en/clf-c02/iniciante.json
+          if git diff --cached --quiet; then
+            echo 'Banco EN já está versionado e idêntico ao artefato validado.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): promote validated CLF-C02 beginner English bank'
+          git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Validar overlays do CloudArena
         run: python3 scripts/validate_arena.py
