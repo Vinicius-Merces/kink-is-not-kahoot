@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "111-122",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-111": {
+      "text": "A critical static site is served via Amazon CloudFront, using a pocket S3 as origin. The team wants that, if the main origin (primary bucket in a region) becomes unavailable, the CloudFront automatically serve the content from a secondary source (bucket replica in another region), without manual intervention. CloudFront allows this configuration?",
+      "options": [
+        "Create two distributions CloudFront separate, one for each bucket",
+        "Configure different behavior caches based on the path pattern of the URL",
+        "Configure geographical restrictions (geo restrictions) in distribution",
+        "Origin group with failure of origin, defining a primary and secondary origin"
+      ],
+      "explanation": "Correct. An origin group allows you to configure a primary origin and one of failover; the CloudFront automatically directs requests to secondary origin when the primary returns configured errors (source failure).",
+      "hint": "Think about the resource of CloudFront which allows to define a primary and a secondary origin, automatically alternating to the secondary when the primary fails.",
+      "optionRationales": [
+        "Correct. An origin group allows you to configure a primary origin and one of failover; the CloudFront automatically directs requests to secondary origin when the primary returns configured errors (source failure).",
+        "Two independent distributions have different domains and do not automatically alternate between them — there is no native mechanism of fading between separate distributions.",
+        "Cache behaviors route requests for different origins based on the path of URL requested, but do not provide automatic failover for the same URL when the main origin fails.",
+        "Geographical restrictions block or allow access to content on the basis of the country of origin of the request — have no relation to failure between origins."
+      ]
+    },
+    "saa-ini-112": {
+      "text": "When designing VPC of a new application that needs to be fault-resilient, a newly contracted architect created all sub-networks (public and private) within a single Availability Zone, by simplicity. What is the main problem of this approach in terms of resilience?",
+      "options": [
+        "The cost of VPC increases proportionally to the number of Availability Zones used",
+        "If this single Availability Zone is unavailable, all application resources — in all sub-networks — are inaccessible, creating a single point of failure",
+        "Sub-networks created in a single Availability Zone cannot receive internet traffic",
+        "The Amazon EC2 Auto Scaling cannot be used when there are sub-networks in only one Availability Zone"
+      ],
+      "explanation": "Right. Concentrating all subnets into a single AZ means that any interruption in that AZ (energy, network, etc.) affects TODOS the application's resources at the same time — exactly the unique point of failure that a resilient architecture seeks to avoid.",
+      "hint": "Think about what happens to TODOS the application resources if the only Availability Zone used presents a failure.",
+      "optionRationales": [
+        "Right. Concentrating all subnets into a single AZ means that any interruption in that AZ (energy, network, etc.) affects TODOS the application's resources at the same time — exactly the unique point of failure that a resilient architecture seeks to avoid.",
+        "Internet access via Internet Gateway operates independently of how many AZs a VPC use — is not the cause of the problem described.",
+        "The Auto Scaling can operate with subnets in a single AZ (although this is not recommended for resilience) — technically this does not prevent the use of the service.",
+        "There is no additional cost for VPC or by subnets themselves for using more Availability Zones — the cost is associated with resources provided (such as instances and gateways), not with the amount of AZs used for subnets."
+      ]
+    },
+    "saa-ini-113": {
+      "text": "An application uses the Amazon ElastiCache for Redis as main cache. The team wants that, if the primary node of Redis fails, a replica in another Availability Zone is automatically promoted the primary, without the need for manual reconfiguration of the application. Which ElastiCache for Redis feature meets this requirement?",
+      "options": [
+        "Increase the type (node type) of the Redis cluster node to one with more memory",
+        "Migrate to ElastiCache to Memcached with multiple knots",
+        "Configure daily manual snapshots of the Redis cluster",
+        "A replica group with Multi-AZ enabled, which monitors the primary node and automatically promotes a replica in case of failure"
+      ],
+      "explanation": "Correct. An ElastiCache to Redis group with Multi-AZ enabled continuously monitors the primary node and, in case of failure, automatically promotes a replica in another AZ the primary, updating the endpoint without manual reconfiguration.",
+      "hint": "Think of the ElastiCache to Redis feature that monitors the primary node and automatically promotes a replica in another AZ if it fails.",
+      "optionRationales": [
+        "Correct. An ElastiCache to Redis group with Multi-AZ enabled continuously monitors the primary node and, in case of failure, automatically promotes a replica in another AZ the primary, updating the endpoint without manual reconfiguration.",
+        "Memcached partitions the data between us (without replication) and has no automatic failover mechanism — loss of a node means loss of the data stored in it.",
+        "Increasing node size improves processing/memory capacity, but does not create replicas or provide automatic failure in case of primary node failure.",
+        "Snapshots are useful for backup and later recovery, but do not automatically promote a real-time primary replica when the current node fails."
+      ]
+    },
+    "saa-ini-114": {
+      "text": "After an incident in which backups stored in a pocket S3 were encrypted and overwritten by an invader who obtained valid credentials, the company wants to ensure that the backups stored in this pocket did not POSSAM be excluded or overwritten by NONE — not even by a user with administrative privileges — during a defined retention period. S3 meets this requirement?",
+      "options": [
+        "A Bucket Policy Denying the DeleteObject Action for All Users",
+        "S3 Object Lock in compliance mode, which prevents the exclusion or overwriting of the versions of objects until the end of the retention period, even by users with high privileges",
+        "AWS Backup using standard vault without Vault Lock",
+        "Only the versioning of the S3, which maintains previous versions of objects"
+      ],
+      "explanation": "Correct. S3 Object Lock in the compliance mode applies a model WORM (write-once-read-many: no user — including the root account — can delete or overwrite the protected versions until the end of the retention period.",
+      "hint": "Think about the resource of S3 which applies a write-once-read-many model (WORM), preventing exclusion or overwriting until the end of a retention period — even by administrators.",
+      "optionRationales": [
+        "Correct. S3 Object Lock in the compliance mode applies a model WORM (write-once-read-many: no user — including the root account — can delete or overwrite the protected versions until the end of the retention period.",
+        "The versioning itself preserves previous versions, but a user with permission to delete versions (including an invader with privileged credentials) can still erase them permanently — does not offer guaranteed immutability.",
+        "A bucket policy can be changed or removed by any identity with sufficient permissions (such as an invader with administrative credentials), so it does not guarantee real immutability.",
+        "Without the Vault Lock, the policies of the vault AWS Backup can still be altered or removed by users with administrative permissions, not guaranteeing the required immutability."
+      ]
+    },
+    "saa-ini-115": {
+      "text": "One VPC with private subnets in three Availability Zones uses a single NAT Gateway, created in only one of these AZs, to allow the instances of these sub-networks to access the internet. The architect realizes that if this specific AZ becomes unavailable, private instances in the OUTRAS two AZs also lose access to the internet, even if their own AZs are healthy. What change solves this problem?",
+      "options": [
+        "Migrate all private subnets to the same Availability Zone NAT Gateway",
+        "Create multiples NAT Gateways in the same Availability Zone NAT Gateway original",
+        "Create a NAT Gateway in each Availability Zone and configure the route table of each private sub-network to use the NAT Gateway of MESMA AZ",
+        "Replace NAT Gateway by one Internet Gateway shared between the three AZs"
+      ],
+      "explanation": "Right. NAT Gateway by AZ, with the route tables of the private sub-networks pointing to the NAT Gateway local, eliminates dependence between AZs: failure of an AZ affects only the subnets of that AZ.",
+      "hint": "Think about how to eliminate dependence between private sub-networks of an AZ and a resource of NAT located in another AZ.",
+      "optionRationales": [
+        "Right. NAT Gateway by AZ, with the route tables of the private sub-networks pointing to the NAT Gateway local, eliminates dependence between AZs: failure of an AZ affects only the subnets of that AZ.",
+        "One Internet Gateway allows resources with public IP address to communicate with the internet; it does not replace the function of NAT Gateway to provide Internet access to resources in private sub-networks without public IP.",
+        "Add More NAT Gateways in the same AZ does not solve the problem: if this entire AZ becomes unavailable, all the NAT Gateways will also stay in it, maintaining dependence between AZs.",
+        "Concentrate all private subnets into a single AZ re-introduces a single point of failure for the whole application — the opposite of a resilient architecture."
+      ]
+    },
+    "saa-ini-116": {
+      "text": "A company maintains its main site on servers in the primary region and a simplified version (read only) hosted in another region, intended to be used only in the event of the primary region's unavailability. Route 53 must send TODO traffic to the primary region while it is healthy and automatically redirect TODO the traffic to the secondary region if the primary stop responding to health checks. Route 53 meets this requirement?",
+      "options": [
+        "Latency-based routing between the two regions",
+        "Failover routing (failover routing policy), with a primary and secondary record associated with health checks",
+        "Weighted routing, attributing weight 100 primary registration and weight 0 Secondary school",
+        "Rotating multiple responses (multivalue answer routing) with health checks"
+      ],
+      "explanation": "Correct. Failover's routing policy was designed for passive-active scenarios: all traffic goes to primary registration while your health check is healthy, and the Route 53 automatically switch to secondary registration if the primary fails.",
+      "hint": "Think about the policy of routing the Route 53 designed specifically for active-passive scenarios, where all traffic goes to a primary resource until it fails in health checks.",
+      "optionRationales": [
+        "Correct. Failover's routing policy was designed for passive-active scenarios: all traffic goes to primary registration while your health check is healthy, and the Route 53 automatically switch to secondary registration if the primary fails.",
+        "A weight 0 makes the secondary record never receive traffic, even if the primary is unavailable — does not provide the automatic failure required by the scenario.",
+        "Latency-based routing directs each user to the Region with less perceived latency, and can send traffic to the Secondary Region even with the healthy primary — does not meet the requirement of 'all traffic to the primary until it fails'.",
+        "Multivalue routing returns multiple healthy records pseudo-randomically, distributing requests among them — does not guarantee that 100% traffic goes to the primary region while it's healthy."
+      ]
+    },
+    "saa-ini-117": {
+      "text": "A worker consumes messages from a row of Amazon SQS in some cases, the worker who received a message locks or delays more than expected to process it, without confirming (excluding) the message in the queue. The team wants that, if a message is not confirmed within a configurable period after being delivered to a worker, it will be available again in the queue so that another worker can try to process it. What configuration of the SQS controls this behavior?",
+      "options": [
+        "Visibility timeout, the period during which a message delivered to a consumer becomes invisible to others before returning to the queue if not confirmed",
+        "Delay queue, which postpones the initial delivery of new messages posted in the queue",
+        "Dead-letter tail (DLQ), receiving messages after exceeding the maximum number of processing attempts",
+        "Long polling, which reduces the number of empty calls by consuming queue messages"
+      ],
+      "explanation": "Correct. The visibility timeout defines how long a message received by one consumer remains invisible to others; if the consumer does not exclude it within that period, it automatically becomes visible in the queue for another attempt.",
+      "hint": "Think about the configuration of SQS determining how long a message delivered to a consumer is 'hidden' from the others before returning automatically to the queue.",
+      "optionRationales": [
+        "Correct. The visibility timeout defines how long a message received by one consumer remains invisible to others; if the consumer does not exclude it within that period, it automatically becomes visible in the queue for another attempt.",
+        "Delay queue delays the first delivery of newly published messages; it does not control what happens with a message already delivered to a consumer who failed to confirm it.",
+        "Long polling is an optimization to reduce empty consumption requirements (cost/efficiency); it is not related to the return of unconfirmed messages to the queue.",
+        "A DLQ is the final destination of messages after many failed attempts — but the mechanism that makes the message available again for new attempt soon after a failure is the visibility timeout, not the DLQ."
+      ]
+    },
+    "saa-ini-118": {
+      "text": "A company wants that, whenever an object is created in a pocket S3, every time a pipeline of AWS CodePipeline change status, and whenever a custom event is issued by an internal application, different functions Lambda are activated — each routed according to filtering rules based on the content and origin of the event. AWS it was designed as a central event bus, capable of routing events from multiple sources (including several services of the AWS and own applications) for multiple destinations based on rules?",
+      "options": [
+        "AWS Step Functions",
+        "Amazon SQS",
+        "Amazon EventBridge",
+        "Amazon SNS"
+      ],
+      "explanation": "Correct. Amazon EventBridge works as a central event bus, receiving events of dozens of services from AWS and own applications, and route them to multiple destinations based on filtering rules by content and origin.",
+      "hint": "Think of the service designed as a central event bus, with filtering rules that route events from various sources — including services from AWS — for multiple destinations.",
+      "optionRationales": [
+        "Correct. Amazon EventBridge works as a central event bus, receiving events of dozens of services from AWS and own applications, and route them to multiple destinations based on filtering rules by content and origin.",
+        "The SQS is a point-to-point message row, aimed at simple disconnection between producer and consumer — it has not been designed as an event bar with content-based routing rules and multiple native sources of the AWS.",
+        "The Step Functions orchestrate workflows with explicitly defined stages and state transitions — does not act as a central bus that receives and routes events from multiple external sources.",
+        "The SNS offers publication/signature (fan-out) for multiple destinations, but does not have content-based filtering rules or native integration with dozens of service event sources from AWS that the EventBridge offers."
+      ]
+    },
+    "saa-ini-119": {
+      "text": "A database Amazon RDS is configured in Multi-AZ mode. One developer suggests that the application send reading queries directly to the standby instance in the other Availability Zone to reduce the load in the main instance. Why this suggestion does NOT work as the developer expects?",
+      "options": [
+        "The standby instance accepts only writing operations, never readings",
+        "The standby instance only becomes existing after the main instance is excluded",
+        "Multi-AZ does not create a standby instance; it only performs automatic backups more frequently",
+        "The standby instance of a Multi-AZ deployment exists only for high availability failure and does not accept read connections; to download readings, it is necessary to create Read Replicas"
+      ],
+      "explanation": "Correct. The standby instance of Multi-AZ is kept synchronized to take over quickly in case of failure, but is not available to receive application reading connections. To scale readings, the correct feature is the Read Replicas.",
+      "hint": "Think of the purpose of the standby instance of a multi-AZ deployment — high availability failure — and what other resource of the RDS is used to download reading queries.",
+      "optionRationales": [
+        "Correct. The standby instance of Multi-AZ is kept synchronized to take over quickly in case of failure, but is not available to receive application reading connections. To scale readings, the correct feature is the Read Replicas.",
+        "The standby instance is provided and kept continuously in parallel with the main instance since the creation of the Multi-AZ implantation — it is not created only after an exclusion.",
+        "Multi-AZ effectively supplies and maintains a standby instance synchronized into another AZ — it's not just a change in backup frequency.",
+        "In normal operation, the standby instance does not accept either readings or written directly from the application — it remains synchronized only to take over in case of failure."
+      ]
+    },
+    "saa-ini-120": {
+      "text": "In one Application Load Balancer, an instance EC2 began to present intermittent flaws in its application. The team realized that the ALB It took several minutes to stop sending traffic to this instance, even after it started failing in health checks. The team wants unhealthy instances to be removed from rotation MAIS RAPIDAMENTE. What can be adjusted in the target group health check configuration for this?",
+      "options": [
+        "Reduce the interval between checks (health check interval) and/or reduce the number of consecutive checks with required failure (unhealthy threshold))",
+        "Reduce the number of Availability Zones used by Load Balancer",
+        "Increase the timeout of each health check",
+        "Deactivate the cross-zone load balancing)"
+      ],
+      "explanation": "Correct. The time to a target being considered unhealthy is, approximately, the interval between verifications multiplied by unhealthy threshold; reducing these values causes the ALB detect and remove unhealthy instances more quickly.",
+      "hint": "Think of the two parameters of health check that control how often the ALB check the health of the targets and how many consecutive failures are needed before considering an unhealthy target.",
+      "optionRationales": [
+        "Correct. The time to a target being considered unhealthy is, approximately, the interval between verifications multiplied by unhealthy threshold; reducing these values causes the ALB detect and remove unhealthy instances more quickly.",
+        "Increasing the timeout gives the instance more time to respond before a verification is considered a failure, which tends to delay — not accelerate — the detection of an unhealthy instance.",
+        "The number of Availability Zones used by Load Balancer does not influence the speed at which individual health checks detect flaws in a target.",
+        "Cross-zone load balancing affects how traffic is distributed among healthy targets, but has no relation to the speed of detection of an unhealthy target by health checks."
+      ]
+    },
+    "saa-ini-121": {
+      "text": "A team is evaluating migrating from a RDS for MySQL standard for the Amazon Aurora, attracted by the high durability and resilience of storage. Amazon Aurora ensures data durability at storage level, even without the explicit configuration of traditional Multi-AZ RDS?",
+      "options": [
+        "The Aurora store data only locally in volume EBS of the main instance, requiring frequent manual backups",
+        "The storage of Aurora automatically replicates the data in 6 copies distributed by 3 Availability zones, transparently, independently of configured computer replicas",
+        "The Aurora replicates the data to the Amazon S3 in real time as your only way of durability",
+        "The durability of Aurora depends exclusively on manual creation of Read Replicas in other Availability Zones"
+      ],
+      "explanation": "Correct. The storage layer of Aurora is distributed and automatically replicates each volume of data in 6 copies distributed by 3 Availability Zones, offering high durability and resilience even without additional reading replicas.",
+      "hint": "Think of how the storage layer of Aurora (storage layer) is designed in a distributed way between Availability Zones, regardless of read replicas.",
+      "optionRationales": [
+        "Correct. The storage layer of Aurora is distributed and automatically replicates each volume of data in 6 copies distributed by 3 Availability Zones, offering high durability and resilience even without additional reading replicas.",
+        "This description corresponds to the traditional storage model of the RDS based on EBS — o Aurora uses a self-distributed storage layer, not a single volume EBS local.",
+        "Although the Aurora send backups and logs to S3, the real-time durability of the data comes from the storage layer distributed in 6 copies between AZs, not a direct replication to the S3 to each writing.",
+        "Read Replicas are optional computer instances to scale readings; the replication of storage in 6 copies between AZs occur automatically in the storage layer of the Aurora, regardless of the existence of Read Replicas."
+      ]
+    },
+    "saa-ini-122": {
+      "text": "An application has endpoints (Application Load Balancers) in two different regions of the AWS. The team wants users to be automatically directed to the nearest and healthiest endpoint, using static IP addresses (anycast) that don't change even if an endpoint is unavailable — unlike a solution based on DNS, which may take time to propagate changes due to TTL of the records. AWS meets this requirement?",
+      "options": [
+        "Amazon CloudFront",
+        "AWS Global Accelerator",
+        "AWS Direct Connect",
+        "Amazon Route 53 with latency-based routing"
+      ],
+      "explanation": "Correct. AWS Global Accelerator provides static anycast IP addresses and redirects traffic almost instantly to the nearest healthy endpoint, without depending on the spread of TTL of DNS.",
+      "hint": "Think of the service that provides static anycast IP addresses and redirects traffic almost instantly to the nearest healthy endpoint, without depending on TTL of DNS.",
+      "optionRationales": [
+        "Correct. AWS Global Accelerator provides static anycast IP addresses and redirects traffic almost instantly to the nearest healthy endpoint, without depending on the spread of TTL of DNS.",
+        "Latency routing Route 53 is based on DNS and is subject to TTL of records — customers with cached answers can continue to access an unavailable endpoint until expiry of the TTL.",
+        "The CloudFront It's a CDN focused on cache content in edge locations; although it has failover of origin, it was not designed primarily to provide static IPs anycast directing traffic between regional ALBs.",
+        "The AWS Direct Connect establishes dedicated network connectivity between an on-premises environment and AWS — has no relation to the route of traffic of users to the nearest and most healthy regional endpoint."
+      ]
+    }
+  }
+}

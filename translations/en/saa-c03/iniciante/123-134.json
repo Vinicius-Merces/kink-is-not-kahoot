@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "123-134",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-123": {
+      "text": "A team is migrating a containerized application to the AWS and wants that, if a container suddenly stops or stops, it is detected and replaced automatically, without the team needing to manage servers EC2 or own monitoring scripts. What approach offers this resilience in a managed way?",
+      "options": [
+        "Run the application in Amazon ECS with the type of launch AWS Fargate, which monitors tasks and automatically replaces them in case of failure, without server management",
+        "Pack the application as a AMI and launch a new instance manually whenever there is a failure",
+        "Run the application in a single instance EC2 dedicated with Docker manually installed",
+        "Run the application in instances EC2 with a cron script that periodically checks if the container is running"
+      ],
+      "explanation": "Correct. AWS Fargate, o ECS manages the underlying infrastructure and continuously monitors the running tasks, automatically replacing those that fail or stop unexpectedly, without the team needing to manage servers EC2.",
+      "hint": "Think about the type of launch of Amazon ECS which eliminates server management and automatically replaces failed tasks.",
+      "optionRationales": [
+        "Correct. AWS Fargate, o ECS manages the underlying infrastructure and continuously monitors the running tasks, automatically replacing those that fail or stop unexpectedly, without the team needing to manage servers EC2.",
+        "This approach is manual, prone to failures and still requires the team to manage servers EC2 — exactly what the team wants to avoid.",
+        "A single instance EC2 represents a single point of failure and offers no automatic replacement of the container in case of failure.",
+        "This process is manual and slow, not meeting the requirement for automatic detection and replacement of the container in case of failure."
+      ]
+    },
+    "saa-ini-124": {
+      "text": "An application keeps a large number of connections open directly with a database Amazon RDS in Multi-AZ mode. During a failover event (change to the standby instance), the application takes a considerable time to recover, as each connection needs to be re-established and re-authenticated individually. AWS, positioned between the application and the database, reduces the impact perceived during failure when managing a pool of connections?",
+      "options": [
+        "One Application Load Balancer pointing to the endpoint of the RDS",
+        "Amazon ElestiCache",
+        "AWS Database Migration Service (DMS)",
+        "Amazon RDS Proxy"
+      ],
+      "explanation": "Correct. Amazon RDS Proxy manages a pool of connections between the application and the database, drastically reducing the time perceived by the application during a failover, as the proxy maintains connections and redirects traffic to the new main instance.",
+      "hint": "Think of the service that lies between the application and the database, maintaining a pool of connections and drastically reducing the time perceived by the application during a failure of the RDS.",
+      "optionRationales": [
+        "Correct. Amazon RDS Proxy manages a pool of connections between the application and the database, drastically reducing the time perceived by the application during a failover, as the proxy maintains connections and redirects traffic to the new main instance.",
+        "ElastiCache is a cache layer for query results — it does not manage the pool of connections to the database nor reduces the time to fail the RDS.",
+        "The AWS DMS is used for database migration and replication tasks — does not act as a real-time connection proxy between the application and the database.",
+        "One Application Load Balancer operates in the application layers (HTTP/HTTPS) and was not designed to manage connection pools with relational databases during failure events."
+      ]
+    },
+    "saa-ini-125": {
+      "text": "An application uses a standard queue (Standard Queue) of Amazon SQS during the tests, the team noticed that occasionally, MESMA payment message is delivered more than once to the consumer, making the payment processed twice for the same request. What is the most likely explanation and recommended approach to deal with it?",
+      "options": [
+        "The solution is to reduce the row's visibility timeout to the lowest possible value",
+        "This indicates a serious failure in the SQS which should be reported to the support of the AWS, because rows should never deliver duplicate messages",
+        "Standard threads of SQS offer delivery 'at least once' (at-last-once), so occasional duplicates are expected; the application should be designed to process messages in an identical way",
+        "Duplicate messages only occur in rows FIFO, never in standard rows"
+      ],
+      "explanation": "Correct. SQS ensure delivery 'at least once', which can result in occasional duplicate messages. The recommended practice is to design the processing in an identical way, for example by checking if the order has already been processed before applying the payment again.",
+      "hint": "Think of the delivery guarantee that the standard rows of SQS offer (at least once) and how the application should be designed to deal with it.",
+      "optionRationales": [
+        "Correct. SQS ensure delivery 'at least once', which can result in occasional duplicate messages. The recommended practice is to design the processing in an identical way, for example by checking if the order has already been processed before applying the payment again.",
+        "Occasional duplicate deliveries in standard rows are a documented and expected behavior of SQS, not a service failure.",
+        "Too narrowing the visibility timeout may actually, AUMENTAR the occurrence of duplicates, because the message can become visible again before the original consumer finishes processing it..",
+        "It's the opposite: rows FIFO offer 'exactly-once' processing (within certain conditions), while standard rows do not guarantee single delivery — are the standard rows that can deliver duplicates."
+      ]
+    },
+    "saa-ini-126": {
+      "text": "A critical application uses Amazon Aurora and needs a disaster recovery strategy between regions with the MENOR RPO (Recovery Point Objective) possible — the secondary region should be delayed in relation to primary by a few seconds at most and it should be possible to promote it to the primary region quickly in the event of a disaster. Aurora better meets this requirement?",
+      "options": [
+        "Aurora Global Database, which replicates data between regions with typically lower latency than 1 second and allows to promote the secondary region in case of disaster",
+        "Multi-AZ deployment within a single region",
+        "Read Standard Replica RDS for MySQL between regions",
+        "Automatic backups of Aurora manually copied to another region once a day"
+      ],
+      "explanation": "Correct. Aurora Global Database was designed specifically for disaster recovery between regions with latency replication typically below 1 second (RPO very low) and allows to promote the secondary region quickly in case of disaster.",
+      "hint": "Think about the resource of Aurora specifically designed for replication between regions with extremely low replication delay (typically less than 1 second).",
+      "optionRationales": [
+        "Correct. Aurora Global Database was designed specifically for disaster recovery between regions with latency replication typically below 1 second (RPO very low) and allows to promote the secondary region quickly in case of disaster.",
+        "Read Standard replicas between regions use asynchronous replication with generally larger latency (seconds to minutes) and a process of promotion different from the optimized mechanism of Aurora Global Database for this scenario.",
+        "Daily backups manually copied would result in a RPO up to 24 hours — far above the scenario's few seconds requirement.",
+        "Multi-AZ protects against failures of a Zone of Availability within a single Region, but does not offer protection against a disaster affecting the entire Region."
+      ]
+    },
+    "saa-ini-127": {
+      "text": "An architect is configuring replication between regions (Cross-Region Replication), CRR) of the Amazon S3 between an original ticket in São Paulo and a destination ticket in Oregon, but the configuration fails with an error. He realizes that the versioning is enabled only in the original ticket. What needs to be done to make the CRR function correctly?",
+      "options": [
+        "Enable the versioning also in the destination pocket — the CRR requires that the versioning is enabled in AMBOS the newsletters, origin and destination",
+        "Disable the versioning in the original pocket, since the CRR is not compatible with versioning",
+        "Create a Lifecycle policy in the destination pocket before setting up the CRR",
+        "Move the destination bucket to the same region of the original bucket"
+      ],
+      "explanation": "Correct. The replication between regions of S3 requires that the versioning is enabled both in the original and the destination pocket; without this, the configuration of the CRR failure.",
+      "hint": "Think of which configuration, related to maintaining the version history of each object, the replication between regions of the S3 requires in AMBOS the pockets involved.",
+      "optionRationales": [
+        "Correct. The replication between regions of S3 requires that the versioning is enabled both in the original and the destination pocket; without this, the configuration of the CRR failure.",
+        "It's the opposite: the CRR requires that the versioning be enabled in the original (and also the destination) pocket — disable it would make replication impossible.",
+        "Moving the destination pocket to the same region would eliminate the purpose of replication between regions (CRR), which is just to keep a copy in a different region.",
+        "Lifecycle policies control the transition/expiration of objects and are not a prerequisite for enabling replication between regions."
+      ]
+    },
+    "saa-ini-128": {
+      "text": "A small development team wants to implement a web application and obtain, with minimal configuration, an environment that already includes load balancing between multiple instances EC2 in different zones of availability and automatic replacement of unhealthy instances — without having to manually configure each of these components individually (Load Balancer, Auto Scaling Group, health checks). AWS offers this experience?",
+      "options": [
+        "AWS Elastic Beanstalk, which provides and manages automatically Load Balancer, Auto Scaling Group and health checks from the application code sent",
+        "Amazon EC2, manually launching an instance and configuring each component individually",
+        "AWS CloudFormation, requiring the team to write a detailed template describing each resource",
+        "AWS Lambda, hosting the entire web application in a single function"
+      ],
+      "explanation": "Correct. AWS Elastic Beanstalk provide and manage the underlying infrastructure automatically — including Load Balancer, Auto Scaling Group and health checks — from the application code, with minimum configuration by the team.",
+      "hint": "Think of the PaaS service of the AWS providing automatically Load Balancer, Auto Scaling and health checks from the application code, with minimum configuration.",
+      "optionRationales": [
+        "Correct. AWS Elastic Beanstalk provide and manage the underlying infrastructure automatically — including Load Balancer, Auto Scaling Group and health checks — from the application code, with minimum configuration by the team.",
+        "Although the Lambda have its own resilience model, it does not reproduce the experience of a managed set of instances EC2 with Load Balancer and Auto Scaling for traditional web applications.",
+        "This is exactly the manual and laborious approach that the team wants to avoid — set up individually Load Balancer, Auto Scaling and health checks.",
+        "The CloudFormation can provide these resources, but requires the team to write and maintain a detailed infrastructure template — the Elastic Beanstalk offers this result with much less configuration, from the application code only."
+      ]
+    },
+    "saa-ini-129": {
+      "text": "During a disaster event that has made the Region a primary application unavailable, the team needs to quickly put in production, in the Region secondary, a Read Replica of Amazon RDS which had been kept synchronized with the main database. What action is needed for this Read Replica to accept writing operations and function as the new main database?",
+      "options": [
+        "Restart the Read Replica to automatically accept written messages",
+        "Just update the application endpoint to point to the Read Replica, without any other action",
+        "Promote (promote) the Read Replica, transforming it into an independent instance that accepts readings and writings, closing the replication with the old main instance",
+        "Create a new Multi-AZ from the Read Replica before any other action"
+      ],
+      "explanation": "Correct. The promotion (promote) of a Read Replica RDS the transforms it into an independent database instance, capable of accepting writing operations, closing the replication relationship with the original main instance..",
+      "hint": "Think about the specific action of RDS which transforms a Read Replica into an independent database instance, capable of accepting written.",
+      "optionRationales": [
+        "Correct. The promotion (promote) of a Read Replica RDS the transforms it into an independent database instance, capable of accepting writing operations, closing the replication relationship with the original main instance..",
+        "As long as it is not promoted, a Read Replica remains read-only and rejects writing operations — pointing out the application to it without promoting it would cause flaws in all writing operations.",
+        "A simple reboot does not alter the role of Read Replica; it will only continue reading until the promotion action is executed explicitly.",
+        "Multi-AZ configuration is an optional step that can be done later; the necessary and specific action for the Read Replica to accept written is the promotion."
+      ]
+    },
+    "saa-ini-130": {
+      "text": "An operations team wants to be notified by e-mail and SMS automatically whenever the average use of CPU of a Auto Scaling Group stay above 85% for more than 5 minutes, to proactively investigate before users are affected. AWS meets this requirement?",
+      "options": [
+        "A rule of AWS config that checks the use of CPU daily",
+        "One Application Load Balancer with health checks configured to send emails",
+        "A policy of Auto Scaling sending an email before adding a new instance",
+        "An alarm from the Amazon CloudWatch monitoring the metric of CPU of the Auto Scaling Group, configured to publish a notification in a topic of the Amazon SNS when the limit is reached"
+      ],
+      "explanation": "Correct. CloudWatch can continuously monitor the metric of CPU and, when exceeding the limit defined by the configured period, publish a notification in a topic SNS, delivering the message by email and SMS to subscribers.",
+      "hint": "Think of the combination between the monitoring service that continuously evaluates metrics and triggers alarms, and the notification service that delivers messages by email/SMS.",
+      "optionRationales": [
+        "Correct. CloudWatch can continuously monitor the metric of CPU and, when exceeding the limit defined by the configured period, publish a notification in a topic SNS, delivering the message by email and SMS to subscribers.",
+        "Health checks of a Load Balancer determine whether a target receives traffic or not — they do not send email notifications or SMS for operations teams.",
+        "The AWS Config evaluates the compliance of the resource configuration (non-real-time performance metrics) and has not been designed for metric limits-based alerts with the required minute granularity.",
+        "Scalability policies adjust the group's capacity based on metrics, but do not send email notifications/SMS by themselves — this requires integration with CloudWatch Alarms and SNS."
+      ]
+    },
+    "saa-ini-131": {
+      "text": "An internal application is used sporadically: virtually without traffic during the night and on weekends, but with significant peaks in specific business hours. The team wants a relational database compatible with MySQL/PostgreSQL that automatically adjusts its computing capacity up and down in seconds, as required, without the team having to manually predict or schedule the size of the instance. Amazon Aurora meets this requirement?",
+      "options": [
+        "An instance Aurora stocked of the largest size available, kept continuously connected",
+        "Aurora with Read Additional replicas created manually before each expected peak",
+        "Aurora Serverless v2, which automatically adjusts the computing capacity (in units ACU) based on load, in seconds",
+        "Migratory to Amazon DynamoDB, which is not a relational database"
+      ],
+      "explanation": "Correct. Aurora Serverless v2 automatically adjusts the computing capacity in units ACU, in seconds, according to current demand — ideal for sporadic and unpredictable loads, without manual provisioning.",
+      "hint": "Think about the option of Aurora which automatically adjusts its computing capacity in seconds, as the demand changes, without manual provisioning of instances.",
+      "optionRationales": [
+        "Correct. Aurora Serverless v2 automatically adjusts the computing capacity in units ACU, in seconds, according to current demand — ideal for sporadic and unpredictable loads, without manual provisioning.",
+        "Keeping a large instance connected continuously wastes resources during long periods of low usage — exactly the opposite of the automatic and efficient adjustment that the team seeks.",
+        "Creating replicas manually requires early forecasting of peaks and does not adjust the main instance computing capacity automatically in seconds.",
+        "The scenario requires a relational database compatible with MySQL/PostgreSQL — the DynamoDB It's a bank NoSQL and does not meet this compatibility requirement."
+      ]
+    },
+    "saa-ini-132": {
+      "text": "A table of the Amazon DynamoDB uses as partition key the field 'status_order', which has only three possible values ('new', 'processing', 'completed'). With application growth, the team perceives transfer rate limitation (throttling) even with seemingly sufficient capacity provided in total. What is the most likely cause and recommendation for this problem?",
+      "options": [
+        "The problem is caused by the absence of an overall secondary index (GSI)",
+        "The table needs an ordination key (sort key), regardless of the selected partition key",
+        "The low cardinality of the partition key concentrates the items in few physical partitions ('hot partitions'); the partition key must have high cardinality, distributing the items evenly",
+        "The problem is caused by the use of DynamoDB Streams, which must be disabled"
+      ],
+      "explanation": "Correct. With only three possible values, all items are concentrated in few physical partitions, creating 'hot partitions' that suffer throttling even if the total capacity of the table seems sufficient. The partition key must have high cardinality values to distribute the items evenly.",
+      "hint": "Think of how many different values the chosen partition key can assume and how it affects the distribution of items between the physical partitions of the DynamoDB.",
+      "optionRationales": [
+        "Correct. With only three possible values, all items are concentrated in few physical partitions, creating 'hot partitions' that suffer throttling even if the total capacity of the table seems sufficient. The partition key must have high cardinality values to distribute the items evenly.",
+        "The DynamoDB Streams only captures a record of changes for external consumption; it does not cause throttling in table reading/writing operations.",
+        "Adding an ordination key does not correct the fundamental problem of a partition key with low cardinality — items would remain concentrated on the same few physical partitions.",
+        "One GSI help in alternative query patterns, but does not solve the problem of item distribution (and writing ability) in the base table caused by a low cardinality partition key."
+      ]
+    },
+    "saa-ini-133": {
+      "text": "A financial trading application needs to process millions of connections TCP per second with extremely low latency, and customers need to connect using static IP addresses. The team is choosing between a Application Load Balancer (ALB) and a Network Load Balancer (NLB). What's the best choice and why?",
+      "options": [
+        "Neither Load Balancers supports this volume of connections; multiple instances would be required EC2 with DNS Round-robin",
+        "Network Load Balancer, operating in the transport layer (Cover 4), supports millions of requests per second with ultra low latency and offers a static IP address by Availability Zone",
+        "Both offer exactly the same performance and static IP addresses, the choice is just aesthetic",
+        "Application Load Balancer, because content-based router HTTP reduces latency of connections TCP"
+      ],
+      "explanation": "Correct. The Network Load Balancer operates in the Layer 4 (transport), was designed for extreme volumes of connections TCP/UDP with ultra low latency and provides a static IP address (or Elastic IP) by Availability Zone — exactly meeting the requirements of the scenario.",
+      "hint": "Think about the type of Load Balancer operating in the transport layer (Cover 4 model OSI), designed for extreme connections volumes with minimum latency and static IP support.",
+      "optionRationales": [
+        "Correct. The Network Load Balancer operates in the Layer 4 (transport), was designed for extreme volumes of connections TCP/UDP with ultra low latency and provides a static IP address (or Elastic IP) by Availability Zone — exactly meeting the requirements of the scenario.",
+        "The ALB operates in the Layer 7 (application) and content-based routing HTTP adds additional processing — this does not reduce the latency of connections TCP in relation to a Layer balancer 4 as the NLB.",
+        "ALB and NLB differ significantly: operate in different layers of the model OSI, have distinct performance characteristics, and only the NLB offers static IP addresses natively by AZ.",
+        "The NLB was specifically designed to support extreme volumes of connections (millions per second) with ultra low latency — no need to resort to DNS round-robin manual between instances EC2."
+      ]
+    },
+    "saa-ini-134": {
+      "text": "An application consults the Amazon ElastiCache before consulting the database. When a data is not found in the cache (cache miss), the application consults the database, returns the result to the user and then records this result in the cache so that future queries are answered directly by the cache. As this cache strategy is known?",
+      "options": [
+        "Write-behind: the writings are done first in the cache and then replicated asynchronously to the database",
+        "Lazy loading (also called cache-aside): the data is loaded into the cache only when requested and not found (cache miss)",
+        "TTL Infinite: data remains in cache forever, without expiration",
+        "Write-through: all written in the database is simultaneously written in the cache"
+      ],
+      "explanation": "Correct. In the lazy loading strategy (cache-aside), the application searches the cache first; in case of miss cache, search the database and then save the result to the cache, so that the next queries are answered by the cache.",
+      "hint": "Think about the name of the strategy in which the data is loaded into the cache only after an attempt to read which resulted in a cache failure (cache miss).",
+      "optionRationales": [
+        "Correct. In the lazy loading strategy (cache-aside), the application searches the cache first; in case of miss cache, search the database and then save the result to the cache, so that the next queries are answered by the cache.",
+        "Write-through describes a strategy in which the cache is updated at the time of each writing on the bank — different from the scenario described, which loads the cache only after a reading failure (miss cache).",
+        "Write-behind is a strategy of buferization of writings, different from the behavior described, which deals with how the cache is populated after a reading that failed (cache miss).",
+        "TTL is a separate configuration about how long an item remains in the cache — does not describe the behavior of loading the cache only after a failed read attempt."
+      ]
+    }
+  }
+}
