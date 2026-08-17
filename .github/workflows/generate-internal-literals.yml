@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/offline_mt.py'
       - 'scripts/translation_integrity.py'
+      - 'scripts/validate_i18n.py'
       - 'scripts/generate_internal_literal_catalog.py'
       - 'admin.html'
       - 'create-quiz.html'
@@ -50,7 +51,7 @@ jobs:
           pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
       - name: Gerar catálogos internos PT EN
         run: python3 scripts/generate_internal_literal_catalog.py
-      - name: Validar paridade global
+      - name: Validar paridade, fidelidade e resíduo PT
         run: python3 scripts/validate_i18n.py
       - name: Versionar catálogos
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -61,6 +62,6 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): add offline internal application literal catalogs'
+          git commit -m 'feat(i18n): add validated offline internal application literal catalogs'
           git pull --rebase origin "$HEAD_BRANCH"
           git push origin "HEAD:${HEAD_BRANCH}"
