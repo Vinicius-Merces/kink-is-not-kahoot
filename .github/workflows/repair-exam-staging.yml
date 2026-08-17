@@ -1,0 +1,87 @@
+name: Reparar fidelidade EN dos bancos
+
+permissions:
+  contents: write
+  models: read
+
+on:
+  push:
+    branches:
+      - feat/i18n-foundation
+    paths:
+      - 'translations/repair-requests/**.json'
+  workflow_dispatch:
+    inputs:
+      request:
+        description: 'Arquivo JSON em translations/repair-requests/'
+        required: true
+        default: 'translations/repair-requests/all-exams.json'
+
+concurrency:
+  group: repair-exam-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Resolver solicitação
+        id: request
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "path=${{ inputs.request }}" >> "$GITHUB_OUTPUT"
+          else
+            REQUEST=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^translations/repair-requests/.*\.json$' | head -n 1)
+            test -n "$REQUEST"
+            echo "path=$REQUEST" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validar sintaxe das ferramentas
+        run: |
+          python3 -m py_compile scripts/translation_integrity.py
+          python3 -m py_compile scripts/repair_exam_staging_with_github_models.py
+          python3 -m py_compile scripts/validate_english_translation_quality.py
+
+      - name: Reparar somente staging com drift detectado
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/repair_exam_staging_with_github_models.py "${{ steps.request.outputs.path }}"
+
+      - name: Validar staging e fidelidade após reparo
+        run: |
+          python3 scripts/validate_exam_translation_staging.py
+          python3 scripts/validate_english_translation_quality.py
+
+      - name: Garantir que o reparador não publicou bancos ready
+        shell: bash
+        run: |
+          if ! git diff --quiet -- data/exams-en; then
+            echo 'ERRO: o reparador tentou alterar data/exams-en.'
+            git diff -- data/exams-en
+            exit 1
+          fi
+
+      - name: Versionar somente staging reparado
+        shell: bash
+        run: |
+          git add translations/en
+          if git diff --cached --quiet; then
+            echo 'Nenhum reparo necessário.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(i18n): repair English exam translation fidelity'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
