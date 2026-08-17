@@ -13,11 +13,11 @@ on:
       request:
         description: 'Arquivo JSON em translations/requests-trails/'
         required: true
-        default: 'translations/requests-trails/clf.json'
+        default: 'translations/requests-trails/all.json'
 
 concurrency:
   group: translate-trail-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   translate:
@@ -50,17 +50,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install 'torch>=2.3,<3' --index-url https://download.pytorch.org/whl/cpu
           pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
-      - name: Gerar catálogo da trilha
+      - name: Gerar catálogos das trilhas
         run: python3 scripts/generate_trail_literal_catalog.py "${{ steps.req.outputs.path }}"
-      - name: Validar paridade dos catálogos
+      - name: Validar paridade, fidelidade e resíduo PT dos catálogos
         run: python3 scripts/validate_i18n.py
-      - name: Versionar catálogo validado
+      - name: Versionar catálogos validados
         shell: bash
         run: |
           git add locales/pt-BR/trail-*-literals.json locales/en/trail-*-literals.json
           if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): add offline study trail English catalog'
+          git commit -m 'feat(i18n): add validated offline study trail English catalogs'
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
