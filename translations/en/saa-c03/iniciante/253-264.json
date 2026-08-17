@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "253-264",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-253": {
+      "text": "A company has an application that often searches for the same data from a relational database, causing repeated queries that increase latency. How to implement a cache layer to reduce the amount of queries to the database?",
+      "options": [
+        "Configure the RDS Multi-AZ — with two synchronised benches, it is possible to distribute reading queries between primary and standby, reducing by half the load of repeated queries",
+        "Implement Amazon ElastiCache (Redis or Memcached) between the application and the database — the application first checks the cache; if the data is (hit cache), returns from ElastiCache in milliseconds; if it is not (miss cache), search the bank and store in the cache for future accesses",
+        "Enable MySQL native query cache on RDS — MySQL has an internal cache query that automatically caches the results of SELECT, without the need for external services",
+        "Use Amazon DynamoDB Accelerator (DAX) instead of ElastiCache — the DAX is more suitable for relational banks (RDS/MySQL) because it was created by AWS specifically to speed up cherries SQL"
+      ],
+      "explanation": "ElastiCache is the in-memory cache service of AWS. Redis and Memcached are the available engines. The default 'cache-aside' (lazy loading) is the most common: application checks cache → hit: returns direct; miss: searches the bank → stores in the cache → returns. Reduces drastically latency and loading in the database for frequently read data.",
+      "hint": "What service AWS provides in-memory cache (Redis or Memcached) to store query results and reduce the number of database accesses?",
+      "optionRationales": [
+        "ElastiCache is the in-memory cache service of AWS. Redis and Memcached are the available engines. The default 'cache-aside' (lazy loading) is the most common: application checks cache → hit: returns direct; miss: searches the bank → stores in the cache → returns. Reduces drastically latency and loading in the database for frequently read data.",
+        "Incorrect. DAX (DynamoDB Accelerator) is a specific cache for the DynamoDB (NoSQL) — cannot be used with relational banks (RDS MySQL). To speed up access to data from RDS, ElastiCache (Redis or Memcached) is the correct in-memory cache solution.",
+        "Incorrect as recommended solution. MySQL's query cache was REMOVIDA no MySQL 8.0 because of performance problems with multiple threads (excessive lock containment). In addition, the internal cache query has much lower scalability than ElastiCache. AWS recommends ElastiCache for caching applications.",
+        "Incorrect. RDS Multi-AZ does not accept reading queries — it is exclusive to failover. To reduce repeated queries to the bank, an external cache like ElastiCache is the correct approach. Even if they were Read Replicas (which accept reading), they would still want to the bank — the in-memory cache completely avoids access to the bank for cached data."
+      ]
+    },
+    "saa-ini-254": {
+      "text": "A company has an application that uploads images to S3 and then you need to process them (resize, convert format). The current processing is done in an instance EC2 how to use a serverless architecture to optimize this processing?",
+      "options": [
+        "Configure a function AWS Lambda with event trigger S3 (s3:SubjectCreated:*) — when a new object is created in the pocket, the S3 automatically invokes Lambda with the metadata of the object; Lambda process the image and store the result in S3, without need of instance EC2 permanent",
+        "Use AWS Elastic Beanstalk to host the processing application — Beanstalk automatically scales the number of instances according to the image queue to process",
+        "Move instance EC2 for Spot Instance — the cost will be reduced in up to 90% and the instance will only be charged when it is actually processing",
+        "Use Amazon SQS to thread the images for processing — the EC2 process row items continuously, ensuring that no image is lost and the instance is always busy"
+      ],
+      "explanation": "Correct.. Lambda with S3 trigger is the serverless pattern for object processing. The stream: upload to S3 → S3 issue event → Lambda is invoked automatically with object details (bucket, key) → Lambda process (download, resize, upload result) → ends. Pays only for processing time — no cost when there are no images to process.",
+      "hint": "What service AWS execute code (function) in response to events (as upload to S3) without needing a server/instance always running — charging only for running time?",
+      "optionRationales": [
+        "Correct.. Lambda with S3 trigger is the serverless pattern for object processing. The stream: upload to S3 → S3 issue event → Lambda is invoked automatically with object details (bucket, key) → Lambda process (download, resize, upload result) → ends. Pays only for processing time — no cost when there are no images to process.",
+        "Incorrect for the purpose of eliminating the always active instance. Elastic Beanstalk still uses instances EC2 (could scale to zero with specific configurations, but it is more complex and more expensive than Lambda for this case of use). Lambda is the native serverless solution most suitable for event-driven object processing S3.",
+        "Incorrect. Spot Instance reduces the CUSTO of the instance EC2 but still keeps an instance in execution (even idle, Spot Instances The problem described is the idle instance in most of the time.' — Lambda (serverless, paid by invocation) completely eliminates idle cost. Spot Instance is not serverless.",
+        "Incorrect to eliminate idle instance. SQS + EC2 still maintains an instance in execution (even if occupied). The goal is serverless — Lambda + S3 trigger eliminates the need for any permanent instance. SQS can be combined with Lambda (Lambda may consume SQS) for asynchronous processing with retry, but the EC2 not required."
+      ]
+    },
+    "saa-ini-255": {
+      "text": "A company has a web application with unpredictable traffic peaks. The team wants to use instances EC2 which climb rapidly during peaks and reduce during quiet periods. EC2 offers automatic scalability and charge per second of use?",
+      "options": [
+        "Courts EC2 On-demand with Auto Scaling Group — On-Demand instances can be launched and closed automatically by Auto Scaling, collected per second (minimum 60 second), without long-term commitment; or ASG scale dynamically based on metrics (CPU, Targeted requests)",
+        "Dedicated Hosts — dedicated hosts have fixed capacity reserved exclusively for the customer, ensuring that there will always be resources available to scale quickly",
+        "Courts Reserved Instances (RI) of 1 year — with advance payment, the RIs provide automatic scalability and discounts of up to 75% compared to On-Demand",
+        "Courts Spot with spot Fleet — fora Spot are automatically launched and closed by AWS based on availability, creating free automatic scalability"
+      ],
+      "explanation": "Correct. On-Demand cases with Auto Scaling Group is the standard combination for automatic scalability without long-term commitment. On-Demand: charge per second (min. 60(s), without contract. Auto Scaling Group: Automatically adjusts capacity based on metrics, scaling policies, and health checks. For unpredictable peaks, On-Demand + ASG is the flexible solution.",
+      "hint": "For automatic scalability without long-term commitment, what type of instance combination EC2 and self-scaling service is the most flexible for unpredictable peaks?",
+      "optionRationales": [
+        "Correct. On-Demand cases with Auto Scaling Group is the standard combination for automatic scalability without long-term commitment. On-Demand: charge per second (min. 60(s), without contract. Auto Scaling Group: Automatically adjusts capacity based on metrics, scaling policies, and health checks. For unpredictable peaks, On-Demand + ASG is the flexible solution.",
+        "Incorrect. Reserved Instances are a model of PRECIFICATION with discount in exchange for commitment of 1 or 3 years — do not provide 'automatic scaling'. RIs ensure that you PAGA For unpredictable peaks, compromising fixed capacity would be inefficient. On-demand + Auto Scaling is more flexible.",
+        "Partly correct that Spot Instances cost less, but incorrect on scalability. Spot Instances can be closed by AWS with 2 warning minutes when capacity is needed — they are not suitable for loads that need guaranteed availability. The 'scalability' of closing by availability is not the same as Auto Scaling managed to meet demand.",
+        "Incorrect. Dedicated Hosts are for compliance and licensing (physical hardware dedicated to the customer) — are the least flexible for scalability, because the capacity is fixed and you pay for the entire host. For automatic and efficient scalability, On-Demand + Auto Scaling Group is the standard approach."
+      ]
+    },
+    "saa-ini-256": {
+      "text": "A company has an application that processes real-time requests with very low latency requirement (sub-milliseconds). (RDS PostgreSQL) has latency 10-20What kind of database? AWS is optimized for sub-millisecond latency in simple read/write operations?",
+      "options": [
+        "Amazon Neptune — database of graphs with sub-millisecond latency for graph crossover; when modeling data as graphs, simple read/write operations are extremely fast",
+        "Amazon RDS Aurora — o Aurora MySQL/PostgreSQL has latency 5x less than or RDS pattern due to distributed storage, reaching sub-millimeter latency automatically",
+        "Amazon Redshift — data warehouse database optimized for complex analytical queries; when using simple queries, latency is sub-milliegundo for being columnar",
+        "Amazon DynamoDB — database NoSQL fully managed with latency of a digit of milliseconds (or sub-milisegund with DAX) for get/put operations by primary key, able to scale for any load without performance degradation"
+      ],
+      "explanation": "Correct.. DynamoDB is designed for consistently low latency (single-digit milliseconds) even on a massive scale. DynamoDB Accelerator (DAX), microsecond latency is possible. For simple operations by primary key (get item, put item)), DynamoDB overcomes relational banks in latency and scalability.",
+      "hint": "Which database AWS (NoSQL) is specifically designed for millisecond latency of a single digit in reading/writing operations by primary key, with automatic horizontal scalability?",
+      "optionRationales": [
+        "Correct.. DynamoDB is designed for consistently low latency (single-digit milliseconds) even on a massive scale. DynamoDB Accelerator (DAX), microsecond latency is possible. For simple operations by primary key (get item, put item)), DynamoDB overcomes relational banks in latency and scalability.",
+        "Incorrect. Aurora It's even 5x faster than standard MySQL and 3x more than PostgreSQL, but still operates in milliseconds (not sub milliseconds). Aurora It's a bank RELACIONAL with all guarantees ACID — optimized for relational transactional workloads, not for microsecond latency in simple key operations. DynamoDB is superior to that requirement.",
+        "Incorrect. Amazon Redshift is for analytics (OLAP) with complex queries in large data volumes — not for ultra-low latency transactions (OLTP). Redshift typically has latency from seconds to minutes for analytical queries. It is the opposite of the requirement described.",
+        "Incorrect. Amazon Neptune is a GRAFOS (for data with complex relationships, such as social networks, knowledge graphs) — is not a general use bank for simple high-speed operations., DynamoDB is the optimized solution."
+      ]
+    },
+    "saa-ini-257": {
+      "text": "A company has an application that serves static files (HTML, CSS, JS, images) of a server EC2. The team wants to optimize for better performance and reduce load on the server. What is the best performance approach to serve static content on AWS?",
+      "options": [
+        "Enable EC2 Placement Groups (Cluster) to reduce the instance's network latency — instances in group cluster placement have high speed network that improves the performance of serving static files",
+        "Host static files in Amazon S3 with S3 Static Website Hosting + CloudFront as CDN forward — the S3 is highly scalable to serve static files, and the CloudFront distribute them to edge locations close to users, with less latency and without overloading the EC2",
+        "Increase instance type EC2 for a compute-optimized instance (c6i).4xlarge) — more vCPUs and memory allow the web server to serve more static requests simultaneously without degradation",
+        "Configure an Elastic Load Balancer (ALB) in front of the instance EC2 — o ALB has built-in static content cache that stores files CSS and JS, reducing repeated calls to the server"
+      ],
+      "explanation": "Right. For static content, the highest performance standard is: S3 (highly available and scalable storage for files) + CloudFront (CDN for delivery from the nearest edge). EC2 to serve statics, improving performance so much (CDN) the capacity of the EC2 (which can focus on dynamic content).",
+      "hint": "For static content with higher performance, which combination uses a scalable storage service + one CDN for delivery from the nearest geographic edge of the user?",
+      "optionRationales": [
+        "Right. For static content, the highest performance standard is: S3 (highly available and scalable storage for files) + CloudFront (CDN for delivery from the nearest edge). EC2 to serve statics, improving performance so much (CDN) the capacity of the EC2 (which can focus on dynamic content).",
+        "Incorrect as best approach. Increasing the instance is vertical scalability — eventually reaches limits and still maintains latency based on geographical distance. S3 + CloudFront it is infinite horizontal scalability with edge caching — without throughput limit and with much lower latency for geographically distributed users.",
+        "Incorrect. ALB has no built-in content cache — it is a load balancer, not one CDN. The ALB Redistribute traffic between instances but does not store static content. CloudFront (CDN) is the service with edge cache. Add ALB no CloudFront does not improve static content performance.",
+        "Incorrect. EC2 Placement Groups Cluster put physically close instances for low latency instance-to-instance communication (useful for HPC, database clusters). It has no relation to the latency of serving content to end users on the internet — latency until the end user is determined by geographical location, not by placement group."
+      ]
+    },
+    "saa-ini-258": {
+      "text": "A company has an e-commerce application with relational database. During seasonal sales, reporting queries (analytics) are very slow because they compete with sales transactions by the same bank. How to separate analytical workloads from transactions?",
+      "options": [
+        "Create a RDS Read Replica dedicated to analytical queries — when performing reports in the replica, heavy reading queries do not compete with transactions in the primary; the replica has access to the same data (with small asynchronous replication lag) and can have optimized hardware for analytics",
+        "Use Amazon Redshift to completely replace the RDS — o Redshift is a columnar data warehouse that processes transactional and analytical queries much faster than the RDS",
+        "Enable RDS Multi-AZ and redirect analytical queries to the standby in another AZ — the standby will have less load because it is less accessible, resulting in faster analytical queries",
+        "Increase database size using Amazon Aurora Global Database — the Aurora Global Database replicates data in multiple regions, and analytical queries can be executed in the secondary region without impact on primary"
+      ],
+      "explanation": "Correct. Read Replica dedicated to analytics is a standard set to separate OLTP (Online Transaction Processing) OLAP (Online Analytical Processing). The primary is focused on transactions (INSERT/UPDATE/DELETE + critical readings), while the replica serves intensive reporting queries without impacting transactions. The replica may even have a type of instance optimized for memory (e.g.: r5.4xlarge) for analytical queries.",
+      "hint": "To perform analytical queries without impacting the transactions of the primary instance, which functionality of the RDS creates a read copy that can receive heavy reporting queries?",
+      "optionRationales": [
+        "Correct. Read Replica dedicated to analytics is a standard set to separate OLTP (Online Transaction Processing) OLAP (Online Analytical Processing). The primary is focused on transactions (INSERT/UPDATE/DELETE + critical readings), while the replica serves intensive reporting queries without impacting transactions. The replica may even have a type of instance optimized for memory (e.g.: r5.4xlarge) for analytical queries.",
+        "Incorrect as complete replacement. Redshift is an optimized data warehouse for analytics (OLAP), not for e-commerce transactions (high frequency of INSERT/UPDATE individual — OLTP). Replace RDS by Redshift would break transactional operations. The correct pattern is: RDS for OLTP + Redshift (or Read Replica) for Analytics.",
+        "Incorrect. The Multi-AZ standby does not accept reading queries — it is exclusive to automatic failover. It is not possible to redirect queries to the standby. Read Replicas (not Multi-AZ standby) are the solution for distributing reading load/analytics.",
+        "Correct in concept of separation (secondary region for analytics) but incorrect as basic solution. Aurora Global Database is an advanced solution for disaster recovery cross-region and edge reads — not the first solution to separate analytics from OLTP in the same region. Read Replica in the same region is simpler and more direct."
+      ]
+    },
+    "saa-ini-259": {
+      "text": "A company uses AWS Lambda for event processing. One developer realized that the first invocations of a function Lambda after a period of inactivity are slower than the subsequent ones.?",
+      "options": [
+        "Throttling — o AWS Lambda limits the number of summonses per second; first calls are lined up and delayed until capacity is available, causing slowness in the first summonses",
+        "Cold Start — when a function Lambda is inactive for a sufficient time, the container that the execution is dislocated; in the next invocation, the AWS needs to allocate a new container, load the runtime and function code before running, adding latency (typically 100ms-1s depending on the language and size of the package)",
+        "Lack of memory — the first invocations use more memory because they need to load libraries, causing swapping that increases latency; subsequent invocations already have libraries in memory RAM",
+        "Timeout of connection — in the first invocations, the Lambda needs to establish new connections TCP with external services (data bank, APIs), which have delayed handshake; subsequent invocations reuse cached connections"
+      ],
+      "explanation": "Right. Cold Start is the phenomenon where the first invocation (or after inactivity) of Lambda has additional latency for: (1) supply delivery container, (2) load runtime (Java is slower than Node.js), (3) run the boot code out of the handler. Subsequent invocations (warm) reuse the container and are much faster.",
+      "hint": "What is the term for additional latency in PRIMEIRAS Invocations of a function Lambda after inactivity — caused by the need to allocate a new execution container?",
+      "optionRationales": [
+        "Right. Cold Start is the phenomenon where the first invocation (or after inactivity) of Lambda has additional latency for: (1) supply delivery container, (2) load runtime (Java is slower than Node.js), (3) run the boot code out of the handler. Subsequent invocations (warm) reuse the container and are much faster.",
+        "Incorrect. Throttling occurs when you EXCEDE the limit of competition (default) 1000 by region) — is not what happens in 'first invocations after inactivity'. Cold Start is specific for the first invocation after inactivity, not for high load. Throttling would result in errors 429 (TooManyRequestsException), not just slowness.",
+        "Partially correct that establishing connections is part of the cold start, but the root cause of the cold start is the allocation of CONTAINER execution — not just connections TCP. Moreover, re-use of connections between invocations is not guaranteed (depending on how the Lambda is programmed) and is not the main concept here. Cold Start encompasses all the cost of environmental startup.",
+        "Incorrect. Lambda does not use swap — if the function exceeds the assigned memory, it is closed with error OOM. The cold start is not caused by swapping but by the initialization of the running environment (container). Lambda (which also increases CPU (proportional) may REDUZIR the cold start when speeding up the initialization, but the cause is the provision of the container, not lack of RAM."
+      ]
+    },
+    "saa-ini-260": {
+      "text": "A company has an application that makes many queries to the database RDS to recover data from a rarely changing 'system configurations' table. The team wants to eliminate these unnecessary queries to the bank. What is the most efficient solution?",
+      "options": [
+        "Implement caching in memory with Amazon ElastiCache Redis — when loading system settings to Redis with a TTL long (ex.: 1 time), the cache search application instead of the bank; as settings rarely change, the cache will almost always have the updated data (hit rate close to 100%)",
+        "Create a RDS Read Replica dedicated to configuration wants — by separating configuration wants from main traffic, they will not affect the performance of the primary bank",
+        "Increase Database Connection Pool — By reusing existing connections, configuration queries run faster without overhead establishing new connections",
+        "Use Amazon DynamoDB to store system configurations — the DynamoDB has native sub-millisecond latency for get operations by key, eliminating the need for additional caching"
+      ],
+      "explanation": "Correct. For data that rarely changes (such as system settings), ElastiCache Redis with TTL long is ideal: high rate of cache hit (data rarely expires without change), sub-millisecond latency, and drastic reduction of queries to the bank. When settings change, the application invalidates the cache and it is recharged from the bank.",
+      "hint": "For data that 'rarely change' and are accessed frequently, which cache-in-memory approach completely eliminates repeated queries to the database?",
+      "optionRationales": [
+        "Correct. For data that rarely changes (such as system settings), ElastiCache Redis with TTL long is ideal: high rate of cache hit (data rarely expires without change), sub-millisecond latency, and drastic reduction of queries to the bank. When settings change, the application invalidates the cache and it is recharged from the bank.",
+        "Incorrect as the best solution. Read Replicas still want to the bank (now in another instance). For data that rarely changes, the cache in-memory avoids COMPLETAMENTE the query to the bank after the first loading. ElastiCache is much more efficient than Read Replica for this access pattern.",
+        "Partly correct that DynamoDB It would be faster than RDS for simple operations by key. However, migrate data to DynamoDB involves changing architecture and code. The simplest and most immediate solution to 'eliminate unnecessary queries to the existing bank' is to add ElastiCache in front of the current bank — no data migration.",
+        "Incorrect for the problem described. Connection pooling optimizes the OVERHEAD Connection TCP/TLS, But he's still doing the quirky. VOLUME of repeated and unnecessary queries to the bank — not the speed of each query. ElastiCache eliminates repeated queries (cache hit = no query to the bank), while connection pooling still makes them."
+      ]
+    },
+    "saa-ini-261": {
+      "text": "A company uses Amazon S3 and needs to process very large files (multi-GB) efficiently. S3 often fails by timeout or unstable connection. What functionality of S3 solve this problem?",
+      "options": [
+        "S3 Transfer Acceleration — using the backbone network of AWS globally, Transfer Acceleration increases upload speed to large files without timeout risk",
+        "Multipart Upload — divides the file into parts (minimum 5 MB on the other hand, except the last), uploads each part independently (could be in parallel), and ends with a 'complete' operation that combines the parts; if one part fails, only it needs to be re-sent, not the entire file",
+        "S3 Presigned URLs with long expiration (24 hours) — when using one URL with long term, the connection does not expire before finishing the upload of the large file",
+        "Increase connection timeout in instance EC2 which makes upload — when setting up a larger timeout in the application, large files have more time to complete upload without fail"
+      ],
+      "explanation": "Right. Multipart Upload is the recommended mechanism for files above 100 MB (mandatory for files above 5 GB in a single operation PUT). Benefits: parallel upload of parts (better throughput), resilience (failure in one part does not restart the entire file), and possibility to pause/retrieve uploads. AWS SDK can configure multipart upload automatically.",
+      "hint": "What is the functionality of S3 divides large files into smaller parts that can be sent in parallel and individually redirected in case of failure — without restarting the entire upload?",
+      "optionRationales": [
+        "Right. Multipart Upload is the recommended mechanism for files above 100 MB (mandatory for files above 5 GB in a single operation PUT). Benefits: parallel upload of parts (better throughput), resilience (failure in one part does not restart the entire file), and possibility to pause/retrieve uploads. AWS SDK can configure multipart upload automatically.",
+        "Partly useful to improve the speed of long-distance uploads (use edge locations of AWS to get into the backbone network faster), but does not solve timeouts/connection failures in large files. Multipart Upload is the specific solution for failure resilience in large file uploads.",
+        "Partly useful to give more time to upload, but Presigned URLs are about AUTENTICATION (URL (i) not about resilience to network failures. URL presigned still expires and upload should start from scratch. Multipart Upload is the solution for network failure resilience in large uploads.",
+        "Incorrect as a real solution. Increasing timeout is a fragile solution — in unstable connections, a larger timeout does not solve the root cause. Furthermore, for multiple GB files, maintaining a single connection TCP for hours is unreliable. Multipart Upload divides risk into smaller parts — each part is a smaller separate upload."
+      ]
+    },
+    "saa-ini-262": {
+      "text": "A company has a web application that serves dynamic content (generated by the server, based on the logged in user) via Amazon CloudFront. They realized that all users are receiving the same cached content, even if the content is customized per user. What is causing this problem?",
+      "options": [
+        "The CloudFront is ignoring cookies and session headers by default — without setting the cache policy to include authentication cookies in the key cache, CloudFront handles all the requests of the same URL as equal and serves the cached content of the first user for all",
+        "The TTL of the CloudFront is set very low — when the cache expires quickly, the CloudFront search for new content but uses the latest database data that has not yet been updated to the specific user",
+        "The S3 of origin does not support dynamic content — for personalized content, CloudFront must use a function Lambda as origin, no S3",
+        "The CloudFront only supports static content and cannot serve dynamic content generated by the server — it is necessary to use the ALB directly to personalized content"
+      ],
+      "explanation": "By default, CloudFront does not include cookies or headers in the key cache — handles all requests for it URL for custom content per user (based on session cookie), you need to set up a Cache Policy that includes the authentication cookie in the key cache, or disable the caching for that type of content (using 'no-cache' in headers)).",
+      "hint": "For custom content per user (based on session/cookie), what needs to be included in the 'cache key' of CloudFront so that the content of one user is not served to another?",
+      "optionRationales": [
+        "By default, CloudFront does not include cookies or headers in the key cache — handles all requests for it URL for custom content per user (based on session cookie), you need to set up a Cache Policy that includes the authentication cookie in the key cache, or disable the caching for that type of content (using 'no-cache' in headers)).",
+        "Incorrect. CloudFront can serve dynamic content (directs the request to the source when there is no cache or when configured not to cache). The problem described is not about technical impossibility, but about incorrect key cache configuration that ignores authentication cookies.",
+        "Incorrect. TTL low would do the CloudFront search for origin more often — the problem described is the OPOSTO (users receiving cached content from another user). TTL high with incorrect key cache (ignoring session cookies) is the cause of the problem, no TTL low.",
+        "Incorrect about S3 as cause. The problem is not about the source type — it's about the key cache configuration in CloudFront. Even with Lambda or EC2 as origin, if the key cache does not include authentication cookies, different users would receive the same cached content."
+      ]
+    },
+    "saa-ini-263": {
+      "text": "A company has instances EC2 that process a lot of data from a pocket S3. The team realized that data transfer costs are high. How to reduce costs and latency of access to the S3 without crossing the public internet?",
+      "options": [
+        "Configure CloudFront as CDN in front of the S3 — by cache the data from S3 no CloudFront, the instances EC2 search for edge location location instead of S3, reducing transfer costs",
+        "Use S3 Transfer Acceleration — Transfer Acceleration uses the backbone network of AWS for internal data transfers, reducing transfer costs between EC2 and S3",
+        "Move instances EC2 for the same AZ of the pocket S3 — when they are in the same area of availability, the traffic between EC2 and S3 no data transfer costs between AZs",
+        "Create a S3 Gateway Endpoint at VPC — the Gateway Endpoint creates a private route in the route table of the VPC for the S3, allowing for instances EC2 access the S3 via the network of the AWS without data transfer cost and without going through the internet"
+      ],
+      "explanation": "Correct.. S3 Gateway VPC Endpoint creates a private route on VPC for the S3. Benefits: (1) Traffic doesn't go to the internet — it stays on the network AWS; (2) No cost of NAT Gateway (which would be necessary for private sub-networks to access S3 via internet); (3) No data transfer cost EC2→S3 in the same region. Gateway Endpoints to S3 and DynamoDB are GRATUITOS.",
+      "hint": "What type of VPC Endpoint creates a route GRATUITA and private between instances EC2 and the Amazon S3 (without going through the Internet or NAT Gateway)?",
+      "optionRationales": [
+        "Correct.. S3 Gateway VPC Endpoint creates a private route on VPC for the S3. Benefits: (1) Traffic doesn't go to the internet — it stays on the network AWS; (2) No cost of NAT Gateway (which would be necessary for private sub-networks to access S3 via internet); (3) No data transfer cost EC2→S3 in the same region. Gateway Endpoints to S3 and DynamoDB are GRATUITOS.",
+        "Incorrect. S3 Transfer Acceleration is to accelerate uploads of FORA of AWS for the S3 (using edge locations), And there's CUSTO additional per transfer. Not suitable to reduce transfer costs EC2→S3 within the same region. VPC Endpoint is the free solution for this case.",
+        "Incorrect. S3 is not 'in a specific AZ' — it is a regional, not zonal service. EC2 and S3 'in the same AZ'. In addition, the transfer cost EC2→S3 in the same region is usually zero (even without VPC Endpoint), but cross the public internet (via NAT Gateway) It's costing.. VPC Endpoint eliminates this cost of NAT.",
+        "Incorrect. CloudFront is for delivery of content to USERS FINAIS (internet), not for communication EC2→S3 within the VPC. Create a CDN for internal access would be an unnecessarily complex and costly architecture. VPC Endpoint is the direct solution for access EC2→S3 without internet."
+      ]
+    },
+    "saa-ini-264": {
+      "text": "A company has a database DynamoDB and realized that their writing system is being limited (throttled) in some partitions during peaks. They have a low cardinality partition key (minus distinct values). What causes throttling and how to mitigate it?",
+      "options": [
+        "The DynamoDB needs to be migrated to an On-Demand mode — the On-Demand mode automatically scales without throttling, regardless of partition key distribution",
+        "Hot Partition — when the partition key has low cardinality, most writings go to few partitions, overloading these partitions with more requirements than the provided capacity; the solution is to use a partition key with high cardinality or add a random suffix to distribute the load",
+        "The DynamoDB does not support high-speed writing — for high-rate writing workloads, the bank should be migrated to Amazon RDS Aurora which has greater throughput of writing",
+        "Total provisioned throughput is insufficient — by increasing the WCUs DynamoDB, throttling disappears independent of partition distribution"
+      ],
+      "explanation": "Correct.. DynamoDB distributes data and throughput by partitions based on the partition key. With low cardinality (e.g. status: 'active'/'inactive'), many items go to the same partitions. The throughput provided by partition has limit — excessive writing on the same partition generate throttling even if the general throughput is not exhausted. Solutions: use key with high cardinality (user_id, order_id), write sharding (add random shard)).",
+      "hint": "When many writings DynamoDB go to the same few partitions because of the low cardinality of the partition key, which term describes this problem — and what design change solves it?",
+      "optionRationales": [
+        "Correct.. DynamoDB distributes data and throughput by partitions based on the partition key. With low cardinality (e.g. status: 'active'/'inactive'), many items go to the same partitions. The throughput provided by partition has limit — excessive writing on the same partition generate throttling even if the general throughput is not exhausted. Solutions: use key with high cardinality (user_id, order_id), write sharding (add random shard)).",
+        "Partly incorrect. Increasing total WCUs may help temporarily, but does not solve the Hot Partition problem — the DynamoDB distributes the throughput equally between partitions. Increase total WCUs increases the limit per partition, but with low cardinality, the hot partition will still receive all the load. The root of the problem is the unequal load distribution.",
+        "Partially incorrect. DynamoDB On-Demand reduces (but does not eliminate) the risk of throttling in Hot Partitions — each partition still has a per-partition throughput limit. Very hot partitions can still be limited. The fundamental solution is to improve the partition key design for more uniform distribution.",
+        "Incorrect. DynamoDB is designed exactly for writings of very high speed — when well modeled, it supports millions of requests per second. The problem is not inherent limitation of the DynamoDB, but a schematic design problem (partition key with low cardinality). With the correct design, DynamoDB exceeds relational banks in throughput of writing."
+      ]
+    }
+  }
+}
