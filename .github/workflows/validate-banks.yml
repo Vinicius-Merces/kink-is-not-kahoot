@@ -1,20 +1,28 @@
-name: Validar bancos
+name: Validar conteúdo e i18n
 
-# Roda a validação dos bancos de questões e dos overlays do CloudArena
-# a cada push/PR que toque nos dados ou nos validadores.
+# Valida bancos, overlays do CloudArena e a camada de internacionalização.
 on:
   push:
     branches: [ main, master ]
     paths:
       - 'data/**'
+      - 'locales/**'
+      - 'js/i18n.js'
       - 'scripts/validate_banks.py'
       - 'scripts/validate_arena.py'
+      - 'scripts/validate_i18n.py'
+      - 'scripts/prepare_arena_option_ids.py'
       - '.github/workflows/validate-banks.yml'
   pull_request:
     paths:
       - 'data/**'
+      - 'locales/**'
+      - 'js/i18n.js'
       - 'scripts/validate_banks.py'
       - 'scripts/validate_arena.py'
+      - 'scripts/validate_i18n.py'
+      - 'scripts/prepare_arena_option_ids.py'
+      - '.github/workflows/validate-banks.yml'
   workflow_dispatch: {}
 
 jobs:
@@ -34,3 +42,9 @@ jobs:
 
       - name: Validar overlays do CloudArena
         run: python3 scripts/validate_arena.py
+
+      - name: Validar contrato de IDs do CloudArena
+        run: python3 scripts/prepare_arena_option_ids.py
+
+      - name: Validar catálogos PT e EN
+        run: python3 scripts/validate_i18n.py
