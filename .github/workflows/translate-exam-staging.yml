@@ -1,0 +1,82 @@
+name: Gerar rascunho EN de banco
+
+permissions:
+  contents: write
+  models: read
+
+on:
+  push:
+    branches:
+      - feat/i18n-foundation
+    paths:
+      - 'translations/requests/**.json'
+  workflow_dispatch:
+    inputs:
+      request:
+        description: 'Arquivo JSON em translations/requests/'
+        required: true
+        default: 'translations/requests/clf-c02-avancado.json'
+
+concurrency:
+  group: translate-exam-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Resolver arquivo de solicitação
+        id: request
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "path=${{ inputs.request }}" >> "$GITHUB_OUTPUT"
+          else
+            REQUEST=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^translations/requests/.*\.json$' | head -n 1)
+            test -n "$REQUEST"
+            echo "path=$REQUEST" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validar sintaxe do gerador
+        run: python3 -m py_compile scripts/translate_exam_staging_with_github_models.py
+
+      - name: Gerar somente staging EN assistido
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/translate_exam_staging_with_github_models.py "${{ steps.request.outputs.path }}"
+
+      - name: Validar staging completo
+        run: python3 scripts/validate_exam_translation_staging.py
+
+      - name: Garantir que nenhum banco ready foi gerado por este workflow
+        shell: bash
+        run: |
+          if ! git diff --quiet -- data/exams-en; then
+            echo 'ERRO: o gerador de staging tentou alterar data/exams-en.'
+            git diff -- data/exams-en
+            exit 1
+          fi
+
+      - name: Versionar apenas os rascunhos validados
+        shell: bash
+        run: |
+          git add translations/en
+          if git diff --cached --quiet; then
+            echo 'Nenhum novo rascunho para versionar.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): generate validated assisted English staging'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
