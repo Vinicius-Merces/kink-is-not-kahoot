@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 STAGING_ROOT = ROOT / "translations" / "en"
 BUILDER = ROOT / "scripts" / "build_exam_translation.py"
+LEVELS = {"iniciante", "medio", "avancado"}
 
 
 def staged_ids(target_dir: Path) -> set[str]:
@@ -57,6 +58,9 @@ def main() -> int:
 
     for cert_dir in sorted(p for p in STAGING_ROOT.iterdir() if p.is_dir()):
         for level_dir in sorted(p for p in cert_dir.iterdir() if p.is_dir()):
+            if level_dir.name not in LEVELS:
+                continue
+
             cert = cert_dir.name
             level = level_dir.name
             expected = source_ids(cert, level)
