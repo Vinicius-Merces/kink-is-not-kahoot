@@ -7,8 +7,9 @@ GitHub Actions runner. No hosted inference API or project secret is required.
 AWS/service names, acronyms, URLs, placeholders and numeric facts are never sent
 through the translation model. They are cut out as immutable literal spans, only the
 natural-language text between them is translated, and the original anchors are then
-reassembled byte-for-byte into the result. A post-translation integrity check remains
-as a second line of defense.
+reassembled byte-for-byte into the result. Delimiter punctuation adjacent to an
+anchor is also preserved literally so a model cannot collapse `Glue, Data` into
+`GlueData`. A post-translation integrity check remains as a second line of defense.
 """
 from __future__ import annotations
 
@@ -28,16 +29,11 @@ EXTRA_PROTECTED_RE = re.compile(
 
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?;:])\s+(?=[A-ZÀ-Ý0-9(\[\"'])")
 LETTER_RE = re.compile(r"[A-Za-zÀ-ÿ]")
+EDGE_PREFIX_RE = re.compile(r"^[^A-Za-zÀ-ÿ0-9]*")
+EDGE_SUFFIX_RE = re.compile(r"[^A-Za-zÀ-ÿ0-9]*$")
 
 
 def _protected_spans(text: str):
-    """Return immutable source intervals covering every protected anchor.
-
-    Matches from different detectors can overlap. Never discard a later overlap:
-    merge the intervals and preserve the exact original source slice. This guarantees
-    that a numeric fact cannot disappear merely because another technical pattern
-    overlaps the same source region.
-    """
     source = text or ""
     intervals: list[tuple[int, int]] = []
     for regex in (EXTRA_PROTECTED_RE, TECHNICAL_RE, NUMBER_RE):
@@ -45,7 +41,6 @@ def _protected_spans(text: str):
             intervals.append((match.start(), match.end()))
     if not intervals:
         return []
-
     intervals.sort(key=lambda row: (row[0], row[1]))
     merged: list[list[int]] = []
     for start, end in intervals:
@@ -57,7 +52,6 @@ def _protected_spans(text: str):
 
 
 def _chunk(text: str, max_chars: int = 1050):
-    """Split natural prose into model-safe chunks without changing its semantics."""
     text = (text or "").strip()
     if not text:
         return []
@@ -99,23 +93,23 @@ class _TranslationTask:
 
 
 def _append_natural(layout: list[tuple[str, object]], tasks: list[_TranslationTask], value: str):
-    """Add natural prose to a layout while preserving surrounding whitespace exactly."""
     if not value:
         return
     if not LETTER_RE.search(value):
         layout.append(("literal", value))
         return
 
-    leading = re.match(r"^\s*", value).group(0)
-    trailing = re.search(r"\s*$", value).group(0)
-    core_end = len(value) - len(trailing) if trailing else len(value)
-    core = value[len(leading):core_end]
+    prefix = EDGE_PREFIX_RE.match(value).group(0)
+    suffix = EDGE_SUFFIX_RE.search(value).group(0)
+    core_end = len(value) - len(suffix) if suffix else len(value)
+    core = value[len(prefix):core_end]
 
-    if leading:
-        layout.append(("literal", leading))
+    if prefix:
+        layout.append(("literal", prefix))
     chunks = _chunk(core)
     if not chunks:
-        layout.append(("literal", core))
+        if core:
+            layout.append(("literal", core))
     else:
         for index, chunk in enumerate(chunks):
             if index:
@@ -123,12 +117,11 @@ def _append_natural(layout: list[tuple[str, object]], tasks: list[_TranslationTa
             task_index = len(tasks)
             tasks.append(_TranslationTask(chunk))
             layout.append(("task", task_index))
-    if trailing:
-        layout.append(("literal", trailing))
+    if suffix:
+        layout.append(("literal", suffix))
 
 
 def _build_layout(source: str, tasks: list[_TranslationTask]):
-    """Represent a source as immutable anchors plus translatable prose tasks."""
     layout: list[tuple[str, object]] = []
     spans = _protected_spans(source)
     cursor = 0
@@ -142,7 +135,6 @@ def _build_layout(source: str, tasks: list[_TranslationTask]):
 
 class OfflineTranslator:
     def __init__(self, model_id: str = MODEL_ID):
-        # Imports are lazy so validators that import this module do not require ML deps.
         from transformers import MarianMTModel, MarianTokenizer
         import torch
 
@@ -155,26 +147,14 @@ class OfflineTranslator:
     def _generate_batch(self, values: list[str]) -> list[str]:
         if not values:
             return []
-        encoded = self.tokenizer(
-            values,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=512,
-        )
+        encoded = self.tokenizer(values, return_tensors="pt", padding=True, truncation=True, max_length=512)
         with self.torch.inference_mode():
-            generated = self.model.generate(
-                **encoded,
-                num_beams=4,
-                max_new_tokens=512,
-                early_stopping=True,
-            )
+            generated = self.model.generate(**encoded, num_beams=4, max_new_tokens=512, early_stopping=True)
         return self.tokenizer.batch_decode(generated, skip_special_tokens=True)
 
     def translate_many(self, sources: list[str], batch_size: int = 12) -> list[str]:
         tasks: list[_TranslationTask] = []
         layouts = [_build_layout(source, tasks) for source in sources]
-
         translated_tasks = [""] * len(tasks)
         for offset in range(0, len(tasks), batch_size):
             batch = tasks[offset:offset + batch_size]
@@ -188,16 +168,11 @@ class OfflineTranslator:
 
         results = []
         for source, layout in zip(sources, layouts):
-            parts = []
-            for kind, value in layout:
-                parts.append(str(value) if kind == "literal" else translated_tasks[int(value)])
+            parts = [str(value) if kind == "literal" else translated_tasks[int(value)] for kind, value in layout]
             candidate = "".join(parts).strip()
             issues = field_anchor_errors(source, candidate, "translation")
             if issues:
-                raise RuntimeError(
-                    f"offline translation lost immutable anchors despite segmented assembly: {issues}; "
-                    f"source={source[:160]!r}"
-                )
+                raise RuntimeError(f"offline translation lost immutable anchors: {issues}; source={source[:160]!r}")
             if not candidate:
                 raise RuntimeError(f"offline translation returned empty text for {source[:160]!r}")
             results.append(candidate)
