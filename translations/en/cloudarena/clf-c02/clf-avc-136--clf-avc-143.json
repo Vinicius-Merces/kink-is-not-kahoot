@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "clf-c02",
+    "range": "clf-avc-136..clf-avc-143",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "clf-avc-136": {
+      "optionReasons": {
+        "clf-avc-136:option:0": "",
+        "clf-avc-136:option:1": "Go straight to Glacier Deep Archive after 30 days requires recovery of hours — inadequate for audits that can request reports at any time.",
+        "clf-avc-136:option:2": "It's the closest because it also scales the classes for time — but the Glacier Flexible Retrieval recovers in minutes/hours, bad for audits that need the fast file; for rare access and IMPRESSIBLE with immediate recovery, the Glacier Instant Retrieval is more suitable after 30 days.",
+        "clf-avc-136:option:3": "One Zone-IA saves data in a single AZ (less durable) — risky for data that need to be maintained 3 years by tax compliance."
+      },
+      "finalJustifications": [
+        "Why keep in S3 Standard No 30 days of immediate access, transition to S3 Glacier Instant Retrieval after (recovery in ms for rare access) and expire on 3 years maximizes economy with compliance.",
+        "Why go from S3 Standard direct to Glacier Deep Archive after 30 days and delete in 3 years maximizes the economy — maintaining initial immediate access and rapid recovery for unpredictable audits.",
+        "Why move to Standard-IA after 30 days and then to Glacier Flexible Retrieval in the end maximizes the economy — maintaining initial immediate access and rapid recovery for unpredictable audits.",
+        "Why move to One Zone-IA after 30 days and delete in 3 years maximizes the economy — maintaining the initial immediate access and durability required for tax compliance data."
+      ]
+    },
+    "clf-avc-137": {
+      "optionReasons": {
+        "clf-avc-137:option:0": "VPC Peering connects two VPCs to each other — doesn't give the internet access to the bank download updates.",
+        "clf-avc-137:option:1": "",
+        "clf-avc-137:option:2": "A Virtual Private Gateway is the side AWS of a VPN even on-premises — is not the way out to the public internet.",
+        "clf-avc-137:option:3": "It's the closest because it quotes route and Internet Gateway, linked to Internet access — but does not exist IGW 'in read mode', and connect the private subnet to a IGW the exposure to input connections; allowing only safe exit is to route the private subnet to a NAT Gateway in a public sub-network."
+      },
+      "finalJustifications": [
+        "Why provide one NAT Gateway on a public subnet and route the private subnet to it allows the bank to start SAID connections to download updates — without accepting internet entry connections.",
+        "Why use VPC Peering to the standard public network allows the bank to start output connections to download updates — without accepting internet input connections, keeping the private sub-network isolated.",
+        "Because attaching a Virtual Private Gateway to the private subnet allows the bank to start output connections to download updates — without accepting internet entry connections, keeping the subnet isolated.",
+        "Why create a secondary route for a Internet Gateway in read mode allows the bank to start output connections to download updates — without accepting internet input connections, keeping the isolation."
+      ]
+    },
+    "clf-avc-138": {
+      "optionReasons": {
+        "clf-avc-138:option:0": "",
+        "clf-avc-138:option:1": "Daily snapshots with bucket replication are timely backups — do not fail automatically and synchronous in the face of hardware failure.",
+        "clf-avc-138:option:2": "RDS Custom with EFS is not the architecture of high availability native to the RDS — the automatic synchronous failure comes from Multi-AZ.",
+        "clf-avc-138:option:3": "It's the closest because Read Replicas also replicate the bank to another location — but they are asynchronous and serve to ESCALAR LEITURAS, do not do automatic writing failureover; the synchronous failureover for another manual effortless AZ is Multi-AZ deployment."
+      },
+      "finalJustifications": [
+        "Because the Multi-AZ implementation of the RDS maintains a synchronous standby in another Availability Zone and automatically fails if the main data center fails — the non-manual effort required resilience.",
+        "Because daily snapshots with S3 Same-Region Replication maintain a synchronous standby in another AZ and fail automatically if the main data center fails — the effortless resilience requested manually.",
+        "Because RDS Custom with volumes EFS shared maintains a synchronous standby in another AZ and automatically fails if the main data center fails — the effortless resilience requested manually.",
+        "Because the Read Replicas in multiple regions maintain a synchronous standby in another AZ and cause automatic failover if the main data center fails — the effortless resilience requested manually."
+      ]
+    },
+    "clf-avc-139": {
+      "optionReasons": {
+        "clf-avc-139:option:0": "Amazon RDS PostgreSQL is relational and requires managing the instance — it is not NoSQL serverless for millions of recordings per second.",
+        "clf-avc-139:option:1": "It's the closest because the Aurora Serverless v2 also scales automatically without managing servers — but it is RELACIONAL (SQL); the load described is NoSQL of key-value with low latency massive recordings and serverless scale, which is the DynamoDB.",
+        "clf-avc-139:option:2": "ElastiCache Redis is cached in memory — not the bank NoSQL durable and serverless to store sensor telemetry.",
+        "clf-avc-139:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Amazon DynamoDB It's the bank NoSQL Key-value server that absorbs low latency and scale massive recordings automatically as volume varies — exactly the load of the IoT sensors.",
+        "Because Amazon Aurora Serverless v2 is the bank NoSQL Key-value server that absorbs low latency and scale massive recordings automatically as volume varies — exactly the sensor load.",
+        "Because Amazon RDS PostgreSQL is the bank NoSQL Key-value server that absorbs low latency and scale massive recordings automatically as volume varies — exactly the sensor load.",
+        "Because Amazon ElestiCache Redis is the bank NoSQL Key-value server that absorbs low latency and scale massive recordings automatically as volume varies — exactly the sensor load."
+      ]
+    },
+    "clf-avc-140": {
+      "optionReasons": {
+        "clf-avc-140:option:0": "Elastic Beanstalk provides and manages servers below — more cost and management than the serverless per event for a sporadic routine.",
+        "clf-avc-140:option:1": "",
+        "clf-avc-140:option:2": "It's the closest because a EC2 with cron ALSO resizes the image when detecting the upload — but keeping it on 24/7 waste cost for a sporadic script and requires managing the server; running by event without any server, paying only the execution, is the AWS Lambda.",
+        "clf-avc-140:option:3": "A cluster ECS with EC2 Spot still requires managing the orchestration and capacity — excessive for a short script triggered by upload."
+      },
+      "finalJustifications": [
+        "Because a function Lambda natively driven by the upload event of S3 runs only in processing seconds and does not require server management — the lowest cost and operational effort for sporadic routine.",
+        "Because Elastic Beanstalk triggered by the upload event of S3 runs only in processing seconds and does not require server management — the lowest cost and operational effort for sporadic routine.",
+        "Because one EC2 small connected 24/7 with cron triggered by the upload of S3 runs only in processing seconds and does not require server management — the lowest cost and operational effort for sporadic routine.",
+        "Because a cluster ECS with EC2 Spot triggered by the upload of S3 runs only in processing seconds and does not require server management — the lowest cost and operational effort for sporadic routine."
+      ]
+    },
+    "clf-avc-141": {
+      "optionReasons": {
+        "clf-avc-141:option:0": "It's the closest because high performance simulations also ask for a lot CPU (family C) — but the gargalo here is the TAXA EXTREMA transfer with storage in BLOCO LOCAL; instances with high I/O local disk are those optimized for Storage (family I).",
+        "clf-avc-141:option:1": "The R family is optimized for memory (very RAM) — not for the very high throughput of local block storage described.",
+        "clf-avc-141:option:2": "",
+        "clf-avc-141:option:3": "The T family (general purpose with burst) is for light and intermittent loads — not for I/O continuous storage end."
+      },
+      "finalJustifications": [
+        "Because optimized storage instances (family I) offer very high throughput and low latency local block storage — taking into account the extreme rate of transfer of genomic simulations, as required.",
+        "Because the optimized computer instances (family C) offer local block storage of very high throughput and low latency — taking into account the extreme rate of transfer of genomic simulations.",
+        "Because optimized memory instances (R family) offer local block storage of very high throughput and low latency — taking into account the extreme rate of transfer of genome simulations.",
+        "Because general purpose (T-family) instances offer local block storage of very high throughput and low latency — taking into account the extreme rate of transfer of genomic simulations."
+      ]
+    },
+    "clf-avc-142": {
+      "optionReasons": {
+        "clf-avc-142:option:0": "It's the closest because the Flexible Retrieval Glacier is also low-cost filing for rare access — but the Deep Archive is AINDA MAIS BARATO for long-term retention when recovery can lead to 12 hours, exactly the scenario described.",
+        "clf-avc-142:option:1": "",
+        "clf-avc-142:option:2": "Standard-IA is for infrequent access with immediate recovery — far more expensive than what is needed for data accessed less than once a year.",
+        "clf-avc-142:option:3": "Intelligent-Tiering moves objects between layers according to access — is not the lowest class of absolute cost for archival retention of 12h recovery."
+      },
+      "finalJustifications": [
+        "Because S3 Glacier Deep Archive has the lowest table retention cost for rarely accessed data that are never deleted, accepting recovery in up to 12 hours — exactly the video repository scenario.",
+        "Because S3 Glacier Flexible Retrieval has the lowest table retention cost for rarely accessed data that are never deleted, accepting recovery in up 12 hours — exactly the repository scenario.",
+        "Because S3 Standard-IA has the lowest retention cost of the table for rarely accessed data that are never deleted, accepting recovery in up to 12 hours — exactly the video repository scenario.",
+        "Because S3 Intelligent-Tiering has the lowest table retention cost for rarely accessed data that are never deleted, accepting recovery in up to 12 hours — exactly the repository scenario."
+      ]
+    },
+    "clf-avc-143": {
+      "optionReasons": {
+        "clf-avc-143:option:0": "",
+        "clf-avc-143:option:1": "Route Table defines where traffic is routed — does not filter safety connections by instance.",
+        "clf-avc-143:option:2": "The Internet Gateway only connects the VPC on the Internet — is not the security filter at the interface of the fora.",
+        "clf-avc-143:option:3": "It's the closest because the NACL also filters traffic within the VPC — But she's acting on SUB-REDE (statess), not on the interface of each machine; filter connections directly into the network interface (ENI) of each individual instance is the Security Group (state)."
+      },
+      "finalJustifications": [
+        "Because Security Group filter the connections directly into the network interface (ENI) of each individual instance — isolating internal traffic between EC2 in different sub-networks, exactly the order.",
+        "Because Route Table filters connections directly into the network interface (ENI) of each individual instance — isolating internal traffic between EC2 in different sub-networks, exactly the order.",
+        "Because Internet Gateway filter the connections directly into the network interface (ENI) of each individual instance — isolating internal traffic between EC2 in different sub-networks, exactly the order.",
+        "Because the Network ACL filter the connections directly into the network interface (ENI) of each individual instance — isolating internal traffic between EC2 in different sub-networks, exactly the order."
+      ]
+    }
+  }
+}
