@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "267-293",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-267": {
+      "optionReasons": {
+        "saa-med-267:option:0": "PartiQL is only one SINTAXE SQL on the DynamoDB — without adequate index, or WHERE by Price continues to scan/filter.",
+        "saa-med-267:option:1": "",
+        "saa-med-267:option:2": "LSI can only be created JUNTO with the table — the table already exists; and the requirement says 'without creating new table''.",
+        "saa-med-267:option:3": "FilterExpression filter DEPOIS to read — consumes the same scan capacity; and changing fate key requires re-create the table."
+      },
+      "finalJustifications": [
+        "Because one GSI with ProductCategory (partition) + Price (sort) transforms the search into Query Direct: exact match in the category and range (BETWEEN) in price — no scan and can be added to the existing table.",
+        "Because GSI index the price in a B tree within the table itself, accelerating the existing full scans without changing the way the application consults.",
+        "Because GSI makes the PartiQL optimize filters automatically, converting the scan into binary search on the indexed attributes of the inventory table.",
+        "Because GSI pre-calculates and materializes the results of the most frequent queries, serving the combinations category+direct price range of the index."
+      ]
+    },
+    "saa-med-273": {
+      "optionReasons": {
+        "saa-med-273:option:0": "Global Tables use ASSINCRONA replication — there is no 'atomic synchronous replication' between regions.",
+        "saa-med-273:option:1": "Conditional writes per table + manual rollback in the application IS NOT atomic — the reversal may fail in the middle.",
+        "saa-med-273:option:2": "",
+        "saa-med-273:option:3": "Streams + Lambda is possible and unidirectional — without atomicity; replay reprocesses, does not reverse."
+      },
+      "finalJustifications": [
+        "Because TransactWriteItems executes even 100 operations in multiple items and TABELAS atomically (same region): or everything confirms, or everything is reversed — ACID Really?.",
+        "Because the transactions of DynamoDB block the entire tables during the operation, ensuring the isolation of the financial writings.",
+        "Because the TransactWriteItems replicates the writings in a synchronous way between regions, ensuring the global atomicity of the tables.",
+        "Because transactions dispense additional writing capacity — the cost is the same as simple non-transacional writings in the table."
+      ]
+    },
+    "saa-med-279": {
+      "optionReasons": {
+        "saa-med-279:option:0": "No standard alarm CloudWatch restarting RDS by CPU low.",
+        "saa-med-279:option:1": "",
+        "saa-med-279:option:2": "Automatic backups do not force reinstitution stopped — simply do not occur in the period.",
+        "saa-med-279:option:3": "Court PARADA has no active standby taking over — Multi-AZ does not act on intentional stop."
+      },
+      "finalJustifications": [
+        "Because RDS limit stop to 7 DIAS: then automatically restarts to apply patches and pending maintenances — and the recovery returns to normal.",
+        "Because the AWS restarts the instance to verify if it is still necessary, charging the activity test of the stalled bank.",
+        "Because the limit of 7 days can be extended to 30 via support ticket, and the collection came from the unsolicited extension.",
+        "Because instances stopped by 7 days are converted into collectable snapshots, and reboot restores snapshot."
+      ]
+    },
+    "saa-med-281": {
+      "optionReasons": {
+        "saa-med-281:option:0": "The Auto Scaling of the provisions REAGE minutes late — sudden promotion peaks take throttling before adjustment.",
+        "saa-med-281:option:1": "There is no 'Reserved + On-Demand covering peaks' in the same table — modes are excluded by table.",
+        "saa-med-281:option:2": "",
+        "saa-med-281:option:3": "Average capacity (5.000) waste 98% And take throttling at peaks — the worst of both worlds."
+      },
+      "finalJustifications": [
+        "Because with peak/valley ratio of 100:1 On-Demand wins: instantly adapts without throttling and collects by request — cheaper when the average use is much below the peak.",
+        "Because On-Demand has a unit price lower than that provided for in any volume — the AWS encourages management-free mode with reduced rate.",
+        "Because On-Demand reserves the 10.000 RCU/s from the peak permanently without extra cost, ready for any future promotion of the store.",
+        "Because On-Demand eliminates the limits by partitioning the table, letting the traffic of the peaks flow without sharding or internal capacity throttling."
+      ]
+    },
+    "saa-med-297": {
+      "optionReasons": {
+        "saa-med-297:option:0": "Scale-up postpones problem: OLTP row-based is not optimized for analytical scans — and BI would continue to compete with transactions.",
+        "saa-med-297:option:1": "",
+        "saa-med-297:option:2": "Cache Redis accelerates readings REPETIDAS — does not perform aggregations over billions of lines.",
+        "saa-med-297:option:3": "The DynamoDB with GSIs is NoSQL by key — not analytical engine for BI."
+      },
+      "finalJustifications": [
+        "Because Redshift it's the data warehouse (column), MPP) designed for aggregations over billions of lines — the load OLAP Gets out of PostgreSQL and the transactional breathes.",
+        "Because Redshift automatically syncs with the RDS without any data load, mirroring the transactional tables.",
+        "Because Redshift executes the desires within itself RDS with hardware acceleration, without moving historical data.",
+        "Because Redshift is the serverless analytical version of PostgreSQL, running the aggregations in the same engine with identical syntax."
+      ]
+    },
+    "saa-med-045": {
+      "optionReasons": {
+        "saa-med-045:option:0": "",
+        "saa-med-045:option:1": "Daily backup gives RPO up to 24 HORAS — 288x worse than the 5 minutes required; and restore everything bursts the RTO of 30 min.",
+        "saa-med-045:option:2": "Multi-AZ protects within the region — regional disaster drops everything together.",
+        "saa-med-045:option:3": "Active-active in total capacity ATENDE, but the budget explicitly does not involve duplicate production."
+      },
+      "finalJustifications": [
+        "Because the warm standby keeps the complete environment in reduced scale with continuous replication: failover in minutes (RTO 30 min ok) and minimum loss (RPO 5 min ok) per fraction of the cost of the asset.",
+        "Because the warm standby is completely off until the disaster, at no cost — the continuous replication happens directly in the storage of the AWS.",
+        "Because the warm standby serves users of both sites simultaneously, dividing the production load between the regions in normal operating times.",
+        "Because warm standby restores daily backups faster than normal strategy, thanks to preheated indices in the secondary region."
+      ]
+    },
+    "saa-med-049": {
+      "optionReasons": {
+        "saa-med-049:option:0": "rsync between instances is artisanal process — without isolated value or protection against account impairment.",
+        "saa-med-049:option:1": "MIs in MESMA region and MESMA account falls along with compromised production.",
+        "saa-med-049:option:2": "Snapshots in THEIR own production account are achievable by the intruder who compromised the account — exactly the risk to be eliminated.",
+        "saa-med-049:option:3": ""
+      },
+      "finalJustifications": [
+        "Because AWS Backup makes cross-region copy and native cross-account for an isolated vault (with optional Vault Lock) — the recommended pattern against ransomware and account commitment.",
+        "Because AWS Backup encrypts backups with a key that the production account doesn't know, nullifying ransomware access to copies.",
+        "Because AWS Backup detects ransomware patterns in the data and automatically locks the account before backups are reached by the attack.",
+        "Because AWS Backup records critical copies on physical tapes outside of AWS, the definitive isolation against commitment of account and region."
+      ]
+    },
+    "saa-med-293": {
+      "optionReasons": {
+        "saa-med-293:option:0": "The Snowball is a one-time physical data transfer — no continuous replication for DR.",
+        "saa-med-293:option:1": "The Direct Connect is the LINK Network — does not replicate servers or recover them as EC2.",
+        "saa-med-293:option:2": "",
+        "saa-med-293:option:3": "The DMS migraine BANCOS OF DADOS — does not replicate entire servers at block level."
+      },
+      "finalJustifications": [
+        "Because the Elastic Disaster Recovery continuously replicates the servers in the block level to the AWS and recovers them as instances EC2 in minutes, with RPO of a few minutes.",
+        "Because DRS keeps instances EC2 identical connected in mirror 24/7, ready to take over traffic at the moment of disaster in the datacenter.",
+        "Because DRS converts physical servers to AMIs once a day, and recovery launches the latest images in the region.",
+        "Because DRS requires servers to already rotate VMware to replicate — the agent uses hypervisor snapshots as a block source."
+      ]
+    }
+  }
+}

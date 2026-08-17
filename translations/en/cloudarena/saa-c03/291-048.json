@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "291-048",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-291": {
+      "optionReasons": {
+        "saa-med-291:option:0": "",
+        "saa-med-291:option:1": "The Express One Zone serves very low latency — but requires MOVER data (the veto requirement) and does not eliminate requests.",
+        "saa-med-291:option:2": "Batch Operations executes mass actions (copy, tags) — does not serve web application GETs.",
+        "saa-med-291:option:3": "Request Country only TRANSFERE the account for whom you ask — the requests continue to exist (and would distance users))."
+      },
+      "finalJustifications": [
+        "Because CloudFront cache objects in the edges: cache hit = zero GetObject no S3 — the direct calls go down without touching the data.",
+        "Because CloudFront group small GETs into a single GET large, reducing the number of calls charged.",
+        "Because CloudFront makes the requests to S3 free of charge for internal traffic between services of the AWS.",
+        "Because CloudFront compresses the delivered objects, and smaller files generate fewer read requests."
+      ]
+    },
+    "saa-med-005": {
+      "optionReasons": {
+        "saa-med-005:option:0": "Vertical scale helps at the limit — but reports would continue to compete with production in the MESMA instance.",
+        "saa-med-005:option:1": "It's the classic trap because Multi-AZ also 'duplicates' the bank, seeming to solve scale — but its standby DOES NOT answer readings: it only exists to fail availability. To scale reading reports without touching the primary, the resource is the Read Replicas.",
+        "saa-med-005:option:2": "S3 is storage of objects — does not replace the relational bench.",
+        "saa-med-005:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Read Replicas receive heavy reports in separate replicas without touching the main production instance — the standard reading scale mechanism.",
+        "Because the Read Replicas process writing and reading alternately, dividing all the load with the main production instance.",
+        "Because the Read Replicas use synchronous replication without lag, mirroring each report at the instant of the original transaction.",
+        "Because Read Replicas fail automatically in case of failure, adding high availability to the reading scale of reports."
+      ]
+    },
+    "saa-med-009": {
+      "optionReasons": {
+        "saa-med-009:option:0": "It seems close because the Route 53 also works with cache in its operation (responses DNS with TTL) — But he solves it NOMES, no query results; hot data cache of the bank in memory (Redis/Memcached) is ElastiCache.",
+        "saa-med-009:option:1": "",
+        "saa-med-009:option:2": "The Direct Connect is dedicated physical connectivity — nothing to do with repeated consultations.",
+        "saa-med-009:option:3": "The CloudTrail audit calls from API — It doesn't accelerate anything.."
+      },
+      "finalJustifications": [
+        "Because ElastiCache (Redis/Memcached) keeps in memory the data of repeatedly accessed products — less charge on the bench and latency of microseconds.",
+        "Because ElastiCache rewrites the consultations SQL slow automatically, applying the missing indices in the product bank.",
+        "Because ElastiCache duplicates the entire database into another AZ, dividing the repeated queries between the two copies.",
+        "Because ElastiCache is already embedded in RDS no extra configuration, just activate the cache in the existing instance of the bank."
+      ]
+    },
+    "saa-med-039": {
+      "optionReasons": {
+        "saa-med-039:option:0": "",
+        "saa-med-039:option:1": "Read replicas are ASSIGNMENTS and promotion is MANUAL — do not take on their own in seconds.",
+        "saa-med-039:option:2": "Snapshot restores in NOVA instance, with delay and new endpoint — not automatic failover.",
+        "saa-med-039:option:3": "ElastiCache is cache — does not assume writings from a fallen relational bank."
+      },
+      "finalJustifications": [
+        "Because Multi-AZ keeps standby SYNCRON in another AZ with automatic failover and the MESMO endpoint DNS — the application reconnects without change in the connection string.",
+        "Because Multi-AZ balances the consultations between primary and standby, maintaining performance during unavailability.",
+        "Because Multi-AZ replicates the bank to three different regions, surviving to complete geographic disasters.",
+        "Because Multi-AZ dispenses automatic backups: the two synchronous copies already play the role of data recovery."
+      ]
+    },
+    "saa-med-040": {
+      "optionReasons": {
+        "saa-med-040:option:0": "The writings ARE NOT suspended forever — the Aurora promotes a replica automatically.",
+        "saa-med-040:option:1": "",
+        "saa-med-040:option:2": "There is no manual snapshot restoration — shared storage allows promotion in seconds.",
+        "saa-med-040:option:3": "No manual IP exchange: the endpoint cluster is automatically updated to the new record label."
+      },
+      "finalJustifications": [
+        "Because Aurora promotes a replica to the label (typically < 30s, shared storage) and the endpoint cluster (writer) starts pointing to it automatically.",
+        "Because the failure of the Aurora restarts the original record label at the same address, and the application doesn't even notice the short interruption.",
+        "Because the reader endpoint takes the writings during the failure, returning them to the record label when it returns to normal operation.",
+        "Because Aurora creates a new record label from the last snapshot, restoring the cluster to the state of the last daily backup."
+      ]
+    },
+    "saa-med-046": {
+      "optionReasons": {
+        "saa-med-046:option:0": "",
+        "saa-med-046:option:1": "Time Snapshots give RPO up to 1 HORA — 3.600x worse than the requirement of ~1s.",
+        "saa-med-046:option:2": "Export CSV for a bucket LOCAL nor leaves the region — is not regional DR.",
+        "saa-med-046:option:3": "It's the closest because it's also native replication of Aurora with fast failover — same technology, wrong scope: all these replicas are in MESMA Region, and a regional disaster takes it all down together. RPO of ~1s in OUTRA Region is the case of Aurora Global Database."
+      },
+      "finalJustifications": [
+        "Because Aurora Global Database replicates in the storage layer to another region with typical lag < 1s (RPO ~1s) and secondary is promoted in minutes (RTO low).",
+        "Because the Global Database makes synchronous writing in both regions, guaranteeing RPO exactly zero in any regional disaster.",
+        "Because the Global Database keeps the two regions accepting simultaneous writings, dispensing any promotion in the disaster.",
+        "Because the Global Database copies snapshots every minute between regions, and the secondary restores the latest in failure."
+      ]
+    },
+    "saa-med-047": {
+      "optionReasons": {
+        "saa-med-047:option:0": "The DAX is reading cache — does not save the historical status of the table for restoration.",
+        "saa-med-047:option:1": "",
+        "saa-med-047:option:2": "Global Tables REPLICARAM the exclusion for the other regions — the copies have also lost the items.",
+        "saa-med-047:option:3": "Readability does not resuscitate deleted items."
+      },
+      "finalJustifications": [
+        "Because with the PITR enabled or DynamoDB allows restore table for any SEGUNDO of last 35 days — including 10 minutes before the faulty script.",
+        "Because PITR undoes only the deletion operations of the script, preserving the legitimate writings made after the incident.",
+        "Because PITR restores items in the production table itself in seconds, without creating a new table for recovery.",
+        "Because PITR record a reversible undo log, re-applied backwards to the point of 10 minutes before the defect."
+      ]
+    },
+    "saa-med-048": {
+      "optionReasons": {
+        "saa-med-048:option:0": "",
+        "saa-med-048:option:1": "Export to S3 with replication gives a COPY of data — not an active bank accepting writings in the other region.",
+        "saa-med-048:option:2": "PITR restores in NOVA table with delay — is not active-active architecture of immediate failure.",
+        "saa-med-048:option:3": "'Replica RDS for DynamoDB' does not exist — they are different products."
+      },
+      "finalJustifications": [
+        "Because the Global Tables keep replicas MULTI-ATIVAS (reading and writing) synchronised between regions: one region fell, traffic goes to another replica that already accepts written.",
+        "Because the Global Tables choose a master region that processes all the writings and replicas to the users' local reading regions.",
+        "Because the Global Tables make continuous cross-backing between the regions, restoring the fallen replica from the surviving copy.",
+        "Because the Global Tables only replicate items marked as critical, saving in synchronization between participating regions."
+      ]
+    }
+  }
+}

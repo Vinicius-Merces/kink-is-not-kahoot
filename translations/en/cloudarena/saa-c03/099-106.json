@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "099-106",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-099": {
+      "optionReasons": {
+        "saa-avc-099:option:0": "There is no Multi-Region mode that makes a TGW cover two regions automatically — invented resource.",
+        "saa-avc-099:option:1": "Direct Connect is to connect ON-PREMISES to AWS — is not what connects two TGWs from different regions by backbone.",
+        "saa-avc-099:option:2": "It's the closest because the VPC Peering between regions also uses the private backbone of AWS no VPN — but ignores the topology of Transit Gateway existing and not scaled (paired by VPC); with regional TGWs on both sides, the native path is the Transit Gateway Peering between them, with the routes pointing to the annex.",
+        "saa-avc-099:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Transit Gateway Peering between us-east-1 and us-west-2, with routes to the CIDRs of the other region, connects the VPCs through the private backbone of the AWS — without internet and without VPN.",
+        "Because VPC Peering between us-east-1 and us-west-2, with routes to the CIDRs of the other region, connects the VPCs through the private backbone of the AWS — without internet and without VPN, on TGWs.",
+        "Because the Multi-Region mode of TGW between us-east-1 and us-west-2, with routes to the CIDRs of the other region, connects the VPCs through the private backbone of the AWS — without internet and without VPN.",
+        "Because Direct Connect between us-east-1 and us-west-2, with routes to the CIDRs of the other region, connects the VPCs through the private backbone of the AWS — without internet and without VPN, on TGWs."
+      ]
+    },
+    "saa-avc-100": {
+      "optionReasons": {
+        "saa-avc-100:option:0": "",
+        "saa-avc-100:option:1": "Read Common replicas are not 'multi-AZ standby' and do not fail automatically as standby synchronous.",
+        "saa-avc-100:option:2": "It's the closest because the Aurora with replica gives fast failover and read in the replica — but the requirement is explicit: keep managed by RDS SEM migrate to Aurora; the version RDS which reduces the failure to ~35s and allows reading in stands is the Multi-AZ DB Cluster (writer + 2 readable booths in 3 Azs).",
+        "saa-avc-100:option:3": "Major instance does not change the mechanics of the traditional failure — follows in 60-120s and no reading at standby."
+      },
+      "finalJustifications": [
+        "Because the Multi-AZ DB Cluster has a writer + 2 readable booths in 3 AZs: fail in ~35s and a reading endpoint that takes advantage of standbys — all managed by RDS, no Aurora.",
+        "Because Aurora with a replica has a writer + 2 readable booths in 3 AZs: fail in ~35s and a reading endpoint that takes advantage of standbys — all managed by RDS, without migration.",
+        "Because the Read Replicas as standby have writeer + 2 readable booths in 3 AZs: fail in ~35s and a reading endpoint that takes advantage of standbys — all managed by RDS, no Aurora.",
+        "Because the biggest instance in traditional Multi-AZ has a writer + 2 readable booths in 3 AZs: fail in ~35s and a reading endpoint that takes advantage of standbys — all managed, without Aurora."
+      ]
+    },
+    "saa-avc-101": {
+      "optionReasons": {
+        "saa-avc-101:option:0": "It's the closest because 'replication to another AZ' seems to solve AZ's resilience — but the remedy cited is MULTI-REGION (wrong scope: another region, not another AZ) and the MSK does not mirror synchronous like this; resilience the failure of AZ is to distribute brokers in 3 AZs with replication factor ≥3.",
+        "saa-avc-101:option:1": "Continuous backup for the S3 is later recovery — does not keep the pipeline available in the fall of an AZ.",
+        "saa-avc-101:option:2": "",
+        "saa-avc-101:option:3": "More partitions in the single AZ cluster does not add redundancy — all remain in the same vulnerable AZ."
+      },
+      "finalJustifications": [
+        "Why distribute brokers by 3 AZs with replication factor ≥3 (min.insync.replications=2) spreads the replicas of each partition between AZs: the fall of an AZ does not lose messages to the pipeline.",
+        "Because the Multi-Region replication to another AZ with factor ≥3 (min.insync.replications=2) spreads the replicas of each partition between AZs: the fall of an AZ does not lose messages to the pipeline.",
+        "Because the continuous backup to the S3 with replication factor ≥3 spreads the replicas of each partition between AZs: the fall of an AZ does not lose messages to the streaming pipeline.",
+        "Why increase partitions with replication factor ≥3 spreads the replicas of each partition between AZs: the fall of an AZ does not lose messages to the streaming pipeline."
+      ]
+    },
+    "saa-avc-102": {
+      "optionReasons": {
+        "saa-avc-102:option:0": "The AWS Backup does not 'mix' the restoration in the table in production — restores to a new table; the premise is false.",
+        "saa-avc-102:option:1": "DynamoDB Streams cannot be retroactively enabled for past events — no stream of 4 hours ago.",
+        "saa-avc-102:option:2": "It's the closest because restoring on-demand backup prior to the incident brings back the items — but SOBRESCREVER the production table would rule out all the writings of the last ones. 4 hours and would knock down the operation; the right is PITR for one NOVA table and selectively copy only deleted items back.",
+        "saa-avc-102:option:3": ""
+      },
+      "finalJustifications": [
+        "Because PITR restores the status of the pre-exclusion timestamp in a NOVA table, and selectively copy only deleted items back preserves the production and writings of the last 4 hours.",
+        "Because restoring the on-demand backup brings the pre-exclusion status to a NOVA table, and selectively copy only deleted items back preserves recent production and writings.",
+        "Because AWS Backup restores the pre-exclusion status in a NOVA table, and selectively copy only deleted items back preserves the production and writings of the last 4 hours.",
+        "Because the replay of DynamoDB Streams restores the pre-exclusion status in a NOVA table, and selectively copy only deleted items back preserves recent production and writings."
+      ]
+    },
+    "saa-avc-103": {
+      "optionReasons": {
+        "saa-avc-103:option:0": "try/catch + SendMessage manual is just modify the code — the opposite of the order.",
+        "saa-avc-103:option:1": "It's the closest because the DLQ of the Lambda in fact captures asynchronous invocations flaws — but 'add code in the function to publish in DLQ' contradicts the requirement not to modify the code: a DLQ native and on-failure Destination capture without touching the function; Destination still includes the context of the event and more targets.",
+        "saa-avc-103:option:2": "",
+        "saa-avc-103:option:3": "Reserved competition controls parallelism — does not redirect faulty invocations to a row."
+      },
+      "finalJustifications": [
+        "Because the on-failure Destination of Lambda send the asynchronous invocations flaws (after the retrentatives) directly to the row SQS, with the context of the event — without touching the function code.",
+        "Because the DLQ with publication code sends the invocations asynchronous faults (after the retentative ones) directly to the row SQS, with the context of the event — without touching the function code.",
+        "Because the try/catch with SendMessage sends the invocations asynchronous flaws (after the retrentatives) directly to the row SQS, with the context of the event — without touching the function code.",
+        "Because the reserved competition sends the asynchronous invocations flaws (after the retrentatives) directly to the queue SQS, with the context of the event — without touching the function code."
+      ]
+    },
+    "saa-avc-104": {
+      "optionReasons": {
+        "saa-avc-104:option:0": "",
+        "saa-avc-104:option:1": "Lack of DLQ causes loop messages that FALHAM — but here there is no error; the problem is redelivered by timeout.",
+        "saa-avc-104:option:2": "Batch size high group separate messages by invocation — does not MESMA message appear in parallel.",
+        "saa-avc-104:option:3": "It's the closest because high competition REALMENTE generates many parallel invocations — but each would process messages DIFERENTES; here MESMA message is processed in duplicate because the visibility timeout (30(s) expires during long processing and SQS the redelivery; the correction is to increase the visibility timeout above processing time.."
+      },
+      "finalJustifications": [
+        "Because the visibility timeout of 30s expires before the long message ends, and the SQS the redeliver the other invocation: raise the timeout above the maximum processing (≥15 min, with margin) removes duplicate.",
+        "Because high reserved competition expires before the long message ends, and the SQS the redeliver the other invocation: reducing competition above maximum processing eliminates duplicate.",
+        "Because the lack of DLQ expires before the long message ends, and the SQS the redeliver the other invocation: configure the DLQ with time above maximum processing eliminates duplicate.",
+        "Because the high batch size expires before the long message ends, and the SQS the redeliver the other invocation: reduce the batch size above the maximum processing eliminates duplicate."
+      ]
+    },
+    "saa-avc-105": {
+      "optionReasons": {
+        "saa-avc-105:option:0": "",
+        "saa-avc-105:option:1": "Reacting producers would send TODOS consumers — affects those who have already processed correctly.",
+        "saa-avc-105:option:2": "Extract log payloads and manually invoke via CLI is laborious and fragile — Replay already does it natively.",
+        "saa-avc-105:option:3": "It's the closest because the DLQ is the classic path to reprocessing flaws — but the bug failed SILENCIOSAMENTE, without making a mistake: nothing went to the DLQ, then there is nothing to reprocess from there; holding the events of the window and reproducing them is the EventBridge Archive + Replay."
+      },
+      "finalJustifications": [
+        "Because the Archive has retained the events from the window and Replay is reproducing them for a new rule pointing only to the Lambda corrected — without referring to the consumers who have already processed the correct.",
+        "Because the DLQ of Lambda it holds the events of the window and reproduces them for a new rule pointing only to Lambda corrected — without referring to the consumers who have already processed the correct.",
+        "Because reacting the producers retained the events from the window and reproduces them for a new rule pointing only to the Lambda corrected — without referring to the consumers who have already processed the correct.",
+        "Because Logs Insights has retained the events from the window and replicates them for a new rule pointing only to the Lambda corrected — without referring to the consumers who have already processed the correct."
+      ]
+    },
+    "saa-avc-106": {
+      "optionReasons": {
+        "saa-avc-106:option:0": "It's the closest because the reliability pillar of Well-Architected Tool also evaluates resilience — but it is a hand-filled qualitative QUESTIONAR, not an automatic analysis of CONFIGURATION REAL of resources against targets of RTO/RPO with score; this measured evaluation is the Resilience Hub.",
+        "saa-avc-106:option:1": "Trusted Advisor 'Fault Tolerance' gives generic checks of good practice — does not score against RTO/RPO by application.",
+        "saa-avc-106:option:2": "",
+        "saa-avc-106:option:3": "Compute Optimizer recommends type/size of instance per cost/performance — nothing to do with resilience goals."
+      },
+      "finalJustifications": [
+        "Because Resilience Hub analyzes the actual configuration of application resources against the goals of RTO/RPO, generates a resilience score and points to actionable gaps, such as a bench without Multi-AZ.",
+        "Because Well-Architected Tool analyzes the actual configuration of resources against the goals of RTO/RPO, generates a resilience score and points to actionable gaps, such as a bench without Multi-AZ.",
+        "Because Trusted Advisor analyzes the real configuration of resources against the goals of RTO/RPO, generates a resilience score and points to actionable gaps, such as a bench without Multi-AZ.",
+        "Because Computer Optimizer analyzes the actual configuration of resources against the goals of RTO/RPO, generates a resilience score and points to actionable gaps, such as a bench without Multi-AZ."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "035-042",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-035": {
+      "optionReasons": {
+        "saa-avc-035:option:0": "",
+        "saa-avc-035:option:1": "Password policy sets password rules — no force MFA present at the session for specific actions.",
+        "saa-avc-035:option:2": "It's the closest because the Identity Center require MFA no login ALSO involves MFA — but guarantees the factor only in the initial AUTENTICATION on the portal, not that the SESSION that performs the sensitive action loads MFA: the requested condition is by ACTION; only Deny with aws:MultiFactorAuthPresent in the policy evaluates this at the time of DeleteBucket/EndInstructions.",
+        "saa-avc-035:option:3": "Versioning and Termination Protection make data loss difficult — do not require MFA nor deny the action."
+      },
+      "finalJustifications": [
+        "Because Deny has aws:MultiFactorAuthPresent:false (BoolIfExists) evaluates the session at the time of action: no MFA present, the DeleteBucket and the TerminateInstructions marked as production are denied.",
+        "Because the password policy demanding MFA evaluates the session at the time of action: no MFA present, the DeleteBucket and the TerminateProduction mechanisms are denied at the time.",
+        "Because MFA no login Identity Center evaluates the session at the time of action: no MFA present, the DeleteBucket and the TerminateProduction mechanisms are denied at the time.",
+        "Because Versioning with Termination Protection evaluates the session at the time of action: no MFA present, the DeleteBucket and the TerminateProduction mechanisms are denied at the time."
+      ]
+    },
+    "saa-avc-036": {
+      "optionReasons": {
+        "saa-avc-036:option:0": "",
+        "saa-avc-036:option:1": "Making the public bucket violates the Block Public Access and the access requirement only via CloudFront.",
+        "saa-avc-036:option:2": "Signed URLs without policy for CloudFront in private pocket: or CloudFront would not have permission to read the origin — the distribution breaks.",
+        "saa-avc-036:option:3": "It's the closest because restricting by a value that only CloudFront send is the right idea — but the Referrer header is FACILMENTE FORJADO by any customer: does not guarantee that the request came from the distribution; the reliable link is the OAC with condition aws:SourceArn by reference to ARN of distribution."
+      },
+      "finalJustifications": [
+        "Because OAC gives identity to the distribution and the policy of the pocket releases the GetObject only when aws:SourceArn is the ARN of it — direct access to S3 fails even with the name of the pocket.",
+        "Because the Referr header gives identity to the distribution and the policy of the bucket releases the GetObject only when it confers — direct access to the S3 fails even with the name of the pocket.",
+        "Because the signed URLs give identity to the distribution and the standard bucket policy releases the GetObject to it alone — direct access to S3 fails even with the name of the pocket.",
+        "Because the public ticket gives identity to the distribution and the policy releases the GetObject only through it — direct access to the S3 fails even with the name of the pocket."
+      ]
+    },
+    "saa-avc-037": {
+      "optionReasons": {
+        "saa-avc-037:option:0": "VPC Peering is between VPCs of the AWS — does not connect a data center on-premises; and VMware Cloud is another product/cost.",
+        "saa-avc-037:option:1": "",
+        "saa-avc-037:option:2": "It's the closest because VPN IPsec on Direct Connect It also delivers cryptography in transit — but depends on PROVISIONAR the physical circuit of the Direct Connect, which takes weeks: violates the deadline of a few days; the Site-to-Site VPN on the internet goes up in hours and attends band and cryptography.",
+        "saa-avc-037:option:3": "Direct Connect with MACsec also requires to provide the physical circuit (weeks) — same time problem."
+      },
+      "finalJustifications": [
+        "Because the Site-to-Site VPN climbs in hours: IPsec tunnels on the internet between the customer gateway and the gateway on AWS deliver the compulsory encryption and the moderate band in time.",
+        "Because the VPN about Direct Connect up in hours: IPsec tunnels over the VIF private deliver mandatory encryption and moderate band within a few days.",
+        "Because VPC Peering with VMware Cloud goes up in hours: IPsec tunnels between VPCs deliver mandatory encryption and moderate band within a few days.",
+        "Because Direct Connect with MACsec goes up in hours: encryption in the bond layer delivers mandatory protection and moderate band within a few days."
+      ]
+    },
+    "saa-avc-038": {
+      "optionReasons": {
+        "saa-avc-038:option:0": "It's the closest one because it restricts politics IAM from the roll to the prod/app/* in fact limits access — but the roll is COMPARTILHADA for other purposes: to press it breaks other uses, and this is not the layer 'by this network path' requested; the specific in-depth defense of the endpoint is the VPC Endpoint Policy.",
+        "saa-avc-038:option:1": "Security Group the ENI Endpoint controls network port/origin — does not filter QUAL secret (ARN) can be read.",
+        "saa-avc-038:option:2": "",
+        "saa-avc-038:option:3": "NACL IP/port filter — or Secrets Manager does not expose IP by secret; can not restrict by ARN in the network layer."
+      },
+      "finalJustifications": [
+        "Because the VPC Endpoint Policy limits, only for calls that pass through this endpoint, the GetSecretValue to RNAs under prod/app/* — extra layer without changing the shared role.",
+        "Why reduce policy IAM of the role limits, only for calls that pass through this endpoint, the GetSecretValue to RNAs under prod/app/* — without affecting other uses.",
+        "Because Security Group of ENI of the endpoint limits, only for those calls that pass through this endpoint, the GetSecretValue to RNAs under prod/app/* — extra layer of network.",
+        "Because the Network ACL of the subnet limits, only for calls that pass through this endpoint, the GetSecretValue to RNAs under prod/app/* — filtering by secret in IP."
+      ]
+    },
+    "saa-avc-039": {
+      "optionReasons": {
+        "saa-avc-039:option:0": "Trusted Advisor check for good practice — do not scan CVEs in SO, container or Lambda.",
+        "saa-avc-039:option:1": "",
+        "saa-avc-039:option:2": "It's the closest because the GuardDuty it's also a managed security service that analyzes these logs — but it detects behavior AMOUNTS (C&C, mining, anomalies), no VULNERABILIDADES/CVEs in packages, images and Lambda; continuous scanning of CVE with push on ECR is the Amazon Inspector.",
+        "saa-avc-039:option:3": "Lambda with open source tool is operating own scanning infrastructure — the opposite of the requirement."
+      },
+      "finalJustifications": [
+        "Because Inspector continuously scan CVEs in EC2 (way SSM Agent), images in ECR (including push) and functions Lambda, with the natively built-in Findings to the Security Hub.",
+        "Because GuardDuty continuously scan CVEs in EC2 way SSM Agent, images in ECR at the moment of push and functions Lambda, with the security hub integrated finders.",
+        "Because Trusted Advisor continuously scan CVEs in EC2, images in ECR at the moment of push and functions Lambda, with the natively built-in Findings to the Security Hub.",
+        "Because the Lambda open source continuously sweeps CVEs in EC2, images in ECR at the moment of push and functions Lambda, with the natively built-in Findings to the Security Hub."
+      ]
+    },
+    "saa-avc-040": {
+      "optionReasons": {
+        "saa-avc-040:option:0": "",
+        "saa-avc-040:option:1": "It's the closest because Governance mode is the MESMO Object Lock with 7 years of retention — but he admits bypass: whoever has s3:BypassGovernanceRetention (root, administrators) can delete; unchangeable even to root, against ransomware and internal threat, only Compliance mode.",
+        "saa-avc-040:option:2": "Versioning + MFA Delete adds a factor — but who stops the MFA still excludes; is not regulatory immutability.",
+        "saa-avc-040:option:3": "Lifecycle for Deep Archive changes the CLASSE Storage — does not prevent the exclusion of objects."
+      },
+      "finalJustifications": [
+        "Because Compliance mode makes objects immutable by 7 years: neither root nor administrators with AdministratorAccess can exclude them or overwrite them during retention.",
+        "Because Governance mode makes objects immutable by 7 years: neither root nor administrators with AdministratorAccess can exclude them or overwrite them during retention.",
+        "Because versioning with MFA Delete makes objects immutable by 7 years: neither root nor administrators with AdministratorAccess can exclude them during retention.",
+        "Because Lifecycle for Deep Archive makes objects immutable by 7 years: neither root nor administrators with AdministratorAccess can exclude them during retention."
+      ]
+    },
+    "saa-avc-041": {
+      "optionReasons": {
+        "saa-avc-041:option:0": "Restore snapshot 'with default settings' keeps SEM encryption — the copy with KMS It's the missing step..",
+        "saa-avc-041:option:1": "It is the closest because 'Modify → enable encryption' seems the shortest route — but encryption of RDS is IMPUTABLE after creation: the console does NOT offer to enable it in an existing instance; the supported path is snapshot → encrypted copy → restore.",
+        "saa-avc-041:option:2": "",
+        "saa-avc-041:option:3": "Don't move the volumes. EBS of an instance RDS by the console of the EC2 — is managed service; this access does not exist."
+      },
+      "finalJustifications": [
+        "Because RDS no in-place encryption: instance snapshot → snapshot copy with key KMS → rest of the new encrypted instance, promoted in maintenance window with minimum downtime.",
+        "Because Modify with 'Enable encryption' encrypts the existing instance by applying the key KMS on time, with minimal downtime and no need to recreate the bank.",
+        "Because restoring snapshot directly with default settings already applies the key KMS in the new instance, encrypting the data with minimal downtime.",
+        "Why Enable Encryption in Volumes EBS underlying by the console of the EC2 cipher the storage of the RDS in-place, with minimal downtime and without re-creating the bank."
+      ]
+    },
+    "saa-avc-042": {
+      "optionReasons": {
+        "saa-avc-042:option:0": "Cross-account subscriptions of CloudWatch Logs is another route (and another service) — it is not the immutable trail of events of the CloudTrail centralized.",
+        "saa-avc-042:option:1": "",
+        "saa-avc-042:option:2": "It's the closest because individual tracks delivering to the same loop ALSO centralize the logs — but require creating and keeping track account, DO NOT automatically cover future accounts and the administrator of each member account can disable track itself; the organization trail resolves the three points.",
+        "saa-avc-042:option:3": "Config aggregateer aggregates resource CONFIGURATION data — not collecting events from CloudTrail."
+      },
+      "finalJustifications": [
+        "Because the organization trail created in the management account applies to all accounts — current and future — delivered to the central pocket and only the management/delegated account to the management.",
+        "Because the individual tracks created in the management account apply to all accounts — current and future — deliver to the central pocket and only the management account the management.",
+        "Because cross-account subscriptions created in the management account apply to all accounts — current and future — deliver to the central pocket and only it manages them.",
+        "Because the config aggregator created in the management account applies to all accounts — current and future — delivered to the central pocket and only the management account the management."
+      ]
+    }
+  }
+}

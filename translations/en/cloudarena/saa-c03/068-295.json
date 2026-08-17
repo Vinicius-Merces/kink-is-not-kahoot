@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "068-295",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-068": {
+      "optionReasons": {
+        "saa-med-068:option:0": "Step Functions orchestrate workflows — does not ingest millions of events per second.",
+        "saa-med-068:option:1": "",
+        "saa-med-068:option:2": "SNS by email is notification — no order per device or streaming throughput.",
+        "saa-med-068:option:3": "No. SQS each message is consumed UMA times — multiple applications do not read the same flow; and Standard does not preserve order."
+      },
+      "finalJustifications": [
+        "Because Kinesis Data Streams orders by partition key inside the shard and allows several independent consumers in MESMO stream — the exact drawing of the requirement.",
+        "Because Kinesis deliver each event to a single consumer at a time, ensuring the exclusivity that preserves order per device.",
+        "Because Kinesis record events directly in S3 without consumers, and downstream applications read the files in parallel from there.",
+        "Because Kinesis eliminates the need for sorting when processing everything in series in a single shard of high capacity and dedicated."
+      ]
+    },
+    "saa-med-139": {
+      "optionReasons": {
+        "saa-med-139:option:0": "",
+        "saa-med-139:option:1": "No. SQS Standard message consumed SOME — three systems do not read the same message, and there is no replay.",
+        "saa-med-139:option:2": "Polling in table DynamoDB is inefficient in thousands of records/second and does not give semantics of stream with checkpoint.",
+        "saa-med-139:option:3": "The SNS delivery in push and DESCARTA — without retention, impossible to reprocess the last 24 hours."
+      },
+      "finalJustifications": [
+        "Because Kinesis Keeps records (24h a 365 days): each consumer reads independently with his checkpoint, and a new algorithm can give replay of the retained period.",
+        "Because Kinesis replicates events to a row SQS dedicated by consumer, isolating the rhythm of each downstream system.",
+        "Because Kinesis detects algorithm change and reprocesses data automatically for updated consumer.",
+        "Because Kinesis saves data forever by default, allowing replay of any period of the history of the stream."
+      ]
+    },
+    "saa-med-239": {
+      "optionReasons": {
+        "saa-med-239:option:0": "Firehose is a service of ENTREGA — does not replace real-time read consumers of a stream.",
+        "saa-med-239:option:1": "More Shards Increase Throughput TOTAL, but the 2 MB/s of reading CADA shards continue to be shared among consumers — conflict persists.",
+        "saa-med-239:option:2": "",
+        "saa-med-239:option:3": "Backoff reduces pressure, but consumers continue to share the same 2 MB/s — treats the symptom, not the throat."
+      },
+      "finalJustifications": [
+        "Because Enhanced Fan-Out gives every registered consumer 2 MB/s DEDICADOS by shard via push HTTP/2 — the consumers stop competing the shared limit.",
+        "Because Enhanced Fan-Out removes all the stream throughput limits, starting to charge for the total volume consumed by reading.",
+        "Because Enhanced Fan-Out compresses records during delivery, making consumers fit the shared limit of the shard.",
+        "Because Enhanced Fan-Out migrates the slower consumers to Firehose, relieving the dispute by 2 MB/s of shard reading."
+      ]
+    },
+    "saa-med-253": {
+      "optionReasons": {
+        "saa-med-253:option:0": "",
+        "saa-med-253:option:1": "There is no automatic backup of HDFS for the S3 each 5 minutes — protection is internal replication.",
+        "saa-med-253:option:2": "Master Node coordinates the cluster — it does NOT store a copy of Core Nodes data.",
+        "saa-med-253:option:3": "The Auto Scaling replenishes NO, but who prevents the PERDA OF DADOS is the replication of HDFS — o DAG Spark recovers computer, not data blocks from HDFS."
+      },
+      "finalJustifications": [
+        "Because HDFS replicates each block in multiple Core Nodes (factor) 3 by default): if a node falls, the sub-replicated blocks are automatically replicated in the remaining nodes.",
+        "Because HDFS record each block simultaneously no S3 and on the local disk, and the copy of the bucket restores the knot that fails in the cluster.",
+        "Because Master Node reconstructs the lost data from the Spark execution logs, reprocessing the affected partitions.",
+        "Because EMR freezes the cluster by detecting the failure of a Core Node, resuming processing when the node is replaced by AWS."
+      ]
+    },
+    "saa-med-268": {
+      "optionReasons": {
+        "saa-med-268:option:0": "One Lambda by non-scale device for thousands of devices — and consumers of Kinesis read by SHARD, not by device filter.",
+        "saa-med-268:option:1": "Sort DEPOIS processing does not guarantee order processing — side effects have already occurred out of order.",
+        "saa-med-268:option:2": "SQS FIFO with Message Group ID would solve ordination, but TROCA the whole architecture — the requirement is to solve NO Kinesis existing, where partition key makes the same role.",
+        "saa-med-268:option:3": ""
+      },
+      "finalJustifications": [
+        "Because using DeviceID as a partition key sends all events from the device to the MESMO shard (guaranteed order), while different shards process devices in parallel.",
+        "Because the key partition orders events globally among all the shards, guaranteeing the full sequence of the whole fleet's IoT stream.",
+        "Because the partition key creates an exclusive shard for each device, physically isolating the flow of each connected sensor from the fleet.",
+        "Because the partition key instructs you to Lambda processing each device in a separate thread, paralleling within the same invocation."
+      ]
+    },
+    "saa-med-270": {
+      "optionReasons": {
+        "saa-med-270:option:0": "",
+        "saa-med-270:option:1": "Migrating to Serverless is an entire platform swap — and does not organize data by age; you would still want to play 2 years of data.",
+        "saa-med-270:option:2": "Request Cache Helps Repeated IDENTICAL Queries — Various Log Searches Continue Scanning Giant Index.",
+        "saa-med-270:option:3": "Multiplying shards of the same huge index increases overhead — the problem is scanning 2 years when only 7 days matter."
+      },
+      "finalJustifications": [
+        "Because ISM with rollover creates indexes by period: recent queries only touch hot indexes; old data go to UltraWarm/cold — performance without delete history.",
+        "Because ISM automatically deletes data with more than 7 days, keeping the index dry in the size that the wanted ones use.",
+        "Because ISM converts the old indices into tables of Athena, Moving Historical Searches for Consultations SQL on the S3.",
+        "Because ISM doubles the clusters' nodes in peak search times, absorbing slowness without touching the index structure."
+      ]
+    },
+    "saa-med-294": {
+      "optionReasons": {
+        "saa-med-294:option:0": "DataBrew is preparing VISUAL data — and RDS does not serve as a metadata catalog of the Athena.",
+        "saa-med-294:option:1": "",
+        "saa-med-294:option:2": "A Job Spark TRANSFORMA data — is not the discovery tool; and DynamoDB is not the catalogue of Athena.",
+        "saa-med-294:option:3": "The Registration Scheme versions schemas of STREAMING (Kafka/Kinesis) — and the Athena does not infer scheme alone to catalog."
+      },
+      "finalJustifications": [
+        "Because Glue Crawler sweeps S3, infers the patterns of CSV/JSON and records the tables in Glue Date Catalog — exactly the catalog that Athena consultation.",
+        "Because Crawler converts files to Parquet during scanning, and Catalog records the already optimized version.",
+        "Because Data Catalog copies data from S3 for a managed relational bank, where the Athena executes the consultations SQL.",
+        "'Cause Crawler runs the longings SQL on behalf of the Athena, returning the results along with the inferred patterns."
+      ]
+    },
+    "saa-med-295": {
+      "optionReasons": {
+        "saa-med-295:option:0": "The EMR Spark spins, but requires sizing and managing clusters — more operational effort than demand.",
+        "saa-med-295:option:1": "Spark in EC2 self-managed is the MAIOR possible effort: installation, tuning, patching, manual scaling.",
+        "saa-med-295:option:2": "",
+        "saa-med-295:option:3": "The Redshift is data warehouse — stored procedures are not ETL Spark serverless on S3."
+      },
+      "finalJustifications": [
+        "Because Glue Spark runs SERVERLESS: without cluster to create or maintain, automatic scale and collection by DPU-time only during the job — the least operational effort.",
+        "Because Glue is the only service of AWS type approved to run Spark — EMR executes only Hadoop and Hive in clusters.",
+        "Because Glue Keeps a dedicated cluster on 24/7 without additional cost, paid at the monthly fixed rate of the service itself.",
+        "Because Glue converts the Spark code to SQL of the Redshift, executing the transformations in the already provided warehouse account."
+      ]
+    }
+  }
+}

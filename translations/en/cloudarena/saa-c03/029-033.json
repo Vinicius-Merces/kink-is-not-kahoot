@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "029-033",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-029": {
+      "optionReasons": {
+        "saa-med-029:option:0": "It's the closest because VPC endpoint is exactly the solution — but the wrong type: Gateway Endpoints exist ONLY for S3 and DynamoDB; the services of the Systems Manager (ssm, ssmessages, ec2messages) require INTERFACE PrivateLink endpoints.",
+        "saa-med-029:option:1": "No agent's offline mode SSM — without communication channel, patches and commands simply don't arrive.",
+        "saa-med-029:option:2": "Internet Gateway 'only for the SSM' does not exist — one IGW opens public route to the sub-network, violating the entire policy.",
+        "saa-med-029:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the interface ends (PrivateLink) for ssm, ssmmessages and ec2messages create private ENIs in VPC: the agent reaches the Systems Manager without any route to the internet.",
+        "Because endpoint interfaces route traffic from SSM by a tunnel VPN managed up to AWS, encrypted off the public internet.",
+        "Because endpoints interfaces copy documents and patches from SSM within the VPC, applied locally without external communication.",
+        "Because endpoints interfaces release an exception to output in NAT of AWS only for the SSM, invisible to security policy."
+      ]
+    },
+    "saa-med-030": {
+      "optionReasons": {
+        "saa-med-030:option:0": "It is the closest because it removes the password from the configuration file, which is the apparent inconvenience — but only changes the hiding place: the password remains static, now recorded in a AMI (worse to rotate and visible to whom to launch the image); the requirement is temporary token via roll, which is the IAM database authentication.",
+        "saa-med-030:option:1": "",
+        "saa-med-030:option:2": "Using the master in all applications focuses the bank's highest privilege on shared credentials — the opposite of eliminating risks.",
+        "saa-med-030:option:3": "Disable authentication for internal connections leaves the bank open to any process on the network — no serious option."
+      },
+      "finalJustifications": [
+        "Because IAM database authentication exchange password for tokens of 15 minutes issued based on the instance roll — temporary, rotating and secret file-free credentials.",
+        "Because IAM database authentication injects the bank password into the application memory via IMDS, without ever recording it on disk or configuration.",
+        "Because IAM database authentication rotates MySQL's fixed password daily, synchronizing the application configuration file.",
+        "Because IAM database authentication delegates the login to Secrets Manager, which validates the roll before releasing the bank's master credentials."
+      ]
+    },
+    "saa-med-031": {
+      "optionReasons": {
+        "saa-med-031:option:0": "The WAF Traffic filter HTTP applications — does not intercept logins on the console of AWS.",
+        "saa-med-031:option:1": "",
+        "saa-med-031:option:2": "Block Public Access protects buckets S3 against exposure — no relationship to root login.",
+        "saa-med-031:option:3": "It is the closest because the credible report is a real practice of auditing credentials — but it is manual and weekly review: a root login would appear days later; the requirement of MINUTOS requires the event of the CloudTrail filtered by EventBridge with notification SNS."
+      },
+      "finalJustifications": [
+        "Because CloudTrail records the root ConsoleLogin, the rule of EventBridge filter this event in almost real time and the SNS notify team in minutes.",
+        "Because EventBridge blocks the root session until team confirmation, and the SNS deliver the request for approval of the suspicious login.",
+        "Because CloudTrail intercept the root password in the login and validate it against the safe before releasing the console for the session.",
+        "Because the rule of EventBridge deactivate or MFA of root after alert, forcing the new registry by legitimate administrator."
+      ]
+    },
+    "saa-med-034": {
+      "optionReasons": {
+        "saa-med-034:option:0": "Keeping as 'backup' preserves exactly the risk: program keys to active root are the most dangerous account credentials.",
+        "saa-med-034:option:1": "Sharing root keys with whoever is multiplying exposure — there's never any justification for routine use of them.",
+        "saa-med-034:option:2": "",
+        "saa-med-034:option:3": "It is the closest because periodic rotation is the standard good practice for access keys COMUNS — but not for the root: the recommendation of the AWS is that the root simply DO NOT have access keys; rotating keeps alive a credential that should not exist."
+      },
+      "finalJustifications": [
+        "Because good practice is to eliminate: root should not have programmatic key accesses — excluding them removes the most powerful credentials and tasks migrate to identities IAM.",
+        "Because deleting keys automatically converts the scripts that used them to the admin roll, without any interruption.",
+        "Because exclusion triggers forced rotation of all account access keys, renewing the credentials park at once.",
+        "Because the root keys expire alone after 90 days of inactivity, and manual exclusion only anticipates the natural process."
+      ]
+    },
+    "saa-med-035": {
+      "optionReasons": {
+        "saa-med-035:option:0": "",
+        "saa-med-035:option:1": "It is the closest because it also points to a real element of politics. IAM — but the Resource defines A QUAIS RNAs permission applies, not where the request comes from; context as IP of origin and MFA this is the role of the Condition element.",
+        "saa-med-035:option:2": "Security Groups filter network traffic of resources like EC2 — do not attach to users or control the console.",
+        "saa-med-035:option:3": "Tags categorize identities for organization and billing — do not impose contextual access restrictions."
+      },
+      "finalJustifications": [
+        "Because Condition assesses the context of each request: aws:SourceIp restricts the IPs of the office and aws:MultiFactorAuthPresent requires MFA in the sitting — the two requirements in one element.",
+        "Because Condition records the location of each login in CloudTrail, and the actions outside the office go in the team approval row.",
+        "Because Condition delegates IP validation to Security Group of VPC of the console, unifying the network and account identity rules.",
+        "Because Condition encrypts sessions started outside the office, allowing remote access with an extra layer of data protection."
+      ]
+    },
+    "saa-med-037": {
+      "optionReasons": {
+        "saa-med-037:option:0": "It's the closest because the CloudTrail is in fact the right service for this audit — but the default track records only management events; GetObject is DATA EVENT, disabled by default (by volume and cost) and needs to be explicitly enabled for the pocket.",
+        "saa-med-037:option:1": "",
+        "saa-med-037:option:2": "Versioning preserves versions of objects — does not record who LEU Nothing..",
+        "saa-med-037:option:3": "The Macie classifies sensitive data in the bucks — does not generate access track per object."
+      },
+      "finalJustifications": [
+        "Because the dates of events of S3 no CloudTrail record operations at object level — GetObject included — with identity, time and IP of each access to the chart pocket.",
+        "Because the data events activate the log access within the object itself, which starts to load the reader's history in the metadata of S3.",
+        "Because the data events replicate each object read to an audit bucket, preserving the exact copy of what was accessed in the query.",
+        "Because data events demand MFA for the readings of the pocket, and each validation generates the record required by the health audit."
+      ]
+    },
+    "saa-med-038": {
+      "optionReasons": {
+        "saa-med-038:option:0": "SSE-S3 it's cryptography on the side of SERVIDOR with keys managed by AWS — the opposite of keeping the keys in the customer.",
+        "saa-med-038:option:1": "It's the closest because the TLS also encrypts and protects the data on the way to AWS — But only IN THE WAY: upon arrival, the provider sees them clearly to store; encrypting before sending, with key that never leaves the client, is client-side encryption.",
+        "saa-med-038:option:2": "",
+        "saa-med-038:option:3": "Hashing is irreversible — card data could never be recovered again; hash is not encryption."
+      },
+      "finalJustifications": [
+        "Because in client-side encryption the application encrypts the data ANTES of sending with keys that remain in the customer — the AWS only stores the already encrypted material, never seeing the clear.",
+        "Because the client-side encryption negotiates with AWS an exclusive session key, used by the provider only to check the integrity of the shipments.",
+        "Because the client-side encryption divides the key into two halves between the client and the KMS, and none of the parts deciphers the card data alone.",
+        "Because the client-side encryption uses the TLS from tip to tip to final disk, extending the transit protection to the rest of the card data."
+      ]
+    },
+    "saa-med-033": {
+      "optionReasons": {
+        "saa-med-033:option:0": "Private channel of the team is not safe storage — the credentials continue in clear text in the function and now also spread in chats.",
+        "saa-med-033:option:1": "",
+        "saa-med-033:option:2": "Move to source code gets worse: the secret enters the Git repository and in each build, visible to anyone with access to code.",
+        "saa-med-033:option:3": "It is the closest because it seems to reduce the exposure in the configuration — but Base64 is coding, not encryption: anyone decodes in a second; the credentials need to leave the function and live in the Secrets Manager, searched in runtime via IAM."
+      },
+      "finalJustifications": [
+        "Because Secrets Manager saves encrypted credentials and runtime search function via execution roll — exits visible configuration and gains rotation and audit.",
+        "Because Secrets Manager injects the described credential in the environment variable to each deployment, hiding it from the configuration.",
+        "Because Secrets Manager validates the signature of the function at each invocation, and only the authorized code receives the third party's credentials.",
+        "Because Secrets Manager replaces the credentials with a public alias, and the third resolves the real value in the first call of the API."
+      ]
+    }
+  }
+}

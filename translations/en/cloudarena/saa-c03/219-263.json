@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "219-263",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-219": {
+      "optionReasons": {
+        "saa-med-219:option:0": "Security Group Not active TLS' — door is only door; encryption is cluster configuration.",
+        "saa-med-219:option:1": "",
+        "saa-med-219:option:2": "It's the catch: the encoder in transit cannot be enabled in the existing Redis cluster by the console — the parameter is CREATION.",
+        "saa-med-219:option:3": "There is no agent for ACM' for ElastiCache — the ACM issue certificates for ALB/CloudFront, does not manage Redis connections."
+      },
+      "finalJustifications": [
+        "Because the In-Transit Encryption of ElastiCache Redis is only defined in CREATION: you need to create new cluster with TLS enabled and point the application to the endpoint TLS (door 6380).",
+        "Because you just import a certificate TLS in the existing cluster during the maintenance window, without recreate anything in the current infrastructure.",
+        "Because TLS is activated automatically when the client changes to URL for rediss:// — handshake forces encryption in the existing cluster.",
+        "Because the door 6380 always comes open with TLS in any Redis cluster, just the application migrate from 6379 for her on the connection string."
+      ]
+    },
+    "saa-med-231": {
+      "optionReasons": {
+        "saa-med-231:option:0": "The Multi-AZ FAZ automatic computer failure — the statement reverses the Multi-AZ roles and read reply.",
+        "saa-med-231:option:1": "The standby in OUTRA AZ is the right design — no cause of error.",
+        "saa-med-231:option:2": "",
+        "saa-med-231:option:3": "It is the closest because the promotion of the standby itself is fast itself — the number quoted exists. But there is no bug: the 60-120 observed seconds are the flip of DNS documented multi-AZ failure; application only reconnects when new endpoint spreads."
+      },
+      "finalJustifications": [
+        "Because Multi-AZ's failover is a flip of DNS: until TTL cached expire (~60s) plus standby promotion time, the application still resolves for dead primary — TTL low and RDS Proxy shorten it.",
+        "Because RDS secures new connections during failover for security, releasing them only after validating the integrity of the data replicated in the sponsored standby.",
+        "Because the standby needs to apply the pending transaction logs before accepting connections, a process that leads 2 fixed minutes in any instance size of the RDS.",
+        "Because the connection pooling application prevents any failure in less than 5 minutes — pools keep dead connections alive until standard timeout expires."
+      ]
+    },
+    "saa-med-235": {
+      "optionReasons": {
+        "saa-med-235:option:0": "",
+        "saa-med-235:option:1": "'Read Replicas DynamoDB with unique master do not exist — multi-region replication is role of the Global Tables.",
+        "saa-med-235:option:2": "'Redis Cluster Mode Global' is not multi-region session-managed replication — and adds an entire system.",
+        "saa-med-235:option:3": "Streams + Lambda is manually reimplementing what the Global Tables do managed — more fragile and laborious."
+      },
+      "finalJustifications": [
+        "Because the Global Tables replicate between regions with typical lag < 1s and accept local reading/writing — and geographic routement keeps the user in the same region, mitigating the eventual consistency.",
+        "Because the Global Tables offer strong consistency between the regions, ensuring that the session recorded in Asia appears identical in Europe at the same time.",
+        "Because the Global Tables hold each user to the region where they registered, eliminating cross-region accesses that would generate any sessional inconsistency.",
+        "Because the Global Tables synchronize only session data marked as global, reducing the replicated volume between participating regions."
+      ]
+    },
+    "saa-med-237": {
+      "optionReasons": {
+        "saa-med-237:option:0": "",
+        "saa-med-237:option:1": "Multi-AZ 'retrospective' does not recover anything — and the standby SYNCRON would have replicated the DROP TABLE at the same time.",
+        "saa-med-237:option:2": "The DMS migrate data between banks — is not a point restoration tool.",
+        "saa-med-237:option:3": "Restore Snapshot SOBRE production would replace the entire bank and lose all day transactions — maximum impact, the opposite of the request."
+      },
+      "finalJustifications": [
+        "Because PITR for 14:22 creates a NOVA instance-DROP: the lost table (pg_dump) is exported and it is imported in production — which follows intact all the time.",
+        "Because PITR only reverse the command DROP within production, without creating new instance or interrupting transactions.",
+        "Because PITR promotes Multi-AZ standby with data from 14:22, reversing the roles without restoring any backup.",
+        "Because PITR restores the table directly in production via automatic merge, reconciling new and old data."
+      ]
+    },
+    "saa-med-244": {
+      "optionReasons": {
+        "saa-med-244:option:0": "",
+        "saa-med-244:option:1": "The Global Database is for DR/latence MULTI-REGION — disproportionate to balance local readings.",
+        "saa-med-244:option:2": "The ALB balance HTTP/HTTPS — no PostgreSQL/MySQL bank connections.",
+        "saa-med-244:option:3": "The RDS Proxy does POOLING of connections — it does not distribute readings between replicas on its own (the proxy endpoint read-only still depends on the endpoint reader)."
+      },
+      "finalJustifications": [
+        "Because the Reader Endpoint of Aurora is a unique endpoint that automatically balances read connections between all replicas — the application does not need to know any replica.",
+        "Because Reader Endpoint sends every query to the replica with less CPU at the moment, the load balancing that protects the writing endpoint.",
+        "Because Reader Endpoint promotes extra replicas when the queue of queries grows, expanding the cluster during heavy reports.",
+        "Because the Reader Endpoint intercepts traffic and separates readings from writing automatically, dispensing two endpoints in the application."
+      ]
+    },
+    "saa-med-257": {
+      "optionReasons": {
+        "saa-med-257:option:0": "Replicas store copies of the same data — increase reading and availability, not total memory capacity.",
+        "saa-med-257:option:1": "'Redis Tiered Caching com S3' does not exist as a feature of ElastiCache (the data tiering uses SSD location in specific nodes, not S3).",
+        "saa-med-257:option:2": "",
+        "saa-med-257:option:3": "Vertical scaling has TETO of a single node — the problem is precisely to go beyond that limit."
+      },
+      "finalJustifications": [
+        "Because Cluster Mode partitions data into multiple shards via hash slots: total memory is the sum of the shards, with online reharding — scale over any single node.",
+        "Because Cluster Mode compresses data in the memory of nodes, doubling the effective capacity without adding any new shard to the cluster.",
+        "Because Cluster Mode automatically discards the less used keys without limit, preventing the evictions of active user sessions.",
+        "Because Cluster Mode uses the memory of replicas as an extension of the primary, adding the RAM of all knots in a single cache pool."
+      ]
+    },
+    "saa-med-260": {
+      "optionReasons": {
+        "saa-med-260:option:0": "Adaptive Capacity is already automatic and AJUDA, but has limits — does not eliminate the hot partition of a single extremely popular item (physical limit per partition continues).",
+        "saa-med-260:option:1": "Global Tables replicate ENTRE regions — hot partition remains hot in each region.",
+        "saa-med-260:option:2": "",
+        "saa-med-260:option:3": "Auto Scaling adjusts the DA capacity TABELA — did not redistribute a concentrated key between partitions."
+      },
+      "finalJustifications": [
+        "Because write sharding adds suffix (ProductID)_1..N) spreading hot item by N partitions — each receives 1/N of traffic; reading consults the N shards and aggregates.",
+        "Because random suffix does the DynamoDB create physical partitions dedicated to popular product, with throughput own by shard.",
+        "Because write sharding moves the popular product to a high capacity express table, isolated from the main catalog of the store.",
+        "Because sharding only works with eventually consistent readouts — strong consistency would require keeping the original key."
+      ]
+    },
+    "saa-med-263": {
+      "optionReasons": {
+        "saa-med-263:option:0": "",
+        "saa-med-263:option:1": "Migratory to DynamoDB rewrites the model and wants SQL — the requirement is NOT to modify the query code.",
+        "saa-med-263:option:2": "The Serverless v2 scale CAPACIDADE — the limit of connections remains proportional; the problem of churn connections of the Lambda remains.",
+        "saa-med-263:option:3": "Climbing max_connections pushes the ceiling — every connection consumes memory and thousands of Lambdas keep bursting."
+      },
+      "finalJustifications": [
+        "Because RDS Proxy multiplies Lambdas connections over a persistent pool with the Aurora — much less real connections in the bank, and only the endpoint changes.",
+        "Because RDS Proxy rewrites the queries SQL to use fewer connections, grouping Lambdas transactions into batches.",
+        "Because RDS Proxy converts connections into calls HTTP asynchronous, eliminating the limit of simultaneous connections of Aurora.",
+        "Because RDS Proxy shuts down functions Lambda idle to release connections, controlling competition at the origin of the problem."
+      ]
+    }
+  }
+}

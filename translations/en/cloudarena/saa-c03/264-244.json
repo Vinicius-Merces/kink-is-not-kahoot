@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "264-244",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-264": {
+      "optionReasons": {
+        "saa-ini-264:option:0": "On-Demand scales capacity TOTAL, but the partition limit continues — hot partition suffers throttling the same way.",
+        "saa-ini-264:option:1": "",
+        "saa-ini-264:option:2": "The DynamoDB supports massive writing — the problem is the DISTRIBUTION of keys, not the product.",
+        "saa-ini-264:option:3": "Increase total WCUs does not solve: the gargalo is the limit POR Concentrated share, not aggregate."
+      },
+      "finalJustifications": [
+        "Because it is hot partition: low cardinality concentrates the writings on few partitions beyond the individual limit — the solution is key to high cardinality or random suffix (write sharding)).",
+        "Because throttling comes from the size of the recorded items: above 4 KB each writing consumes multiple WCUs, and the solution is to compact the attributes.",
+        "Because DynamoDB freezes the partitions that receive written out of order, and the key of low cardinality increases the timestamp collisions.",
+        "Because it failed to enable the Auto Scaling of the table, which eliminates the limits by partition when realocating capacity between them during peaks."
+      ]
+    },
+    "saa-ini-265": {
+      "optionReasons": {
+        "saa-ini-265:option:0": "More application instances don't help when the gargalo is the BANCO — They'd all keep waiting for the same slow cravings.",
+        "saa-ini-265:option:1": "Multi-AZ standby does not accept queries — there is no 'automatic distribution' between primary and standby.",
+        "saa-ini-265:option:2": "",
+        "saa-ini-265:option:3": "Migration from bank to blind is the most expensive and risky change — and NoSQL It's not always faster.'."
+      },
+      "finalJustifications": [
+        "Why Optimizing Queries Attacks Real Throat: Performance Insights/EXPLAIN reveal full scans and N+1; a certain index reduces seconds to milliseconds without infra cost.",
+        "Because EXPLAIN creates indexes automatically when detecting full scans, correcting the plan of slow queries without code change.",
+        "Because optimizing the wants eliminates the need to scale horizontally, whatever the growth of users forever.",
+        "Because Performance Insights activates an internal cache of results in RDS, accelerating repeated queries while analyzing the load."
+      ]
+    },
+    "saa-ini-046": {
+      "optionReasons": {
+        "saa-ini-046:option:0": "",
+        "saa-ini-046:option:1": "Throughput is metric of DESEMPENHO in normal operation — does not define acceptable loss in disaster.",
+        "saa-ini-046:option:2": "Propagation of DNS affects return time (RTO) — nothing to do with loss of DADOS.",
+        "saa-ini-046:option:3": "It's the closest because RTO is the metric-sister of the same disaster recovery plane — but RTO measures the maximum time the service can stay PARADO; the limit of 15 minutes of DADOS lost is the RPO, determining the frequency of backups and replication."
+      },
+      "finalJustifications": [
+        "Because RPO defines the maximum acceptable data loss window — 15 minutes require backup/replication at least at each 15 minutes (or continuous)).",
+        "Because RPO defines how many read replicas the bench needs to keep, one for each window of 15 minutes of protected data.",
+        "Because RPO measures the maximum time the system may be unavailable — the 15 minutes are the deadline to reconnect the service.",
+        "Because RPO determines the size of contingency instances, dimensioned to absorb the 15 minutes of lost data."
+      ]
+    },
+    "saa-ini-047": {
+      "optionReasons": {
+        "saa-ini-047:option:0": "In the warm standby a version REDUZIDA It's running continuously — here nothing runs before the disaster.",
+        "saa-ini-047:option:1": "Active-active maintains DUAS complete productions — the more option CARA, opposed to the limited budget.",
+        "saa-ini-047:option:2": "In the pilot light the essential components (e.g. replicated bench) are left LIGADOS — the scenario saves only backups.",
+        "saa-ini-047:option:3": ""
+      },
+      "finalJustifications": [
+        "Because in Backup & Restore nothing runs in the recovery region — only stored backups; is the cheapest strategy, accepting the largest RTO.",
+        "Because Backup & Restore keeps minimal instances always connected in the other region, accelerating the return after the disaster.",
+        "Because Backup & Restore guarantees RTO of seconds via automatic failover of DNS pointing to the backup region.",
+        "Because Backup & Restore replicates production synchronously to another region, and the low cost comes from data in Glacier."
+      ]
+    },
+    "saa-ini-048": {
+      "optionReasons": {
+        "saa-ini-048:option:0": "In active-active TODAS regions meet production in total capacity — here the secondary servers are shut down.",
+        "saa-ini-048:option:1": "No Backup & Restore NADA is active in the secondary region — here the bank replicates continuously.",
+        "saa-ini-048:option:2": "In the warm standby a version REDUZIDA of the entire application is running — here only the kernel (data) is on; app is only image/template.",
+        "saa-ini-048:option:3": ""
+      },
+      "finalJustifications": [
+        "Because in the pilot light the 'pilot call' (replicated data) is always lit in the recovery region, and the rest is only provided in the disaster — balance between cost and speed.",
+        "Because in the pilot light the full application wheels in minimum capacity in the secondary, serving a fraction of the traffic until disaster.",
+        "Because the pilot light only uses daily snapshots copied between regions, and the name comes from the night routine of lighting backups in contingency.",
+        "Because pilot light is the name of the automatic failover of Route 53, which lights up the secondary region by detecting the fall of health checks."
+      ]
+    },
+    "saa-ini-049": {
+      "optionReasons": {
+        "saa-ini-049:option:0": "",
+        "saa-ini-049:option:1": "Pilot light needs PROVISIONAR the application in disaster — RTO minutes/hours, not zero.",
+        "saa-ini-049:option:2": "Backup & Restore has the MAIOR RTO/RPO strategies — the opposite of the request.",
+        "saa-ini-049:option:3": "Warm standby wheel capacity REDUZIDA — needs to scale before absorbing all traffic, generating perceptible interruption."
+      },
+      "finalJustifications": [
+        "Because in the active multi-site all regions respond to production with data replicated continuously — the failure of a region only redistributes users, with RTO/RPO ≈ 0.",
+        "Because the active-active dispenses data replication: each region serves its own users with an independent local dataset.",
+        "Because the active-active is the cheapest strategy of DR, since dividing the load between regions reduces the size of each environment.",
+        "Because the asset-active restores the backups of the two regions in parallel, cutting the recovery time practically to zero in the disaster."
+      ]
+    },
+    "saa-ini-240": {
+      "optionReasons": {
+        "saa-ini-240:option:0": "They are not interchangeable: a speech from DADOS lost (RPO) and the other TEMPO Stopped (RTO).",
+        "saa-ini-240:option:1": "It uses exactly the right terms and concepts — and that's what makes it the closest trap: the definitions are just TROCADAS between you. RPO is the acceptable data loss (date the backup frequency)); RTO The alternative reverses both roles..",
+        "saa-ini-240:option:2": "",
+        "saa-ini-240:option:3": "RPO/RTO do not measure cost or number of instances — are data loss targets and return time."
+      },
+      "finalJustifications": [
+        "Because RPO = maximum data (in time) that can be lost — say backup frequency; RTO = maximum time to return to the air — said the recovery architecture.",
+        "Because RPO defines the recovery time of the service and RTO defines data loss — the inverse pair of availability metrics.",
+        "Because RPO and RTO are calculated automatically by AWS for each service managed and published in SLA corresponding.",
+        "Because RPO only applies to databases, and RTO only to web servers — each layer of architecture has its own unique metric."
+      ]
+    },
+    "saa-ini-244": {
+      "optionReasons": {
+        "saa-ini-244:option:0": "Warm standby wheel capacity REDUZIDA — still needs to scale to absorb the total traffic; RTO is not zero.",
+        "saa-ini-244:option:1": "",
+        "saa-ini-244:option:2": "Backup & Restore is the MAIS LENTO: providing everything and restoring data takes hours — the S3 does not 'restore instantly' an infrastructure.",
+        "saa-ini-244:option:3": "Pilot light only keeps the core on — the servers are NOT preheated; you have to throw them in disaster."
+      },
+      "finalJustifications": [
+        "Because in Active/Active all regions already meet traffic: the failure of one only redirects users via Route 53/Global Accelerator — practically no downtime.",
+        "Because Active/Active costs less than warm standby: eliminating the waiting environment offsets the cost of doubling production.",
+        "Because Route 53 replicates application data between active regions together with responses DNS low latency of users.",
+        "Because Active/Active keeps a single copy of the data in the main region, avoiding conflicts of writing between regions."
+      ]
+    }
+  }
+}

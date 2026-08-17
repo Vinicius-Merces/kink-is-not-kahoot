@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "220-260",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-220": {
+      "optionReasons": {
+        "saa-ini-220:option:0": "No 'encryption enabled' in instance RDS existing — the cryptography at rest is defined in CREATION and is immutable.",
+        "saa-ini-220:option:1": "The DMS may help in migration, but it is not the canonical process — and the claim of 'no downtime guaranteed' hides the real limitation of immutable encryption.",
+        "saa-ini-220:option:2": "Encryption in application protects specific fields, but NOT equivalent to native rest cryptography required by compliance.",
+        "saa-ini-220:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the cryptography of RDS is unchangeable after creation: the path is snapshot → encrypted copy of snapshot (with key KMS) → restore new bank from it.",
+        "Because RDS schedule the encryption of existing instances for the next maintenance window, without additional downtime.",
+        "Because just encrypt the volumes EBS underlying the RDS by the console of the EC2, without touching the managed bank instance.",
+        "Because the AWS activates encryption automatically when detecting personal data, obligation assumed in compliance with the LGPD."
+      ]
+    },
+    "saa-ini-229": {
+      "optionReasons": {
+        "saa-ini-229:option:0": "Read replica is asynchronous and does NOT have automatic promotion — promotion is manual and can lose transactions.",
+        "saa-ini-229:option:1": "The RDS Proxy reduces the impact of failure on connections, but who EXECUTA the failover is the Multi-AZ — the proxy alone does not create standby.",
+        "saa-ini-229:option:2": "",
+        "saa-ini-229:option:3": "Backups restore data in a new instance — slow and manual process, not automatic failover."
+      },
+      "finalJustifications": [
+        "Because Multi-AZ keeps SINCRON standby in another AZ and does automatic failover (typically < 2 min) updating the endpoint DNS — the application reconnects at the same address.",
+        "Because Multi-AZ balances readings and writings between the two instances, and the survivor absorbs all traffic during failure.",
+        "Because Multi-AZ replicates the bank to another geographical region, ensuring the connection even in a complete regional disaster.",
+        "Because Multi-AZ dispenses automatic backups: with two synchronous copies, the second instance is already the updated backup itself."
+      ]
+    },
+    "saa-ini-232": {
+      "optionReasons": {
+        "saa-ini-232:option:0": "They don't do the same thing: the Multi-AZ standby doesn't accept readings, and read reply does NOT have automatic failover.",
+        "saa-ini-232:option:1": "",
+        "saa-ini-232:option:2": "It's the reverse: read replica has no automatic failover — promotion is manual; HA is the role of Multi-AZ.",
+        "saa-ini-232:option:3": "The Multi-AZ standby does not receive NENHUM reading traffic — scaling SELECTs is the role of read replicas."
+      },
+      "finalJustifications": [
+        "Because Multi-AZ = high availability (standby synchronous only for automatic failover) and Read Replica = reading scale (asynchronous, accept SELECTs, can be cross-region, manual promotion).",
+        "Because Multi-AZ is the paid version of the read replicas: the same reading resources, plus automatic failover as the differential of the plan.",
+        "Because the read replicas are synchronous to ensure identical readings, while the Multi-AZ is asynchronous to not delay the writings of the main.",
+        "Because Multi-AZ exists only in Aurora and read replicas only in the RDS MySQL — the choice depends on the bank engine contracted by the company."
+      ]
+    },
+    "saa-ini-252": {
+      "optionReasons": {
+        "saa-ini-252:option:0": "More IOPS speed up the DISCO, But the instance continues to sue 100% of the queries — does not separate the reading load.",
+        "saa-ini-252:option:1": "Multi-AZ standby does not accept read connections — it is exclusive to fail.",
+        "saa-ini-252:option:2": "",
+        "saa-ini-252:option:3": "The Performance Insights DIAGNOSTICA the load — it doesn't optimize you automatically."
+      },
+      "finalJustifications": [
+        "Because Read Replicas receive asynchronous copy of the primary and serve SELECTs — redirecting the readings, the primary is free for writing.",
+        "Because the replicas also process the writings in rhodium with the primary, dividing INSERTs and SELECTs into equal parts.",
+        "Because replicas keep the entire dataset in RAM, dispensing the disk and serving the SELECTs directly from the node memory.",
+        "Because creating a replica automatically folds the IOPS provided from the primary, accelerating the remaining readings."
+      ]
+    },
+    "saa-ini-253": {
+      "optionReasons": {
+        "saa-ini-253:option:0": "The Multi-AZ standby does not get wanted — there is 'distribute readings with the standby'.",
+        "saa-ini-253:option:1": "",
+        "saa-ini-253:option:2": "MySQL's native cache query was REMOVIDA (8.0) and was ineffective — not the recommended solution.",
+        "saa-ini-253:option:3": "The DAX It's EXCLUSIVO of the DynamoDB — does not accelerate relational banks like the RDS MySQL."
+      },
+      "finalJustifications": [
+        "Because ElastiCache between the application and the bank implements cache-aside: hit → response in milliseconds of RAM; miss → search the bank and store for the next ones.",
+        "Because ElastiCache intercepts the desires SQL repeated and rewrites them for faster plans before reaching the bank.",
+        "Because ElastiCache replicates the entire bank to memory on startup, serving any query without touching the disk.",
+        "Because ElastiCache eliminates the need of the relational bank in readings, assuming the role of primary source of data."
+      ]
+    },
+    "saa-ini-256": {
+      "optionReasons": {
+        "saa-ini-256:option:0": "Neptune is optimized for GRAFOS (relationships) — is not the choice for simple get/put by key.",
+        "saa-ini-256:option:1": "The Aurora is faster than the RDS standard, but still a relational bench with millisecond latency — not sub-millygund.",
+        "saa-ini-256:option:2": "The Redshift It's analytic warehouse — simple wants have seconds latency, not sub-millegund.",
+        "saa-ini-256:option:3": ""
+      },
+      "finalJustifications": [
+        "Because DynamoDB delivery latency of a millisecond digit in get/put per key (and microseconds with DAX), keeping performance on any scale.",
+        "Because DynamoDB executes the same queries SQL PostgreSQL in a faster distributed engine without changing the application.",
+        "Because DynamoDB It's all in memory. RAM of knots, without disc — the origin of the promised sub-millimeter.",
+        "Because DynamoDB is embedded in the application instance, eliminating the network travel that dominates the latency of the RDS Current."
+      ]
+    },
+    "saa-ini-258": {
+      "optionReasons": {
+        "saa-ini-258:option:0": "",
+        "saa-ini-258:option:1": "The Redshift shines in analyses, but does NOT replace the transactional bank — OLTP is not the case of use of it.",
+        "saa-ini-258:option:2": "The Multi-AZ standby doesn't accept wants — you can't run reports on it.",
+        "saa-ini-258:option:3": "The Aurora Global Database is for multi-region DR/latence — changing whole bank is disproportionate to problem."
+      },
+      "finalJustifications": [
+        "Because a replica read dedicated to analytics separates OLAP of OLTP: the reports run in the replica (with small lag) and the transactions stay in the primary.",
+        "Because the dedicated read reply processes reports without NENHUMA lag, mirroring each transaction synchronously.",
+        "Because the read replica converts the schema to the column format, like the Redshift, optimizing the aggregations of reports.",
+        "Because the read replica synchronizes only the tables used in the reports, reducing the primary replication load."
+      ]
+    },
+    "saa-ini-260": {
+      "optionReasons": {
+        "saa-ini-260:option:0": "",
+        "saa-ini-260:option:1": "An entire replica for a set-up board is cannon to kill fly — the quests would still exist.",
+        "saa-ini-260:option:2": "Connection pool reduces the cost of Connection — repeated queries continue to hit the bench.",
+        "saa-ini-260:option:3": "Migratory to DynamoDB exchange the bank and require rewriting code — the goal is just to eliminate repeated reading queries."
+      },
+      "finalJustifications": [
+        "Because settings that rarely change in Redis with TTL long give hit rate ~100%: the application reads the RAM and the bank is hardly consulted; changed, invalidates the cache.",
+        "Because the Redis monitors the configuration table and reloads the cache on its own at each change detected in the home bank.",
+        "Because the TTL long locks changes in settings during the window, ensuring that the cache and the bank never diverge.",
+        "Because ElastiCache has a permanent free layer for small datasets, zeroing the cost of caching settings."
+      ]
+    }
+  }
+}

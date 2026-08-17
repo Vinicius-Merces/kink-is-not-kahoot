@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "107-114",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-107": {
+      "optionReasons": {
+        "saa-avc-107:option:0": "In-place update brings the unavailability and complex rollback that the company just wants to avoid.",
+        "saa-avc-107:option:1": "DMS one-time is one-time migration without the managed switchhover or the blue/green fast rollback.",
+        "saa-avc-107:option:2": "",
+        "saa-avc-107:option:3": "It's the closest because a Read Replica in the new version allows you to validate before promoting it — but promoting it requires TROCAR the connection string, gives no seconds switchhover and DOES NOT offer fast rollback (the blue one when promoting); synchronized copy with minimal switchhover and rollback is Blue/Green Deployments RDS."
+      },
+      "finalJustifications": [
+        "Because Blue/Green creates a synchronised green in the new version to validate, makes the switchhover in seconds promoting it, and keeps the blue soon available for fast rollback.",
+        "Because the Read Replica in the new version creates a synchronized environment to validate, makes the switchhover in seconds by promoting it, and keeps the original soon available for fast rollback.",
+        "Because the in-place update creates a synchronized environment in the new version to validate, makes the switchhover in seconds, and keeps the old version briefly available for fast rollback.",
+        "Because DMS one-time creates a synchronized environment in the new version to validate, makes the switchhover in seconds, and keeps the old bench briefly available for fast rollback."
+      ]
+    },
+    "saa-avc-108": {
+      "optionReasons": {
+        "saa-avc-108:option:0": "",
+        "saa-avc-108:option:1": "Memcached does not replicate between regions — Auto Discovery only finds us from a local cluster.",
+        "saa-avc-108:option:2": "Replicate written with Lambda + Keyspace Notifications is craft and fragile solution — not managed replication between regions.",
+        "saa-avc-108:option:3": "It's the closest because the Redis Multi-AZ also gives redundancy with automatic promotion — but it operates DENTRO of one region (between AZs) and NOT extending between regions; reading low latency in another region with almost real-time synchronization and promotion of secondary is the Global Datastore."
+      },
+      "finalJustifications": [
+        "Because the Global Datastore replicates us-east-1 for ap-souteast-1 in near real time with low latency local reading, and allows to promote the secondary cluster to the primary if-east-1 fall.",
+        "Because Memcached with Auto Discovery replica of us-east-1 for ap-souteast-1 in near real time with local reading, and allows to promote the secondary cluster to primary if-east-1 fall.",
+        "Because the replication by Lambda replica of us-east-1 for ap-souteast-1 in near real time with low latency local reading, and allows to promote the secondary cluster to the primary if-east-1 fall.",
+        "Because the Redis Multi-AZ replica of us-east-1 for ap-souteast-1 in near real time with low latency local reading, and allows to promote the secondary cluster to the primary if-east-1 fall."
+      ]
+    },
+    "saa-avc-109": {
+      "optionReasons": {
+        "saa-avc-109:option:0": "It's the closest because Express Workflows are actually cheaper and ideal for the case (1) High volume — but they DO NOT support 'all the same features' of the Standard: they do not have exactly-once or history of 90 days in the console, exactly what the case (2) of payments requires; (2) Needs Standard.",
+        "saa-avc-109:option:1": "",
+        "saa-avc-109:option:2": "Activities with workers EC2 is task integration standard — does not replace the Standard nor exactly-once/historical delivery by itself.",
+        "saa-avc-109:option:3": "Standard for AMBOS it's expensive and it's too much for (1): millions of identical short executions are the perfect case of Express."
+      },
+      "finalJustifications": [
+        "Because Express serves (1) (cheap, high volume, at-last-once idempotente) and Standard serves (2) (exactly-once and history of 90 days in the audit console) — each type in your case.",
+        "Because Express serves (1) and Express serves (2): being cheaper and with the same features of the Standard, it also covers the exactly-once and the history of 90 days required in payments.",
+        "Because Express serves (1) e Activities with workers EC2 serve (2): the polling of tasks delivers the exactly-once and the history of 90 required days, avoiding the Standard completely.",
+        "Because Standard serves (1) and Standard serves (2): giving exactly-once and history of 90 days in all cases, covers both high volume telemetry and payments."
+      ]
+    },
+    "saa-avc-110": {
+      "optionReasons": {
+        "saa-avc-110:option:0": "Backups RMAN restored every hour give RPO hours — not low latency of minutes requested.",
+        "saa-avc-110:option:1": "SCT makes conversion/migration unique — does not keep the replica continuously updated.",
+        "saa-avc-110:option:2": "It's the closest because Oracle Data Guard is the native replica of Oracle and would give the standby with low latency — but the RDS for Oracle is GERENCIADO and does not allow you to configure it as Data Guard destination; continuous replication on-premises → RDS without moving the application is the DMS as full load + CDC.",
+        "saa-avc-110:option:3": ""
+      },
+      "finalJustifications": [
+        "Because DMS as full load + CDC load the initial bank and then replicate the on-premises changes → RDS minutes latency — without changing the application, and RDS is promoted in disaster.",
+        "Because Oracle Data Guard in Maximum Performance loads the initial bank and replicates the on-premises changes → RDS minutes latency — without changing the application, and RDS is promoted in disaster.",
+        "Because RMAN periodic loads the initial bank and replicates the on-premises changes → RDS minutes latency — without changing the application, and RDS is promoted in disaster.",
+        "Because SCT one-time loads the initial bank and replicates the on-premises changes → RDS minutes latency — without changing the application, and RDS is promoted in disaster."
+      ]
+    },
+    "saa-avc-111": {
+      "optionReasons": {
+        "saa-avc-111:option:0": "",
+        "saa-avc-111:option:1": "Transfer Acceleration Accelerate uploads via edge to UM Bucket — does not route between replicas of regions.",
+        "saa-avc-111:option:2": "CloudFront with origin group does FAILOVER source to cache content — not endpoint S3 active-active by latency for requisitions of API.",
+        "saa-avc-111:option:3": "It's the closest because latency router Route 53 also chooses the nearest region — but it resolves NOMES DNS for regional endpoints, does not give an endpoint S3 ONLY with failover and native routing between replicated buckets; global endpoint on multiple buckets is the S3 Multi-Region Access Point."
+      },
+      "finalJustifications": [
+        "Because Multi-Region Access Point gives a unique global endpoint over the two bucks: the AWS route each request to the lowest latency/healthy replica, without the application managing region or failover.",
+        "Because latency routing Route 53 gives a unique global endpoint on the two bucks: the AWS route each request to the lower latency replica, without the application manage failover.",
+        "Because the Transfer Acceleration gives a unique global endpoint on the two bucks: the AWS route each request to the lowest latency/healthy replica, without the application managing region or failover.",
+        "Because CloudFront with origin group gives a unique global endpoint on the two bucks: a AWS route each request to the lower latency replica, without the application manage failover."
+      ]
+    },
+    "saa-avc-112": {
+      "optionReasons": {
+        "saa-avc-112:option:0": "Scheduled scaling avoids Spot full — does not incorporate the requested economy.",
+        "saa-avc-112:option:1": "Spot total with a single rate and high price concentrates the risk in a single pool — the interruption affects everything together.",
+        "saa-avc-112:option:2": "",
+        "saa-avc-112:option:3": "It's the closest because it spreads Spot by 4 AZs attacks the concern (a) of availability — but maintains a ONLY type of instance: an interruption of Spot in that type drops many instances at once (unsolved concern b); diversify TIPOS in multiple pools is the mixed instance policy."
+      },
+      "finalJustifications": [
+        "Because the mixed instances policy with various types in multiple pools Spot the risk of interruption and scarcity by type, and the On-Demand base guarantees the minimum capacity — by resolving (a) and (b)).",
+        "Because Spot only in 4 AZs with multiple types in multiple pools dilute the risk of interruption and scarcity by type, and the On-Demand base guarantees the minimum capacity — solving (a) and (b)).",
+        "Because scheduled scaling with various types in multiple pools Spot the risk of interruption and scarcity by type, and the On-Demand base guarantees the minimum capacity — by resolving (a) and (b)).",
+        "Because Spot the total with high price and various types in multiple pools dilute the risk of interruption and scarcity by type, and the On-Demand base guarantees the minimum capacity — solving (a) and (b))."
+      ]
+    },
+    "saa-avc-113": {
+      "optionReasons": {
+        "saa-avc-113:option:0": "",
+        "saa-avc-113:option:1": "X-Ray gives root cause DEPOIS that someone reports — is not proactive journey detection.",
+        "saa-avc-113:option:2": "Status check EC2 more frequent sees infrastructure health — never the flow of checkout from end to end.",
+        "saa-avc-113:option:3": "It is the closest because a health check more 'complex' in ALB seems to exercise the flow — but the health check of the target group tests UM endpoint at a time inside the infrastructure: does not perform a multi-stage journey (login → cart → purchase) with state or simulates the user from outside; this is the canary of CloudWatch Synthetics."
+      },
+      "finalJustifications": [
+        "Because the synthetics canary performs the out-of-town checkout every few minutes and the alarm of CloudWatch fail alert — proactive detection that cuts time until you realize the problem.",
+        "Because the health check complex of ALB executes the checkout journey from outside every few minutes and the alarm alerts on failure — proactive detection that cuts time until you realize the problem.",
+        "Because X-Ray runs the outbound checkout every few minutes and the alarm from CloudWatch fail alert — proactive detection that cuts time until you realize the problem.",
+        "Because the status check of EC2 every minute performs the outbound checkout journey and the alert alert alert on failure — proactive detection that cuts time until you realize the problem."
+      ]
+    },
+    "saa-avc-114": {
+      "optionReasons": {
+        "saa-avc-114:option:0": "",
+        "saa-avc-114:option:1": "The replica in another region does not automatically get Multi-AZ — this needs to be configured after promotion.",
+        "saa-avc-114:option:2": "It's the closest because it describes the replica turning primary in a us-east event-1 — but it is wrong at two critical points: the promotion is MANUAL (non-automatic via health check of Route 53) and, being an ASSINCRONA replication, there is NOT zero data loss; the correct procedure assumes RPO other than zero.",
+        "saa-avc-114:option:3": "You don't keep writing on the us-east endpoint-1 — o RDS does not redirect writings to the promoted instance."
+      },
+      "finalJustifications": [
+        "Because the Cross-Region Read Replica is promoted MANUALMENTE the independent instance, the application is re-arranged by DNS, and some unreplicated transactions get lost (RPO≠0) — with Multi-AZ configured after.",
+        "Because Cross-Region Read Replica is already protected by Multi-AZ automatically after promoted, the application is re-targeted by DNS, and there is no data loss by asynchronous replication.",
+        "Because the Cross-Region Read Replica automatically becomes primary when the Route 53 detects interruption, application is re-arranged by DNS, and there is no data loss in the process.",
+        "Because the application continues to write on the us-east endpoint-1 and the RDS redirects to the promoted replica, without data loss by asynchronous replication — with Multi-AZ configured later."
+      ]
+    }
+  }
+}

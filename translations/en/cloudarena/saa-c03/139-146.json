@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "139-146",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-139": {
+      "optionReasons": {
+        "saa-avc-139:option:0": "",
+        "saa-avc-139:option:1": "EFS is system of ARQUIVOS (NFS), non-storage BLOCO — cluster application asks access to block.",
+        "saa-avc-139:option:2": "It's the closest because it describes exactly EBS Multi-Attach — but Multi-Attach is only supported in io1/io2, NOT in gp3: a gp3 cannot be attached to multiple instances; the block volume shared by several instances in the same AZ is io1/io2 with Multi-Attach.",
+        "saa-avc-139:option:3": "A server NFS in front of a EBS single turn and point of failure — no concurrent access to the same block."
+      },
+      "finalJustifications": [
+        "Because EBS io1/io2 with Multi-Attach allows several instances in the same AZ to access the MESMO block volume competing, and cluster application takes care of ordination and consistency.",
+        "Because EBS gp3 with Multi-Attach allows several instances in the same AZ to access the MESMO block volume competing, and cluster application takes care of ordination and consistency.",
+        "Because EFS mounted in all instances allows several in the same AZ to access the MESMO block volume competing, and cluster application takes care of ordination and consistency.",
+        "Because EBS only served by NFS allows several instances in the same AZ to access the MESMO block volume competing, and cluster application takes care of ordination and consistency."
+      ]
+    },
+    "saa-avc-140": {
+      "optionReasons": {
+        "saa-avc-140:option:0": "It's the closest because Transfer Acceleration improves upload to S3 in fact — but by a faster edge route, not by RESILENCE or parallelism of a single object: a failure still restarts sending and the throughput gets stuck to a connection; resuming by parts and parallelizing is the Multipart Upload.",
+        "saa-avc-140:option:1": "",
+        "saa-avc-140:option:2": "Tablet reduces the size but does not resume on the side or parallelize the transfer of a single object.",
+        "saa-avc-140:option:3": "Snowball is offline physical transfer — is not online upload stream resilient order."
+      },
+      "finalJustifications": [
+        "Because the Multipart Upload divides the object into parts sent in parallel: a failure sends only the affected part (not the entire file) and several connections add throughput.",
+        "Because the Transfer Acceleration divides the object into parts sent in parallel: a failure sends only the affected part (not the entire file) and several connections add throughput.",
+        "Because compressing the file divides the object into parts sent in parallel: a failure sends only the affected part (not the entire file) and several connections add throughput.",
+        "Because Snowball divides the object into parts sent in parallel: a failure sends only the affected part (not the entire file) and several connections add throughput in the send."
+      ]
+    },
+    "saa-avc-141": {
+      "optionReasons": {
+        "saa-avc-141:option:0": "",
+        "saa-avc-141:option:1": "More RCUs only pays the expensive Scan — doesn't eliminate reading the entire table.",
+        "saa-avc-141:option:2": "It's the closest because an index on 'Status' looks like the answer — but the LSI can only be created in the table creation, shares the partition key (OrderId) and still index all items; consult only the PENDING efficiently and grow well is a GSI ESPARSO, Population only for applications PENDING.",
+        "saa-avc-141:option:3": "Keep an external list in S3 via Streams adds pipeline and inconsistency — the scattered index already resolves natively."
+      },
+      "finalJustifications": [
+        "Because GSI scattered only contains items with the populated key attribute (the PENDING): a Query in the index reads only this fraction, without Scan, and the cost does not increase with the whole table.",
+        "Because LSI about Status only contains the items PENDING: a Query in the index reads only this fraction, without Scan, and the cost does not increase with the whole table as it reaches millions of items.",
+        "Because increasing RCUs only contains items PENDING: a Query reads only this fraction, without Scan, and the cost does not increase with the whole table as it reaches millions of items.",
+        "Because the external list via Streams only contains the items PENDING: a Query in it reads only this fraction, without Scan, and the cost does not grow with the whole table as it grows."
+      ]
+    },
+    "saa-avc-142": {
+      "optionReasons": {
+        "saa-avc-142:option:0": "",
+        "saa-avc-142:option:1": "It's the closest because the DMS also replicates for an instance in eu-west-1 near Europeans — but she would become PRIMARY for reading and ESCRITA, changing the path of writing that the requirement requires to keep centralized in us-east-1; local reading without moving in writing is the Cross-Region Read Replica.",
+        "saa-avc-142:option:2": "Multi-AZ in us-east-1 gives high availability in the same region — does not approach the reading of European users.",
+        "saa-avc-142:option:3": "ElestiCache in us-east-1 continues across the Atlantic — does not reduce latency for Europe."
+      },
+      "finalJustifications": [
+        "Because the Cross-Region Read Replica in eu-west-1 serves local reporting consultations to low latency Europeans, while the writings are centralized in us-east-1 no change.",
+        "Because the instance of DMS in me-west-1 serves local reporting consultations to low latency Europeans, while the writings are centralized in us-east-1 no change.",
+        "Because Multi-AZ in us-east-1 serves local reporting consultations to low latency Europeans, while the writings are centralized in us-east-1 no change in the way.",
+        "Because ElastiCache in us-east-1 serves local reporting consultations to low latency Europeans, while the writings are centralized in us-east-1 no change in the way."
+      ]
+    },
+    "saa-avc-143": {
+      "optionReasons": {
+        "saa-avc-143:option:0": "It's the closest because in gp2 it's up capacity REALMENTE increases the baseline (3 IOPS/GB) — but it is exactly the waste that the team wants to avoid: pay for 2.000 GB Just to have IOPS, with 100 GB data; gp3 uncouples IOPS/throughput of capacity and is more economical for IOPS Moderate.",
+        "saa-avc-143:option:1": "RAID 0 of two gp2 fold IOPS but doubles paid capacity and adds complexity — without the independence of gp3.",
+        "saa-avc-143:option:2": "i2 Block Express is for IOPS extremes and costs more — the statement says they are not necessary.",
+        "saa-avc-143:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the gp3 uncouples IOPS (until 16.000) e throughput (to 1.000 MB/s) of size: stays in 100 GB and pays only the 6.000 IOPS/250 MB/s above baseline included — the most economical for IOPS Moderate.",
+        "Why increase the gp2 to 2.000 GB uncoupled IOPS and throughput size: stays in 100 GB and pays only the 6.000 IOPS/250 MB/s above baseline — the most economical for IOPS Moderate.",
+        "Because RAID 0 decoupled gp2 IOPS and throughput size: stays in 100 GB and pays only the 6.000 IOPS/250 MB/s above baseline — the most economical for IOPS moderate bank.",
+        "Because the Block Express decouples the Io2 IOPS and throughput size: stays in 100 GB and pays only the 6.000 IOPS/250 MB/s above baseline — the most economical for IOPS moderate bank."
+      ]
+    },
+    "saa-avc-144": {
+      "optionReasons": {
+        "saa-avc-144:option:0": "It's the closest because cluster mode enabled also scales the Redis with multiple shards — but it operates DENTRO of a single region: no shards are distributed between us-east-1 and ap-souteast-1; local reading in a region of Asia synchronized with primary is Global Datastore.",
+        "saa-avc-144:option:1": "",
+        "saa-avc-144:option:2": "CloudFront cache content HTTP on the edge — is not a reading layer of a Redis cluster.",
+        "saa-avc-144:option:3": "Writing in two independent clusters is the custom replication logic that the requirement wants to avoid."
+      },
+      "finalJustifications": [
+        "Because the Global Datastore replicates us-east-1 (primary) for a secondary cluster in Asia: users read locally with low latency, synchronized automatically, without logic of own replication.",
+        "Because the cluster mode enabled replica of us-east-1 for shards in Asia: users read locally with low latency, synchronized automatically, without logic of own replication.",
+        "Because CloudFront replica of us-east-1 for the edge in Asia: users read locally with low latency, automatically synchronized with Redis, without logic of own replication.",
+        "Because the second independent cluster replicates us-east-1 for Asia: users read locally with low latency, synchronized automatically, without logic of own replication."
+      ]
+    },
+    "saa-avc-145": {
+      "optionReasons": {
+        "saa-avc-145:option:0": "Transfer Acceleration speeds up the download of the entire file — does not reduce the amount of data brought.",
+        "saa-avc-145:option:1": "",
+        "saa-avc-145:option:2": "Tablet reduces bytes at rest, but still requires downloading and decompressing the entire object to filter in the client.",
+        "saa-avc-145:option:3": "It is the closest because the download by byte-range in parallel accelerates the transfer — but still lowers the ARQUIVO INTEIRO (only faster): does not reduce the DADOS transferred, and column/line filtering continues in the client; filtering on the server and bringing only the subset is the S3 Select."
+      },
+      "finalJustifications": [
+        "Because S3 Select rotates an expression SQL on the object itself S3 and returns only the requested columns and lines (region='EU') — the transfer falls to the real subset, not to the CSV whole.",
+        "Because download by byte-range rotates an expression SQL on the object itself S3 and returns only the requested columns and lines — the transfer falls to the real subset, not to the CSV whole.",
+        "Because the Transfer Acceleration spins an expression SQL on the object itself S3 and returns only the requested columns and lines — the transfer falls to the real subset, not to the CSV whole.",
+        "Because the gzip compression rotates an expression SQL on the object itself S3 and returns only the requested columns and lines — the transfer falls to the real subset, not to the CSV whole."
+      ]
+    },
+    "saa-avc-146": {
+      "optionReasons": {
+        "saa-avc-146:option:0": "Close connection after each query multiplies opens/dates and worsens overload — does not resolve exhaustion.",
+        "saa-avc-146:option:1": "",
+        "saa-avc-146:option:2": "It's the closest because more max_connections and greater instance actually accept more connections — but it's treating the SINTOMA: the problem is the explosion of ephemeral connections of the Lambda (open, idle, brief), and climbing the bank costs expensive and postpones the roof; grouping and re-using connections is the RDS Proxy.",
+        "saa-avc-146:option:3": "Provided Competition maintains warm environments — no LIMITA competition does not reduce the number of connections."
+      },
+      "finalJustifications": [
+        "Because RDS Proxy maintains a pool of shared and managed connections: the thousands of invocations Lambda Re-use few connections to MySQL, and the 'too many connections' disappears.",
+        "Because increasing max_connections keeps a pool of connections managed and shared: the thousands of invocations Lambda Re-use few connections to MySQL, and the 'too many connections' disappears.",
+        "Because closing the connection by query keeps a pool of connections managed and shared: the thousands of invocations Lambda Re-use few connections to MySQL, and the 'too many connections' disappears.",
+        "Because Provided Competition keeps a pool of connections managed and shared: the thousands of invocations Lambda Re-use few connections to MySQL, and the 'too many connections' disappears."
+      ]
+    }
+  }
+}

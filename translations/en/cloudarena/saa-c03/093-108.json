@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "093-108",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-093": {
+      "optionReasons": {
+        "saa-med-093:option:0": "Reduce Volume Size EBS is not directly supported — and in gp2 would also shrink the IOPS related to size.",
+        "saa-med-093:option:1": "It's the closest because migrating volume type is exactly the right action — but for the wrong target: the io2 is the type PREMIUM of IOPS the economy of the European Union; ~20% with baseline gain comes from gp3.",
+        "saa-med-093:option:2": "Forum Store is ephemeral and does not accept volume 'conversion' EBS — the data would be lost in the first stop.",
+        "saa-med-093:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Elastic Volumes changes the type of gp2 to hot gp3 without downtime: ~20% cheaper by GB and baseline of 3.000 IOPS regardless of size.",
+        "Because the modification to gp3 migrates data to newer generation disks, and the lower cost comes from hardware efficiency.",
+        "Because the gp3 charge only for the effectively used blocks of the volumes, and old fleets have a lot of space allocated without use.",
+        "Because the conversion consolidates the fleet's small volumes into shared larger volumes, diluting the cost per instance."
+      ]
+    },
+    "saa-med-094": {
+      "optionReasons": {
+        "saa-med-094:option:0": "Exclude 90 days violates the 5 years — is not optimization, is non-compliance.",
+        "saa-med-094:option:1": "It's the closest because copying snapshots between regions is a real management operation — but it doesn't save: copying pays for MESMA standard layer in another region (and still the transfer); cutting up 75% has moved the old ones to the EBS Snapshots Archive.",
+        "saa-med-094:option:2": "Restoring everything in permanent sc1 volumes would multiply the cost — active volumes cost more than snapshots.",
+        "saa-med-094:option:3": ""
+      },
+      "finalJustifications": [
+        "Because EBS Snapshots Archive is the long hold layer: even 75% cheaper than standard, ideal for rarely restored compliance snapshots.",
+        "Because the Snapshots Archive compresses the old snapshots in delta format, charging only the modified blocks between months.",
+        "Because Snapshots Archive moves snapshots to S3 Glacier account, inheriting the price of cold object archiving.",
+        "Because Snapshots Archive disables the collection after the third year of retention, the incentive of AWS for long compliances."
+      ]
+    },
+    "saa-med-097": {
+      "optionReasons": {
+        "saa-med-097:option:0": "It is the closest because it would attack the origin of the problem (new incomplete uploads) — but there is no key to 'disable multipart' in the bucket, and even blocking by policy nothing would remove the already accumulated parts; the lifecycle rule that aborts incomplete uploads clears the past and the future.",
+        "saa-med-097:option:1": "Versioning does not interact with incomplete multipart parts — only multiplies versions of completed objects.",
+        "saa-med-097:option:2": "Emptying and re-creating the bucket is destructive and operationally unfeasible — would erase legitimate objects together.",
+        "saa-med-097:option:3": ""
+      },
+      "finalJustifications": [
+        "Because lifecycle rule AbortIncompleteMultipartUpload removes orphan parts after N days — cleans the accumulated and prevents hidden cost from returning permanently.",
+        "Because the lifecycle rule automatically concludes incomplete uploads, transforming orphan parts into visible objects.",
+        "Because the lifecycle rule compresses the orphan parts in an archiving class, zeroing the cost without erasing the fragments.",
+        "Because the lifecycle rule transfers the incomplete parts to a quarantine bucket, where the collection is suspended."
+      ]
+    },
+    "saa-med-098": {
+      "optionReasons": {
+        "saa-med-098:option:0": "",
+        "saa-med-098:option:1": "The Lambda scale to thousands of concurrent runs in seconds — registration peaks are exactly the strength of the serverless.",
+        "saa-med-098:option:2": "The costs differ radically according to the standard: high idleness punishes the fixed fleet; high constant volume can favor instances.",
+        "saa-med-098:option:3": "It's the closest because it starts from a real fact — the Lambda collects per millisecond — but reverses the conclusion: charging for real use is just what ZERA the cost of idleness; the fixed fleet pays the peak sizing 24/7 even empty."
+      },
+      "finalJustifications": [
+        "Because in this profile (rare peaks, long idleness) the serverless collects only the real requests: idleness costs zero, while the fixed fleet pays the peak all the time.",
+        "Because the serverless gets the peak discount from AWS, which returns part of the cost of the execution concentrated in short windows.",
+        "Because API Gateway absorbs the license plates in the peaks and processes them in batch in the morning, when the price of Lambda is smaller.",
+        "Because Lambda reuse the containers of the deactivated fixed fleet, taking advantage of the hardware already paid for during the entire transition."
+      ]
+    },
+    "saa-med-103": {
+      "optionReasons": {
+        "saa-med-103:option:0": "",
+        "saa-med-103:option:1": "FSx for Windows serves SMB for Windows loads — is not the fit for Linux instances that require POSIX.",
+        "saa-med-103:option:2": "It's the closest because attaching a shared volume seems to solve — and the EBS multi-attach exists. But it is restricted to volumes io1/io2 NA MESMA AZ and requires own cluster filesystem; simultaneous reading and writing between AZs with POSIX is the drawing of EFS.",
+        "saa-med-103:option:3": "The s3fs simulates a filesystem over the API Of articles — without semantics POSIX complete or consistent for reliable simultaneous writing."
+      },
+      "finalJustifications": [
+        "Because EFS with mount targets on both AZs delivery POSIX with simultaneous reading and writing for all instances — and survives the fall of a zone.",
+        "Because EFS replicates the files to the local disk of each instance of the fleet, and the writings are synchronized between copies.",
+        "Because EFS elects an instance as a primary file server, and the others mount the sharing of it via NFS.",
+        "Because EFS convert files to objects S3 below, gaining the durability of 11 new in access by file."
+      ]
+    },
+    "saa-med-104": {
+      "optionReasons": {
+        "saa-med-104:option:0": "Lifecycle for Glacier changes storage class by age — does not store overwritten versions or undoes.",
+        "saa-med-104:option:1": "It's the closest because the CRR it's also real data protection — but it replicates what happens at source: the corrupted version would overwrite the copy too (and without versioning there, nothing returns); recovering previous versions is versioning paper.",
+        "saa-med-104:option:2": "",
+        "saa-med-104:option:3": "Weekly manual copy leaves even 7 loss window days and depends on discipline — is not continuous protection."
+      },
+      "finalJustifications": [
+        "Because with Versioning each overwritten creates a new version and preserves the previous one: the corrupted images are reversed by restoring the old version of each object.",
+        "Because Versioning validates the content of each upload against the previous version, rejecting corrupted recordings at source.",
+        "Because Versioning keeps a trash can 30 days for overwritten objects, restoreable by the support console of the AWS.",
+        "Because Versioning replicates versions to a security mirror pocket, untouchable by the catalog application scripts."
+      ]
+    },
+    "saa-med-106": {
+      "optionReasons": {
+        "saa-med-106:option:0": "",
+        "saa-med-106:option:1": "More instances multiply the synchronous calls that fail — do not keep any request during unavailability.",
+        "saa-med-106:option:2": "It's the closest because retry with backoff is a real resilience pattern that the AWS — but the requests live in memory of the instance during the attempts: a crash or deployment in the middle loses everything; only the durable row ensures that no request is lost.",
+        "saa-med-106:option:3": "Multi-AZ no RDS protects the order bank — does not change anything in the synchronous call to the payment service."
+      },
+      "finalJustifications": [
+        "Because the line SQS makes the order durable when it arrives: workers process when payment is standing, and the message only exits the queue successfully confirmed.",
+        "Because the line SQS calls the payment service directly, repeating the transactions that fail without involving the instances EC2.",
+        "Because the line SQS freezes requests during unavailability and returns them to the application for forwarding as soon as the service returns.",
+        "Because the line SQS divides each request between multiple simultaneous workers, and this redundancy eliminates isolated failure loss."
+      ]
+    },
+    "saa-med-108": {
+      "optionReasons": {
+        "saa-med-108:option:0": "It's the closest because it works day by day: a NAT in AZ-A serves the two zones normally — the problem only appears in failure: if AZ-A fall, AZ-B loses the exit together; the isolation requirement requires a NAT by AZ with local route.",
+        "saa-med-108:option:1": "Internet Gateway on a private sub-network route the public make-up — the instances would be reachable from the internet.",
+        "saa-med-108:option:2": "One NAT single instance is even more fragile than a NAT Gateway unique: single point of failure, without high availability managed.",
+        "saa-med-108:option:3": ""
+      },
+      "finalJustifications": [
+        "Because one NAT Gateway by AZ with local route eliminates cross-dependence: the failure of NAT of one zone affects only its instances — the other AZ continues with normal output.",
+        "'Cause both of you NAT Gateways operate in active-active cluster with shared IP, and traffic migrates alone when one of them falls.",
+        "Because the second NAT Gateway fold the available output band, and it is the capacity gap that absorbs the failure of the first.",
+        "Because NAT by AZ keeps open connections synchronized between zones, allowing the failure without session drop."
+      ]
+    }
+  }
+}

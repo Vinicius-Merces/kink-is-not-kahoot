@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "118-004",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-118": {
+      "optionReasons": {
+        "saa-ini-118:option:0": "Step Functions orchestra FLUXOS Work — not multi-source event bus.",
+        "saa-ini-118:option:1": "SQS is point-to-point row — no routing by content rules.",
+        "saa-ini-118:option:2": "",
+        "saa-ini-118:option:3": "The SNS does fan-out by TOPICO, but the central bus with filter rules by content/origin and dozens of sources AWS native is the EventBridge."
+      },
+      "finalJustifications": [
+        "Because EventBridge is the central bus: receives service events AWS and own apps and route to multiple destinations with filtering rules by content and origin.",
+        "Because EventBridge stores events indefinitely for unlimited replay by default, the full bus history.",
+        "Because EventBridge executes the Lambdas code within the bus itself, eliminating the latency between event and function.",
+        "Because EventBridge replaces the S3 and the CodePipeline as the origin of events, centralizing the issue in a single managed service."
+      ]
+    },
+    "saa-ini-125": {
+      "optionReasons": {
+        "saa-ini-125:option:0": "Reduce visibility timeout AGRAVA duplicates — messages in processing would return to the queue before completion.",
+        "saa-ini-125:option:1": "It's not a failure: delivery at-last-once is the COMPORTAMENTO DOCUMENTADO of the standard rows.",
+        "saa-ini-125:option:2": "",
+        "saa-ini-125:option:3": "It's the reverse: rows FIFO they offer exactly-once — occasional duplicates are expected in STANDARD."
+      },
+      "finalJustifications": [
+        "Because standard rows guarantee delivery 'at least once' — occasional duplicates are expected; the consumer should be able to IDEMPOTENTE (check if the request has already been processed).",
+        "Because SQS standard duplicates purpose messages to ensure redundancy — the consumer must discard the second copy.",
+        "Because the solution is to forward each message twice and discard the second delivery, forcing the deduplication by the arrival order.",
+        "Because idempotence means processing each payment twice and severing the surplus at the end of the monthly reconciliation cycle."
+      ]
+    },
+    "saa-ini-138": {
+      "optionReasons": {
+        "saa-ini-138:option:0": "",
+        "saa-ini-138:option:1": "More memory accelerates execution — does not guarantee competition available when other functions exhaust the account limit.",
+        "saa-ini-138:option:2": "DLQ capture failed events — no capacity reserve.",
+        "saa-ini-138:option:3": "Publishing version organises jobs — zero effect on competition."
+      },
+      "finalJustifications": [
+        "Because the reserved competition reserves part of the account limit EXCLUSIVAMENTE for critical function — the other functions cannot consume this slice.",
+        "Because the reserved competition performs the function on dedicated premium servers, physically isolated from other functions.",
+        "Because reserved competition eliminates the limit of competition from the account to the function, releasing unlimited executions.",
+        "Because the reserved competition prioritizes the function in the global row of invocations of the AWS, drilling the line in the traffic peaks."
+      ]
+    },
+    "saa-ini-243": {
+      "optionReasons": {
+        "saa-ini-243:option:0": "",
+        "saa-ini-243:option:1": "The SNS is real-time push for Subscriber MULTIPLES — without retention for the consumer to process 'on his own pace' (without durable buffer by himself).",
+        "saa-ini-243:option:2": "API synchronous ACOPLA producer and consumer — producer is waiting; long timeout is gambiarra.",
+        "saa-ini-243:option:3": "ElestiCache is CACHE — has no row semantics (delivery, confirmation, delivery))."
+      },
+      "finalJustifications": [
+        "Because SQS is the managed row: the producer sends and goes forward; the consumer pulls at his own pace and the messages wait in the row without loss.",
+        "Because SQS delivers each message to all microservices at the same time, the fan-out that dispenses multiple rows.",
+        "Because SQS executes the consumer code within the row itself, processing messages without extra infrastructure.",
+        "Because SQS requires producers and consumers to be in the same situation VPC, and it is this isolation that ensures the disconnection."
+      ]
+    },
+    "saa-ini-259": {
+      "optionReasons": {
+        "saa-ini-259:option:0": "Throttling REJEITA Invocations above the limit — does not explain slowness only after inactivity.",
+        "saa-ini-259:option:1": "",
+        "saa-ini-259:option:2": "There is no memory swapping in the first invocation — the memory is set by configuration.",
+        "saa-ini-259:option:3": "Reconnections TCP may add, but the classic phenomenon 'after inactivity' is the provisioning of the container: the cold start."
+      },
+      "finalJustifications": [
+        "Because it is cold start: after inactivity the container is dislocated; the next invocation pays the cost of providing environment, loading runtime and code before running.",
+        "Because the AWS cheaper charge for the first invocations, which run in slower hardware until the function proves demand.",
+        "Because the cold start is the time to replicate the function for all the region's AZs, the unique cost of native high availability.",
+        "Because the function needs to lower npm dependencies to each inactivity period, rebuilding the deployment package from zero."
+      ]
+    },
+    "saa-ini-269": {
+      "optionReasons": {
+        "saa-ini-269:option:0": "Back to EC2 abandons serverless — manage instance (and interruptions) Spot) for a job that was Lambda is reversed.",
+        "saa-ini-269:option:1": "",
+        "saa-ini-269:option:2": "More memory accelerates, but NO GARANTE fit in 15 min — the limit is still there.",
+        "saa-ini-269:option:3": "Recursive self-invocation is anti-standard: no central state control, infinite loop risk and uncontrolled cost."
+      },
+      "finalJustifications": [
+        "Because Step Functions divides the work into steps Lambda within the 15 min each, maintaining state, recries and error treatment between the steps — the serverless pattern for long jobs.",
+        "Because Step Functions extends the timeout of Lambda for 2 hours per stage, the extended limit of long-term orchestrated workflows.",
+        "Because Step Functions executes the code directly on the state machine without Lambdas — the 15 minutes stop being a flow restriction.",
+        "Because Step Functions converts the function into a container ECS automatically when it detects timeouts, migrating the job to the Fargate."
+      ]
+    },
+    "saa-ini-276": {
+      "optionReasons": {
+        "saa-ini-276:option:0": "Not everything is free of charge to us. 12 months — or Free Tier has specific quotas per service.",
+        "saa-ini-276:option:1": "",
+        "saa-ini-276:option:2": "EC2/RDS/S3 of the Free Tier are in the category '12 MESES' — expire; are not always free.",
+        "saa-ini-276:option:3": "A AWS does not give US credit$ 300 generic — this is from other providers; Free Tier It's by quotas."
+      },
+      "finalJustifications": [
+        "Because Lambda (1M invocations/month), DynamoDB (25 GB) and SNS (1M publications) are ALWAYS FREE — the monthly quotas do not expire after 12 months.",
+        "Because always free applies to any service with invoice below US$ 10 monthly, exempting small loads.",
+        "Because always free requires a registered corporate card, the counterpart of AWS to maintain the permanent quotas.",
+        "Because always free doubles the odds every year of active account, rewarding fidelity with increasing limits."
+      ]
+    },
+    "saa-ini-004": {
+      "optionReasons": {
+        "saa-ini-004:option:0": "NACLs THEIR exit rules — are assessed separately from those of entry.",
+        "saa-ini-004:option:1": "They are different resources with different scopes and behaviors.",
+        "saa-ini-004:option:2": "Yeah. INVERTIDO: Security Groups have been (stateful) and NACLs are stateless).",
+        "saa-ini-004:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the NACL act in SUB-REDE, is statesss and accepts allow E deny explicit; the Security Group acts at the INSTANCE, is stateful and has only rules of permission.",
+        "Because the NACL protect the VPC whole at once and the Security Group protects the subnet where the instance was launched.",
+        "Because Security Group can explicitly deny traffic and the NACL only allow — the inverted pair of network layers.",
+        "Because the NACL filter only IPv6 traffic and the Security Group only IPv4, dividing protocols between layers."
+      ]
+    }
+  }
+}

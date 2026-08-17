@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "161-171",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-161": {
+      "optionReasons": {
+        "saa-med-161:option:0": "s3:* with Resource:* is the MESMA Total permission with another name — tag does not restrict anything.",
+        "saa-med-161:option:1": "Documentation reminder is zero control: the technical permission to play all the bucks is still there.",
+        "saa-med-161:option:2": "",
+        "saa-med-161:option:3": "It's the closest because in fact REDUZ access — the right direction of the least privilege. But it reduces too much: only reading prevents the upload of the builds, breaking the team's work; the correct is the policy customized with the necessary actions in the specific bucket."
+      },
+      "finalJustifications": [
+        "Because the customised policy applies the least privilege in both axes: only the necessary actions (Put/Get/List) and only the RECURSO necessary (or ARN Builds Bucket).",
+        "Because the custom policy inherits the permissions of AmazonS3FullAccess and filters them in runtime by the pocket accessed on the call.",
+        "Because custom policy automatically expires at the end of each build, reducing the credentials display window.",
+        "Because custom policy records every upload in CloudTrail with prior approval, the control required by compliance."
+      ]
+    },
+    "saa-med-162": {
+      "optionReasons": {
+        "saa-med-162:option:0": "A single SG with freed internal traffic flats the layers — any committed instance reaches the bank.",
+        "saa-med-162:option:1": "NACLs are statesss and by sub-network — complement, but do not replace the fine control by origin that the requirement asks.",
+        "saa-med-162:option:2": "",
+        "saa-med-162:option:3": "It's the closest because it's a real rule of Security Group which 'works' — but allows the CIDR of VPC INTEIRA: the web layer (and any network resource) would reach the bank directly; the ID string of Security Group restricts to layer immediately before."
+      },
+      "finalJustifications": [
+        "Because chaining by SG ID implements the defense in depth: the bank only accepts origin in the application's SG, and the application only the SG of the ALB — layer to layer, no IPs.",
+        "Because the SG chain creates encrypted tunnels between the layers of the application, isolating the internal traffic of the rest of the VPC.",
+        "Because referring SGs makes the rules inherit the IPs of NACLs of the sub-networks involved, unifying the two layers of firewall.",
+        "Because the SG of RDS block by default the web layer when detecting the ALB in the chain, applying layer topology automatically."
+      ]
+    },
+    "saa-med-164": {
+      "optionReasons": {
+        "saa-med-164:option:0": "Changing the storage class does not add any verification — Deep Archive is cost, not exclusion control.",
+        "saa-med-164:option:1": "Encryption protects content reading — encrypted objects can normally be deleted by those who have permission.",
+        "saa-med-164:option:2": "",
+        "saa-med-164:option:3": "It's the closest one to deny it. s3:DeleteObject by policy in fact prevents exclusions — but anyone who compromises credentials with the power to edit the policy removes the protection together; the layer ADICIONAL requested (MFA at the time of the request) is the MFA Delete with versioning."
+      },
+      "finalJustifications": [
+        "Because MFA Delete with versioning requires a code MFA valid in the application itself to exclude versions permanently — stolen credentials without token destroys nothing.",
+        "Because MFA Delete encrypts old versions with a token derived key MFA, making them unreadable without the physical device.",
+        "Because MFA Delete transfers the exclusions to an approval row of 24 hours, all reversible by the administrator within that time limit.",
+        "Because MFA Delete blocks user after three exclusion attempts without token, freezing compromised credentials at time."
+      ]
+    },
+    "saa-med-167": {
+      "optionReasons": {
+        "saa-med-167:option:0": "It's the closest because Storage Lens also analyzes bucket activity — but in metrics AGREGADAS (volume, total requests); it does not record individual calls with identity and IP: API by caller is the CloudTrail (with data events for GetObject).",
+        "saa-med-167:option:1": "",
+        "saa-med-167:option:2": "The Trusted Advisor recommends good practices — does not record transactions in access to newsletters.",
+        "saa-med-167:option:3": "The CloudWatch Logs does not store logs of API of the S3 'by default' — receives only what is explicitly configured."
+      },
+      "finalJustifications": [
+        "Because CloudTrail records calls from API with identity, timestamp and IP of origin — and data events enabled, it covers GetObject/PutObject/DeleteObject by pocket.",
+        "Because CloudTrail records captures of user console sessions, visually revealing who sailed through the investigated pocket.",
+        "Because CloudTrail intercepts suspicious calls in real time and blocks them before the object is read by the external invader.",
+        "Because CloudTrail rebuilds the 90 days of history retroactively from the access metadata of the objects of the bucket."
+      ]
+    },
+    "saa-med-168": {
+      "optionReasons": {
+        "saa-med-168:option:0": "The Trusted Advisor in the basic plan only brings a minimum subset of checks — complete checks require Business/Enterprise, and yet no history of compliance by resource.",
+        "saa-med-168:option:1": "It's the closest because the Lambda Scheduled FUNCIONARIA — but it is its own code to maintain, it rotates in windows (not continuously) and does not generate history of conformity; the AWS Config delivers ready rules, continuous evaluation and compliance trail by resource.",
+        "saa-med-168:option:2": "",
+        "saa-med-168:option:3": "The Inspector search CVEs and network exposure in instances and images — does not evaluate volume encryption or SG rule against policy."
+      },
+      "finalJustifications": [
+        "Because Config with encrypted-volumes and restricted-ssh rules continuously evaluates every creation and change, notify violations and maintain the compliance history.",
+        "Because Config fixes violations automatically by default, encrypting the volumes and closing the door 22 without approval.",
+        "Because Config prevents the creation of resources outside of politics, canceling the call of API before the appeal exists in the account.",
+        "Because Config delegates the evaluation to Trusted Advisor and consolidates the results into a single account compliance panel."
+      ]
+    },
+    "saa-med-169": {
+      "optionReasons": {
+        "saa-med-169:option:0": "X-Ray tracks requests within the APPLICATION (trace) — does not capture IP traffic from network interfaces.",
+        "saa-med-169:option:1": "The CloudWatch Agent collection metrics and application logs — capture full payload, besides not exist in this format, would violate the requirement itself (without content).",
+        "saa-med-169:option:2": "It's the closest because the log accesses of ALB they also record real traffic — but only what goes through the balancer: direct connections of the instances with external destinations (suspicious traffic) do not even appear; TODO the traffic of the ENIs are the VPC Flow Logs.",
+        "saa-med-169:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the VPC Flow Logs capture metadata from all ENI traffic — origin, destination, ports, bytes and ACCEPT/REJECT — delivered to CloudWatch or S3.",
+        "Because the VPC Flow Logs also record the payload of rejected connections, allowing you to reproduce the attack in the laboratory.",
+        "Because the VPC Flow Logs block known malicious destinations automatically while recording the rest of traffic.",
+        "Because the VPC Flow Logs consult the Security Group and note which rule approved each flow, pointing to the explored gap."
+      ]
+    },
+    "saa-med-170": {
+      "optionReasons": {
+        "saa-med-170:option:0": "Excluding and re-creating objects annually is mass reprocessing disguised — exactly what you want to avoid.",
+        "saa-med-170:option:1": "",
+        "saa-med-170:option:2": "It's the closest because creating new keys periodically It's a valid form of rotation — but it requires updating every pocket and volume for the new Key ID and managing the old key for historical data; automatic rotation does this internally by maintaining the same ARN.",
+        "saa-med-170:option:3": "Disabling encryption to re-encrypt exposes data in the interval — risk operation without need."
+      },
+      "finalJustifications": [
+        "Because automatic rotation exchanges cryptographic material annually maintaining the MESMO Key ID/ARN — o KMS saves old versions and deciphers historical data alone.",
+        "Because automatic rotation re-encrypts existing background data, updating objects without maintenance window.",
+        "Because automatic rotation emits a new ARN per year and updates the references in the services via Parameter Store integrated.",
+        "Because automatic rotation divides the key into independent versions by resource, and each pocket uses the one of its original creation."
+      ]
+    },
+    "saa-med-171": {
+      "optionReasons": {
+        "saa-med-171:option:0": "",
+        "saa-med-171:option:1": "The 'temporary' public rule with manual removal is a time bomb: a forgetfulness and the document is exposed — and the policy is for the way, not for 1 time.",
+        "saa-med-171:option:2": "It's the closest because a user IAM temporary would also give controlled access — but requires creating credentials for someone from outside, distributing it safely and remembering to exclude it; the presigned URL delivers the same access with automatic expiration of 1 time, no new identity.",
+        "saa-med-171:option:3": "Transfer Acceleration accelerates transfers — gives no access to anyone; fellow Member would continue without permission."
+      },
+      "finalJustifications": [
+        "'Cause I've got it. URL takes the signature of the authenticated user and the expiration of 1 time: the colleague accesses only that object, by the deadline, without account or credentials.",
+        "'Cause I've got it. URL creates a temporary public permission in the bucket policy, automatically removed after the time.",
+        "'Cause I've got it. URL register your colleague as a guest at IAM of the account, with access revoked at the end of the defined validity.",
+        "'Cause I've got it. URL moves the document to a public area isolated from the bucket, emptied by the lifecycle every full hour."
+      ]
+    }
+  }
+}

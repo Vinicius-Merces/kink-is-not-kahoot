@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "173-183",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-173": {
+      "optionReasons": {
+        "saa-med-173:option:0": "It's the closest because it would restrict correctly HOJE — but private IPs change when instances are replaced (deployment, Auto Scaling): the list is obsolete in silence; referencing the SG of the application instances covers any future instance without maintenance.",
+        "saa-med-173:option:1": "Moving the bank to public sub-network expands the exposure — the opposite of what the audit asked for.",
+        "saa-med-173:option:2": "",
+        "saa-med-173:option:3": "NACL 'door 3306 for any origin' is more permissive than the current state — does not restrict the origin of traffic."
+      },
+      "finalJustifications": [
+        "Because the origin of Security Group is dynamic and maintenance zero: any instance associated with the application SG — current or future — achieves the 3306; the rest of the VPC, no.",
+        "Because the rule by SG converts application instance IPs into a static list managed by AWS, updated by deployee.",
+        "Because the SG rule creates a dedicated tunnel between the two private sub-networks, isolating the door 3306 of the rest of the internal network.",
+        "Because the rule by SG delegates authentication to IAM of the instances, and each MySQL connection is validated by the role of the origin instance."
+      ]
+    },
+    "saa-med-175": {
+      "optionReasons": {
+        "saa-med-175:option:0": "Route 0.0.0.0/0 for IGW makes the subnet public — NACL after that is patch on the breach of the requirement.",
+        "saa-med-175:option:1": "",
+        "saa-med-175:option:2": "The Direct Connect connects a data center ON-PREMISES to AWS — does not connect a sub-network of its own VPC services.",
+        "saa-med-175:option:3": "It's the closest because the NAT Gateway is the standard solution for private sub-networks exit — and it would work. But it violates both requirements: reopens the path to the internet and traffic exits the network of AWS; endpoints (interface for SSM, gateway to S3) keep everything inside."
+      },
+      "finalJustifications": [
+        "Because the endpoints keep everything in the network of AWS: PrivateLink interface for the SSM and gateway endpoint for the S3 — the sub-network follows without NAT and no internet.",
+        "Because endpoints copy configuration files and commands from SSM within the VPC, served locally without external calls.",
+        "Because the endpoints open a temporary exception in isolation only during each call of API, closed at the end of reply.",
+        "Because the endpoints use the management connection of their own AWS (outside the VPC), same as the hypervisor uses for the console."
+      ]
+    },
+    "saa-med-176": {
+      "optionReasons": {
+        "saa-med-176:option:0": "",
+        "saa-med-176:option:1": "It's the closest because a dedicated audit user with reading permissions FUNCIONA Technically — but that's exactly what the policy prohibits: long-term credit shared between accounts, without rotation or individual tracking; cross-account roll delivers the same access with temporary credentials.",
+        "saa-med-176:option:2": "Making everything public for internal audit is exposing the entire company — disproportionate and insecure.",
+        "saa-med-176:option:3": "Federation of Google Workspace would open for QUALQUER directory user — is not the drawing for a specific team from another account AWS."
+      },
+      "finalJustifications": [
+        "Because the roll in Account A with trust policy for Account B allows sts:AssumeRole: auditors receive TEMPORARY credentials only reading, no long-term key.",
+        "Because the trust policy replicates Account B users as reading identities in Account A, synchronized to each audit done.",
+        "Because AssumeRole transfers the roll to Account B during the audit, returning it to Account A at the end of each usage session.",
+        "Because the role demands that Account B be in the same organization, and it's the Organizations authenticating auditors between accounts."
+      ]
+    },
+    "saa-med-177": {
+      "optionReasons": {
+        "saa-med-177:option:0": "It's the closest because config also 'continuously monitor' the account — but CONFIGURATION of resources, not behavior: it doesn't analyse traffic or detect malicious IP or API anomalous; detection of threats with ML and threat intel is the GuardDuty.",
+        "saa-med-177:option:1": "The CloudWatch Agents collect metrics and logs — has no threat intelligence or list of malicious IPs; and the requirement vetoes agents.",
+        "saa-med-177:option:2": "",
+        "saa-med-177:option:3": "Alarm of CPU high detects overload — mining even knocks it down sometimes, but is not detection of prioritized threats."
+      },
+      "finalJustifications": [
+        "Because GuardDuty analyze CloudTrail, VPC Flow Logs and DNS with ML and thread intel — malicious IPs, anonymous APIs, log sabotage — with severe detections, no agents.",
+        "Because GuardDuty automatically blocks detected C&C IPs, containing the incident even before the finding is generated.",
+        "Because GuardDuty installs temporary sensors in the instances during the analysis, removed at the end of each daily count scan.",
+        "Because GuardDuty audit permissions IAM of the roles and disables the credentials used outside the usual region of each user."
+      ]
+    },
+    "saa-med-178": {
+      "optionReasons": {
+        "saa-med-178:option:0": "Export/import via CSV is the slowest and most risky route — long downtime and high risk of loss/inconsistency.",
+        "saa-med-178:option:1": "There is no such button: the encryption of RDS is unchangeable after creation — the console does not offer 'link' in an existing instance.",
+        "saa-med-178:option:2": "",
+        "saa-med-178:option:3": "It's the closest because the standard encryption of EBS It's real and it looks like it's fixed underneath — but it's worth NOVOS volumes EBS of EC2; does not retrospectively encrypt the storage of an instance RDS existing in some reboot. The path is snapshot → encrypted copy → restore."
+      },
+      "finalJustifications": [
+        "Because the supported route is this: instance snapshot → snapshot copy with KMS enabled → restore in a new encrypted instance → redirect the application endpoint.",
+        "Because the encrypted copy of the snapshot converts the original instance in-place in the next window, without needing any restorative.",
+        "Because encrypted snapshot synchronizes with the old instance in continuous replication, allowing the exchange without perceptible downtime.",
+        "Because the restare only applies encryption to new data, and the history is gradually encrypted by the bank's subsequent writings."
+      ]
+    },
+    "saa-med-179": {
+      "optionReasons": {
+        "saa-med-179:option:0": "Block Public Access prevents PUBLIC access — does not restrict credentials IAM valid at specific origins.",
+        "saa-med-179:option:1": "",
+        "saa-med-179:option:2": "There's no such thing as Security Group for bucket S3 — SGs belong to network resources in VPC.",
+        "saa-med-179:option:3": "It's the closest because granting only the right roles seems equivalent — but allowing without deny doesn't stop OUTRAS identities with wide permissions (e.g.: admin) to access from anywhere; 'no access outside the two origins' requires conditional Deny in the policy of the pocket."
+      },
+      "finalJustifications": [
+        "Because Deny with condition denies anything that doesn't come from VPC Endpoint (aws:SourceVpce) and corporate IPs (aws:SourceIp) — Even valid credentials outside the source are barred.",
+        "Because the conditional Deny revokes permissions IAM of identities that try to access from outside, punishing invalid origin in time.",
+        "Because the condition aws:SourceVpce encrypts endpoint traffic, and only the origins with the key can read financial reports.",
+        "Because politics with Deny moves the bucket into the VPC, making it unattainable for any route outside the corporate network."
+      ]
+    },
+    "saa-med-180": {
+      "optionReasons": {
+        "saa-med-180:option:0": "",
+        "saa-med-180:option:1": "Distributing private keys by e-mail multiplies risk — shared credentials, without tracking, impossible to revoke right.",
+        "saa-med-180:option:2": "A second bastion adds redundancy to what you want ELIMINAR — folds the attack surface.",
+        "saa-med-180:option:3": "It's the closest because the Direct Connect in fact would eliminate the bastion (direct access by the private network) — but it keeps SSH, door 22 and key management, no session trail; Session Manager removes all of this and still records each session for audit."
+      },
+      "finalJustifications": [
+        "Because Session Manager gives shell via agent SSM with permissions IAM: no door 22, without keys, without bastion — and with centrally recorded sessions for audit.",
+        "Because Session Manager keeps an invisible managed bastion inside the AWS, that makes the bridge SSH without cost or team management.",
+        "Because Session Manager converts keys SSH in short-term certificates issued by the IAM every new session started.",
+        "'Cause Session Manager tunes the SSH corporate API of AWS, maintaining the protocol and eliminating only the door exposure."
+      ]
+    },
+    "saa-med-183": {
+      "optionReasons": {
+        "saa-med-183:option:0": "It's the closest because the RIs of 3 years also give great discount (~60-72%) — But they're blocking fixed capacity for a fleet that ESCALA with the row, paying the same empty peak; for load tolerant of interruption, the Spot surpasses with up to ~90% no commitment.",
+        "saa-med-183:option:1": "",
+        "saa-med-183:option:2": "Reduce to 1 the same jobs would consume the same hours of computing, only taking longer.",
+        "saa-med-183:option:3": "The Lambda is not 'always cheaper': jobs of minutes to HORAS the limit of 15 minutes — not even fit in the service."
+      },
+      "finalJustifications": [
+        "Because the load already tolerates interruption (the row repeats): the perfect scenario of Spot — until ~90% discount on the largest invoice, with the Mixed Forums Policy diluting the risk.",
+        "Because Spot guarantees execution windows of up 6 hours without interruption, covering the longest night rendering jobs.",
+        "Because Spot only the jobs that end successfully, fully exempting the time lost in the interruptions of AWS.",
+        "Because Spot includes priority in the row of SQS, and the jobs of the cheap instances are processed before the other jobs."
+      ]
+    }
+  }
+}

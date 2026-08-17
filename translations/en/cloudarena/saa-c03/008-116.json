@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "008-116",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-008": {
+      "optionReasons": {
+        "saa-ini-008:option:0": "",
+        "saa-ini-008:option:1": "SQS is message queue for DESACOPLAR services — does not distribute entry traffic.",
+        "saa-ini-008:option:2": "Direct Connect is dedicated physical link with the AWS — does not balance load.",
+        "saa-ini-008:option:3": "The CloudFront It's CDN: caches content on the edge — does not distribute requests between your instances."
+      },
+      "finalJustifications": [
+        "Because ELB automatically distributes input traffic between multiple targets (EC2, containers, IPs), with health checks, improving availability and performance.",
+        "Because ELB creates new instances EC2 when traffic grows, expanding the group's capacity before overload arrives.",
+        "Because ELB store the most common responses in cache, accelerating delivery without having to consult the registered instances.",
+        "Because ELB connects users to instances through the private network of AWS, avoiding the public internet in the last jump of the route."
+      ]
+    },
+    "saa-ini-010": {
+      "optionReasons": {
+        "saa-ini-010:option:0": "Elastic IP is fixed address — does not decide when to scale.",
+        "saa-ini-010:option:1": "Placement Group physically positions instances — no scale at all.",
+        "saa-ini-010:option:2": "Launch Template defines O QUE launch (AMI, type) — but alone does not decide QUANDO add or remove.",
+        "saa-ini-010:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Scaling Policy uses metrics from CloudWatch (ex.: CPU) to decide when the group adds or removes instances automatically.",
+        "Because CloudWatch launches instances directly without going through ASG, responding to the alarms of CPU with extra capacity.",
+        "Because the Scaling Policy changes the size (type) of existing instances, making the vertical scale-up according to the CPU up.",
+        "Because the Scaling Policy works by fixed schedule of times, adding the instances at the expected peaks of the day."
+      ]
+    },
+    "saa-ini-039": {
+      "optionReasons": {
+        "saa-ini-039:option:0": "It's not the same protection: an entire region may be unavailable and Multi-AZ won't cover it.",
+        "saa-ini-039:option:1": "Multi-Region is NOT mandatory — it is a requirement decision (DR, latency, compliance)).",
+        "saa-ini-039:option:2": "",
+        "saa-ini-039:option:3": "Application bug replicates for all AZs equally — Multi-AZ is about failure of INFRAESTRUTURA."
+      },
+      "finalJustifications": [
+        "Because AZs isolate local failures (energy, network, a data center) within the Region, and Multi-Region protects against the unavailability of an entire Region.",
+        "Because each AZ stays in a different country, ensuring the geographic coverage that the global users of the application require.",
+        "Because Multi-AZ protects the data layer and Multi-Region protects the computing layer — each approach covers half of the stack.",
+        "Because the AWS charge Multi-AZ per hour and Multi-Region by request — the choice is a cost decision, not a risk decision."
+      ]
+    },
+    "saa-ini-043": {
+      "optionReasons": {
+        "saa-ini-043:option:0": "The ALB non-migrating discs — replacement of instance is the role of Auto Scaling, not of the balancer.",
+        "saa-ini-043:option:1": "Balancer never shuts down because of a bad target — that would knock it all down.",
+        "saa-ini-043:option:2": "",
+        "saa-ini-043:option:3": "Keep sending traffic to sick instance is just what health check avoids."
+      },
+      "finalJustifications": [
+        "Because ELB route only for targets approved in health check: the instance with failure exits the rotation and the traffic follows for the healthy ones.",
+        "Because ELB restarts the instance with failure before removing it from rotation, trying to recover it without losing capacity.",
+        "Because ELB reduces the weight of the patient for 50% of traffic, keeping it active while observing recovery.",
+        "Because ELB returns a warning to the user to try again later, while the patient instance is replaced."
+      ]
+    },
+    "saa-ini-056": {
+      "optionReasons": {
+        "saa-ini-056:option:0": "The minimum of ASG is not related to Reserved Instances or discount.",
+        "saa-ini-056:option:1": "Deployees do not use the minimum value to create instances — who dictates day to day is the desired capacity/politics.",
+        "saa-ini-056:option:2": "The minimum limits group INSTANCES, not simultaneous users.",
+        "saa-ini-056:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the minimum is the floor of the group: even in the smallest demands the ASG Keeps 2 instances — preserving the basic redundancy of one per AZ.",
+        "Because the minimum defines how many new instances are created at each peak, limiting the group's reaction speed.",
+        "Because the minimum prevents the group from exceeding the monthly budget, stopping the cost on the floor defined by the team.",
+        "Because the minimum reserve dedicated capacity in the two AZs, guaranteeing the hardware even before the instances exist."
+      ]
+    },
+    "saa-ini-059": {
+      "optionReasons": {
+        "saa-ini-059:option:0": "It is the closest for also describing the architecture of a database, mirroring the correct alternative — but the RDS Multi-AZ has standby in another AZ with automatic failover: it is precisely the pattern of redundancy that ELIMINA the single point of failure, not an example of it.",
+        "saa-ini-059:option:1": "",
+        "saa-ini-059:option:2": "SQS it is highly available managed service that still over DESACOPLA — reduces failure points.",
+        "saa-ini-059:option:3": "Three AZs behind ALB is the pattern of redundancy — the opposite of SPOF."
+      },
+      "finalJustifications": [
+        "Because a bank in UMA in the case of UMA AZ, without replica is the definition of single point of failure: if it falls, the whole system to.",
+        "Because databases should never run on EC2 — the support of the AWS the homologous only in managed services such as the RDS.",
+        "Because single instances do not receive automatic security patches, accumulating vulnerabilities over time.",
+        "Because a single AZ has no capacity for production traffic, which requires at least two zones per standard of production. AWS."
+      ]
+    },
+    "saa-ini-104": {
+      "optionReasons": {
+        "saa-ini-104:option:0": "",
+        "saa-ini-104:option:1": "Sticky sessions hold the USER to an instance — do not explain the uniform distribution between unequal AZs.",
+        "saa-ini-104:option:2": "Health checks take instances DOENTES of rotation — do not equalize the load between AZs.",
+        "saa-ini-104:option:3": "Connection drainage is about removing instances gracefully — nothing to do with distribution."
+      },
+      "finalJustifications": [
+        "Because the cross-zone load balancing (always active in ALB) distributes traffic uniformly between TODOS the targets, and not half-way between the AZs.",
+        "Because ALB migrating AZ-A for the AZ-B automatically, balancing the number of targets between the two zones.",
+        "Because ALB weighs traffic by the size of the instances of each AZ, compensating for the difference in target capacity.",
+        "Because the cross-zone sends each request to the two AZs at the same time and discards the answer that arrive last."
+      ]
+    },
+    "saa-ini-116": {
+      "optionReasons": {
+        "saa-ini-116:option:0": "Latency routing DIVIDE the traffic by the lowest latency of each user — the secondary would receive traffic in normal operation.",
+        "saa-ini-116:option:1": "",
+        "saa-ini-116:option:2": "Weight 0 even works as a gambirara, but DO NOT automatically switch by health check the form designed for active-passive.",
+        "saa-ini-116:option:3": "Multivalue returns healthy IPs at the same time — not all-for-one."
+      },
+      "finalJustifications": [
+        "Because the failover routing is exactly the passive-active: primary receives everything while the health check passes; failed, the Route 53 responds with secondary.",
+        "Because the failover routing replicates the content of the main site to the secondary region, keeping the read copy in the air.",
+        "Because failure routing requires the two active regions at the same time, dividing the traffic until one of them fails for good..",
+        "Because the failure routing connects the regions by a VPN dedicated, where traffic is diverted during interruption."
+      ]
+    }
+  }
+}

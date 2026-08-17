@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "002-010",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-002": {
+      "optionReasons": {
+        "saa-avc-002:option:0": "",
+        "saa-avc-002:option:1": "Security Group network control — does not filter items by partition key within a table DynamoDB.",
+        "saa-avc-002:option:2": "It's the closest because a table per user ALSO would isolate the data — but not scale for multi-tenant (thousands of tables, account limits, unfeasible cost and operation) and it's not 'restriction on credentials'; the request is to restrict by partition key in the credentials itself, which the LeadingKeys condition delivers.",
+        "saa-avc-002:option:3": "Full access to all authenticated is the opposite of isolation per user requested."
+      },
+      "finalJustifications": [
+        "Because the condition dynamodb:LeadingKeys links the federated credentials to the user's partition key — each only reads and writes its own items in the same table.",
+        "Because the LeadingKeys condition creates a logic table isolated by user within physics, partitioning access without multiplying resources.",
+        "Because the LeadingKeys condition applies a Security Group by partition key, filtering into the network layer the items that each user reaches.",
+        "Because the LeadingKeys condition grants full access to DynamoDB and then filter the customer response according to the user ID."
+      ]
+    },
+    "saa-avc-003": {
+      "optionReasons": {
+        "saa-avc-003:option:0": "Elastic IP in EC2 exposes the API on the internet and still throws out all the management of API Gateway.",
+        "saa-avc-003:option:1": "",
+        "saa-avc-003:option:2": "It is the closest because the Regional is indeed a kind of endpoint of API Gateway — but it is PUBLIC on the Internet: even restricted by politics, resolves by DNS public and does not attend 'accessible only from within the VPC'; the Private type via VPC Endpoint (PrivateLink) maintains internal traffic.",
+        "saa-avc-003:option:3": "Edge-Optimized distributes over the global edge of CloudFront — the most public of all types."
+      },
+      "finalJustifications": [
+        "Because API Gateway Private is only reachable by VPC Interface Endpoint (PrivateLink): traffic is within the VPC and never touches the public internet.",
+        "Because API Gateway Private routes along the edge of the CloudFront with private IP, delivering low latency without publicly exposing the endpoint.",
+        "Because API Gateway Private combines an internal Elastic IP with VPC, and the bodies call the API by this fixed and reserved address.",
+        "Because API Gateway Private applies a resource policy that blocks the internet at the Regional Endpoint, making it private by configuration."
+      ]
+    },
+    "saa-avc-005": {
+      "optionReasons": {
+        "saa-avc-005:option:0": "Change for DynamoDB 'without changing the rest' would rewrite the data model — it is not resilience adjustment of the Aurora.",
+        "saa-avc-005:option:1": "Monthly backup for the S3 Yes RPO up to one month — the opposite end of 'near zero'.",
+        "saa-avc-005:option:2": "It's the closest because it's still Aurora and quotes snapshots — but a single instance in UMA AZ with daily snapshot gives RPO up to 24h and no protection against regional failure; RPO close to zero and RTO low between regions only Aurora Global Database delivery, with low latency replication.",
+        "saa-avc-005:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Aurora Global Database replicates for a subsecond-late region — RPO near zero and rapid promotion of the replica in regional failure.",
+        "Because Aurora Global Database keeps daily snapshots in the secondary region, restored in minutes when the primary region falls whole.",
+        "Because Aurora Global Database converts the table to the global model DynamoDB, inheriting multi-region replication without touching the application.",
+        "Because Aurora Global Database exports transaction log to the S3 continuously, and the secondary region reimports it in case of disaster."
+      ]
+    },
+    "saa-avc-006": {
+      "optionReasons": {
+        "saa-avc-006:option:0": "The Lambda does not process 'always exactly 3 times' — invented number; redelivery depends on row and timeout, not fixed.",
+        "saa-avc-006:option:1": "",
+        "saa-avc-006:option:2": "It's the closest because it actually points to the consumer — but part of a premise FALSA: o SQS Standard DOES NOT guarantee exactly-once; it delivers 'at least once' by design, then fix only the code without idempotence (or without FIFO) does not eliminate duplicates.",
+        "saa-avc-006:option:3": "The problem is solveable with SQS (Idempotence or FIFO) — migrate to the Kinesis is unnecessary."
+      },
+      "finalJustifications": [
+        "Because SQS Standard is at-last-once by design: mitigation is to make the consumer idempotent — or use FIFO with deduplication when order and uniqueness matter.",
+        "Because SQS Standard is exactly-once, so just fix the consumer bug that reprocesses the message, without any change in the queue itself.",
+        "Because Lambda deliver each message three times per default, and reduce this number in function settings eliminates duplicate effects.",
+        "Because SQS can't guarantee uniqueness in any way, and the only way out is to migrate the entire pipeline to the Kinesis Data Streams."
+      ]
+    },
+    "saa-avc-007": {
+      "optionReasons": {
+        "saa-avc-007:option:0": "",
+        "saa-avc-007:option:1": "Field-Level Encryption protects sensitive fields from payload — nothing to do with availability of origin.",
+        "saa-avc-007:option:2": "It's the closest because the Lambda@Edge REALMENTE spins on the edge and can handle requests — but 'just for cache' does not redirect to a secondary origin during the fall of the primary; automatic failure between origins is Origin Failover with Origin Groups.",
+        "saa-avc-007:option:3": "Signed URLs control who accesses the content — do not treat source failure."
+      },
+      "finalJustifications": [
+        "Because Origin Group defines primary and secondary origin: when detecting failure or error status in primary, the CloudFront automatically serves by the secondary.",
+        "Because Origin Failover performs a function Lambda@Edge rewrites the cache pointing to the secondary region during maintenance.",
+        "Because Origin Failover encrypts sensitive fields before changing origin, ensuring the safe continuity of service.",
+        "Because Origin Failover signs the URLs of secondary origin, and only authorized requests are diverted when the primary falls."
+      ]
+    },
+    "saa-avc-008": {
+      "optionReasons": {
+        "saa-avc-008:option:0": "It's the closest because the EBS gp2 is also low latency storage — but is BLOCO attached to UMA instance: not shared among hundreds of EC2 nor does it deliver the aggregate throughput of HPC; shared parallel file system is the FSx for Lustre.",
+        "saa-avc-008:option:1": "Tape Gateway is virtual tape library for backup — nothing to do with throughput from HPC shared.",
+        "saa-avc-008:option:2": "",
+        "saa-avc-008:option:3": "Glacier Deep Archive is cold filing with recovery in hours — the opposite of low latency."
+      },
+      "finalJustifications": [
+        "Because FSx for Lustre is the parallel file system of HPC: High throughput and low latency shared among hundreds of instances EC2 at the same time.",
+        "Because the FSx for Lustre attachs a high performance gp2 volume to each instance, and the sum of the volumes delivers the throughput of the load of HPC.",
+        "Because FSx for Lustre exposes the Tape Gateway virtual tapes as a file system, read in parallel by video processing instances.",
+        "Because FSx for Lustre serves the data directly from the Glacier Deep Archive, and the local cache compensates for archival recovery latency."
+      ]
+    },
+    "saa-avc-009": {
+      "optionReasons": {
+        "saa-avc-009:option:0": "",
+        "saa-avc-009:option:1": "It's the closest because the Geographic also routes by location and seems 'less latency' — but it decides by the location of the user, not by latency REAL measure to the Region, and SEM health checks does not fail: the fallen region would continue receiving traffic; less latency with failover is Latency-based + health checks.",
+        "saa-avc-009:option:2": "Simple Routing returns a fixed record — no notion of latenity or endpoint health.",
+        "saa-avc-009:option:3": "Weighted 100% in a single region sends everything to a place — does not optimize latency or tolerate failure."
+      },
+      "finalJustifications": [
+        "Because Latency-based Routing sends each user to the region with the lowest latency measured, and health checks remove the region from the available route automatically.",
+        "Because latency router decides on the geographical location of the user and reevaluates the health of the Region only in the next consultation of DNS.",
+        "Because simple routing returns the lowest latency endpoint and alternates to another region as soon as the health check accuses failure in the current.",
+        "Because the weighted router divides the latency traffic of each region, adjusting the weights alone as the health checks respond."
+      ]
+    },
+    "saa-avc-010": {
+      "optionReasons": {
+        "saa-avc-010:option:0": "DynamoDB Streams captures changes — disable it has no connection to hot partition.",
+        "saa-avc-010:option:1": "It's the closest because the most RCU/WCU looks like the obvious exit to throttling — but the gargalo is DISTRIBUTION: a hot partition has its own limit (~1.000 WCU/3.000 RCU) and some capacity does not pass from that ceiling by partition; the problem only goes by redistributing the key (write sharding)).",
+        "saa-avc-010:option:2": "",
+        "saa-avc-010:option:3": "Migrate everything to the S3 swaps the access bank by key for storage of objects — is not key redesign."
+      },
+      "finalJustifications": [
+        "Because write sharding spreads items through various partitions (random/calculated suffix on the key), eliminating the hot partition that causes localized throttling.",
+        "Because increasing the provided capacity raises the ceiling per roofless partition, and the throttling disappears as soon as the RCU/WCU ♪ they're up high enough ♪.",
+        "Why disable the DynamoDB Streams releases the capacity that the capture of changes consumed, easing the pressure on the hot partition.",
+        "Why migrate the table to the S3 distributes the items by object prefixes, and the partitioning of the bucket resolves the concentrated key."
+      ]
+    }
+  }
+}

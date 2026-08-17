@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "296-073",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-296": {
+      "optionReasons": {
+        "saa-med-296:option:0": "It seems plausible because it cites the typical columnar format of data lakes, the same vocabulary of architecture — but the Data Catalog saves only METADADOS (diagrams, tables, partitions); the physical data, even transformed into Parquet, continue in the S3.",
+        "saa-med-296:option:1": "",
+        "saa-med-296:option:2": "The S3 is still the storage layer — the Catalog only describes it.",
+        "saa-med-296:option:3": "The ones who perform the consultations are the engines (Athena, Spectrum, EMR) — Catalog provides metadata."
+      },
+      "finalJustifications": [
+        "Because Data Catalog is the index of data lake: central repository of tables, schemas and partitions, shared by Athena, Redshift Spectrum, EMR e Lake Training.",
+        "Because Data Catalog materializes the tables in a columnar cache of its own, accelerating the queries of all integrated services.",
+        "Because Data Catalog charges by query executed in the data, centralizing the analytical invoice of the company's data lake.",
+        "Because Data Catalog syncs data physically between S3 and the Redshift, keeping the two copies consistent with each other."
+      ]
+    },
+    "saa-med-298": {
+      "optionReasons": {
+        "saa-med-298:option:0": "The COPY IMPORTA the data for the cluster — would require a much larger cluster for rarely consulted data, the cost that you want to avoid.",
+        "saa-med-298:option:1": "",
+        "saa-med-298:option:2": "The UNLOAD Makes the way INVERSO: export results from Redshift for the S3.",
+        "saa-med-298:option:3": "The RDS Proxy Manages Connections RDS/Aurora — does not connect to Redshift for this purpose."
+      },
+      "finalJustifications": [
+        "Because Redshift Spectrum consult or S3 Direct via external schema (Glue Data Catalog), allowing JOINS between cluster data and historical data without loading them.",
+        "Because Spectrum copies the data from S3 for the cluster during the consultation and deletes them at the end, releasing the space used.",
+        "Because Spectrum converts the cluster to serverless mode in large queries, scaling the computing on demand.",
+        "Because Spectrum requires historical data to be in the Glacier, the source layer of occasional historical queries."
+      ]
+    },
+    "saa-med-300": {
+      "optionReasons": {
+        "saa-med-300:option:0": "Transfer Acceleration speeds up remote client uploads — does not change data format.",
+        "saa-med-300:option:1": "Data Streams is raw intake — does not convert format or delivery to S3 alone.",
+        "saa-med-300:option:2": "",
+        "saa-med-300:option:3": "One Lambda Reprocessing FUNCIONA, but adds component and cost — Firehose already does the native conversion."
+      },
+      "finalJustifications": [
+        "Because Firehose converts natively JSON → Parquet/ORC (with a pattern of Glue Catalog) and compresses — files reach S3 already optimized for the Athena, no new component.",
+        "Because Firehose consults the Athena each batch to decide the best recording format based on the cost of recent queries.",
+        "Because Firehose partitions the data for the estimated cost of each query, isolating the expensive files from the cheap ones in the pocket.",
+        "Because Firehose records directly in the cluster Redshift in Parquet, and Athena consult the warehouse instead of the pocket S3 original."
+      ]
+    },
+    "saa-med-301": {
+      "optionReasons": {
+        "saa-med-301:option:0": "",
+        "saa-med-301:option:1": "No. SQS the message consumed is removed from the row — without replay and without multiple users of the same data; DLQ It's for faults.",
+        "saa-med-301:option:2": "The Firehose ENTREGA and discard — does not retain stream for rereading.",
+        "saa-med-301:option:3": "The SNS push delivery to several subscribers, but does NOT hold: a new consumer does not reread the latest 7 days."
+      },
+      "finalJustifications": [
+        "Because Kinesis Data Streams with extended retention saves records by up 365 days — new consumers replay the latest 7 days and several read the same stream independently.",
+        "Because Kinesis automatically export the 7 days of events for the S3, and the new consumers replay reading the files deposited in the pocket.",
+        "Because the extended hold creates a daily snapshot of the stream, restoreable for any application that needs to reprocess the full history.",
+        "Because Kinesis Standard already retains 7 days by default without configuration — extended retention serves for periods above 30 days running."
+      ]
+    },
+    "saa-med-302": {
+      "optionReasons": {
+        "saa-med-302:option:0": "It is the closest because it is also an analysis service with SQL of the same ecosystem — but the Athena refer to EM data REPOUSO no S3, on demand; it does not keep continuous processing or time windows on a stream. This is the Managed Service for Apache Flink.",
+        "saa-med-302:option:1": "The Crawler CATALOGA metadata — does not add or process anything in real time.",
+        "saa-med-302:option:2": "The QuickSight VISUALIZA data — does not process streams with time windows.",
+        "saa-med-302:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Managed Service for Apache Flink processes real-time streams with state and time windows (SQL/Java/Python) — aggregations by window of 1 minute are the case of exact use.",
+        "Because Flink stores the stream in S3 and consultation every minute with SQL, materializing the windows as aggregate files in the pocket.",
+        "Because Flink replaces the Kinesis as an intake service, unifying capture and aggregation into a single managed layer of streaming.",
+        "Because Flink sends raw events directly to the sales dashboard, which calculates the averages per window on the user's browser side."
+      ]
+    },
+    "saa-med-036": {
+      "optionReasons": {
+        "saa-med-036:option:0": "Security by darkness is not control — the URL leaks and no validation.",
+        "saa-med-036:option:1": "",
+        "saa-med-036:option:2": "The Route 53 Round DNS — not valid tokens.",
+        "saa-med-036:option:3": "Throttling LIMITA the fee — does not distinguish authorised calls from unauthorized."
+      },
+      "finalJustifications": [
+        "Because Cognito User Pool Authorizer automatically validates or JWT from the pool header: request without valid token is rejected before backend, without own code.",
+        "Because the author encrypts the body of the requests with the token JWT, protecting the data until they reach the backend of the API.",
+        "Because the author issues his own tokens JWT in place of the Cognito, unifying login and authorization within itself API Gateway.",
+        "Because the author redirects users without token to the host login screen of Cognito before releasing the route called."
+      ]
+    },
+    "saa-med-058": {
+      "optionReasons": {
+        "saa-med-058:option:0": "Ignore 429 and follow without the answer corrupts the flow — the necessary data did not arrive.",
+        "saa-med-058:option:1": "Immediate retention in loop is EXATAMENTE the behavior that multiplies the load.",
+        "saa-med-058:option:2": "",
+        "saa-med-058:option:3": "Parallel connections to 'furish' the limit worsens throttling and can lead to blockage."
+      },
+      "finalJustifications": [
+        "Because exponential backoff relieves degraded service (growing expectations) and jitter draws customers—the standard recommended by AWS for resilient retry.",
+        "Because exponential backoff ensures success in the second attempt, doubling the timeout to API accept the request sent.",
+        "Because the jitter identifies the client as a priority for the API, which is now reserving capacity for his retentions.",
+        "Because the backoff moves the requests to a row on the server side, drained according to the capacity of the API recovers."
+      ]
+    },
+    "saa-med-073": {
+      "optionReasons": {
+        "saa-med-073:option:0": "Changing Region doesn't prevent repeated queries from hitting backend.",
+        "saa-med-073:option:1": "Simplify authentication REDUZ security and does not reduce backend calls.",
+        "saa-med-073:option:2": "",
+        "saa-med-073:option:3": "Increase Throttling Allows MAIS requirements — more load in the backend, no less."
+      },
+      "finalJustifications": [
+        "Because the internship cache saves the answers by TTL: the identical queries are answered by the gateway itself without touching the backend — less latency and load.",
+        "Because the stage cache moves the backend to the edge locations, processing repeated queries near users.",
+        "Because the stage cache groups the same requests received and sends them backend in batch, in a single call per minute.",
+        "Because the stage cache is free and unlimited by default, automatically activated on the routes GET more accessible from the stage."
+      ]
+    }
+  }
+}

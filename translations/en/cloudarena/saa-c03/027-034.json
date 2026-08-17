@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "027-034",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-027": {
+      "optionReasons": {
+        "saa-avc-027:option:0": "",
+        "saa-avc-027:option:1": "It's the closest because SCP It also imposes a ceiling on permissions — but SCP act at the level of CONTA/OR, not about 'roles created by a team' within the same account: keep a SCP per team does not delegate the self-service with limit per roll; the exact ceiling of each roller created is the required boundary permissions in the iam:CreateRole.",
+        "saa-avc-027:option:2": "Unique Role with Shared Access Administrator is the opposite of limit — gives everything to everyone.",
+        "saa-avc-027:option:3": "AdministratorAccess + manual revision of IAC depends on failed human process — not a technical ceiling."
+      },
+      "finalJustifications": [
+        "Because the required boundary permissions no iam:CreateRole is the roof: however permissive the team's policy, the actual permissions stay at the intersection with the borderry.",
+        "Because the SCP per team is the ceiling: however permissive the annexed policy, the actual permissions of the role are at the intersection with the SCP team.",
+        "Because the unique role with AdministratorAccess is the roof: each team assumes it for the deployment, and the boundary embedded in it limits what the microservices achieve.",
+        "Because AdministratorAccess with IAC revision is the ceiling: the code inspection before deployment removes any permission that exceeds the maximum limit."
+      ]
+    },
+    "saa-avc-028": {
+      "optionReasons": {
+        "saa-avc-028:option:0": "NLB public with IPs allowist plays traffic on the internet — violates 'never cross the public internet'.",
+        "saa-avc-028:option:1": "VPC Peering does not route with overlapping CIDRs and does not scale for hundreds of pairs — unfeasible in this scenario.",
+        "saa-avc-028:option:2": "It's the closest because the Transit Gateway ALSO connects many VPCs in a private and scalable way — but it requires IP routing between networks and QUEBRA with ICDRs overlapping among customers, besides exposing wide network connectivity; PrivateLink publishes only the service (NLB), tolerates equal ICDRs and does not expose the VPC of SaaS.",
+        "saa-avc-028:option:3": ""
+      },
+      "finalJustifications": [
+        "Because PrivateLink publishes only NLB as Endpoint Service: each client creates an Endpoint Interface on its own VPC, without internet, tolerating overlapping and unexposed ICDRs VPC of SaaS.",
+        "Because Transit Gateway shared links only the NLB to each client, without internet, tolerating the overlapping and unexposed CIDRs VPC internal SaaS.",
+        "Because VPC Peering publishes only the NLB for each customer, maintaining private traffic and operating even with the blocks CIDR Overlays between them.",
+        "Because NLB public with allowist maintains private traffic by Security Group, climbing to hundreds of customers without exposing the VPC internal SaaS."
+      ]
+    },
+    "saa-avc-029": {
+      "optionReasons": {
+        "saa-avc-029:option:0": "Security Group is stateful but by instance and without domain filtering/IPS — does not inspect centralized output.",
+        "saa-avc-029:option:1": "",
+        "saa-avc-029:option:2": "It's the closest because VPC Flow Logs with Athena They also inspect output traffic centrally — but are METADADOS analyzed DEPOIS of the fact (detectives): do not inspect stateful, IPS no EM domain block LINHA before leaving; prevention with state on the way is the Network Firewall in VPC inspection.",
+        "saa-avc-029:option:3": "WAF protects applications HTTP(S) of ENTRADA behind ALB/CloudFront — does not inspect traffic from VPC."
+      },
+      "finalJustifications": [
+        "Because the Network Firewall VPC central inspection makes stateful filtering, IPS and online domain block, with the routes of Transit Gateway forcing the way out for him before the NAT.",
+        "Because the VPC Flow Logs in a central account do stateful inspection with IPS and online domain block, and the Athena before reaching the NAT.",
+        "Because the Security Groups of the spokes do stateful inspection with IPS and online domain lock, filtering out all VPCs before NAT shared.",
+        "Because the Web ACL of the WAF in each spoke does stateful inspection with IPS and online domain block in outbound traffic, before it reaches NAT."
+      ]
+    },
+    "saa-avc-030": {
+      "optionReasons": {
+        "saa-avc-030:option:0": "Site-to-Site VPN + SSH direct still opens the door 22 entry and non-register commands — violates both requirements.",
+        "saa-avc-030:option:1": "",
+        "saa-avc-030:option:2": "Bastion in public sub-network with SSH released is exactly the door of administrative entry prohibited.",
+        "saa-avc-030:option:3": "It's the closest because the EC2 Connect Mechanism ALSO authenticated by IAM and dispenses key management — but it connects via SSH the PORTA 22 (requires open inbound, although temporary/by prefix AWS) and does not record the session commands; without any door and with auditable session log is the Session Manager."
+      },
+      "finalJustifications": [
+        "Because Session Manager opens shell by SSM Rolling agent IAM, without any entry door, and log each session in CloudWatch Logs or S3 for audit.",
+        "Because EC2 Connect Forum opens shell by SSM Rolling agent IAM, without any entry door, and log each session in CloudWatch Logs for audit.",
+        "Because the Site-to-Site VPN opens shell by SSM Rolling agent IAM, without any entry door, and log each session in CloudWatch Logs for audit.",
+        "Because the bastion in public sub-network opens shell by SSM Rolling agent IAM, without any entry door, and log each session in S3 for audit."
+      ]
+    },
+    "saa-avc-031": {
+      "optionReasons": {
+        "saa-avc-031:option:0": "Descripting and re-encrypting everything before failure is massive and fragile operation — and does not cover new data until the next cycle.",
+        "saa-avc-031:option:1": "AWS managed keys are NOT replicated between regions nor do they share material — the premise is false.",
+        "saa-avc-031:option:2": "",
+        "saa-avc-031:option:3": "It's the closest because grants from KMS they really grant description between principals — but the CMK is of SINGLE REGION in us-east-1: any description requires calling the KMS Of us-east-1, which is unavailable in the failover; without depending on the other region, the material needs to exist in eu-west-1 via multi-Region key."
+      },
+      "finalJustifications": [
+        "Because the multi-Region key replicates the same material for me-west-1: during the fall of us-east-1, the local replica immediately describes, without any call to the primary region.",
+        "Because the grants of KMS replicate the same material for me-west-1: during the fall of us-east-1, the local replica descriptor without call to the primary region.",
+        "Because the AWS managed key replicates the same material for me-west-1: during the fall of us-east-1, the local key describes without call to the primary region.",
+        "Because the previous re-cryptography replicates the material to me-west-1: during the fall of us-east-1, the new CMK descriptor without call to the primary region."
+      ]
+    },
+    "saa-avc-032": {
+      "optionReasons": {
+        "saa-avc-032:option:0": "Making the snapshot public exposes the data to AWS whole — insecure and unnecessary.",
+        "saa-avc-032:option:1": "",
+        "saa-avc-032:option:2": "Unencrypted copy eliminates sensitive data protection only to simplify — downgrade security.",
+        "saa-avc-032:option:3": "It's the closest because sharing the snapshot permissions is actually half the way — but the premise is FALSA: the sharing does not include access to CMK automatically; without Account B receiving kms:Decrypt/CreateGrant/DescribeKey on the key to Account A, she sees the snapshot but can't decipher it."
+      },
+      "finalJustifications": [
+        "Because Account B needs both tips: the snapshot permissions shared with it and the CMK of Account A by releasing kms:Decrypt, CreateGrant and DescribeKey to the Mains of Account B.",
+        "Because it's enough to share snapshot permissions with Account B: sharing already automatically includes access to CMK of Account A, without touching on the policy of the KMS.",
+        "Because Account A needs to make the snapshot public and release the CMK, and only then can Account B create volumes by deciphering the data with the shared key.",
+        "Because Account A needs to generate an unencrypted copy of the snapshot, and then Account B uses it without depending on any permission on the CMK original."
+      ]
+    },
+    "saa-avc-033": {
+      "optionReasons": {
+        "saa-avc-033:option:0": "Quarterly manual revision is not continuous or automatic — the opposite of the requirement.",
+        "saa-avc-033:option:1": "",
+        "saa-avc-033:option:2": "It's the closest because the custom config rules REALMENTE they can check resource policies — but it would be to reimplement in hand, by type of resource, the reasoning of external accessibility (S3, IAM, KMS, Lambda, SQS): fragile and expensive to maintain; the Access Analyzer already does this continuous analysis and generates the ready-made finding.",
+        "saa-avc-033:option:3": "Trusted Advisor covers only one subset (e.g. public bills) — does not analyse IAM, KMS, Lambda and SQS by external exposure."
+      },
+      "finalJustifications": [
+        "Because Access Analyzer at the organizational level continuously evaluates the resource policies of S3, IAM, KMS, Lambda and SQS and generates findings when something is accessible from outside the organization.",
+        "Because config's customised rules continuously evaluate the five services' resource policies and generate finding when something is accessible from outside the organization.",
+        "Because the quarterly review continuously evaluates the resource policies of the five services and generates finding when something is accessible from outside the organization.",
+        "Because Trusted Advisor continuously evaluates the resource policies of S3, IAM, KMS, Lambda and SQS and generates findings when something is accessible from outside the organization."
+      ]
+    },
+    "saa-avc-034": {
+      "optionReasons": {
+        "saa-avc-034:option:0": "SSE-C It just means that the client FORNECE the key in each request — there is no HSM dedicated or administrative hardware control.",
+        "saa-avc-034:option:1": "",
+        "saa-avc-034:option:2": "It's the closest because the KMS in fact uses validated MSMs in FIPS 140-2 Internally — but are MULTI-TENANT and operated by AWS: the company does not have exclusive administrative control of the device nor single-tenant isolation Level 3 in which neither the AWS access; this requirement is exactly the CloudHSM.",
+        "saa-avc-034:option:3": "Secrets Manager keep secrets encrypted by KMS — it's not HSM single-tenant under customer sole control."
+      },
+      "finalJustifications": [
+        "Because CloudHSM supplies a cluster of single-tenant HSMs in VPC of the company, with sole administrative control — nor the AWS access the material or device operations.",
+        "Because KMS with CMK supplies a cluster of single-tenant HSMs in VPC of the company, with exclusive administrative control in which AWS access the key material.",
+        "Because SSE-C supplies a cluster of single-tenant HSMs in VPC of the company, with exclusive administrative control in which AWS access the key material.",
+        "Because Secrets Manager supplies a cluster of single-tenant HSMs in VPC of the company, with exclusive administrative control in which AWS access the material."
+      ]
+    }
+  }
+}

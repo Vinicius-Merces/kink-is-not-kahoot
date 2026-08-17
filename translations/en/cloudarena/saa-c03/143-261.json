@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "143-261",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-143": {
+      "optionReasons": {
+        "saa-med-143:option:0": "ElastiCache + code change is exactly the 'separate cache layer' that the requirement discards — more complexity.",
+        "saa-med-143:option:1": "",
+        "saa-med-143:option:2": "Reserved Competition LIMITA simultaneous executions — would cause throttling, not cache saving.",
+        "saa-med-143:option:3": "More Timeout changes nothing: each request continues to generate an invocation."
+      },
+      "finalJustifications": [
+        "Because the cache of API Gateway in the stage, with TTL of hours on the category route, meets the repeated direct requests of the gateway — without invoking the Lambda and no new component.",
+        "Because the cache of API Pre-executed Gateway o Lambda at each expiration of TTL, keeping the response always warmed for the category route.",
+        "Because the cache of API Gateway uses an ElastiCache cluster managed below, and Redis' collection replaces the invocations.",
+        "Because the cache of API Gateway shares responses between all account APIs, diluting the cost of the cache cluster provided."
+      ]
+    },
+    "saa-med-262": {
+      "optionReasons": {
+        "saa-med-262:option:0": "Usage Plans LIMITAM user requests — degrade the experience without serving repeated cache responses.",
+        "saa-med-262:option:1": "Lambda@Edge changes ONDE the code wheel — the invocations continue to happen.",
+        "saa-med-262:option:2": "",
+        "saa-med-262:option:3": "CloudFront In front FUNCIONA for cache, but add a new component — cache NATIVO of the API Gateway resolves within the service itself."
+      },
+      "finalJustifications": [
+        "Because API Gateway Caching saves answers by TTL (1s a 1(h) at the stage: identical requests are served from the cache, without invoking the Lambda — less cost and latency.",
+        "Because API Gateway Caching synchronizes the cache with the product bank, invalidating entries at each price change detected.",
+        "Because API Gateway Caching disables throttling from API, releasing the high volume of requests without invocation cost.",
+        "Because API Gateway Caching is already enabled by default in APIs REST — just adjust or TTL for the one-hour interval."
+      ]
+    },
+    "saa-med-310": {
+      "optionReasons": {
+        "saa-med-310:option:0": "Single instance broker is the single point of failure — daily backup fails.",
+        "saa-med-310:option:1": "Independent brokers without replication of state and with DNS manual have no automatic failover or message consistency.",
+        "saa-med-310:option:2": "",
+        "saa-med-310:option:3": "For instance, greater capacity improvement — non-resilience to AZ failure."
+      },
+      "finalJustifications": [
+        "Because Amazon MQ in active/standby multi-AZ mode replicates status and automatically promotes standby if active broker AZ fails.",
+        "Because active/standby mode processes messages in both AZs at the same time, doubling broker throughput.",
+        "Because the active/standby converts ActiveMQ into SQS internally, inheriting the native multi-AZ resilience of the rows.",
+        "Because the booth is in another region of the AWS, ensuring continuity even in complete regional disasters."
+      ]
+    },
+    "saa-med-012": {
+      "optionReasons": {
+        "saa-med-012:option:0": "",
+        "saa-med-012:option:1": "S3 Intelligent-Tiering is a class of ARMAZENAMENTO — does not rotate containers.",
+        "saa-med-012:option:2": "RIs of RDS are discount of BANCO OF DADOS — Nothing to do with ECS.",
+        "saa-med-012:option:3": "The Fargate On-Demand is the standard price — no discount for interrupting-tolerant charges."
+      },
+      "finalJustifications": [
+        "Because Fargate Spot wheel tasks ECS with significant discount using idle capacity — ideal for containers that tolerate interruption.",
+        "Because Fargate Spot ensures that tasks will never be interrupted within the contracted execution window.",
+        "Because Fargate Spot only for the tasks completed successfully, exempting those interrupted by AWS.",
+        "Because Fargate Spot includes instances EC2 dedicated at no cost, absorbing the peaks of tolerant containers."
+      ]
+    },
+    "saa-med-096": {
+      "optionReasons": {
+        "saa-med-096:option:0": "Replicas DOBRAM the fleet (and cost) without touching the problem: use of 5%.",
+        "saa-med-096:option:1": "It seems close by also to move in the sizing of the same instances — but in the wrong direction: with average use of 5%, folding size only folds waste; the real gain comes from CONSOLIDAR multiple microservices by instance in a shared container cluster.",
+        "saa-med-096:option:2": "",
+        "saa-med-096:option:3": "Dedicated Hosts are the model MAIS the opposite of reducing costs."
+      },
+      "finalJustifications": [
+        "Why containerize and consolidate in a cluster ECS/EKS gives density: dozens of light services share the same instances, use goes up and fleet (and cost) shrinks.",
+        "Because the containers run without consuming CPU nor memory of instances — Docker's runtime isolates the host's resources completely.",
+        "Because ECS is free for low-traffic services, and consolidation only organizes what no longer generated any computer cost.",
+        "Because consolidation eliminates the need for high availability: a single cluster dispenses replicas that doubled the size of the fleet."
+      ]
+    },
+    "saa-med-242": {
+      "optionReasons": {
+        "saa-med-242:option:0": "",
+        "saa-med-242:option:1": "Auto Scaling adjusts to QUANTIDADE according to metrics — who replaces tasks that die is the Service Scheduler maintaining the desired count.",
+        "saa-med-242:option:2": "The health check container detects problem, but without a SERVICE There's no one to reboot the stop task.",
+        "saa-med-242:option:3": "Alarm + Lambda reinvents ECS Service does natively."
+      },
+      "finalJustifications": [
+        "Because tasks managed by a ECS Service are automatically responsible: if one stops, the scheduler sees running < desired and substitute spear — standalone tasks do not have that.",
+        "Because ECS Service prevents the essential containers from going wrong, intercepting the exit code before taking down the entire task.",
+        "Because ECS Service restarts the faulty container within the same stop task, preserving its IP and ephemeral storage.",
+        "Because ECS Service automatically migrates tasks to instances EC2 when the Fargate failure, keeping critical service in the air."
+      ]
+    },
+    "saa-med-252": {
+      "optionReasons": {
+        "saa-med-252:option:0": "Constricted placement control ONDE the tasks run — not the safety of the replacement during the deployment (and separate Forum does not apply to the Fargate).",
+        "saa-med-252:option:1": "",
+        "saa-med-252:option:2": "The Blue/Green CodeDeploy FUNCIONA, but it's another service and another strategy — the question asks the NO configuration ECS Service.",
+        "saa-med-252:option:3": "Service Discovery records tasks no DNS — does not manage the secure transition of the employee."
+      },
+      "finalJustifications": [
+        "Because Minimum Healthy Percentage (ex.: 100%) keeps the old tasks serving until the new ones pass the health check of ALB, and Maximum Percentage (ex.: 200%) allows you to create the new before removing the old ones.",
+        "Because the Deployment Configuration duplicates o ALB during deployment: the old balancer follows with the old tasks and the new one receives the new ones until the health checks pass.",
+        "Because the Minimum Healthy Percentage defines the percentage of CPU reserved for the old tasks during the deployment, ensuring performance until full version exchange.",
+        "Because Maximum Percentage limits the size of the published container image, preventing a heavy deployer from degrades the health checks of the new service tasks."
+      ]
+    },
+    "saa-med-261": {
+      "optionReasons": {
+        "saa-med-261:option:0": "The EBS Multi-Attach only works with Io1/io2 in INSTANCES EC2 in the same AZ — not supported in tasks Fargate.",
+        "saa-med-261:option:1": "The S3 is the object via API — is not a system ARQUIVOS Mounted with semantics POSIX for containers.",
+        "saa-med-261:option:2": "The FSx for Lustre is for HPC and has no native support in Fargate — disproportionate for temporary files.",
+        "saa-med-261:option:3": ""
+      },
+      "finalJustifications": [
+        "Because EFS It's NFS managed with simultaneous access by multiple containers (ReadWriteMany) and native support in Fargate by volume in the Task Definitions.",
+        "Because EFS replicates the temporary files into each container, keeping the local copies in sync.",
+        "Because EFS is the only storage of AWS with microsecond latency, temporary file requirement.",
+        "Because Fargate includes a volume EFS free by task, dimensioned by the memory configured in the containers."
+      ]
+    }
+  }
+}

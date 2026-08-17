@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "136-191",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-136": {
+      "optionReasons": {
+        "saa-med-136:option:0": "Export CSV daily lags from up to 24 HORAS — the requirement accepts seconds; and creates fragile manual process.",
+        "saa-med-136:option:1": "Multi-AZ standby does not accept read connections — it is exclusive to fail.",
+        "saa-med-136:option:2": "",
+        "saa-med-136:option:3": "Larger instance keeps both charges COMPETINDO in the same place — only postpones the problem by paying more."
+      },
+      "finalJustifications": [
+        "Because Read Replica (asynchronous replication, second lag) isolates heavy reports in a separate copy — the primary gets only transactions.",
+        "Because Read Replica syncs synchronously with zero lag, mirroring each report at the moment of transaction.",
+        "Because Read Replica assumes the writings when the primary is busy, returning them by normalizing the transactional load.",
+        "Because Read Replica converts the schema to analytical columnar mode, optimizing monthly report aggregations."
+      ]
+    },
+    "saa-med-144": {
+      "optionReasons": {
+        "saa-med-144:option:0": "",
+        "saa-med-144:option:1": "Three tables by status fragment the model and obliges the MOVER items between tables at each change of status — unsustainable gambira.",
+        "saa-med-144:option:2": "Increasing the aggregate capacity does not solve: the burst limit is the POR PARTICIPATION of the concentrated key.",
+        "saa-med-144:option:3": "The DAX speed up LEITURAS repeated — does not fix the concentration of ESCRITAS in the partition 'DELIVERED'."
+      },
+      "finalJustifications": [
+        "Because order_id (single, high cardinality) spreads items evenly between partitions, and a GSI by order_status preserves the status query when necessary.",
+        "Because the order_id groupes the requests per customer, balancing the partitions by the natural distribution of the store's buyer base.",
+        "Because GSI by status eliminates the throughput limit per partition, absorbing value traffic DELIVERED without throttling in the table.",
+        "Because the partition key can be changed in the existing table without migration, just an UpdateTable with the new key definition."
+      ]
+    },
+    "saa-med-147": {
+      "optionReasons": {
+        "saa-med-147:option:0": "Reserved Competition LIMITARIA o Lambda — the requirement is explicit: without reducing competition.",
+        "saa-med-147:option:1": "Closing the connection at the end of execution is already the common behavior — the problem is the VOLUME simultaneous during peaks.",
+        "saa-med-147:option:2": "",
+        "saa-med-147:option:3": "Larger instance goes up the roof of connections, but thousands of competing Lambdas burst any roof — and the cost goes up without solving the cause."
+      },
+      "finalJustifications": [
+        "Because RDS Proxy multiplies thousands of Lambdas light connections on a reduced pool of real connections to the bank — the Lambda scale and RDS no burst.",
+        "Because RDS Proxy threads the invocations of the Lambda until there is free connection in the bank, exchanging the error for waiting.",
+        "Because RDS Proxy performs the queries in a memory cache without touching the bench in repeated readings of functions.",
+        "Because RDS Proxy lifts max_connections from RDS automatically, following the Lambdas' competition at peaks."
+      ]
+    },
+    "saa-med-148": {
+      "optionReasons": {
+        "saa-med-148:option:0": "The DAX no 'no table' DynamoDB' — is exclusive cache of DynamoDB.",
+        "saa-med-148:option:1": "RDS PostgreSQL is relational disk bank — not cache in memory.",
+        "saa-med-148:option:2": "The Redis with Cluster Mode + replicas + persistence attends, but adds complexity and cost NECESSARY: the data is transient and the question asks multi-thread — Memcached strengths.",
+        "saa-med-148:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Memcached is MULTI-THREADED (uses all cores), horizontal scale with simple addition/removal of nodes and does not load persistence/replication — perfect for purely transient cache.",
+        "Because Memcached persists in fragments of HTML on disk between the restarts of the nodes, ensuring that the cache never needs to be regenerated from the backend.",
+        "Because Memcached has automatic failover faster than Redis, promoting replicas in seconds when a cache cluster node unexpectedly fails.",
+        "Because Memcached supports advanced data structures like random sets and hashes, ideal for indexing rendered page fragments."
+      ]
+    },
+    "saa-med-149": {
+      "optionReasons": {
+        "saa-med-149:option:0": "",
+        "saa-med-149:option:1": "15 permanent replicas meet the peak paying maximum capacity ANO whole — direct waste.",
+        "saa-med-149:option:2": "Remove replicas and play everything in the writer is regression — the writer would drown in the first event.",
+        "saa-med-149:option:3": "ElasticCache helps repeat readings, but changes the architecture and the requirement asks you to adjust the NUMBER OF REPLIES automatically."
+      },
+      "finalJustifications": [
+        "Because Aurora Auto Scaling monitor metric (ex.: CPU mean of replicates) and add/remove replicas within min/max — peak capacity, economy outside of them.",
+        "Because Aurora Auto Scaling resizes the type of the writer instance in peaks, raising the cluster reading capacity.",
+        "Because Aurora Auto Scaling schedule replicas by the events of the editorial calendar, providing before the repercussion begin.",
+        "Because Aurora Auto Scaling migrating the readings to serverless mode in peaks, absorbing the 10x no additional replicas in the cluster."
+      ]
+    },
+    "saa-med-153": {
+      "optionReasons": {
+        "saa-med-153:option:0": "Tables isolated by region SEM replication breaks the global availability of data — user traveling does not see his own profile.",
+        "saa-med-153:option:1": "",
+        "saa-med-153:option:2": "'Read Replicas' with writing only in us-east-1 no existing DynamoDB — and would write with the same high latency of Asia.",
+        "saa-med-153:option:3": "Regional cache accelerates LEITURAS repeated — ESCRITAS They'd continue to cross the planet to us-east.-1."
+      },
+      "finalJustifications": [
+        "Because the Global Tables are multi-active: each region accepts reading and local writing with low latency, and automatic replication keeps the profiles available in all.",
+        "Because the Global Tables route all the writings to the region of EUA, which replicates them to the local reading replicas of the continents.",
+        "Because the Global Tables ensure strong consistency between regions, and it is this synchrony that keeps profiles available in all regions..",
+        "Because the Global Tables partition users across the continent without replicating, and each region keeps only the local profiles."
+      ]
+    },
+    "saa-med-163": {
+      "optionReasons": {
+        "saa-med-163:option:0": "File No S3 remains static credentials — without automatic rotation, and password exchange still requires updating the file.",
+        "saa-med-163:option:1": "",
+        "saa-med-163:option:2": "Variables in Launch Template are static and require RECRIAR instances at each password exchange.",
+        "saa-med-163:option:3": "Bank without authentication is serious security failure — Security Group does not replace authentication."
+      },
+      "finalJustifications": [
+        "Because Secrets Manager save encrypted credentials, ROTACIONA the password of the RDS (secret + synchronous bank) and the application looks for the current value via API with IAM Role — no redeployment.",
+        "Because Secrets Manager injects the password directly into the runtime application process, without it existing in any file nor traffics through the network of VPC.",
+        "Because Secrets Manager eliminates the need for password in the bank: authentication of the RDS starts using the certificate TLS issued to the court's role.",
+        "Because Secrets Manager version the source code along with the secret, ensuring that each deployee loads the corresponding credentials to that version."
+      ]
+    },
+    "saa-med-191": {
+      "optionReasons": {
+        "saa-med-191:option:0": "Multi-AZ with instance MAIOR doubles expenditure — more idle fixed capacity, the opposite of demand.",
+        "saa-med-191:option:1": "The DynamoDB Requisition charge, but NOT relational nor spins the same engine SQL — o requirement requires compatibility.",
+        "saa-med-191:option:2": "RI of 3 years freezes the cost of fixed capacity — continues to pay 24/7 for sporadic use.",
+        "saa-med-191:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Aurora Serverless v2 (compatible with PostgreSQL) ACUs scale according to actual load, falling to almost zero in long idle periods — the capacity consumed is paid.",
+        "Because Aurora Serverless v2 shuts down the bank and discards data when idle, reloading them from S3 in the next team consultation.",
+        "Because Aurora Serverless v2 charges for query executed, such as Athena — sporadic reports pay only the monthly bequests.",
+        "Because Aurora Serverless v2 requires migrating the schema to NoSQL, and is the document model that allows to scale the capacity to almost zero."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "055-089",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-055": {
+      "optionReasons": {
+        "saa-med-055:option:0": "Manual snapshots are points FIXOS in time — do not allow to return to any minute.",
+        "saa-med-055:option:1": "Read replicas are current replicas of the bank — do not keep past states.",
+        "saa-med-055:option:2": "",
+        "saa-med-055:option:3": "Multi-AZ is availability — the standby has the same data from now on, not yesterday's 14h32."
+      },
+      "finalJustifications": [
+        "Because automatic backups combine daily snapshots + CONTINUOUS archiving of transaction logs — the RDS Reconstructs the state of any moment of the retention window in a new instance.",
+        "Because RDS record a full snapshot every minute of the day, and the punctual restoration chooses the closest snapshot to the moment desired by the administrator.",
+        "Because transaction logs are stored within the standby instance of Multi-AZ, which serves as a historical source for timely reconstruction.",
+        "Because the point-in-time restore uses read replicas as a historical source: each replica keeps a different time window from the production database."
+      ]
+    },
+    "saa-med-060": {
+      "optionReasons": {
+        "saa-med-060:option:0": "Climbing max_connections indefinitely only pushes the limit — each connection consumes the bank's memory and the problem returns to greater.",
+        "saa-med-060:option:1": "Read reply answers LEITURAS — does not receive writing connections, and does not solve the churn of connections of the Lambda.",
+        "saa-med-060:option:2": "",
+        "saa-med-060:option:3": "Local /tmp files are not a database — guaranteed data loss."
+      },
+      "finalJustifications": [
+        "Because RDS Proxy keeps a pool shared that invocations reuse — the bank stops bursting connections and the failover gets faster by preserving connections in transition.",
+        "Because RDS Proxy converts persistent connections into calls HTTP without state, eliminating the concept of connection limit in the bank.",
+        "Because RDS Proxy executes the queries in a cache itself and returns the result without touching the bank, saving the connections to the writings.",
+        "Because RDS Proxy limits each Lambda to a life connection reused in all invocations, keeping the total below the limit."
+      ]
+    },
+    "saa-med-062": {
+      "optionReasons": {
+        "saa-med-062:option:0": "GSIs create new consultation visions — do not correct the concentration of ESCRITAS in the day partition.",
+        "saa-med-062:option:1": "",
+        "saa-med-062:option:2": "The DynamoDB supports any time — the gargalo is the limit POR Breakdown of the bad key.",
+        "saa-med-062:option:3": "There is no 'table version' in DynamoDB as a solution for throttling."
+      },
+      "finalJustifications": [
+        "♪ 'Cause the date of the day sends ♪ TODAS the day's writings for the same partition (hot partition): the correction is key to high cardinality (user ID, data+suffix shard) to spread the load..",
+        "Because the key by date automatically expires at midnight, and throttling is the symptom of mass cleaning competing with the writings of the peak.",
+        "Because the table limit only grows when the partition key is numerical — text dates stop automatic partitioning of the DynamoDB in the peaks.",
+        "Because hot partitions are solved by increasing the total capacity provided: with more RCUs and WCUs in the table, each partition inherits a larger ceiling."
+      ]
+    },
+    "saa-med-063": {
+      "optionReasons": {
+        "saa-med-063:option:0": "",
+        "saa-med-063:option:1": "More capacity only makes the expensive Scan run faster — continues reading the table INTEIRA each search.",
+        "saa-med-063:option:2": "The PITR is data recovery — does not speed up queries.",
+        "saa-med-063:option:3": "Migratory to S3 and 'list objects' leaves the bank and does not solve search by attribute."
+      },
+      "finalJustifications": [
+        "Because GSI materializes the table with the e-mail as partition key: the search becomes a cheap and direct Query in the index, eliminating the full Scan.",
+        "Because GSI creates a B-tree index within the main table, accelerating the Scan without needing a separate structure.",
+        "Because GSI transforms the Scan into an automatic parallel scan of 8 threads, dividing the table into segments.",
+        "Because GSI store only the emails of the customers, reducing the cost of reading the query in orders of magnitude."
+      ]
+    },
+    "saa-med-064": {
+      "optionReasons": {
+        "saa-med-064:option:0": "The DAX NOT free — charge per knot/hour like ElastiCache.",
+        "saa-med-064:option:1": "ElastiCache stores any data — including NoSQL; the difference is the effort of integration.",
+        "saa-med-064:option:2": "It sounds plausible because it extends the real advantage of DAX (microseconds managed cache) to other known banks — but the DAX It's EXCLUSIVO of the DynamoDB: He's talking to API of the DynamoDB. RDS and Redshift would use ElastiCache; the statement misses the reason, does not describe the service.",
+        "saa-med-064:option:3": ""
+      },
+      "finalJustifications": [
+        "Because DAX speaks to MESMA API of the DynamoDB: just point the client to the cluster — read-through/write-through cache without writing popular/disable logic as required by ElastiCache.",
+        "Because DAX is enabled by default in the on-demand tables — auctions only need to activate the accelerated endpoint on the console of the DynamoDB.",
+        "Because DAX scale the table's provided capacity along with the cache, absorbing the reading peaks of items in high without throttling.",
+        "Because DAX runs without any cluster, directly at SDK application — the library saves hot items in the local memory of the process."
+      ]
+    },
+    "saa-med-065": {
+      "optionReasons": {
+        "saa-med-065:option:0": "Larger record-making body does not make the REPLIES receive readings.",
+        "saa-med-065:option:1": "",
+        "saa-med-065:option:2": "Replicas Aurora do not accept writing — and the problem is to direct LEITURAS.",
+        "saa-med-065:option:3": "One NLB in front of the replicas reinvents what the Aurora ready delivery: the endpoint reader."
+      },
+      "finalJustifications": [
+        "Because the endpoint reader of Aurora balance the connections between the replicas automatically — just the application send the readings to this endpoint.",
+        "Because the endpoint reader converts readings into writing when the label is free, taking advantage of idle ability.",
+        "Because the endpoint reader requires the RDS Proxy in front to work, and it's the proxy that makes the connection balancing.",
+        "Because the endpoint reader doubles the replicas in peak times, doubling the readability automatically."
+      ]
+    },
+    "saa-med-078": {
+      "optionReasons": {
+        "saa-med-078:option:0": "",
+        "saa-med-078:option:1": "Redis is cached in memory — not a PostgreSQL compatible relational bank.",
+        "saa-med-078:option:2": "RDS in the largest size pays maximum capacity all year long — brutal waste on vacation.",
+        "saa-med-078:option:3": "The DynamoDB on-demand scale, but NOT relational nor compatible with PostgreSQL."
+      },
+      "finalJustifications": [
+        "Because Aurora Serverless v2 (compatible with PostgreSQL) scale ACUs in fine increments and seconds, charging for capacity consumed — cheap holidays, attended plates.",
+        "Because Serverless v2 calendars the capacity by the dates of the registered academic calendar, providing the ACUs before the registration starts.",
+        "Because Serverless v2 migrates queries to DynamoDB in the registration peaks, returning them to PostgreSQL when the load normalizes.",
+        "Because Serverless v2 is free below 1 ACU, and the academic system only pays in the weeks when it exceeds this consumption floor."
+      ]
+    },
+    "saa-med-089": {
+      "optionReasons": {
+        "saa-med-089:option:0": "RI of 3 years TRAVA the payment all year long — for use of a few weeks per quarter is the worst choice.",
+        "saa-med-089:option:1": "",
+        "saa-med-089:option:2": "Redis is cache — does not replace a relational approval bench.",
+        "saa-med-089:option:3": "CSV no S3 is not a bank — would lose wants, transactions and integrity."
+      },
+      "finalJustifications": [
+        "Because Aurora Serverless v2 tracks the load in fine ACUs and drops to a minimum in idle months — real consumption is paid, not annual fixed capacity.",
+        "Because Serverless v2 completely shuts down without charging anything when idle, without any minimum contracted capacity floor.",
+        "Because Serverless v2 charges only in weeks with more than 100 active connections, exempting sporadic use of approval.",
+        "Because Serverless v2 runs the bank on Spot Instances, applying the discount of idle capacity of AWS at the cost of RDS."
+      ]
+    }
+  }
+}

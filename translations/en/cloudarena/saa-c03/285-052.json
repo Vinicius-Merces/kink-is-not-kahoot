@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "285-052",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-285": {
+      "optionReasons": {
+        "saa-med-285:option:0": "Spot in TODOS the knots put the HDFS at risk: interrupted Core Nodes lose data blocks — 'no data loss' is false.",
+        "saa-med-285:option:1": "The EMR Serverless changes the platform — the question is about optimizing the CLUSTER Existing with us.",
+        "saa-med-285:option:2": "",
+        "saa-med-285:option:3": "Master Node in Spot is the PIOR place: if he falls, the cluster INTEIRO She's dead.."
+      },
+      "finalJustifications": [
+        "Because Core Nodes (HDFS) in On-Demand/RI guarantee the data, and Task Nodes (computing only) in Spot Cut to 90% — Disrupted a task, Spark reproduces without losing anything.",
+        "Because the Task Nodes in Spot back up the HDFS before they are interrupted, using the warning of 2 minutes to drain the blocks.",
+        "Because EMR migrating HDFS for the S3 automatically when it detects an interruption Spot, preserving Core Nodes data.",
+        "Because the Core Nodes in Reserved Instances processing twice as many tasks per hour, offsetting the sporadic loss of workers Spot."
+      ]
+    },
+    "saa-med-287": {
+      "optionReasons": {
+        "saa-med-287:option:0": "Fargate for API 24/7 predictable exits MAIS expensive that EC2 with RI — convenience has higher price for vCPU/GB.",
+        "saa-med-287:option:1": "Batch of 30 MINUTOS bursts the limit of 15 min Lambda — unsustainable.",
+        "saa-med-287:option:2": "",
+        "saa-med-287:option:3": "On-Demand for everything is the full price: no commitment discount on 24/7, no discount Spot no batch."
+      },
+      "finalJustifications": [
+        "Because the profile 24/7 predictable asks EC2 + Reserved Instances (greater commitment discount) and the sporadic and rebootable batch asks Fargate Spot/EC2 Spot (until 70-90% discount).",
+        "Because EC2 launch type executes containers faster than the Fargate, eliminating the overhead task supply of microservices.",
+        "Because Fargate Spot keeps the batch jobs immune to interruptions, booking dedicated capacity during the 30 minutes of each job run.",
+        "Because the Reserved Instances automatically cover the tasks Fargate of the same cluster, extending the discount of EC2 to the serverless."
+      ]
+    },
+    "saa-med-292": {
+      "optionReasons": {
+        "saa-med-292:option:0": "It seems close because health checks are also part of the life cycle of Auto Scaling Group — but they only DETECTAM unsanitary instances; do not create a waiting state or add completion. Pausing in 'Terminating:Wait' to run scripts is role of lifecycle hooks.",
+        "saa-med-292:option:1": "Scaling polices decide QUANDO scalar — do not intercept the termination of the proceeding.",
+        "saa-med-292:option:2": "",
+        "saa-med-292:option:3": "Launch template/user date wheel in INITIATION — not in completion."
+      },
+      "finalJustifications": [
+        "Because the lifecycle hook puts the instance in Finishing:Wait: the script sends the logs and closes the connections gracefully, and only then the completion continues.",
+        "Because the lifecycle hook automatically cancels the scale-in if the script takes longer than expected, preserving the instance.",
+        "Because the lifecycle hook migrates the current connections to the replacement instance before releasing the completion.",
+        "Because the lifecycle hook creates a complete snapshot of the instance before ending, preserving the logs in the copied volume."
+      ]
+    },
+    "saa-med-306": {
+      "optionReasons": {
+        "saa-med-306:option:0": "All at once updates all instances together — downtime right.",
+        "saa-med-306:option:1": "Rolling updates in batches REDUZINDO capacity during deployment — breach of requirement.",
+        "saa-med-306:option:2": "",
+        "saa-med-306:option:3": "Rolling with additional batch keeps capacity, but mix versions and rollback in the middle is slow — not the safest."
+      },
+      "finalJustifications": [
+        "Because Immutable creates a set NOVO and complete with parallel instances and only change when healthy — total capacity all the time and fast rollback (discard new ones).",
+        "Because Immutable updates the code in old instances without restarting them, applying the new hot version without swap window.",
+        "Because Immutable uses a second environment with URL own exchange via DNS, the swap mechanism of the blue and green environments of Beanstalk.",
+        "Because the Immutable is the only policy without additional cost of instances — the new ones take advantage of the idle capacity of the group itself."
+      ]
+    },
+    "saa-med-307": {
+      "optionReasons": {
+        "saa-med-307:option:0": "Rolling with batch of 100% = All-at-once no MESMO environment — downtime and no parallel environment to reverse.",
+        "saa-med-307:option:1": "",
+        "saa-med-307:option:2": "Managed Platform Updates updates to PLATAFORMA (SO/runtime) — no application versions.",
+        "saa-med-307:option:3": "Reimplant previous version by console is rollback LENTO which is intended to be eliminated."
+      },
+      "finalJustifications": [
+        "Because Swap Environment URLs exchanges the CNAMEs between blue and green: traffic migrates almost instantly to the validated clone, and reversal is another exchange.",
+        "Because the swap copies the validated instances of the green into the blue, replacing the old fleet with the tested.",
+        "Because the swap updates the A records of instances one by one, migrating traffic gradually between environments.",
+        "Because the swap requires you to recreate the old environment at each exchange, ensuring that the blue is born clean for the next version."
+      ]
+    },
+    "saa-med-308": {
+      "optionReasons": {
+        "saa-med-308:option:0": "Hold the request HTTP waiting for processing is antistandard — degrades experience and bursts timeouts.",
+        "saa-med-308:option:1": "",
+        "saa-med-308:option:2": "CloudFront Functions Run MILISSEGUNDOS edge logic — unfeasible for image processing.",
+        "saa-med-308:option:3": "Spot in the web environment changes the cost — does not take the heavy processing of the way of the requests."
+      },
+      "finalJustifications": [
+        "Because Beanstalk's Worker Environment consumes tasks from a row SQS managed: the web tier row and the worker processes in the background, with the daemon managed by Beanstalk himself.",
+        "Because the Worker Environment performs the long tasks within itself ALB, taking advantage of the idle time of the balancer between the requests HTTP.",
+        "Because the Worker Environment converts tasks into functions Lambda managed, processing the queue out of the instances of the Beanstalk web environment.",
+        "Because the Worker Environment prioritizes tasks by the size of the sent image, processing small ones first to release user requests."
+      ]
+    },
+    "saa-med-043": {
+      "optionReasons": {
+        "saa-med-043:option:0": "Geolocation route by ORIGEM user — does not return multiple healthy IPs.",
+        "saa-med-043:option:1": "",
+        "saa-med-043:option:2": "Simple routing with multiple IPs returns all SEM health check — customers receive dead IPs.",
+        "saa-med-043:option:3": "Sequential CNAMS do not perform integrity check or distribution."
+      },
+      "finalJustifications": [
+        "Because the multivalue answer returns until 8 SAUDÁVEIS records by consultation (health check by registry), excluding defaults — simple distribution with verification via DNS.",
+        "Because the multivalue answer balances the load by measuring the CPU of the instances and returning the IPs of the least occupied in each response.",
+        "Because multivalue answer converts or Route 53 in one load balancer layered 7, routing each client through URL required in the service.",
+        "Because multivalue answers always returns the closest IP to the client, combining health check with geolocation of query."
+      ]
+    },
+    "saa-med-052": {
+      "optionReasons": {
+        "saa-med-052:option:0": "VPC Peering connects networks — does not route global users or fail.",
+        "saa-med-052:option:1": "",
+        "saa-med-052:option:2": "Failed DNS depending on TTL of customers — TTL ALTO let the failover still MAIS slow; violation or requirement.",
+        "saa-med-052:option:3": "CloudFront is for content HTTP cacheable — the application is TCP pure."
+      },
+      "finalJustifications": [
+        "Because Global Accelerator Yes 2 IPs anycast STATISTICS (happy firewall) and diverts traffic between regions in SEGUNDOS via health checks — without depending on cache DNS.",
+        "Because Global Accelerator updates the DNS of customers with TTL of 1 second, propagating the failover in less than a minute.",
+        "Because Global Accelerator mirror each connection in the two active regions simultaneously, and the fastest response wins the race.",
+        "Because Global Accelerator tunes traffic by VPN between regions, keeping the original IP visible to firewalls."
+      ]
+    }
+  }
+}

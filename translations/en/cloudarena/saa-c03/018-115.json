@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "018-115",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-018": {
+      "optionReasons": {
+        "saa-ini-018:option:0": "Internet Gateway connects to VPC to INTERNET — the requirement is precisely to avoid the internet.",
+        "saa-ini-018:option:1": "",
+        "saa-ini-018:option:2": "NAT Gateway redundant continues to route over the internet and costs per hour + per GB.",
+        "saa-ini-018:option:3": "VPC Peering connects VPCs to each other — S3/DynamoDB are not VPCs."
+      },
+      "finalJustifications": [
+        "Because the Gateway Endpoint (exclusive for S3 and DynamoDB) adds private route in the route table: access through the internal network of the AWS, without internet, without NAT and no cost.",
+        "Because Gateway Endpoint creates a local cache of S3 within the VPC, serving the objects without repeating the trip to the pocket.",
+        "Because Gateway Endpoint assigns temporary public IPs to private entities during calls to the APIs of the S3 and DynamoDB.",
+        "Because the Gateway Endpoint charges for GB processed, but much less than the NAT Gateway — the economy comes from the reduced rate."
+      ]
+    },
+    "saa-ini-019": {
+      "optionReasons": {
+        "saa-ini-019:option:0": "The CloudFront distributes content publicly by edge — does not expose service PRIVADO between VPCs.",
+        "saa-ini-019:option:1": "Internet Gateway involves public Internet traffic — what is to be avoided.",
+        "saa-ini-019:option:2": "Direct Connect link datacenters ON-PREMISES to AWS — is not the private consumption mechanism between VPCs.",
+        "saa-ini-019:option:3": ""
+      },
+      "finalJustifications": [
+        "Because PrivateLink publishes the service behind a NLB and customers consume it by endpoints interface with private IPs on their VPCs — without internet and without peering.",
+        "Because PrivateLink creates an automatic peering among all VPC clients, unifying networks in a routing domain only.",
+        "Because PrivateLink exposes the service by a VPN site-to-site managed, with dedicated tunnels for each consumer customer.",
+        "Because PrivateLink replicates the service within the VPC of each customer, performing a local copy isolated by consumer."
+      ]
+    },
+    "saa-ini-020": {
+      "optionReasons": {
+        "saa-ini-020:option:0": "",
+        "saa-ini-020:option:1": "The entry is NOT allowed by default — without entry rules, every inbound is denied.",
+        "saa-ini-020:option:2": "No door is released by default — nor SSH.",
+        "saa-ini-020:option:3": "The exit is released by default — 'all denied' is wrong in the half outbound."
+      },
+      "finalJustifications": [
+        "Because one Security Group new has no entry rules (imply negates all inbound) and has a standard rule releasing all exit traffic.",
+        "Because Security Group new automatically inherits the default group rules from VPC until you receive your own.",
+        "Because Security Group new block also the exit until the first rule is created, isolating the instance completely.",
+        "Because Security Group new allows only entry of instances of the same VPC, the implicit perimeter of confidence."
+      ]
+    },
+    "saa-ini-021": {
+      "optionReasons": {
+        "saa-ini-021:option:0": "The Internet Gateway is the connectivity component of VPC — is not an administrative access point.",
+        "saa-ini-021:option:1": "",
+        "saa-ini-021:option:2": "The NAT Gateway allows private entities to exit — no administrator entry.",
+        "saa-ini-021:option:3": "The ELB Distribute application traffic — does not concentrate access SSH Administrative."
+      },
+      "finalJustifications": [
+        "Because the bastion host is the hardened instance in the public sub-network that concentrates access SSH/RDP to private bodies — single controlled entry point.",
+        "Because the bastion host hides the IP of private entities via NAT, translating addresses to each access session.",
+        "Because the bastion host authenticates the administrators instead of the IAM, with a local key directory SSH authorized.",
+        "Because the bastion host replicates the commands SSH for all private entities, administering the entire fleet at once."
+      ]
+    },
+    "saa-ini-022": {
+      "optionReasons": {
+        "saa-ini-022:option:0": "IGW + Public IPs EXPOSURE instances to input connections — violates central requirement.",
+        "saa-ini-022:option:1": "Peering connects VPCs — doesn't give internet access to private sub-networks.",
+        "saa-ini-022:option:2": "The WAF filter requirements in ALB/CloudFront/API Gateway — Does Not Provide Exit Path.",
+        "saa-ini-022:option:3": ""
+      },
+      "finalJustifications": [
+        "Because NAT Gateway in the public sub-network (referenced on the private route) allows exit connections (patches) and blocks any connection started from outside.",
+        "Because NAT Gateway scans downloaded packages for malware, the required filter for security patches.",
+        "Because NAT Gateway Open the door. 443 entry only for the servers of the AWS, secure channel of two patches.",
+        "Because NAT Gateway lowers updates once and distributes them internally to sub-network instances."
+      ]
+    },
+    "saa-ini-033": {
+      "optionReasons": {
+        "saa-ini-033:option:0": "The CloudTrail REGISTRA calls from API — is the data source, not the smart detector.",
+        "saa-ini-033:option:1": "",
+        "saa-ini-033:option:2": "The CloudWatch Monitor METRICS and logs — does not detect threats with threat intelligence.",
+        "saa-ini-033:option:3": "The WAF filter web requests — does not analyze account behavior."
+      },
+      "finalJustifications": [
+        "Because GuardDuty continuously analyzes CloudTrail, VPC Flow Logs and DNS logs with ML and threat intelligence, generating finding without installing agents.",
+        "Because GuardDuty automatically blocks detected malicious IPs, cutting communication before leaking.",
+        "Because GuardDuty installs light sensors in each instance EC2 of the account, capturing the traffic that logs do not record.",
+        "Because GuardDuty is the paid version of CloudTrail: the same events of API, increased real-time alerts."
+      ]
+    },
+    "saa-ini-112": {
+      "optionReasons": {
+        "saa-ini-112:option:0": "Additional AZs do not increase the VPC in itself — sub-networks and VPC do not charge for AZ.",
+        "saa-ini-112:option:1": "",
+        "saa-ini-112:option:2": "Sub-networks in an AZ receive internet traffic normally — resilience is the problem, not connectivity.",
+        "saa-ini-112:option:3": "The Auto Scaling FUNCIONA with an AZ — only resilience is compromised."
+      },
+      "finalJustifications": [
+        "Because with everything in one AZ, her fall leads to the application INTEIRA together — single fault point that resilient architecture exists to avoid.",
+        "Because a single AZ limits the account to 20 instances, ceiling insufficient to absorb peaks of application.",
+        "Because the AWS does not offer SLA for resources implemented in a single AZ, leaving the application without contractual guarantee.",
+        "Because subnets of a single AZ cannot be registered in a Load Balancer, preventing traffic distribution."
+      ]
+    },
+    "saa-ini-115": {
+      "optionReasons": {
+        "saa-ini-115:option:0": "Concentrate TUDO in the AZ of NAT gets worse: in addition to the internet, the whole application depends on an AZ.",
+        "saa-ini-115:option:1": "Several NATs in MESMA AZ maintain the dependence of that AZ — its failure knocks down everyone.",
+        "saa-ini-115:option:2": "",
+        "saa-ini-115:option:3": "Internet Gateway does not replace NAT for sub-networks PRIVADAS — would require public IPs and display entry."
+      },
+      "finalJustifications": [
+        "Because one NAT Gateway POR AZ, with each private subnet routing to NAT local, eliminates cross-dependence: failure of an AZ affects only its sub-networks.",
+        "Because three NAT Gateways triple the available output band, eliminating the gorgalo that knocked down the other two AZs.",
+        "Because NAT by AZ synchronizes the active connections between the zones, allowing the transparent failure of the open sessions.",
+        "Because NAT by AZ is mandatory by AWS from two private sub-networks — the current configuration violates the default."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "131-187",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-131": {
+      "optionReasons": {
+        "saa-ini-131:option:0": "The highest instance connected 24/7 is the opposite of automatic adjustment — maximum waste in idle hours.",
+        "saa-ini-131:option:1": "Pre-peak manual replicas require manual forecasting and work — and scale LEITURA, not the overall computing capacity.",
+        "saa-ini-131:option:2": "",
+        "saa-ini-131:option:3": "The DynamoDB is not relational — the requirement requires compatibility MySQL/PostgreSQL."
+      },
+      "finalJustifications": [
+        "Because Aurora Serverless v2 adjusts the capacity in ACUs up and down in seconds, following demand, without manual provisioning.",
+        "Because Serverless v2 turns off the bank at night and reconnects in the morning in scheduled windows, charging only commercial hours.",
+        "Because Serverless v2 converts the bank to a model NoSQL during peaks, absorbing the load without changing the application.",
+        "Because Serverless v2 charges a monthly fixed value calibrated by the average use, protecting the budget from daily variations."
+      ]
+    },
+    "saa-ini-132": {
+      "optionReasons": {
+        "saa-ini-132:option:0": "GSIs create alternate query paths — do not fix the bad partition key distribution of the table.",
+        "saa-ini-132:option:1": "Sort key organizes items DENTRO of a partition — does not resolve the concentration in few partitions.",
+        "saa-ini-132:option:2": "",
+        "saa-ini-132:option:3": "Streams captures changes for consumers — does not cause throttling of writing."
+      },
+      "finalJustifications": [
+        "♪ 'Cause I'm alone ♪ 3 key values focus everything on few physical partitions ('hot partitions') — the partition key needs to ALTA cardinality to spread items.",
+        "Because DynamoDB limits each table to three physical partitions by default, and the increase requires opening a support ticket.",
+        "Because the provided capacity is only valid for the first partition created — the others inherit only the remaining stock capacity.",
+        "Because text partition keys are slower than numeric keys: string hash costs more and delays recordings."
+      ]
+    },
+    "saa-ini-134": {
+      "optionReasons": {
+        "saa-ini-134:option:0": "No write-behind ESCRITA is born in the cache and then goes to the bank — the scenario describes reading with cache miss.",
+        "saa-ini-134:option:1": "",
+        "saa-ini-134:option:2": "TTL infinite is expiration policy, not a loading strategy.",
+        "saa-ini-134:option:3": "In write-through the cache is updated NA ESCRITA — the scenario carries the data in the LEITURA after the miss."
+      },
+      "finalJustifications": [
+        "Because in lazy loading (cache-aside) the data only enters the cache when requested and not found: miss → search the bank → saves to the cache for the next ones.",
+        "Because in lazy loading the bank only replicates the data to the background cache, keeping the hot items preloaded.",
+        "Because lazy loading ensures that the cache never gets outdated: each miss revalidates the data against the origin before serving.",
+        "Because lazy loading writes in the cache and the bank at the same time, ensuring immediate consistency between the two layers."
+      ]
+    },
+    "saa-ini-147": {
+      "optionReasons": {
+        "saa-ini-147:option:0": "",
+        "saa-ini-147:option:1": "The DAX speed up readings in UMA region — players from other continents would continue to cross the ocean.",
+        "saa-ini-147:option:2": "More capacity does not change the PHYSICAL: the intercontinental latency remains.",
+        "saa-ini-147:option:3": "There is no 'Read Replica' in DynamoDB — multi-region replication is the role of Global Tables."
+      },
+      "finalJustifications": [
+        "Because Global Tables replicate the table in active-active mode between the Regions: each accepts readings and local writings, spread to the others in seconds.",
+        "Because the Global Tables route all the writings to a single master region, which spreads them to local reading replicas.",
+        "Because the Global Tables use the CloudFront to serve the items on the edge, approaching the score of players from each continent.",
+        "Because the Global Tables keep copies read only in the secondary regions, promoted to main during peaks."
+      ]
+    },
+    "saa-ini-150": {
+      "optionReasons": {
+        "saa-ini-150:option:0": "The DAX is cached from DynamoDB — does not work in front of the Aurora.",
+        "saa-ini-150:option:1": "",
+        "saa-ini-150:option:2": "Daily manual adjustment is just what you want to eliminate — and fail at peaks out of time.",
+        "saa-ini-150:option:3": "The Serverless v2 in the writer scaled to CAPACIDADE of an instance — the request is to vary the number of replicas of reading."
+      },
+      "finalJustifications": [
+        "Because Aurora Auto Scaling add/remove Aurora Replicas automatically based on metrics policy as CPU or connections — number follows demand.",
+        "Because Aurora Auto Scaling resizes the type of the writer instance in peaks, raising the cluster reading capacity.",
+        "Because Aurora Auto Scaling migrate replicas to cheaper regions outside business hours, cutting the cost of the morning.",
+        "Because Aurora Auto Scaling is the commercial name of the serverless mode, which dimension the ACUs of the writer according to the demand for reading."
+      ]
+    },
+    "saa-ini-152": {
+      "optionReasons": {
+        "saa-ini-152:option:0": "Replicas without cluster scale mode LEITURA — all writings remain in a single primary and memory is not partitioned.",
+        "saa-ini-152:option:1": "The DAX is cached from DynamoDB — does not replace a Redis cluster.",
+        "saa-ini-152:option:2": "A larger node is scale VERTICAL ceiling — does not partition data or distribute writings.",
+        "saa-ini-152:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Cluster Mode partitions data into multiple shards, each with its primary — climbing storage and writing horizontally.",
+        "Because Cluster Mode duplicates the entire dataset in each shard, ensuring total cache redundancy between the groups of us.",
+        "Because Cluster Mode switches the engine to Memcached internally, the only one capable of partitioning data between multiple nodes.",
+        "Because Cluster Mode extends memory to volumes EBS attached, exceeding the physical limit of a node without partitioning."
+      ]
+    },
+    "saa-ini-155": {
+      "optionReasons": {
+        "saa-ini-155:option:0": "",
+        "saa-ini-155:option:1": "Multi-AZ gives high availability — does not show which wants weigh in the bench.",
+        "saa-ini-155:option:2": "The Trusted Advisor checks good accounting practices — does not analyse SQL individual.",
+        "saa-ini-155:option:3": "CPUtilization alarm warns QUE the bank is overloaded — does not identify QUAIS SQLs cause load."
+      },
+      "finalJustifications": [
+        "Because Performance Insights shows DB Load on a visual panel and ranks the wants SQL, hosts and users who contribute most to the load in the period.",
+        "Because Performance Insights automatically rewrites the identified slow queries, applying the optimization hints.",
+        "Because Performance Insights automatically creates indexes by detecting full table scans at bench slow times.",
+        "Because Performance Insights is exclusive to Aurora, whose distributed storage provides the loading metrics per query."
+      ]
+    },
+    "saa-ini-187": {
+      "optionReasons": {
+        "saa-ini-187:option:0": "",
+        "saa-ini-187:option:1": "Bank swap does not solve sizing — and the RDS would also require choosing instance size without history.",
+        "saa-ini-187:option:2": "Auto Scaling reacting after 1 HORA would let the throttling happen all along the sudden peak.",
+        "saa-ini-187:option:3": "High fixed value 'for security' pays idle capacity most of the time."
+      },
+      "finalJustifications": [
+        "Because On-Demand charges for request made and instantly scales for unpredictable peaks — no risk of throttling by sub-supply or idle fixed cost.",
+        "Because On-Demand guarantees unlimited capacity free of charge in the former 3 months, the calibration period for new tables in production.",
+        "Because On-Demand automatically supplies twice the highest historical peak, keeping the rest that avoids any throttling.",
+        "Because On-Demand exchanges the minimum one-year commitment for lower fees per request — the reserve model of the DynamoDB."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "075-082",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-075": {
+      "optionReasons": {
+        "saa-avc-075:option:0": "Weighted with manual weight exchange requires human intervention in the interruption — the requirement is automatic.",
+        "saa-avc-075:option:1": "It's the closest because Multivalue Answer also uses health checks and omits sick endpoints — but it's ATIVO-ATIVO: returns several healthy records and distributes among them, does not route only to the secondary when the primary falls; active-passive with automatic failback is the policy Failover (PRIMARY/SECONDARY).",
+        "saa-avc-075:option:2": "Latency-based routed by the lowest latency always — does not implement the primary/second standby standard.",
+        "saa-avc-075:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Failover policy routed to us-west-2 only when the health check of PRIMARY (us-east-1) fails, and returns to primary alone as soon as he recovers — without manual intervention.",
+        "Why Multivalue Answer policy route to us-west-2 only when the primary health check (us-east)-1) fails, and returns to primary alone as soon as he recovers — without intervention.",
+        "Because the Weighted policy routed to us-west-2 only when the primary health check (us-east)-1) fails, and returns to primary alone as soon as he recovers — without manual intervention.",
+        "Because the Latency-based policy routed to us-west-2 only when the primary health check (us-east)-1) fails, and returns to primary alone as soon as he recovers — without intervention."
+      ]
+    },
+    "saa-avc-076": {
+      "optionReasons": {
+        "saa-avc-076:option:0": "",
+        "saa-avc-076:option:1": "It's the closest because the Aurora Global Database is also multi-region with low reading latency — but it has ONE primary writer: secondary regions are read only; does not give ESCRITA active-place in each region; local writing in all regions with automatic propagation is the DynamoDB Global Tables.",
+        "saa-avc-076:option:2": "Independent tables with DMS bidirectional is artisanal replication and prone to conflicts — not active-active managed.",
+        "saa-avc-076:option:3": "DAX is cached from LEITURA — no written replica between regions nor gives global active-table."
+      },
+      "finalJustifications": [
+        "Because the DynamoDB Global Tables give replica in each region with E reading ESCRITA active-location, automatic propagation between them and full operation even if a region falls.",
+        "Because Aurora Global Database gives replica in each region with E reading ESCRITA active-location, automatic propagation between them and full operation even if a region falls.",
+        "Because the tables with DMS bidirectional give replica in each region with reading E ESCRITA active-location, automatic propagation between them and full operation even if a region falls.",
+        "Because the unique table with DAX replicates in each region with E reading ESCRITA active-location, automatic propagation between them and full operation even if a region falls."
+      ]
+    },
+    "saa-avc-077": {
+      "optionReasons": {
+        "saa-avc-077:option:0": "It is the closest because 'replication between regions of the vault, such as the CRR of the S3' describes exactly the desired result — but the AWS Backup doesn't have this safe feature with CRR automatic; cross-region copy is made by a copy rule in PLANO backup, which copies each recovery point to the destination safe.",
+        "saa-avc-077:option:1": "There is no account Multi-Region mode that mirrors all the vaults automatically — invented feature.",
+        "saa-avc-077:option:2": "Hand copied manual snapshots to each backup is manual and fallable process — requirement is automated.",
+        "saa-avc-077:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the copy rule in the backup plane automatically copies each recovery point created in us-east-1 for a safe in us-west-2 — restoreable even if us-east-1 fall whole.",
+        "Because the replication of the vault automatically copies each recovery point created in us-east-1 for a safe in us-west-2 — restoreable even if us-east-1 fall whole.",
+        "Because Multi-Region mode automatically copies each recovery point created in us-east-1 for a safe in us-west-2 — restoreable even if us-east-1 fall whole.",
+        "Because the manual copy of snapshots automatically copies each recovery point created in us-east-1 for a safe in us-west-2 — restoreable even if us-east-1 fall whole."
+      ]
+    },
+    "saa-avc-078": {
+      "optionReasons": {
+        "saa-avc-078:option:0": "It is the closest because the retry of asynchronous invocation of the Lambda It also sends it back in error — but the Step Functions invokes the function in a SINCRON (Task) way, then this retry does not apply, and it does not make the exponential backoff nor the deviation to 'manual revision' that the flow asks; this is the Retry + Catch of the state itself.",
+        "saa-avc-078:option:1": "Add SQS with redrive between states rewrites the orchestration — the Step Functions already treats retry/catch natively.",
+        "saa-avc-078:option:2": "",
+        "saa-avc-078:option:3": "Thread.sleep inside the Lambda burn execution time paid and hides flow control — is not the declarative retry of Step Functions."
+      },
+      "finalJustifications": [
+        "Because the Retry field in the state makes the exponential backoff except for throttling (IntervalSeconds/BackoffRate/MaxAttempts), and the Catch diverts to 'manual revision' when the attempts run out.",
+        "Because the asynchronous retry of Lambda makes the exponential backoff in the exception of throttling (IntervalSeconds/BackoffRate/MaxAttempts), and diverts to 'manual revision' when attempts are exhausted.",
+        "Because the SQS with redirect makes the exponential backoff in the exception of throttling (IntervalSeconds/BackoffRate/MaxAttempts), and diverts to 'manual revision' when attempts are exhausted between states.",
+        "Because the try/catch with Thread.sleep makes the exponential backoff in the exception of throttling (IntervalSeconds/BackoffRate/MaxAttempts), and diverts to 'manual revision' when attempts run out."
+      ]
+    },
+    "saa-avc-079": {
+      "optionReasons": {
+        "saa-avc-079:option:0": "",
+        "saa-avc-079:option:1": "It's the closest because the DataSync actually copy objects between buckets from different regions — but a ONE-TIME copy does not keep each NOVO automatically replicated object: the future assets would be outside the DR; continuous replication of new objects with stored class and preserved encryption is Cross-Region Replication.",
+        "saa-avc-079:option:2": "Lifecycle to Glacier changes the CLASSE of objects — not copying them to another region.",
+        "saa-avc-079:option:3": "Transfer Acceleration Accelerates Access via Edge — Does Not Create Copy in Eu-West-1."
+      },
+      "finalJustifications": [
+        "Because the CRR automatically replicate each new us-east object-1 for me-west-1 (with versioning in both pocketes), preserving storage class and encryption — ready copy for DR if origin falls.",
+        "Because DataSync one-time automatically replicates each new us-east object-1 for me-west-1, preserving storage class and encryption — ready copy for DR if the origin falls whole.",
+        "Because Lifecycle to Glacier automatically replicates every new us-east object-1 for me-west-1, preserving storage class and encryption — ready copy for DR if the origin falls whole.",
+        "Because Transfer Acceleration automatically replicates every new us-east object-1 for me-west-1, preserving storage class and encryption — ready copy for DR if the origin falls whole."
+      ]
+    },
+    "saa-avc-080": {
+      "optionReasons": {
+        "saa-avc-080:option:0": "Visibility timeout 0 makes the poison message instantly reappear — worsens the loop of flaws.",
+        "saa-avc-080:option:1": "It's the closest because more competition actually processes other messages in parallel — but DO NOT isolate the poisonous message: it keeps coming back in line, burning invocations and being reprocessed in loop; automatically isolating after N failures is Dead Letter Queue with maxReceiveCount.",
+        "saa-avc-080:option:2": "Retention of 1 minutes would also discard VALID messages that were not processed in time — data loss.",
+        "saa-avc-080:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the DLQ with redrive policy (maxReceiveCount)=3) moves the poison message to quarantine after the third failure — the main row continues to flow and valid messages do not lock.",
+        "Because the biggest reserved competition moves the poisonous message to quarantine after the third failure — the main row continues to flow and valid messages do not lock.",
+        "Because the visibility timeout 0 moves the poison message to quarantine after the third failure — the main row continues to flow and valid messages do not lock.",
+        "Because the retention of 1 minute moves the poison message to quarantine after the third failure — the main row continues to flow and valid messages do not lock."
+      ]
+    },
+    "saa-avc-081": {
+      "optionReasons": {
+        "saa-avc-081:option:0": "Two independent clusters with double writing require logic in the application and do not fail with single endpoint.",
+        "saa-avc-081:option:1": "Snapshot + restore is manual and slow recovery, with loss of sessions since last snapshot — not automatic failover.",
+        "saa-avc-081:option:2": "",
+        "saa-avc-081:option:3": "It's the closest because Memcached is the other engine of ElastiCache — but it DOESN'T have auto falover or replication: it's multi-none by sharding without promo replica; promoting replica by keeping the same endpoint in AZ failure is the Redis with Multi-AZ and Automatic Failover."
+      },
+      "finalJustifications": [
+        "Because the Redis with Multi-AZ and Automatic Failover automatically promotes a replica in another AZ and maintains the primary endpoint, without the application reconfigures anything in the failure.",
+        "Because Memcached with Multi-AZ and Automatic Failover promotes a replica in another AZ automatically and maintains the primary endpoint, without the application reconfigures anything in the failure.",
+        "Because the two independent clusters with Automatic Failover automatically promote a replica in another AZ and maintain the primary endpoint, without the application reconfigure anything.",
+        "Because the snapshot + restore with Automatic Failover automatically promotes a replica in another AZ and maintains the primary endpoint, without the application reconfigures anything in the failure."
+      ]
+    },
+    "saa-avc-082": {
+      "optionReasons": {
+        "saa-avc-082:option:0": "",
+        "saa-avc-082:option:1": "One EFS is regional — does not fit the MESMO file system in instances of another region.",
+        "saa-avc-082:option:2": "It's the closest because the DataSync copy in fact or EFS between regions — but a SINGLE copy does not keep the replica updated continuously: RPO would grow without limit between executions; continuous replication with low RPO and replica promoter reading-writing is the EFS Replication.",
+        "saa-avc-082:option:3": "Lifecycle for Infrequent Access changes storage class — no replication to another region."
+      },
+      "finalJustifications": [
+        "Because EFS Replication keeps a replica read only in us-west-2 continuously updated with low RPO, promoting read-write at DR event — exactly the requirement.",
+        "Because DataSync one-time keeps a replica read only in us-west-2 continuously updated with low RPO, promoting read-write at DR event — exactly the requirement.",
+        "Why ride the same EFS in us-west-2 keeps a replica read only continuously updated with low RPO, promoting read-write at DR event — exactly the requirement.",
+        "Because Lifecycle to Infrequent Access keeps a replica read only on us-west-2 continuously updated with low RPO, promoting reading-writing at the DR event."
+      ]
+    }
+  }
+}

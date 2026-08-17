@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "078-129",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-078": {
+      "optionReasons": {
+        "saa-ini-078:option:0": "Aurora Serverless is relational bench on demand — not ElastiCache cache engine.",
+        "saa-ini-078:option:1": "Memcached is cached SIMPLES multithread: without advanced structures, without persistence and without automatic failure.",
+        "saa-ini-078:option:2": "The DAX is specific cache of DynamoDB — is not an ElastiCache engine.",
+        "saa-ini-078:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Redis offers sorted sets for rankings, lists and hashes, optional persistence and replication with automatic failover — features that simple cache does not have.",
+        "Because Redis is the only ElastiCache option compatible with SQL, allowing rankings via ORDER BY directly in the cache layer.",
+        "Because Redis persists the data in S3 for durability, recovering the advanced structures from there after any node failure.",
+        "Because Redis is the paid version of Memcached: the same behavior, with the automatic failover as a premium feature hired."
+      ]
+    },
+    "saa-ini-103": {
+      "optionReasons": {
+        "saa-ini-103:option:0": "",
+        "saa-ini-103:option:1": "The multi-AZ failover switch to a SYNCRON standby — which contains the same corruption, because it replicated the bad writing.",
+        "saa-ini-103:option:2": "The read reply also replicated corruption — promoting it does not recover the previous state.",
+        "saa-ini-103:option:3": "The snapshot of the original creation would lose TODAS transactions since then — RPO bad."
+      },
+      "finalJustifications": [
+        "Because PITR combines automatic snapshots with transaction logs, re-creating the bank in a NOVA instance in the exact state of any second within the retention.",
+        "Because PITR undoes only the corrupted transaction, keeping the current bank in operation while the transaction log is rewritten.",
+        "Because PITR restores the latest entire backup over the current bank, returning the status to the last daily window.",
+        "Because PITR depends on the Multi-AZ standby: it is the synchronous replica that keeps the state of every minute inside the hold."
+      ]
+    },
+    "saa-ini-107": {
+      "optionReasons": {
+        "saa-ini-107:option:0": "The DynamoDB Streams captures change events for consumption — does not restore the table to a past moment.",
+        "saa-ini-107:option:1": "",
+        "saa-ini-107:option:2": "Global Tables replicate between regions for global access — would also replicate accidental exclusion.",
+        "saa-ini-107:option:3": "The Auto Scaling adjusts read/write capacity — nothing to do with data recovery."
+      },
+      "finalJustifications": [
+        "Because PITR of the DynamoDB, once enabled, it allows restore the table for any second within up 35 days — direct protection against accidental writing/exclusion.",
+        "Because PITR keeps a complete copy of the table in each AZ of the region, and the restoration alternates to the oldest copy intact.",
+        "Because PITR block exclusions and overwrites of items without the approval of an administrator, preventing the damage to the origin.",
+        "Because PITR version each item individually as the S3 Versioning, allowing you to recover any previous version of the item."
+      ]
+    },
+    "saa-ini-113": {
+      "optionReasons": {
+        "saa-ini-113:option:0": "A larger node has more memory, but it's still a unique point of failure.",
+        "saa-ini-113:option:1": "Memcached has NO replication or failover — multiples we only partition cache.",
+        "saa-ini-113:option:2": "Snapshots recover data after manually — do not automatically promote replica in case of failure.",
+        "saa-ini-113:option:3": ""
+      },
+      "finalJustifications": [
+        "Because a replication group with Multi-AZ monitors the primary and automatically promotes a replica in another AZ, updating the endpoint without manual reconfiguration.",
+        "Because Multi-AZ divides the writings between all the nodes of the group, so the loss of the primary does not interrupt any recording.",
+        "Because the replication group restarts the primary node before any promotion, solving most flaws without failover.",
+        "Because Multi-AZ copies the cache to the S3 every minute, and the new primary is hydrated from the last snapshot saved."
+      ]
+    },
+    "saa-ini-121": {
+      "optionReasons": {
+        "saa-ini-121:option:0": "The Aurora DO NOT wear a EBS unique location — your storage is a distributed layer of your own.",
+        "saa-ini-121:option:1": "",
+        "saa-ini-121:option:2": "The Aurora makes continuous backup for the S3, but the primary durability comes from replication 6x in 3 AZs, not from S3.",
+        "saa-ini-121:option:3": "Read Replicas Scale LEITURA and computer failure — the data durability exists in the storage layer even without any replica."
+      },
+      "finalJustifications": [
+        "Because the storage layer of Aurora replicates each data in 6 copies by 3 AZs automatically — built-in durability, independent of computer replicas.",
+        "Because Aurora record each transaction simultaneously in 6 different regions, ensuring overall durability before the commit.",
+        "Because Aurora apply RAID-6 to volumes within a single AZ, tolerating the loss of two discs without losing any data.",
+        "Because Aurora activates the traditional Multi-AZ of RDS by default, and it is the synchronous standby that guarantees the durability of the data."
+      ]
+    },
+    "saa-ini-124": {
+      "optionReasons": {
+        "saa-ini-124:option:0": "The ALB balance of traffic HTTP/HTTPS for targets — does not manage pool of bank connections nor understands the bank protocol.",
+        "saa-ini-124:option:1": "ElastiCache reduces repeated cache queries — does not maintain or redirect connections during failover.",
+        "saa-ini-124:option:2": "The DMS MIGRA inter-engine/local banks — does not get in the way of application connections.",
+        "saa-ini-124:option:3": ""
+      },
+      "finalJustifications": [
+        "Because RDS Proxy maintains a pool of connections between the application and the bank: in the failover, it preserves the connections and redirects to the new main, shortening the recovery.",
+        "Because RDS Proxy duplicates each writing to the standby instance in parallel, keeping the two copies ready for immediate failure.",
+        "Because RDS Proxy turns the bank into serverless automatically, scaling the connections along with computational capacity.",
+        "Because RDS Proxy eliminates authentication in the bank: credentials are validated once in the proxy and never sent back to the instances."
+      ]
+    },
+    "saa-ini-126": {
+      "optionReasons": {
+        "saa-ini-126:option:0": "",
+        "saa-ini-126:option:1": "Multi-AZ protects inside UMA Region — does not respond to DR between regions.",
+        "saa-ini-126:option:2": "Read replica cross-region of RDS classic has bigger lag and slower promotion — the Aurora has a custom made resource for this case.",
+        "saa-ini-126:option:3": "Daily backup copy means RPO up to 24 HORAS — very far from 'a few seconds'."
+      },
+      "finalJustifications": [
+        "Because Aurora Global Database replica between regions typically latency < 1 second (RPO low) and allows to promote the secondary region quickly.",
+        "Because the Global Database uses synchronous replication between regions, guaranteeing RPO exactly zero in any disaster.",
+        "Because the Global Database accepts simultaneous writings in all regions by default, dispensing any manual promotion.",
+        "Because the Global Database copies daily snapshots between the Regions automatically, keeping the secondary ready to restore."
+      ]
+    },
+    "saa-ini-129": {
+      "optionReasons": {
+        "saa-ini-129:option:0": "Restart does not change the role of the replica — it continues only reading and replicating from the main.",
+        "saa-ini-129:option:1": "Aiming the endpoint is not enough: the replica is still REJEITA written to be promoted.",
+        "saa-ini-129:option:2": "",
+        "saa-ini-129:option:3": "Multi-AZ is resilience DENTRO of the region and can be configured later — is not the step that enables written."
+      },
+      "finalJustifications": [
+        "Because the promotion turns the response into an instance INDEPENDENTE reading and writing, closing the replication with the old main — the essential step of failure.",
+        "Because the promoter reconnects the replica to the main old as standby synchronous, reversing the roles when the region returns.",
+        "Because the promoter just updates the DNS from the endpoint to the replica, which continues in read-only mode until the final synchronization.",
+        "Because the promotion restores the last snapshot shared in the secondary region, creating the new main from the backup."
+      ]
+    }
+  }
+}

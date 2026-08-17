@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "159-297",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-159": {
+      "optionReasons": {
+        "saa-ini-159:option:0": "Keys managed by AWS rotate in the schedule of AWS — the customer does not CONTROLA the policy; and the requirement is on the CMK of the customer.",
+        "saa-ini-159:option:1": "Create CMK new annually would require re-encrypting data and updating references — exactly what you want to avoid.",
+        "saa-ini-159:option:2": "",
+        "saa-ini-159:option:3": "Disabling encryption violates security policy — no option."
+      },
+      "finalJustifications": [
+        "Because automatic rotation generates new cryptographic material annually maintaining the MESMO ID/ARN — old data remain decryptable, without re-cryption or change in application.",
+        "Because automatic rotation re-encrypts all existing background data, updating objects without maintenance window.",
+        "Because automatic rotation changes the ARN of key and updates the references of all applications via Parameter Store integrated with KMS.",
+        "Because automatic rotation exists only in keys managed by AWS — in CMKs, the policy requires annual documented manual rotation."
+      ]
+    },
+    "saa-ini-160": {
+      "optionReasons": {
+        "saa-ini-160:option:0": "Environment variables remove code, but do NOT rotate the password in the bank automatically.",
+        "saa-ini-160:option:1": "The Parameter Store Standard stores safely, but does NOT have automatic rotation integrated with RDS.",
+        "saa-ini-160:option:2": "File in S3 private is still static secret — no rotation and with more exposure surface.",
+        "saa-ini-160:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Secrets Manager keep encrypted credentials, and ROTACIONA automatically: Update password in RDS and the secret stored, in synchrony, without intervention.",
+        "Because Secrets Manager inject the password directly into the memory of the bank process, without it being in plain text anywhere.",
+        "Because Secrets Manager eliminates the need for password in the bank: authentication is done by certificate TLS Service.",
+        "Because Secrets Manager generates unique passwords for each connection, invalidated as soon as the session with the RDS is closed completely."
+      ]
+    },
+    "saa-ini-168": {
+      "optionReasons": {
+        "saa-ini-168:option:0": "The Trusted Advisor recommends cost/performance/limits — does not add security finding.",
+        "saa-ini-168:option:1": "Manual Dashboards MOSTRAM metrics — do not normalize, correlate or prioritize security finding.",
+        "saa-ini-168:option:2": "The Organizations structure accounts — an 'audit account' alone does not add discoveries.",
+        "saa-ini-168:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Security Hub automatically aggregates and prioritizes the finding of GuardDuty, Inspector, Macie and Config in a single panel, and evaluates the count against patterns like the CIS Benchmark.",
+        "Because Security Hub automatically fixes all critical discoveries, applying the patches recommended by each integrated service.",
+        "Because Security Hub replaces the other security services of AWS, unifying detection into a single managed analysis engine.",
+        "Because Security Hub blocks the account when it detects non-compliance with CIS Benchmark, forcing correction before release of use."
+      ]
+    },
+    "saa-ini-175": {
+      "optionReasons": {
+        "saa-ini-175:option:0": "Keys managed by AWS are multi-tenant and without customer control over the hardware — the opposite of the requirement.",
+        "saa-ini-175:option:1": "The Secrets Manager keep secrets — not a HSM dedicated.",
+        "saa-ini-175:option:2": "",
+        "saa-ini-175:option:3": "SSE-C use customer key in S3, but the AWS PROCESSA the key to each request — it is not HSM dedicated under exclusive control."
+      },
+      "finalJustifications": [
+        "Because CloudHSM Delivery HSMs DEDICADOS (single-tenant) validated FIPS 140-2, with exclusive customer control over the key material — a AWS does not access.",
+        "Because CloudHSM is a physical safe sent to the customer's office, operated locally outside the infrastructure of the AWS.",
+        "Because CloudHSM is the free version of KMS for financial institutions, with HSMs subsidized by compliance.",
+        "Because CloudHSM store a printed copy of the keys in the installation of the AWS, the physical backup required by FIPS 140-2."
+      ]
+    },
+    "saa-ini-179": {
+      "optionReasons": {
+        "saa-ini-179:option:0": "The limit of ~4 KB of operation Encrypt is architectural — does not increase via support'.",
+        "saa-ini-179:option:1": "",
+        "saa-ini-179:option:2": "Disable encryption for large files is surrender, not solution.",
+        "saa-ini-179:option:3": "Bite gigabytes in blocks of 4 KB would generate millions of calls to KMS — absurd cost and latency; correct pattern uses local data key."
+      },
+      "finalJustifications": [
+        "Because in the encryption envelope the KMS generates a data key: the file is encrypted LOCALMENTE with it (without limit), and only the data key — small — is encrypted by CMK and stored by the data.",
+        "Because the encryption envelope compacts the file into small blocks until it fits on the edge of the KMS, encrypting each block on a separate call from API.",
+        "Because the encryption envelope sends the file to KMS by continuous streaming, bypassing the size limit of individual service Encrypt calls.",
+        "Because the encryption envelope divides CMK in several smaller keys, and each fragment encrypts a part of the file large locally, in parallel."
+      ]
+    },
+    "saa-ini-180": {
+      "optionReasons": {
+        "saa-ini-180:option:0": "The Secrets Manager keep secrets — does not issue certificates or operate an CA.",
+        "saa-ini-180:option:1": "The Cognito authentic users — 'certificate pool' does not exist.",
+        "saa-ini-180:option:2": "The ACM public requires validation of public domain — exposes internal names, just what you want to avoid.",
+        "saa-ini-180:option:3": ""
+      },
+      "finalJustifications": [
+        "Because ACM Private CA creates a CA hierarchy PRIVADA for issuing X certificates.509 to internal services (mTLS) without exposing internal domains to a public CA.",
+        "Because Private CA issues public certificates with volume discount, the economic model for microservice fleets.",
+        "Because Private CA signs internal certificates with the root key of AWS, inheriting the public trust of the official chain.",
+        "Because Private CA was designed for services exposed outside the VPC, where public domain validation does not reach the endpoints."
+      ]
+    },
+    "saa-ini-222": {
+      "optionReasons": {
+        "saa-ini-222:option:0": "The Parameter Store type String storage SEM cryptography — for third-party secrecy there is a lack of integrated rotation and focus on secrets.",
+        "saa-ini-222:option:1": "The KMS manage key CRIPTOGRAFIA — does not store keys API as a consultable secret.",
+        "saa-ini-222:option:2": "",
+        "saa-ini-222:option:3": "S3 encrypted works as gambiarra — no secret versioning, rotation or semantics of access audited as secret."
+      },
+      "finalJustifications": [
+        "Because Secrets Manager is made for this: secret encrypted via KMS, access controlled by IAM, each reading audited no CloudTrail and optional automatic rotation.",
+        "Because Secrets Manager publish the key in a secure endpoint for authorized third parties, excluding manual sharing.",
+        "Because Secrets Manager hides the secret even from the root account, and only the proprietary application can describe it in runtime.",
+        "Because Secrets Manager automatically generates the keys API of the partners, rotating them in the cycle defined by the contract."
+      ]
+    },
+    "saa-ini-297": {
+      "optionReasons": {
+        "saa-ini-297:option:0": "It's the opposite: the CloudHSM It's MAIS expensive and based on dedicated hardware — the KMS is the low cost managed.",
+        "saa-ini-297:option:1": "",
+        "saa-ini-297:option:2": "The CloudHSM serves any cryptographic load (TLS Offload, PKI) — is not restricted to S3.",
+        "saa-ini-297:option:3": "It's the KMS which has broad native integration with services AWS — o CloudHSM requires proper integration."
+      },
+      "finalJustifications": [
+        "Because CloudHSM is a HSM DEDICADO single-tenant, FIPS 140-2 Level 3, where only the customer controls the keys — the differential against the KMS multi-tenant.",
+        "Because CloudHSM is serverless and collects by cryptographic operation, the elastic model that the KMS provided does not offer.",
+        "Because CloudHSM issue certificates TLS free public, the exclusive benefit of dedicated hardware modules.",
+        "Because CloudHSM allows the AWS audit the customer's keys, transparency required by FIPS 140-2 Level 3."
+      ]
+    }
+  }
+}

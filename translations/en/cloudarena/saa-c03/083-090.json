@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "083-090",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-083": {
+      "optionReasons": {
+        "saa-avc-083:option:0": "It's the closest because connection drainage deals with actual connections — but it's a resource of ALB to unregister TARGETS HTTP gracefully: one ALB does not stand in front of a MySQL bank; to dampen the failure of RDS maintaining connections, the managed pool is the RDS Proxy.",
+        "saa-avc-083:option:1": "",
+        "saa-avc-083:option:2": "Read Replica is for offline LEITURA and asynchronously replicates — does not speed up writing reconnection in failover.",
+        "saa-avc-083:option:3": "Larger instance gives more resources — does not change the time of connection of persistent connections in failover."
+      },
+      "finalJustifications": [
+        "Because RDS Proxy maintains a managed connection pool and absorbs the Multi-AZ failover: the application connections follow in the proxy and the perceived unavailability falls, without rewriting the connection.",
+        "Because the connection draining doesn't ALB maintains a managed connection pool and absorbs the failure of Multi-AZ: the connections follow in the balancer and the perceived unavailability falls.",
+        "Because Read Replica as a primary endpoint maintains a managed connection pool and absorbs the failure of Multi-AZ: the connections follow in the replica and the perceived unavailability falls.",
+        "Because the larger instance keeps a pool of connections managed and absorbs the failure of Multi-AZ: the connections follow in the bank and the unavailability perceived falls, without rewriting the connection."
+      ]
+    },
+    "saa-avc-084": {
+      "optionReasons": {
+        "saa-avc-084:option:0": "Backup and restorre has the biggest RTO/RPO — rebuild all backup does not fit in 'a few minutes'.",
+        "saa-avc-084:option:1": "Multi-site active/active runs full production in both regions — is the total cost that the company wants to avoid.",
+        "saa-avc-084:option:2": "",
+        "saa-avc-084:option:3": "It's the closest because Pilot light also maintains pre-provided infrastructure and reduces cost — but it lets running APENAS the essential (e.g. bank replica), with the rest provided only in the disaster: RTO gets bigger; a reduced functional copy running continuously, ready to scale in minutes, is the Warm standby."
+      },
+      "finalJustifications": [
+        "Because Warm standby keeps a reduced functional copy rolling continuously in the DR region, scaled to full capacity in minutes — RTO/RPO low without paying full scale production.",
+        "Because Pilot light keeps a reduced functional copy rolling continuously in the DR region, scaled to full capacity in minutes — RTO/RPO low without paying full scale production.",
+        "Because the Backup and restore keeps a reduced functional copy rolling continuously in the DR region, scaled to full capacity in minutes — RTO/RPO lows without paying full production.",
+        "Because the Active/Active Multi-site keeps a reduced functional copy running continuously in the DR region, scaled to full capacity in minutes — RTO/RPO lows without paying full production."
+      ]
+    },
+    "saa-avc-085": {
+      "optionReasons": {
+        "saa-avc-085:option:0": "",
+        "saa-avc-085:option:1": "Volume Gateway to S3 + create EC2 manually is slow and crafty — does not deliver failover in a few minutes.",
+        "saa-avc-085:option:2": "DMS replica BANCOS OF DADOS — no whole VMware servers at block level.",
+        "saa-avc-085:option:3": "It's the closest because the SMS also replicates servers to the AWS in block level — but it was made for unique MIGRATION (and is discontinued): it is not the continuous DR platform with fast failover and recovery in minutes; continuous replication to failover is the AWS Elastic Disaster Recovery (DRS)."
+      },
+      "finalJustifications": [
+        "Because AWS DRS continuously replicates the VMware servers at block level to the AWS and launches recovery instances in a few minutes in the disaster, with minimal change in origin.",
+        "Because AWS SMS continuously replicates the VMware servers at block level to the AWS and launches recovery instances in a few minutes in the disaster, with minimal change in origin.",
+        "Because Volume Gateway continuously replicates VMware servers at block level to the AWS and launches recovery instances in a few minutes in the disaster, with minimal change in origin.",
+        "Because DMS continuously replicates the VMware servers at block level to the AWS and launches recovery instances in a few minutes in the disaster, with minimal change in origin."
+      ]
+    },
+    "saa-avc-086": {
+      "optionReasons": {
+        "saa-avc-086:option:0": "Two independent brokers with double publication plays the complexity of HA for the application — it's not managed failover.",
+        "saa-avc-086:option:1": "Migratory to SQS change protocol JMS/ActiveMQ — requires rewriting the message, the opposite of minimizing changes.",
+        "saa-avc-086:option:2": "It's the closest because the cluster mode of Amazon MQ is also HA multi-broker — but the broker cluster ATIVOS is the RabbitMQ standard; for ActiveMQ (JMS), the high availability with automatic failover between AZs is the mode ACTIVE/STANDBY, Which is the right drawing here..",
+        "saa-avc-086:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Amazon MQ for ActiveMQ in active/standby between two AZs fails automatic broker, maintaining protocol JMS — the application migrates practically without changing code.",
+        "Because Amazon MQ in cluster mode between two AZs does automatic broker failover, maintaining protocol JMS — the application migrates practically without changing code.",
+        "Because the two independent brokers between two AZs do automatic broker failover, maintaining protocol JMS — the application migrates practically without changing code.",
+        "Because Amazon SQS in active/standby between two AZs does automatic failure of the broker, maintaining protocol JMS — the application migrates practically without changing code."
+      ]
+    },
+    "saa-avc-087": {
+      "optionReasons": {
+        "saa-avc-087:option:0": "It's the closest because 200% capacity REALMENTE avoid overload if an AZ falls — but at the cost of doubling the instances permanently (high cost increase), while the requirement is minimal cost increase; spread the MESMA capacity in 3 AZs covers the loss of an AZ with only ~+50% on leave.",
+        "saa-avc-087:option:1": "",
+        "saa-avc-087:option:2": "'Single AZ' concentrates everything in one area — eliminates resilience to AZ failure, the opposite of the goal.",
+        "saa-avc-087:option:3": "Capacity Rebalancing is for instance interruptions SPOT — does not protect against the loss of an entire AZ."
+      },
+      "finalJustifications": [
+        "Because it distributes the same total capacity per 3 AZs leaves every AZ with ~1/3 load: lose one AZ removes only ~33%, and the other two absorb with minimum cost off.",
+        "♪ Why keep ♪ 200% in 2 AZs leaves every AZ with ~1/3 load: lose one AZ removes only ~33%, and the remaining two absorb with minimum extra cost off.",
+        "Because using Single AZ leaves every AZ with ~1/3 load: lose one AZ removes only ~33%, and the remaining two absorb with minimum extra cost off in the fleet.",
+        "Because Capacity Rebalancing in 2 AZs leaves every AZ with ~1/3 load: lose one AZ removes only ~33%, and the other two absorb with minimum cost off."
+      ]
+    },
+    "saa-avc-088": {
+      "optionReasons": {
+        "saa-avc-088:option:0": "Fictitious placeholder targets receive real traffic and discard it — the gambiarra that loses requests.",
+        "saa-avc-088:option:1": "Slow Start only heats new targets gradually — does not correct the unequal distribution between AZs.",
+        "saa-avc-088:option:2": "It's the closest because the Classic Load Balancer in fact it had different balancing behavior — but changing the type of balancer is a drastic and retrograde solution; the imbalance between unequal AZs is solved LIGANDO the Cross-Zone Load Balancing itself NLB, which distributes among all targets, not 50/50 by AZ.",
+        "saa-avc-088:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Cross-Zone Load Balancing distributes traffic between TODOS the targets of the two AZs equally — the 2 of AZ-B no longer receive the whole half and the overload is gone.",
+        "Why switch to the Classic Load Balancer distributes traffic between TODOS the targets of the two AZs equally — the 2 of AZ-B no longer receive the whole half and the overload is gone.",
+        "Because registering targets placeholder distributes traffic between TODOS the targets of the two AZs equally — the 2 of AZ-B no longer receive the whole half and the overload is gone.",
+        "Because Slow Start mode distributes traffic between TODOS the targets of the two AZs equally — the 2 of AZ-B no longer receive the whole half and the overload is gone."
+      ]
+    },
+    "saa-avc-089": {
+      "optionReasons": {
+        "saa-avc-089:option:0": "Playing binary logs manually is risky and laborious operation — the PITR already uses these logs managed.",
+        "saa-avc-089:option:1": "It's the closest because restoring backup is the right family of solutions — but daily snapshots only have the state of the JANELA of the previous night: you would lose all transactions until the script, and you do not allow to choose the exact point immediately before it; choosing the precise timestamp is Point-in-Time Recovery.",
+        "saa-avc-089:option:2": "Reboot with failover primary exchange by standby — but the standby has the MESMOS corrupted data (synchronous replication)).",
+        "saa-avc-089:option:3": ""
+      },
+      "finalJustifications": [
+        "Because PITR uses automated backups plus transaction logs to restore a new instance in the exact timestamp immediately prior to the script — minimum data loss.",
+        "Why restoring the daily snapshot uses automated backups plus logs to restore a new instance in the exact timestamp immediately prior to the script — minimum data loss.",
+        "Because playing binary logs uses automated backups plus logs to restore a new instance in the exact timestamp immediately prior to script — minimum data loss.",
+        "Because Reboot with failover uses automated backups plus logs to restore a new instance in the exact timestamp immediately prior to the script — minimal data loss."
+      ]
+    },
+    "saa-avc-090": {
+      "optionReasons": {
+        "saa-avc-090:option:0": "It's the closest because it's part of a plausible limitation — but it's ERRADA: o Aurora Serverless v2 DOES NOT get stuck to an instance in a single AZ; it participates in clusters Aurora normal and accepts replicas in other AZs, so you don't have to convert everything to stock to have HA Multi-AZ.",
+        "saa-avc-090:option:1": "Rotating snapshot copies between AZs by hand is not like the Aurora HA — Failover is native to the cluster.",
+        "saa-avc-090:option:2": "Global Database is for recovery between REGIONS — is not the Multi-AZ HA mechanism within a region.",
+        "saa-avc-090:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Serverless v2 accepts Aurora Replicas in other AZs in the same cluster: the native failover promotes a replica to write, and each instance scales its ACUs independently.",
+        "Because Serverless v2 gets stuck to an AZ instance: without replicas, the cluster needs to be converted whole to provide for multi-AZ failure and ACUs scaling.",
+        "Because Serverless v2 only gets HA by copying snapshots between AZs by hand: a new instance is restored in failure, and each scale its ACUs independently in the cluster.",
+        "Because Serverless v2 only gets HA via Global Database with standby region: the failover promotes the secondary region, and each instance scales its ACUs independently."
+      ]
+    }
+  }
+}
