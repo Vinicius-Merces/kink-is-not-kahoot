@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "157-168",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-157": {
+      "text": "An instance EC2 runs an application that needs to record log files in a pocket Amazon S3 specific and read messages from a row Amazon SQS. A developer suggests generating a pair of access keys (Access Key ID / Secret Access Key) from a user IAM with these permissions, and configure them as environment variables in the instance through user data. The security team rejects this proposal. RECOMENDADA to grant such permissions to the court EC2, Safer?",
+      "options": [
+        "Create a IAM Roll with necessary permissions (written in the pocket) S3 and reading in the queue SQS) and associate it with the instance EC2 through a Profile Forum.",
+        "Use user credentials IAM root of the account, which has unrestricted access to all services, simplifying the configuration of permissions.",
+        "Returning the Bucket S3 and the row SQS PUBLIC, eliminating the need for authentication for the instance to access them.",
+        "Generate a user's access keys IAM and store them encrypted in a volume file EBS of the instance, describing them in the initialization."
+      ],
+      "explanation": "Right. IAM Associated Role via Forum Profile provides the instance EC2 CREDENCIAIS TEMPORARY, automatically generated and rotated by AWS (via instance metadata) — without any long-term access key need to be created, stored in code/user date, or managed manually. This is the recommended practice to grant permissions to the resources of AWS for workloads in EC2.",
+      "hint": "Think of associating with the instance an identity that provides temporary credentials automatically, without any long-term access key needing to be stored or distributed.",
+      "optionRationales": [
+        "Right. IAM Associated Role via Forum Profile provides the instance EC2 CREDENCIAIS TEMPORARY, automatically generated and rotated by AWS (via instance metadata) — without any long-term access key need to be created, stored in code/user date, or managed manually. This is the recommended practice to grant permissions to the resources of AWS for workloads in EC2.",
+        "Incorrect. Even encrypted at rest on disk, these are CREDENCIAIS OF LONGO PRAZO which, once described in memory/use, are exposed to any process/user with access to the instance, require manual rotation and, if the instance is compromised, grant persistent access to the attacker — a IAM Role with temporary credentials eliminates these risks.",
+        "Incorrect and extremely insecure. QUALQUER ENTIDADE NA INTERNET, not only to the instance EC2 — completely violating the principle of minimum privilege and creating a serious risk of data exposure/handling by unauthorised third parties.",
+        "Incorrect. Use user credentials ROOT violates the principle of minimum privilege in an extreme way — grants access TOTAL and IRRESTRITO a TODOS the resources of the account at a single instance EC2; a AWS emphatically recommends NUNCA use root credentials for day-to-day operational tasks, and much less embedded in an instance."
+      ]
+    },
+    "saa-med-158": {
+      "text": "A security team identified that a specific IP address (203.0.113.50) is making repeated attempts to scan ports (port scanning) against all instances of a sub-network. BLOQUEAR explicitly this IP address, preventing QUALQUER traffic from him to QUALQUER sub-network instance, with a single configuration change applied at the sub-network level (not instance instance). AWS allows to create an explicit rule of NEGATION (deny) for this IP?",
+      "options": [
+        "Add an inbound entry rule with 'Deny' to the IP 203.0.113.50 in each Security Group used by sub-network instances.",
+        "Add a rule of NEGATION (Deny) to the Network ACL (NACL) associated with the sub-network, with a lower priority (rule number) than the existing permission rules, blocking traffic originating from 203.0.113.50.",
+        "Configure the AWS Shield Advanced to automatically block any IP that performs port scanning.",
+        "Remove the default route (0.0.0.0/0) of the sub-network route table, preventing any external traffic from reaching the fora."
+      ],
+      "explanation": "Correct. Network ACLs operate at the level of SUB-REDE and support explicit rules of PERMITIR and NEGAR, evaluated in numerical order (the lower number rule that corresponds is applied first). Add a rule DENY for IP 203.0.113.50 with priority number BAIXO (evaluated before any rule ALLOW) blocks this IP to TODAS the sub-network instances, with a single change — exactly the requirement described.",
+      "hint": "Think about which network security feature operates at the level of SUB-REDE (the court) and supports explicit rules of PERMITIR and NEGAR, evaluated in numerical order of priority.",
+      "optionRationales": [
+        "Correct. Network ACLs operate at the level of SUB-REDE and support explicit rules of PERMITIR and NEGAR, evaluated in numerical order (the lower number rule that corresponds is applied first). Add a rule DENY for IP 203.0.113.50 with priority number BAIXO (evaluated before any rule ALLOW) blocks this IP to TODAS the sub-network instances, with a single change — exactly the requirement described.",
+        "Incorrect. Security Groups are STATEFUL and support APENAS PERMISSION RULES (ALLOW) — it is not possible to create an explicit 'Deny' rule in a Security Group. In addition, even if it were possible, the amendment would need to be replicated in CADA Security Group used, rather than a single change in the sub-network level as a NACL allows.",
+        "Incorrect. AWS Shield (Standard or Advanced) was designed to protect against large-scale NEGATION OF SERVICE (DDoS) attacks — it does not offer a direct mechanism for the operator to block EXPLICITAMENTE a specific IP identified manually, as a NACL allows.",
+        "Incorrect. Remove the default route would block TODO external traffic (of any origin), not just IP 203.0.113.50 — this would completely isolate the internet sub-network, impacting all legitimate traffic, instead of selectively blocking only the identified malicious IP."
+      ]
+    },
+    "saa-med-159": {
+      "text": "A startup stores user identification documents (RG), CPF) in a pocket Amazon S3. During a security audit, it was discovered that the bucket was configured with a policy that allowed access to LEITURA public (any person with the link could access the documents), due to a configuration error made months ago. The team corrected the policy immediately, but wants GARANTIR that, in the future, NENHUMA configuration (intentional or accidental) — be it bucket policy, ACL of an object, or ACL Bucket — Can Make QUALQUER object of this publicly accessible pocket, even if someone tries to set this up wrongly. S3 meets this requirement in a more robust way?",
+      "options": [
+        "Move documents to storage class S3 Glacier, which does not support public access by definition.",
+        "Manually review the bucket policy once a month to ensure that no public permission has been added.",
+        "Enable all four configurations of 'S3 Block Public Access' no bucket (block public ACLs, block public policies, ignore existing public ACLs and restrict public buckets/objects).",
+        "Enable versioning in the pocket, so that previous (non-public) versions of objects remain protected even if the current version is publicly exposed."
+      ],
+      "explanation": "Correct. 'S3 Block Public Access', when all its four settings are enabled at the level of the pocket, acts as a layer of protection that IGNORA/BLOQUEIA any ACL or Bucket policy that would give public access — regardless of future (intended or accidental) configurations trying to make public objects. NUNCA becomes public, even in the face of configuration errors.",
+      "hint": "Think of a configuration that acts as a 'brake' at the level of the bucket, ignoring/blocking any policy or ACL which would grant public access, regardless of how it is configured.",
+      "optionRationales": [
+        "Correct. 'S3 Block Public Access', when all its four settings are enabled at the level of the pocket, acts as a layer of protection that IGNORA/BLOQUEIA any ACL or Bucket policy that would give public access — regardless of future (intended or accidental) configurations trying to make public objects. NUNCA becomes public, even in the face of configuration errors.",
+        "Incorrect as a robust solution. Periodic manual reviews are PREVENTIVAS only reactively — an accidental public configuration made between the revisions would be exposed until the next audit (as occurred in the original incident, which lasted months). Block Public Access is a protection PREVENTIVA and CONTINUATE, automatically applied to any configuration attempt.",
+        "Incorrect. Versioning protects against SOBRESCRITA/EXCLUSION of objects, but DO NOT prevent a policy or ACL turn objects (including the current version)) PUBLICAMENTE ACCESSIBLE — does not solve the public exposure problem described in the incident.",
+        "Incorrect. The storage class (Standard, Glacier, etc.) does not determine whether an object is PUBLICAMENTE ACCESSIBLE — Even objects in Glacier may have policies/ACLs that grant public access (although recovery has latency); public visibility is controlled by Bucket/ACLs policies and by Block Public Access, not by storage class."
+      ]
+    },
+    "saa-med-160": {
+      "text": "A financial institution needs to store sensitive data in volumes Amazon EBS In addition to the encryption itself, the compliance team requires the ability to: (1) audit who used the encryption key and when; (2) revoke access to the key immediately in the event of an incident, making encrypted data inaccessible even if the volume EBS remains intact; and (3) control key rotation policy. What encryption configuration of the EBS meets these requirements?",
+      "options": [
+        "Implement additional encryption at application level, using an open-source encryption library, before recording data to the volume EBS already encrypted by AWS Managed Key.",
+        "Encrypt volumes EBS using the AWS Standard Managed Key for the EBS (aws/ebs), which is already enabled by default for encryption.",
+        "Do not encrypt volumes EBS, but restrict access to the instance EC2 through Security Groups strict.",
+        "Encrypt volumes EBS using a AWS KMS Customer Managed Key (CMK), with a key policy (key policy) defined by the team and auditable use record via AWS CloudTrail."
+      ],
+      "explanation": "Correct. A Customer Managed Key (CMK) no KMS is fully controlled by the customer: (1) any key usage call (Decrypt, GenerateDataKey, etc.) is registered in CloudTrail, allowing audit of who/when used it; (2) the team can DESABILITAR or EXCLUIR a CMK (or adjust your policy to deny access), making IMEDIATAMENTE inaccessible encrypted data with it, even if the volume EBS remain intact; (3) the team controls the automatic (annual) rotation policy of the CMK. These three requirements are not met with keys managed by AWS.",
+      "hint": "Think of using a encryption key that the CLIENTE creates and controls fully (including its use and access policy), instead of a key automatically managed by AWS for the service.",
+      "optionRationales": [
+        "Correct. A Customer Managed Key (CMK) no KMS is fully controlled by the customer: (1) any key usage call (Decrypt, GenerateDataKey, etc.) is registered in CloudTrail, allowing audit of who/when used it; (2) the team can DESABILITAR or EXCLUIR a CMK (or adjust your policy to deny access), making IMEDIATAMENTE inaccessible encrypted data with it, even if the volume EBS remain intact; (3) the team controls the automatic (annual) rotation policy of the CMK. These three requirements are not met with keys managed by AWS.",
+        "Incorrect. AWS Managed Key (aws/ebs) is managed INTEIRAMENTE for AWS — the customer cannot revoke/disable this key specifically (it is shared for use of the service) EBS in the account) nor independently control its rotation policy; although it provides encryption, it does not meet the requirements (2) and (3) granular control/revocation by customer.",
+        "Incorrect as best approach. Although adding an extra layer of encryption, this approach DOES NOT provide the resources of AUDITORIA OF USO DA CHAVE, WITHDRAWAL CENTRALIZADA and ROTATION POLICY integrated into the KMS — the team would have to build and manage all of this key management infrastructure manually, which the KMS with CMK already offers natively.",
+        "Incorrect. Security Groups control access of REDE to the court, but do not provide CRIPTOGRAFIA EM REPOUSO data in volume — without encryption, data in volume EBS (or in their snapshots) would be vulnerable if the network access control were bypassed, and none of the three key management requirements would be met.."
+      ]
+    },
+    "saa-med-161": {
+      "text": "A system administrator, when setting up permissions for the development team, annexes the policy managed by AWS 'AmazonS3FullAccess' to a group of users IAM, because the team only needs to upload build files to a specific \"company-app-builds\". The policy 'AmazonS3FullAccess' grants read/write/exclusive permissions in TODOS the pocketes S3 of the account. Which alternative approach follows the principle of minimum privilege best, maintaining the ability of the team to perform the necessary work?",
+      "options": [
+        "Create a policy customized with 's3:*' (all actions of the S3) e 'Resource: *' (all resources), but add a tag to the policy indicating its specific purpose.",
+        "Keep the 'AmazonS3FullAccess' policy, but add a reminder to the team documentation instructing developers to use only the 'company-app-builds' bucket'.",
+        "Create a policy IAM customised to allow only the necessary actions (ex.: 's3:PutObject', 's3:GetObject', 's3:ListBucket') with the Resource element restricted to ARN from the 'company-app-builds' (and its content), and attach this policy to the group instead of 'AmazonS3FullAccess'.",
+        "Replace 'AmazonS3FullAccess' with policy managed by AWS 'AmazonS3ReadOnlyAccess', since this reduces access level."
+      ],
+      "explanation": "Correct. A customised policy that specifies exactly the actions required (e.g. upload/reading/listing) and restricts the 'Resource' to ARN of the specific pocket ('arn:aws:s3:::company-app-builds' is arn:aws:s3:::company-app-builds/*') grants to team SOMENTE the access necessary for the task described — following the principle of minimum privilege, without granting access to the QUALQUER other account pocket, unlike 'AmazonS3FullAccess''.",
+      "hint": "Think about creating a customised policy that specifies exactly what actions are needed (e.g.: PutObject) and restricts the resource to ARN of the specific bucket and prefix.",
+      "optionRationales": [
+        "Correct. A customised policy that specifies exactly the actions required (e.g. upload/reading/listing) and restricts the 'Resource' to ARN of the specific pocket ('arn:aws:s3:::company-app-builds' is arn:aws:s3:::company-app-builds/*') grants to team SOMENTE the access necessary for the task described — following the principle of minimum privilege, without granting access to the QUALQUER other account pocket, unlike 'AmazonS3FullAccess''.",
+        "Incorrect. Documentation/instructions are CONTROLES NON-TECHNICAL, Easily Ignored (intentionally or not) — Policy IAM 'AmazonS3FullAccess'continuous TECNICAMENTE allowing full access to all the newsletters, regardless of documentation; the access control should be TECHNICAL (in its own policy), not just procedural.",
+        "Incorrect. The team needs to do UPLOAD (write) of build files — a policy SOMENTE LEITURA ('ReadOnlyAccess') would prevent this necessary functionality. Moreover, even if only reading, this policy would still grant access to LEITURA a TODOS the billets of the account, not only to the necessary.",
+        "Incorrect. A policy with 's3:*' e 'Resource: *' is FUNCIONALMENTE EQUIVALENTE to AmazonS3FullAccess (total access to all bucks and all shares) — adding a descriptive tag does not restrict the actual permissions granted; the principle of minimum privilege requires restricting both ACTIONS and RECURSOS in politics itself."
+      ]
+    },
+    "saa-med-162": {
+      "text": "A three-layer application is being designed: web layer (EC2 + ALB) in public sub-networks, application layer (EC2) in private sub-networks, and database (RDS) in isolated private sub-networks. The team wants to apply the principle of 'deep defense' in the rules of Security Group, ensuring that CADA layer can only receive layer traffic IMEDIATAMENTE previous in the chain (e.g.: the database only accepts application layer connections, never directly from the internet or the web layer). Security Groups meets this requirement?",
+      "options": [
+        "Configure a single Security Group shared by all three layers, with rules that allow all internal traffic between them.",
+        "Depend exclusively on the Network ACLs of sub-networks to control interlayer traffic, without setting specific rules in Security Groups.",
+        "Configure the Security Group of the RDS to allow traffic at the database door only with ORIGEM no Security Group the application layer; and Security Group of the application layer to allow traffic only originating in Security Group of the ALB/web layer — stringing permissions by Security Group, not by IP intervals.",
+        "Configure the Security Group of the RDS to allow interval entry traffic CIDR of TODA a VPC (ex.: 10.0.0.0/16)."
+      ],
+      "explanation": "Correct. SECURITY GROUP of a layer such as the permitted origin (rather than an IP interval) in the entry rule of the Security Group of the following layer, each layer only accepts traffic from entities belonging to the Security Group of the immediately previous layer — implementing in depth defense dynamically (independent of IP addresses, which can change with Auto Scaling) and ensuring that the RDS never reachable directly from the internet or web layer.",
+      "hint": "Think about reference the Security Group of a layer such as ORIGEM allowed in the entry rule of the Security Group of the next layer, instead of using IP intervals.",
+      "optionRationales": [
+        "Correct. SECURITY GROUP of a layer such as the permitted origin (rather than an IP interval) in the entry rule of the Security Group of the following layer, each layer only accepts traffic from entities belonging to the Security Group of the immediately previous layer — implementing in depth defense dynamically (independent of IP addresses, which can change with Auto Scaling) and ensuring that the RDS never reachable directly from the internet or web layer.",
+        "Incorrect. Allow all interval CIDR of VPC would allow QUALQUER resource within the VPC (including layer WEB, if committed, or other non-related resources in the same VPC) if it connects directly to the database — does not implement the restriction of 'only the immediately preceding layer' required by the in-depth defense.",
+        "Incorrect. Security Group shared, with fully permitted internal traffic, would eliminate SEGMENTATION between layers — any instance (web, application or bank) could communicate freely with any other, the opposite of the layer insulation required by the in-depth defense.",
+        "Incorrect. NACLs add a layer of control at the sub-network level, they operate with more IP/port rules GROSSEIRAS and do not dynamically follow the identity of the bodies (such as the Security Group of origin does) — depend SOMENTE of NACLs, no Security Groups properly configured per layer, does not implement the granularity of 'deep defense per layer' of the requirement."
+      ]
+    },
+    "saa-med-163": {
+      "text": "An application in instances EC2 connects to a database Amazon RDS using a username and password. Currently, these credentials are stored in a configuration file in the application source code (versioned to a private Git repository). The security team points out two problems: (1) if the repository is compromised, the database credentials shall be displayed; and (2) changing the database password requires updating the code everywhere and re-implanting the application. The team wants to store these credentials securely, outside the source code, with the ability to ROTACIONAR the password automatically at regular intervals, without reimplanting the application. Which service meets this requirement?",
+      "options": [
+        "Move the configuration file with credentials to a pocket S3 private, and make the application lower it on startup.",
+        "Store database credentials in AWS Secrets Manager, set up automatic rotation (that the Secrets Manager can perform natively to RDS), and modify the application to search for credentials via API of the Secrets Manager (using a IAM Role).",
+        "Store credentials as environment variables encrypted in the Launch Template of Auto Scaling Group.",
+        "Configure instance RDS to accept unauthenticated connections (no user/password) from the Security Group Application."
+      ],
+      "explanation": "Correct. AWS Secrets Manager store formal secrets CRIPTOGRAFADA (way KMS), controls access through policies IAM, and offers AUTOMATIC ROTATION NATIVA for credentials of RDS (updating both the stored secret and the password in the database itself, in a coordinated way). ATUAIS way API whenever necessary (with local cache), removing hardcoded credentials in the code and allowing rotation without re-implantation.",
+      "hint": "Think of which service stores secrets (such as database credentials) encrypted, controls access via IAM, and can automatically rotate credentials in a database RDS through native integration.",
+      "optionRationales": [
+        "Correct. AWS Secrets Manager store formal secrets CRIPTOGRAFADA (way KMS), controls access through policies IAM, and offers AUTOMATIC ROTATION NATIVA for credentials of RDS (updating both the stored secret and the password in the database itself, in a coordinated way). ATUAIS way API whenever necessary (with local cache), removing hardcoded credentials in the code and allowing rotation without re-implantation.",
+        "Incorrect as best approach. Although removes the code credentials-FONTE versioned, this approach still stores the password in TEXTO PLANO in a file (only changed location), does not offer AUTOMATICAL ROTATION of the password in the database, and would require restart/reimplant the application for it to look for an updated version of the file after a password exchange.",
+        "Incorrect. Although it improves the security in relation to the flat text in the code, environment variables in the Launch Template would still require ATUALIZAR The LAUNCH TEMPLATE and SUBSTITUIR THE INSTANCES to reflect a new password — not offering transparent automatic rotation, and the password would be visible to anyone with permission to view the Launch Template.",
+        "Incorrect and insecure. Disabling the authentication of the database eliminates a fundamental layer of security — any entity with network access to the bank (within the Security Group allowed) would have access TOTAL to data, without any identity control; this is not an acceptable practice for production data."
+      ]
+    },
+    "saa-med-164": {
+      "text": "A company stores confidential financial reports in a pocket Amazon S3. The security policy requires that even if a user's credentials IAM with permission to exclude are compromised, objects cannot be excluded PERMANENTEMENTE without an additional verification layer — specifically exclusion PERMANENTE of versions of objects (not just the addition of an exclusion marker) must require multifactor authentication (MFA) valid at the time of request. What configuration of the S3 meets this requirement?",
+      "options": [
+        "Configure a Lifecycle Rule (Lifecycle Rule) that moves objects to the S3 Glacier Deep Archive after 1 day, making exclusion slower.",
+        "Enable server side encryption (SSE-KMS) in the pocket, since encrypted data cannot be deleted without the key KMS.",
+        "Enable versioning in the pocket and activate the option 'MFA Delete', requiring a valid multifactor authentication code to permanently delete versions of objects or disable versioning.",
+        "Configure a bucket policy that denies the action 's3:DeleteObject' for all users except root administrator."
+      ],
+      "explanation": "Correct. 'MFA Delete' is a configuration of S3 (only available with enabled versioning) which requires a code MFA VALID at time of request for: (1) permanently exclude a specific VERSION of an object, or (2) suspend/disable the versioning of the bucket. Even if credentials of a user with exclusion permission are compromised, the attacker would NOT have the second authentication factor necessary to permanently delete versions — meeting exactly the requirement.",
+      "hint": "Think of a configuration available only when the versioning is enabled, which requires a code MFA valid for specific destructive operations, such as permanently deleting a version or disabling the version.",
+      "optionRationales": [
+        "Correct. 'MFA Delete' is a configuration of S3 (only available with enabled versioning) which requires a code MFA VALID at time of request for: (1) permanently exclude a specific VERSION of an object, or (2) suspend/disable the versioning of the bucket. Even if credentials of a user with exclusion permission are compromised, the attacker would NOT have the second authentication factor necessary to permanently delete versions — meeting exactly the requirement.",
+        "Incorrect as a solution to the specific requirement of MFA. Deny 's3:DeleteObject' for everyone except a specific user is a restriction of IDENTIDADE (who can exclude), not a requirement for AUTENTICATION MULTIFATOR at the time of the operation — does not meet the requirement to require MFA even for users who would normally have permission to delete.",
+        "Incorrect. Encryption (SSE-KMS) protect the CONFIDENCIALIDADE data at rest, but does not prevent EXCLUSATION operation of an object — a user with permission 's3:DeleteObject' (and access to the key KMS, if necessary for other operations) could still exclude the object normally; encryption is not a control of MFA for exclusion.",
+        "Incorrect. Moving objects to Glacier Deep Archive affects the TEMPO RECOVERY/CUSTO access, but the EXCLUSSION operation of an object (even in Deep Archive) continues to be processed normally by API of the S3, without requiring MFA — does not meet the requirement of an additional verification layer for permanent exclusion."
+      ]
+    },
+    "saa-med-165": {
+      "text": "A web application exposed through a Application Load Balancer is suffering a brute force attack against your login page: a small number of IP addresses are sending hundreds of login attempts per minute, trying to guess user passwords. BLOQUEAR temporarily (e.g. for a few minutes) any IP address that exceeds a defined number of requests to the login page within a short time interval, without blocking legitimate users who log in normally. What solution meets this requirement?",
+      "options": [
+        "Configure the Security Group of the ALB to allow traffic at the door 443 only from a list of known trusted IPs.",
+        "Increase the application session timeout to reduce the number of times users need to log in.",
+        "Enable AWS Shield Advanced, which automatically identifies and blocks excessive login attempts in any protected application.",
+        "Create a Web ACL no AWS WAF, associated with ALB, with a 'Rate-based Rule' blocking (for a configurable period) any IP exceeding a defined limit of requests to URL login in a window of 5 minutes."
+      ],
+      "explanation": "Right. AWS WAF monitor the request rate of each IP address of origin for a specific path (e.g. '/login') in a time slider; when an IP exceeds the set limit, the WAF pass to BLOQUEAR (or count/CAPTCHA) additional IP requirements for a period — mitigating automated brute force attacks without affecting legitimate users who log in within normal rates.",
+      "hint": "Think about which web application protection service allows you to create rules based on TAXA (rate-based), which automatically block IPs that exceed a number of requests in a time window.",
+      "optionRationales": [
+        "Right. AWS WAF monitor the request rate of each IP address of origin for a specific path (e.g. '/login') in a time slider; when an IP exceeds the set limit, the WAF pass to BLOQUEAR (or count/CAPTCHA) additional IP requirements for a period — mitigating automated brute force attacks without affecting legitimate users who log in within normal rates.",
+        "Incorrect. ALB publicly exposed needs to accept connections from QUALQUER legitimate user on the internet — restrict the Security Group to a fixed list of IPs would block the access of legitimate users (whose IPs are not previously known), and does not solve the problem of identifying and blocking DINAMICAMENTE IPs with abusive behavior.",
+        "Incorrect. AWS Shield (Standard or Advanced) focuses on protection against Service Negotiation (DDoS) attacks in network/transport layers (and, with Advanced, some application layer protection against DDoS) — it was not designed to create custom IP rate limitation rules for a specific endpoint such as '/login'; this is the function of Rate-based Rules of WAF.",
+        "Incorrect. Increasing the session timeout affects the experience of legitimate users already authenticated, but does not prevent a ATACANTE to continue sending login attempts with different credentials on the login page — does not solve the brute force attack itself."
+      ]
+    },
+    "saa-med-166": {
+      "text": "An e-commerce company, during a promotional event of high visibility, suffered a volumetric attack of DDoS in the network layer (chamber 3/4) which caused short degradation of the service. The team already benefits from the protection of the AWS Shield Standard (included automatically, at no cost, for all customers of the AWS). For this event (and future high visibility events), the company wants: access to a specialized DDoS response team from AWS (DRT) during attacks, detailed visibility (almost real-time metrics) about the attacks suffered, and protection against additional cost of scaling (ex.: Auto Scaling, data transfer) caused DIRETAMENTE by a confirmed DDoS attack. What change meets these additional requirements?",
+      "options": [
+        "Configure the AWS WAF with a very low rate limit (rate limit) for all requests, blocking most traffic during promotional events.",
+        "Configure Auto Scaling with very high maximum capacity limits, ensuring that the infrastructure absorbs any attack volume automatically.",
+        "Sign the AWS Shield Advanced to relevant resources (ex.: CloudFront, ALB, Elastic IPs), obtaining access to Shield Response Team (SRT), detailed metrics of attacks on the console, and the 'DDoS Cost Protection' for scaling costs during confirmed attacks.",
+        "Open a support case at the Business Support level to get help from AWS during future DDoS attacks."
+      ],
+      "explanation": "Correct. AWS Shield Standard (free, automatic) already protects against the most common DDoS network attacks. Shield ADVANCED, signed for specific resources, adds: access to Shield Response Team (SRT) specialized during attacks, metrics and detailed reports of near-real-time attacks, and 'DDoS Cost Protection' — credits to cover staggering costs (Auto Scaling, data transfer, etc.) caused directly by DDoS attacks confirmed in protected resources. These are exactly the additional benefits requested, above the Standard.",
+      "hint": "Think about what level of DDoS protection payment offers specialized support, enhanced visibility and cost protection for protected resources, in addition to the basic protection already included for all.",
+      "optionRationales": [
+        "Correct. AWS Shield Standard (free, automatic) already protects against the most common DDoS network attacks. Shield ADVANCED, signed for specific resources, adds: access to Shield Response Team (SRT) specialized during attacks, metrics and detailed reports of near-real-time attacks, and 'DDoS Cost Protection' — credits to cover staggering costs (Auto Scaling, data transfer, etc.) caused directly by DDoS attacks confirmed in protected resources. These are exactly the additional benefits requested, above the Standard.",
+        "Incorrect as a complete solution. Auto Scaling may help to absorb ALGUM load increase, it does NOT offer access to specialized team (SRT), nor detailed visibility of attacks, and in fact could GERAR CUSTOS ADICIONAIS SIGNIFICATIVOS during an attack (climbing to meet malicious traffic) — costs that only the 'DDoS Cost Protection' of Shield Advanced Mitigation.",
+        "Incorrect. Although Business Support provides access to general support engineers, it does not specifically include the Shield Response Team (SRT) ESPECIALIZADO in DDoS mitigation, neither the detailed attack metrics or cost protection ('DDoS Cost Protection') that are specific benefits of Shield Advanced.",
+        "Incorrect. A rate limit MUITO BAIXO for TODO traffic would also block LEGAL USERS during a promotional event (when legitimate traffic naturally increases) — the goal is to distinguish and mitigate attack traffic, not simply limit all traffic, and this configuration does not provide the other benefits (SRT, visibility, cost protection) requested."
+      ]
+    },
+    "saa-med-167": {
+      "text": "After a security incident in which data from a pocket S3 were accessed in an unauthorized way, the security team wants to investigate: QUEM (which user/role IAM) calls to the API of the S3 against this bucket, QUANDO these calls occurred, and DE QUAL IP address — including console calls, CLI or SDK, in the last 90 The team realizes that this type of registration is NOT currently enabled. AWS, if it had been previously enabled, it would provide this history of calls from API for research?",
+      "options": [
+        "Amazon S3 Storage Lens, which provides aggregate usage and activity analyses of all the bucks S3 of the organization.",
+        "AWS CloudTrail, which records a history of calls from API (including calls to S3 as GetObject, PutObject, DeleteObject), with caller identity (user/role IAM), timestamp, IP address of origin and other details of the request.",
+        "AWS Trusted Advisor, which continuously monitors the access to buckets S3 and records all transactions performed.",
+        "Amazon CloudWatch Logs, which automatically stores access logs from all services of the AWS, including the S3, by default."
+      ],
+      "explanation": "Correct. AWS CloudTrail continuously records a history of calls from API made in the account — for CADA call, register QUEM (Caller ID IAM), QUANDO (timestamp), DE ONDE (IP address of origin), QUAL action was carried out and in QUAL resource. CloudTrail enabled (and log retained for a sufficient period, e.g. via S3), the team could consult exactly the information necessary for the investigation of the incident.",
+      "hint": "Think about which service continuously records a history of calls to API made in the account of the AWS, including caller identity, timestamp, IP of origin and requisition parameters.",
+      "optionRationales": [
+        "Correct. AWS CloudTrail continuously records a history of calls from API made in the account — for CADA call, register QUEM (Caller ID IAM), QUANDO (timestamp), DE ONDE (IP address of origin), QUAL action was carried out and in QUAL resource. CloudTrail enabled (and log retained for a sufficient period, e.g. via S3), the team could consult exactly the information necessary for the investigation of the incident.",
+        "Incorrect. CloudWatch Logs stores logs that are explicitly published by APLICATIONS/SERVICES (e.g. Lambda, application logs sent via agent) — it DOES NOT automatically capture, by default, a history of CHAMADAS OF API of account level as 'who called GetObject in which pocket'; this is the specific function of CloudTrail.",
+        "Incorrect. Trusted Advisor provides recommendations for good practice (e.g. identifying public-access newsletters) based on periodic verifications of the CONFIGURATION — it does not maintain a history of CHAMADAS OF API individuals (who accessed what and when) for forensic investigations.",
+        "Incorrect. S3 Storage Lens provides METRICS AGREGADAS about the use of storage, settings and activity trends (e.g. total transactions per bucket) — it does not provide a record DETALHADO And INDIVIDUAL of each call from API with caller identity and IP of origin, necessary for a specific forensic investigation."
+      ]
+    },
+    "saa-med-168": {
+      "text": "A company needs to guarantee CONTINUAMENTE that all volumes Amazon EBS created in your account are CRIPTOGRAFADOS, and that all Security Groups do not allow unrestricted entry traffic (0.0.0.0/0) at the door 22 (SSH). The team wants to be AUTOMATICAMENTE notified (and ideally have visibility of a compliance history) whenever a resource is created or modified in such a way that it violates those rules without having to perform periodic manual checks. AWS meets this requirement?",
+      "options": [
+        "Use AWS Trusted Advisor at the basic support level, which already includes detailed encryption checks of all volumes EBS and rules of Security Group.",
+        "Create a function AWS Lambda scheduled to run daily, listing all volumes EBS and Security Groups way API and manually checking each condition in the code.",
+        "Enable AWS Configure with the rules managed 'encrypted-volumes' and 'restricted-ssh' (or equivalent), which continuously evaluate resources against these conditions and record compliance status over time.",
+        "Configure the Amazon Inspector to scan the volumes periodically EBS and Security Groups in search of vulnerabilities."
+      ],
+      "explanation": "Correct. AWS Configure Evaluation CONTINUAMENTE the configuration of account resources against REGRAS defined — including managed rules ready to check for volumes EBS are encrypted ('encrypted-volumes') and if Security Groups restrict access SSH ('restricted-ssh' / 'coming-ssh-disabled'). Each time a resource is created or changed, Config reevaluates its compliance and maintains a HISTORY, and can notify (via EventBridge/SNS) on non-compliant resources — in accordance with the requirement without manual verifications.",
+      "hint": "Think about which service continually evaluates account resource settings against defined rules (including ready managed rules, such as checking volume or port encryption SSH open), recording the compliance history.",
+      "optionRationales": [
+        "Correct. AWS Configure Evaluation CONTINUAMENTE the configuration of account resources against REGRAS defined — including managed rules ready to check for volumes EBS are encrypted ('encrypted-volumes') and if Security Groups restrict access SSH ('restricted-ssh' / 'coming-ssh-disabled'). Each time a resource is created or changed, Config reevaluates its compliance and maintains a HISTORY, and can notify (via EventBridge/SNS) on non-compliant resources — in accordance with the requirement without manual verifications.",
+        "Incorrect. Amazon Inspector focus on evaluation of VULNERABILIDADES OF SOFTWARE (CVEs) in workloads EC2/ECR/Lambda and in network exposure — it was not designed to continuously evaluate CONFORMIDADE OF CONFIGURATION of resources (such as 'volume is encrypted?' or 'Security Group allows SSH of 0.0.0.0/0?') against policy rules, which is the purpose AWS Configure.",
+        "Incorrect. At the Basic/Developer support level, the Trusted Advisor offers only a limited set of checks; more comprehensive security checks require Business/Enterprise. In addition, even with more checks, the Trusted Advisor was not designed for CONTINUOUS ASSESSMENT based on customizable rules with a history of compliance by recourse, such as the AWS Config offers.",
+        "Incorrect as best approach. Build and maintain a customized solution of Lambda to replicate a functionality already offered in form GERENCIADA (with ready rules and history of compliance) by AWS Config represents unnecessary engineering effort; furthermore, a DIARIA execution would not be 'automatic and continuous' at the time of creation/change of the resource, as the Config allows via configuration-change-triggered evaluation."
+      ]
+    }
+  }
+}

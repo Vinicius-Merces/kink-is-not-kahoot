@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "217-228",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-217": {
+      "text": "A company is setting up the AWS CloudTrail in an organization AWS The team wants a central security account to receive and store TODOS the logs of CloudTrail of TODAS the accounts of the organization, and that the daughter accounts can NOT disable or modify the trail.?",
+      "options": [
+        "Create an Organization Trail in CloudTrail from the management account (or delegated administrator account), configured to send logs to a bucket S3 in the central security account — Organisation Trails are automatically created in all the accounts of the organisation and cannot be disabled by the child accounts",
+        "Use AWS Configure with a cloud-trail-enabled rule on all accounts via AWS Config Aggregator, with automatic remediation that recreates the trail if disabled",
+        "Create a SCP no AWS Organizations which he denies cloudtrail:DeleteTrail and cloudtrail:StopLogging on all child accounts, and keep track independent on each account",
+        "Create a default trail on each daughter account individually, configured to deliver logs on the same bucket S3 central account — centralised management is achieved by the common destination of the logs"
+      ],
+      "explanation": "Right. An Organization Trail created in the management account (or delegated audit account) automatically applies to all the organization's accounts. Daughter accounts see the trail on your console of CloudTrail as read-only — cannot disable, modify or delete it. Logs of all accounts are delivered centrally to the pocket S3 set up in the central account.",
+      "hint": "There's a kind of trail in the CloudTrail which is created once in the management account and applies automatically to the entire organization, being only read for the daughter accounts.",
+      "optionRationales": [
+        "Right. An Organization Trail created in the management account (or delegated audit account) automatically applies to all the organization's accounts. Daughter accounts see the trail on your console of CloudTrail as read-only — cannot disable, modify or delete it. Logs of all accounts are delivered centrally to the pocket S3 set up in the central account.",
+        "Incorrect for the non-modification requirement. Trails created individually in each account are controlled by the administrator of each account — they may be disabled, modified or deleted by those who have permission in the child account. Organization Trail is the mechanism that prevents modification by child accounts.",
+        "Incorrect as a primary approach. AWS Config with automatic repair is a control REATIVO (detect and correct after the trail is disabled) — there is a time window where the logging would be interrupted. An Organization Trail is PREVENTIVO: daughter accounts simply do not have permission to disable the trail managed by the organization.",
+        "Incorrect as a solution COMPLETA. ♪ Out of the way SCPs with Deny for DeleteTrail/StopLogging protect existing trails from being disabled, this would require creating and maintaining trails in CADA It counts individually — a much more laborious operational process than an Organization Trail that automatically spreads. Organization Trail is the integrated and recommended solution."
+      ]
+    },
+    "saa-med-218": {
+      "text": "A web application receives calls from a function Lambda that needs to take on a IAM Roll to another account AWS (production account) to record metrics in a pocket S3. The roll in the production account has a trust policy. In addition to the trust policy of the destination roll, what is more necessary for the function Lambda manage to successfully assume the role via sts:AssumeRole?",
+      "options": [
+        "A IAM Role of the function Lambda (in the account of origin) must have a policy that allows sts:AssumeRole to the ARN of the destination roll — both accounts need to authorise the operation: the destination account via trust policy, and the origin account via the policy of the roll Lambda",
+        "Only the trust policy of the destination roll is required — if it lists the origin account as entrusted principal, the function Lambda can automatically assume the role without any additional policy in the account of origin",
+        "The function Lambda needs a VPC peering configured with the production account so that the traffic of sts:AssumeRole crosses the network correctly between the accounts",
+        "The Bucket S3 in the production account you need to have a pocket policy that allows direct access to the role Lambda of the account of origin — the trust policy in the production roll is unnecessary in this case"
+      ],
+      "explanation": "Right. For cross-account assumes role, authorization is bilateral: (1) a ROLE OF DESTINO need to have a trust policy that allows the account/roll of origin to assume it (mainly with the ARN the account or roll of origin), and (2) a ROLE DA LAMBDA (the account of origin) need to have a policy that explicitly allows sts:AssumeRole for the ARN Without both, the operation fails..",
+      "hint": "Cross-account AssumeRole requires bilateral authorisation: o DESTINO authorizes via trust policy, and ORIGEM You need what to allow your roll to make the call?",
+      "optionRationales": [
+        "Right. For cross-account assumes role, authorization is bilateral: (1) a ROLE OF DESTINO need to have a trust policy that allows the account/roll of origin to assume it (mainly with the ARN the account or roll of origin), and (2) a ROLE DA LAMBDA (the account of origin) need to have a policy that explicitly allows sts:AssumeRole for the ARN Without both, the operation fails..",
+        "Incorrect. The trust policy of the destination roll is necessary but not enough. IAM Role used Lambda (in the account of origin) also needs to have a policy IAM explicitly granting sts:AssumeRole to the ARN without this policy in the origin account, the so-called sts:AssumeRole will be denied due to lack of permission in the calling identity.",
+        "Incorrect. Bucket policy allows access DIRETO to S3 without having to take another role — but the scenario specifies the use of sts:AssumeRole (taking a role in the production account). These are two different cross-account access mechanisms. For the flow via AssumeRole, the assumed role policy and trust policy are required — the original account policy is not sufficient.",
+        "Incorrect. AWS STS (Security Token Service) is a public service accessed via endpoints HTTPS — does not require VPC The call sts:AssumeRole is a call from API running via internet/endpoints AWS normally, independent of network peering."
+      ]
+    },
+    "saa-med-219": {
+      "text": "A company wants to encrypt data in transit between an instance EC2 and a cluster Amazon ElastiCache to Redis. Security team verified that the current connection uses the door 6379 no TLS. What change is needed to enable transit encryption in ElastiCache to Redis?",
+      "options": [
+        "Configure a Security Group with rules that force the use of door 6380 instead of 6379 — ElastiCache automatically activates TLS when the connection uses the door 6380",
+        "Create a new ElastiCache cluster for Redis with 'In-Transit Encryption'' (TLS) enabled — this parameter can only be defined when creating the cluster, cannot be enabled in an existing cluster without replacement; the application must use the endpoint TLS at the door 6380 (or configured)",
+        "Modify the existing ElastiCache cluster on the console AWS enabling 'In-Transit Encryption' in advanced settings — the change will be applied during the next maintenance window without needing to recreate the cluster",
+        "Installing the agent AWS Certificate Manager in the fora EC2 — o ACM automatically manages encryption of all connections with services AWS managed as ElastiCache"
+      ],
+      "explanation": "Correct. Encryption in transit in ElastiCache for Redis should be enabled at the time of cluster creation — it is not possible to enable or disable in an already existing cluster without creating a new one. When enabled, the application should connect using TLS, typically on the door 6380 (instead of 6379), and the ElastiCache certificate must be validated by the customer.",
+      "hint": "Remember: In-Transit Encryption in ElastiCache is a configuration that cannot be modified after cluster creation — what is the implication of this to enable TLS?",
+      "optionRationales": [
+        "Correct. Encryption in transit in ElastiCache for Redis should be enabled at the time of cluster creation — it is not possible to enable or disable in an already existing cluster without creating a new one. When enabled, the application should connect using TLS, typically on the door 6380 (instead of 6379), and the ElastiCache certificate must be validated by the customer.",
+        "Incorrect. The In-Transit Encryption configuration in ElastiCache for Redis is IMPUTABLE after cluster creation — there is no option to 'modify' this configuration in an existing cluster. To enable TLS, it is necessary to create a new cluster TLS activated, migrate data, and update the application to the new endpoint.",
+        "Incorrect. The used door does not determine whether TLS is active — TLS must be explicitly enabled in the cluster. Security Groups control which IPs/ports can CONECTAR, But they don't activate TLS in communication. Security Group Locking the door 6379 and releasing 6380 It would only prevent connections at the wrong door — it would not guarantee TLS automatically.",
+        "Incorrect. AWS Certificate Manager certified management SSL/TLS for resources such as ALB, CloudFront, API Gateway — No Agent ACM' which encrypts arbitrary connections with ElastiCache. TLS in ElastiCache is a configuration of the service itself, activated in the creation of the cluster, and the application is responsible for using a client TLS compatible."
+      ]
+    },
+    "saa-med-220": {
+      "text": "A development team uses an account AWS shared for various environments (dev, staging, production). The security team wants to ensure that resources tags environment ('Environment: prod') in the production resources are maintained correctly — no one should be able to create or modify resources in the 'prod' tag without approval, and no one should be able to remove environment tags from existing resources. AWS allows you to apply and manage tag-based policies for tagging governance?",
+      "options": [
+        "AWS Configure with 'required-tags' and 'restricted-tags' rules — detects features without the correct tags and automatically reverses unauthorized tagging changes via auto repair",
+        "AWS IAM with police that allow actions 'ec2:CreateTags and 'ec2:DeleteTags' only for non-production environment tags, applied to all development users",
+        "AWS Organizations with Tag Policies — Tag policies that define mandatory/allowed key tags and values for account resources, can be applied via SCPs which use conditions IAM (aws:RequiredRegion, aws:ResourceTag etc.) to restrict tag-based actions",
+        "AWS Service Catalog with launch constraints that require the use of specific tags during resource provisioning — this ensures correct tags since creation"
+      ],
+      "explanation": "Correct.. AWS Organizations supports Tag Policies that standardize the use of tags (capitalization, allowed values) throughout the organization. SCPs containing tag-based conditions (such as aws:ResourceTag, aws:RequestTag), it is possible to restrict who can create/modify/delete resources with certain environment tags, implementing tagging governance.",
+      "hint": "What kind of policy is there? AWS Organizations is specifically designed for tag governance — defining which keys/values are allowed in account resources?",
+      "optionRationales": [
+        "Correct.. AWS Organizations supports Tag Policies that standardize the use of tags (capitalization, allowed values) throughout the organization. SCPs containing tag-based conditions (such as aws:ResourceTag, aws:RequestTag), it is possible to restrict who can create/modify/delete resources with certain environment tags, implementing tagging governance.",
+        "Partially correct but incomplete. AWS Config detects features without mandatory tags (control DETECTIVO), and with remediation can add tags. However, automatic remediation has latency — features with incorrect tags exist shortly before correction. PREVENIR that production resources are created/modified without tag-based authorization, SCPs with tag conditions (control PREVENTIVO) are more robust.",
+        "Partially correct for Resource CREATION via Service Catalog, but does not resolve tag modification control on existing resources nor protects created resources outside Service Catalog. Service Catalog is a good practice for creative governance, but is not enough as comprehensive Tagging control.",
+        "Incorrect as a centralized solution. Create policies IAM specific by service (ec2, rds, s3 etc.) to control tagging is possible but extremely laborious — each service has its own tagging actions (ec2:CreateTags, rds:AddTagsToResource, s3:PutBucketTagging etc.), and keeping these policies on a scale is unfeasible. Furthermore, this does not address governance at organizational level that Tag Policies + SCPs offer."
+      ]
+    },
+    "saa-med-221": {
+      "text": "A company has an instance EC2 with a volume EBS encrypted data using a Customer Managed Key (CMK) of the KMS. The administrator needs to share a snapshot of this volume with another account AWS so that they can create an analysis instance. What is the correct process to share encrypted snapshot?",
+      "options": [
+        "Re-encrypt snapshot with a CMK different than having permission to share with the target account (via key policy), modify the snapshot sharing permissions to include the target account — in the target account, copy the snapshot re-encrypting with a CMK Before use of the destination account",
+        "Export volume to S3 using AWS Sync Data and share object S3 with the destination account — S3 does not have the restrictions of CMK cross-account of EBS",
+        "Share the original snapshot directly (encrypted with the CMK) with the destination account — KMS automatically grants access to the key to the destination account when the snapshot is shared",
+        "Describe snapshot before sharing — create a non-encrypted copy of snapshot and share it with the target account to avoid complexity of key management between accounts"
+      ],
+      "explanation": "Correct. Encrypted snapshots with a CMK can be shared between accounts, but the CHAVE KMS used in encryption should be accessible by the destination account. The recommended process is: (1) in the account of origin, re-encrypt the snapshot with a CMK which is shared with the destination account (via key policy with the ARN of the destination account), (2) share snapshot with destination account, (3) in the target account, copy the snapshot re-encrypting with a CMK own account destination for key independence.",
+      "hint": "To share a snapshot EBS encrypted with another account, you need to ensure that the destination account can use the key KMS — what this implies in relation to the key policy?",
+      "optionRationales": [
+        "Correct. Encrypted snapshots with a CMK can be shared between accounts, but the CHAVE KMS used in encryption should be accessible by the destination account. The recommended process is: (1) in the account of origin, re-encrypt the snapshot with a CMK which is shared with the destination account (via key policy with the ARN of the destination account), (2) share snapshot with destination account, (3) in the target account, copy the snapshot re-encrypting with a CMK own account destination for key independence.",
+        "Incorrect. Sharing the snapshot itself DOES NOT automatically give access to CMK to the destination account. CMK must be explicitly updated to allow the target account to use the key (kms:DescribeKey, kms:ReEncrypt, kms:CreateGrant) — Without this change in the key policy, the target account cannot access the shared snapshot, because it is encrypted with a key without access for them.",
+        "Incorrect for security breach. Creating an unencrypted copy for sharing exposes data at rest without protection — violates the security requirement that motivated the original encryption. The correct approach is to maintain encryption throughout the sharing process.",
+        "Incorrect. Export to S3 via Data Sync is a data migration operation, not snapshot sharing — the data would be exported in file format, not a snapshot EBS In addition, objects in the S3 encrypted with SSE-KMS have the same key sharing restrictions KMS between accounts."
+      ]
+    },
+    "saa-med-222": {
+      "text": "A company uses AWS GuardDuty and detected a finding 'UnauthorizedAccess:IAMUser/ConsoleLoginSuccess.B' — a successful login on the console of a IAM User from an IP address in a country that the user has never used before. The security team wants to automate the response: temporarily disable the user's credentials while investigating. What is the most efficient way to automate this response?",
+      "options": [
+        "Enable integration of GuardDuty with the AWS Security Hub, which automatically disables user credentials when detecting unauthorized access finding without additional configuration",
+        "Create a rule in Amazon EventBridge that filters findings from GuardDuty of the type 'UnauthorizedAccess:IAMUser/ConsoleLoginSuccess.B' and activates a function Lambda Who calls iam:UpdateLoginProfile and iam:UpdateAccessKey to disable user credentials IAM reported",
+        "Create a IAM Policy with Deny in all actions, attach to suspect user via API, and remove after investigation",
+        "Configure the AWS GuardDuty Auto-Remediation — a native resource of GuardDuty which automatically blocks users IAM identified in high-risk finding"
+      ],
+      "explanation": "Correct. GuardDuty publish findings automatically no Amazon EventBridge. A Rule EventBridge with filter in the specific kind of finding can trigger a Lambda of immediate response using the IAM API to: disable access to the console (UpdateLoginProfile or remove password), disable access keys (UpdateAccessKey with Status=Inactive), and notify the team. This automation responds in seconds without human intervention.",
+      "hint": "The GuardDuty generate real-time finding — which local event bus service receives these finding and can trigger response automations?",
+      "optionRationales": [
+        "Correct. GuardDuty publish findings automatically no Amazon EventBridge. A Rule EventBridge with filter in the specific kind of finding can trigger a Lambda of immediate response using the IAM API to: disable access to the console (UpdateLoginProfile or remove password), disable access keys (UpdateAccessKey with Status=Inactive), and notify the team. This automation responds in seconds without human intervention.",
+        "Incorrect. AWS Security Hub aggregates and normalizes findings (centralization and visibility), but does not perform automatic remediation on its own. For automatic remediation, it is necessary to create rules EventBridge or Custom Actions at the Security Hub Lambda or Step Functions — Security Hub alone doesn't change credentials IAM.",
+        "Incorrect. GuardDuty has no native 'auto-remediation' resource that modifies credentials IAM. The GuardDuty is a DETECTION service (identifies threats and generates finding) — automatic remediation must be implemented by the user via EventBridge + Lambda (or AWS Systems Manager Automation).",
+        "Correct in the logic of blocking, but INCORRETO as an efficient automation approach integrated with GuardDuty. This approach required: knowing the user name of the finding, calling iam:AttachUserPolicy — what is more complex to implement than simply disable credentials (UpdateLoginProfile/UpdateAccessKey), which is the direct and reversible approach. EventBridge + Lambda to be automated, but with unnecessarily complex steps."
+      ]
+    },
+    "saa-med-223": {
+      "text": "A company needs to control which services and APIs can be called from within a VPC, even by IAM Roles with wide permissions — wanting to ensure that calls from API only possible for a limited set of services AWS when originating from the corporate network. IAM allows you to restrict permissions based on VPC or the origin endpoint of the call API?",
+      "options": [
+        "Use the condition aws:RequiredRegion to limit calls from API only to the region where the VPC it is, ensuring that calls from outside the network do not reach services in the same region",
+        "Use the condition aws:MultiFactorAuthPresent to ensure that calls from API are only made after authentication MFA, which implicitly confirms that the user is on the corporate network",
+        "Use the condition aws:SourceIp with IPs range of NAT Gateway of the company — any call from API of the VPC will pass through the NAT Gateway, which has a fixed IP",
+        "Use the condition IAM aws:SourceVpc (for calls via VPC end point) or aws:SourceVpce (for a specific endpoint) in policies IAM or resource polices — these conditions allow to ensure that the call for API originating from a VPC or specific endpoint"
+      ],
+      "explanation": "Correct. Conditions keys aws:Source aws:SourceVpce allows you to create policies that only allow calls from API when they originate from a VPC specific (or endpoint) VPC This is useful for endpointing policies of VPC endpoints (restricting which resources can be accessed) and for policy resource (restricting access from controlled sources)).",
+      "hint": "Which conditions are key IAM check the VPC or VPC source endpoint of a call from API — useful in endpoint police and resource police?",
+      "optionRationales": [
+        "Correct. Conditions keys aws:Source aws:SourceVpce allows you to create policies that only allow calls from API when they originate from a VPC specific (or endpoint) VPC This is useful for endpointing policies of VPC endpoints (restricting which resources can be accessed) and for policy resource (restricting access from controlled sources)).",
+        "Incorrect and fragile. Using aws:SourceIp with IP of NAT Gateway, direct calls via VPC endpoints do not pass through NAT Gateway (and would have the IP of origin as the IP of the instance, not of the NAT) — the condition wouldn't work for those calls., aws:SourceIp does not work as expected for via calls VPC endpoints, because the reported IP can be the private IP, not the IP of the NAT.",
+        "Incorrect. aws:RequestedRegion limits the region where resources AWS are operated — does not identify ORIGEM of call (VPC vs internet). Even from outside the VPC corporate, someone could make calls to the same region using stolen credentials — this condition does not meet the goal of restricting by network origin.",
+        "Incorrect. aws:MultiFactorAuthPresent checks if MFA was used in authentication, not the REDE of origin. MFA can be used from anywhere — the condition does not guarantee that the call originates from the VPC corporate."
+      ]
+    },
+    "saa-med-224": {
+      "text": "A company needs external users (clients) B2C) authenticate in a web application using your social accounts (Google, Facebook) or an owner login. After authentication, the application needs to issue a JWT for the front-end use as Bearer token on calls to API REST. What service AWS manages this life cycle of external users and emission of tokens JWT with the least development effort?",
+      "options": [
+        "AWS IAM Identity Center (SSO) — supports external identity providers and issues tokens JWT for web application front-ends B2C",
+        "Amazon Cognito User Pool — manage or register, login, MFA, federation with social providers (Google, Facebook via OIDC/SAML) and emits tokens JWT (ID token, Access token, Refresh token) standardized for use as Bearer token in APIs",
+        "Amazon Cognito Identity Pool (Federated Identity) — external user authentication management with social providers and issue tokens JWT for use as Bearer token",
+        "Amazon API Gateway with Lambda Custom Authorizer implementing OAuth 2.0 and emits tokens JWT — is the recommended approach when you need social federation and tokens JWT customised"
+      ],
+      "explanation": "Correct. Amazon Cognito User Pool is the managed service of AWS specifically for user authentication (B2C or B2B), with native support to social identity providers (Google, Facebook, Amazon), federation SAML/OIDC, and emission of token JWT standard (ID Token, Access Token, Refresh Token). It is the solution of least development effort for this scenario.",
+      "hint": "Clearly separate: User Pool manages USERS and issues JWT Application; Identity Pool exchange tokens by CREDENCIAIS AWS. What is the scenario here — authentication of external users or direct access to resources AWS?",
+      "optionRationales": [
+        "Correct. Amazon Cognito User Pool is the managed service of AWS specifically for user authentication (B2C or B2B), with native support to social identity providers (Google, Facebook, Amazon), federation SAML/OIDC, and emission of token JWT standard (ID Token, Access Token, Refresh Token). It is the solution of least development effort for this scenario.",
+        "Incorrect as to the primary purpose. Cognito Identity Pool receives tokens from identity providers (including Cognito User Pools) and the TROCA by credentials AWS temporary (via STS). It does not manage the life cycle of users (cassket, login), MFA), does not issue JWT how to Bearer tokens application — that's the role of User Pool.",
+        "Incorrect. IAM Identity Center is designed for WORKFORCE (employees, partners) access accounts AWS and integrated corporate applications — not for external users B2C applications. Not suitable for registration, login and external client identity management.",
+        "Incorrect as less effort approach. Implement OAuth 2.0 complete with social federation via Lambda Custom Authorizer is extremely laborious (manage OAuth flows, refresh tokens, MFA, register etc.) compared to Cognito User Pool, which offers all this as managed service with minimal configuration."
+      ]
+    },
+    "saa-med-225": {
+      "text": "An application uses AWS Lambda with access to a database. The database credentials are stored in AWS Secrets Manager. The team noticed that the function Lambda seeks the secret to each invocation, increasing latency and cost. How to optimize this pattern without sacrificing security or losing secret rotations?",
+      "options": [
+        "Use AWS Secrets Manager with cache in Lambda a Secrets Manager caching library or o Lambda Extension to Secrets Manager — the secret is sought in the first invocation and cached in memory during the TTL configured; after the TTL, a new search occurs to capture rotations",
+        "Increase function timeout Lambda for 15 minutes, so that she keeps the connection to the bank open throughout the processing without having to search for the secret again",
+        "Store credentials in an environment variable of the Lambda, updating it manually after each rotation of the Secrets Manager — environment variables are encrypted by KMS and have better performance than calls to API",
+        "Configure the function Lambda to search for the secret only in the first invocation cold start (outside the handler, in the initialization code), storing in a global variable — hot executions (warm) will reuse the variable without further search"
+      ],
+      "explanation": "Correct. AWS provides a cache library for Secrets Manager (for different languages) and a Lambda They keep the secret in memory by TTL configured (ex.: 5 minutes), doing a new search only when the cache expires — reducing calls to API of the Secrets Manager, latency by invocation, and cost, while still captures new credentials after rotations within the TTL.",
+      "hint": "A AWS offers specific tools for cache of secrets in Lambda — which allows to reuse credentials between invocations while still detects rotations after a TTL?",
+      "optionRationales": [
+        "Correct. AWS provides a cache library for Secrets Manager (for different languages) and a Lambda They keep the secret in memory by TTL configured (ex.: 5 minutes), doing a new search only when the cache expires — reducing calls to API of the Secrets Manager, latency by invocation, and cost, while still captures new credentials after rotations within the TTL.",
+        "Incorrect for breaking the benefit of automatic rotation. Using environment variables with manual update eliminates the main benefit of Secrets Manager (automatic rotation without downtime). After a rotation, the credentials in the environment variables would be outdated until manual intervention, causing connection failures. Environment variables also remain in plain text in the context of execution after description, with less access control than the Secrets Manager.",
+        "Incorrect for loss of rotations. Store the secret out of the handler in a global variable means that it is cached indefinitely while the execution environment is heated (warm). After a credential rotation, the hot environments will continue to use the old credential indefinitely, causing connection errors to the bank that requires the new credential. TTL is the correct approach to balancing performance and rotation support.",
+        "Incorrect. Increasing the timeout of the function has no relation to the frequency of secret search — the additional latency comes from the call to API of the Secrets Manager not of the duration of the execution., Lambda is not designed for long executions with persistent bank connections — for this, the correct pattern would be RDS Proxy."
+      ]
+    },
+    "saa-med-226": {
+      "text": "A company needs developers to create and manage their own IAM Roles for test applications, but with a restriction: the roles created should never be able to access the pocket S3 Production (arn):aws:s3:::The administrator wants to delegate this freedom without opening the risk of escalating privileges for production data. IAM implements this 'cap' of permissions for the roles created by developers?",
+      "options": [
+        "Boundary Permissions — the administrator creates a managed policy with Deny explicit for s3:* in the product-data resource and defines it as mandatory boundary permissions by granting developers permission to create roles, using condition IAM which requires the bondary in iam:CreateRole",
+        "Create a SCPs with a condition that checks whether the roll was created by a user of the developer group — any roll created by the developer automatically inherits the group restrictions, including without access to prod-data",
+        "IAM Policy with Deny for iam:CreateRole for any role that doesn't have a 'Environment: dev' tag — only dev roles can be created by developers, and dev roles can't access the prod-data pocket by company policy",
+        "SCP no AWS Organizations with Deny to s3:GetObject in the prod-data pocket for the OR of developers — this prevents developers' created roles from accessing the production pocket"
+      ],
+      "explanation": "Right. Boundaries permissions are political. IAM which define the Maximum Permissions that an identity may have. The administrator may: (1) create a boundary policy permissions that excludes access to the production loop, (2) grant developers permission to iam:CreateRole but with the condition iam:PermissionsBoundary compulsory specifying this boundary. Thus, any roller created by the developer cannot, in practice, be allowed to access the prod-data bucket — even if the policy attached to the roller tries to grant.",
+      "hint": "What recourse? IAM defines the Maximum Roller Permissions — acting as a ceiling that even the policies attached to the roll cannot exceed?",
+      "optionRationales": [
+        "Right. Boundaries permissions are political. IAM which define the Maximum Permissions that an identity may have. The administrator may: (1) create a boundary policy permissions that excludes access to the production loop, (2) grant developers permission to iam:CreateRole but with the condition iam:PermissionsBoundary compulsory specifying this boundary. Thus, any roller created by the developer cannot, in practice, be allowed to access the prod-data bucket — even if the policy attached to the roller tries to grant.",
+        "Partially correct but with a problem: SCPs apply to TODOS the resources in the account/OR, including legitimate production applications that may need to access the prod-data pocket in the same account. SCPs do not discriminate between roles created by developers and existing production roles — a SCP which denies access to the prod-data pocket for the whole OR could break production applications. Boundaries permissions are more surgical.",
+        "Incorrect. Tags are metadata — do not create technical permission restrictions. A developer with permission to create roles could simply create a role without the 'dev' tag, or with the 'dev' tag and then try to use the role to access prod-data (if the role itself has no access restriction). Tags are effective controls only when combined with policy conditions, and yet do not have the scope of the Boundary Permissions to restrict the maximum permission scope.",
+        "Incorrect. SCPs have no conditions based on 'who created the resource' (IAM roles do not have an attribute 'created by' that can be evaluated in SCP conditions). SCPs evaluate the current session (who is CHAMANDO a API), In addition, a role's permissions are not inherited from the creator — a new role has only the policies explicitly attached to it.."
+      ]
+    },
+    "saa-med-227": {
+      "text": "A company has a legacy application in the local data center that needs to authenticate itself in the AWS to post messages in rows SQS, no possibility to use IAM Roles (because it's not an instance) EC2 nor Lambda). The security team wants to avoid the use of long-term key accesses. AWS allows the application to obtain temporary credentials without needing permanent key accesses?",
+      "options": [
+        "AWS IAM Roles Anywhere — Allows Workloads Outside of AWS (on-premises, other clouds) change X certificates.509 of a reliable CA by credentials IAM temporary STS, eliminating the need for long-term static key accesses",
+        "Create a user IAM with long-term key accesses and store them in a secure password box (like HashiCorp Vault) — security is guaranteed by the safe protection, not by the credentials themselves",
+        "Configure a connection AWS Direct Connect from the company to AWS and use AWS STS with AssumeRole based on the IP of origin of the on-premises network — the dedicated private network eliminates the need for strong credentials",
+        "Use AWS Cognito Identity Pool with anonymous authentication (unauthenticated identities) to obtain credentials AWS temporary for legacy application, without the need for certificates or keys"
+      ],
+      "explanation": "Correct. AWS IAM Roles Anywhere was created specifically for this case: allows applications outside the AWS (on-premises, other clouds) get credentials AWS temporary X-certificates.509 issued by a reliable CA (configured in Trust Anchor). The process changes the certificate to credentials STS temporary, eliminating static key accesses. The credentials are short-lived and can be rotated automatically via certificate renewal.",
+      "hint": "What service AWS was released to allow workloads out of AWS (on-premises) obtain temporary credentials by submitting X certificates.509, no static key accesses?",
+      "optionRationales": [
+        "Correct. AWS IAM Roles Anywhere was created specifically for this case: allows applications outside the AWS (on-premises, other clouds) get credentials AWS temporary X-certificates.509 issued by a reliable CA (configured in Trust Anchor). The process changes the certificate to credentials STS temporary, eliminating static key accesses. The credentials are short-lived and can be rotated automatically via certificate renewal.",
+        "Incorrect for not meeting the requirement to remove long-term key accesses. Regardless of where they are stored, static key accesses have the risks associated with unlimited duration (do not automatically expire) and may be compromised if the vault is breached. The explicit requirement is to avoid long-term beliefs.",
+        "Incorrect. Direct Connect is a network connectivity solution — it is not a authentication mechanism. STS:TakeRole, the application would still need some initial credentials (access keys or other authentication mechanism) to make the call to STS. Direct Connect does not eliminate the need for credentials.",
+        "Incorrect. Unauthenticated identities of Cognito Identity Pool provide credentials with minimal permissions, typically for mobile/web applications from unidentified customers. Using anonymous authentication for a server application would be a security vulnerability — anyone could get those credentials, and the lower privilege policy would be difficult to apply specifically for that application."
+      ]
+    },
+    "saa-med-228": {
+      "text": "A company stores database passwords in AWS Systems Manager Parameter Store using the SecureString type (encrypted with KMS). The team is evaluating whether to migrate to the AWS Secrets Manager. What's the difference MAIS RELEVANTE between the two services that would justify migration to the Secrets Manager specifically for database credentials?",
+      "options": [
+        "The Secrets Manager offers automatic and managed database credentials rotation — with native integration with RDS, Redshift, DocumentDB to change the password in the bank and update the secret automatically, without manual intervention, using a Lambda of rotation managed by the AWS",
+        "The Secrets Manager has a lower cost per API call and secret stored, making it more economical for large volumes of secrets",
+        "The Secrets Manager has less latency when recovering secrets because it is a service dedicated to secrets, while the SSM Parameter Store has high latency because it is a multipurpose service",
+        "The Secrets Manager supports encryption KMS for secrets, while the SSM Parameter Store SecureString does not support encryption KMS with customer CMKs"
+      ],
+      "explanation": "The automatic rotation of credentials is the most significant functional difference. Secrets Manager has native integration with database services AWS (RDS MySQL/PostgreSQL, Redshift, DocumentDB) for: (1) generate a new password, (2) update it in the database, (3) update the secret in Secrets Manager — all automatically in a configurable cycle. SSM Parameter Store does not have this built-in automatic rotation feature.",
+      "hint": "What functionality or Secrets Manager offers specifically for database credentials that the SSM Parameter Store SecureString doesn't have native?",
+      "optionRationales": [
+        "The automatic rotation of credentials is the most significant functional difference. Secrets Manager has native integration with database services AWS (RDS MySQL/PostgreSQL, Redshift, DocumentDB) for: (1) generate a new password, (2) update it in the database, (3) update the secret in Secrets Manager — all automatically in a configurable cycle. SSM Parameter Store does not have this built-in automatic rotation feature.",
+        "Incorrect. The recovery latency between Secrets Manager and SSM Parameter Store (with caching) is comparable for typical use cases. The main distinction is not performance, but functionality — especially automatic rotation integrated with databases, that the Secrets Manager natively offers.",
+        "Incorrect. SSM Parameter Store SecureString SUPORTA Customer Managed Keys (CMKs) — you can specify a CMK specific when creating a SecureString parameter. Both services support KMS with customer CMKs.",
+        "Incorrect. In practice, Secrets Manager there's a cost. POR SEGREDO per month and per month API call — usually MAIS CARO than the SSM Parameter Store (which offers free storage of Standard parameters and low cost for Advanced). The justification for using Secrets Manager not cost, but functionality — especially automatic rotation."
+      ]
+    }
+  }
+}

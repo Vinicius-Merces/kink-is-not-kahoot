@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "109-120",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-109": {
+      "text": "A web application runs in a Auto Scaling Group behind a ALB. Currently, the status of each user's session (purchasing cart, login data) is stored in the MEMORY of each instance EC2, with 'sticky sessions' enabled no ALB. This causes two problems: when the Auto Scaling removes an instance to reduce costs, users connected to it lose the session; and the load distribution is unbalanced. The team wants a resilient architecture in which QUALQUER instance can answer QUALQUER requisition, no session loss during scalability events. What change resolves this?",
+      "options": [
+        "Increase the time of 'sticky sessions' (duration of the affinity cookie) in ALB for several hours.",
+        "Store session data in a cluster Amazon ElastiCache (Redis or Memcached) shared, accessible by all instances, and remove the dependency of 'sticky sessions'.",
+        "Configure the Auto Scaling Group to never remove instances (minimum capacity = maximum capacity = desired capacity).",
+        "Store session data in local files on disk EBS of each instance, instead of in memory RAM."
+      ],
+      "explanation": "Correct. By outsourcing the session status to ElastiCache (a shared memory storage and very low latency), QUALQUER instance EC2 can read/write the session of QUALQUER user. This makes the instances 'stateless' (no local state), allowing the ALB distributes requests freely and that the Auto Scaling Group add/remove instances without causing session loss for users.",
+      "hint": "Think about outsourcing the session status to a low latency shared storage, accessible by all instances, instead of keeping it in local memory.",
+      "optionRationales": [
+        "Correct. By outsourcing the session status to ElastiCache (a shared memory storage and very low latency), QUALQUER instance EC2 can read/write the session of QUALQUER user. This makes the instances 'stateless' (no local state), allowing the ALB distributes requests freely and that the Auto Scaling Group add/remove instances without causing session loss for users.",
+        "Incorrect. To increase the duration of affinity only prolongs the problem: the session continues to be linked to UMA specific instance in the local memory, then if this instance is removed by Auto Scaling, the session will still be lost — does not solve the root cause.",
+        "Incorrect. Fixing capacity eliminates the benefits of Auto Scaling (cost savings in low demand and extra capacity in peaks) without solving the underlying problem: the state would remain attached to the local memory of each instance, making the architecture fragile to any instance substitution (e.g. hardware failure)).",
+        "Incorrect. A volume EBS is still linked to UMA the issue of the session being 'taken up' to a specific instance would persist — it would only change the storage location of RAM for disk, without making the session accessible to other instances."
+      ]
+    },
+    "saa-med-110": {
+      "text": "An instance of the Amazon RDS for MySQL has automatic backups enabled with a retention period of 7 days. During an implementation, a bug migration script corrupted data in several tables to 14h32 today. The team needs to restore the database to the state EXATO in which he was at 14h30 (two minutes before corruption), minimizing the loss of data from legitimate transactions made after that time. RDS allows to meet this requirement?",
+      "options": [
+        "Use the 'Point-in-Time Recovery' restore' (PITR) of the RDS, specifying the timestamp of 14h30 today, which creates a NOVA database instance reflecting the state at that time.",
+        "Reduce the retention period of automatic backups to 0 days and restart the instance to force the cleaning of corrupted data.",
+        "Enable a Read Replica and promote it to reverse corrupted data.",
+        "Restore the latest automatic snapshot, which usually reflects the status of the bank at the beginning of the daily backup window."
+      ],
+      "explanation": "Correct. RDS combines daily automatic backups with continuously captured transaction logs, allowing you to restore the database to QUALQUER SEGUNDO within the set retention period (Point-in-Time Recovery). Specify 14h30 creates a new instance with the data exactly as they were at that time, before the corruption caused by the script — minimizing the loss of legitimate data.",
+      "hint": "Think of what resource the RDS allows to restore the database to any second within the backup retention period, creating a new instance in this state.",
+      "optionRationales": [
+        "Correct. RDS combines daily automatic backups with continuously captured transaction logs, allowing you to restore the database to QUALQUER SEGUNDO within the set retention period (Point-in-Time Recovery). Specify 14h30 creates a new instance with the data exactly as they were at that time, before the corruption caused by the script — minimizing the loss of legitimate data.",
+        "Incorrect as best approach. The latest daily snapshot probably reflects a state ANTERIOR a 14h30 (e.g. early morning), which would be discarded TODAS the legitimate transactions made between the snapshot and 14h30 — a much greater loss of data than is necessary when the PITR allows you to restore exactly until 14h30.",
+        "Incorrect. A Read Replica replica asynchronizes the state ATUAL (including already corrupted data) from the primary bank — promoting it would result in a copy COM the corrupted data, not in a version prior to corruption. Read Replicas do not provide ability to 'return in time.'.",
+        "Incorrect. Reduce retention to 0 DESABILITA the automatic backups (and would discard existing backups), besides restarting the instance has no effect on data already recorded in the tables — this action does not reverse corruption and, worse, would eliminate the ability to use the PITR."
+      ]
+    },
+    "saa-med-111": {
+      "text": "A media platform needs that whenever a new video is published, DOIS independent processes are executed: (1) generate thumbnails (thumbnails) in different resolutions, and (2) transcribe the video audio for text. Each process is executed by a separate row of workers. The team wants that, if the transcription service is temporarily unavailable, the generation of thumbnails continue to work normally (and vice versa), and that both processes receive notification of the new video independently and durable. Which architecture meets this requirement?",
+      "options": [
+        "Post a 'new video' event in a topic Amazon SNS with two rows Amazon SQS registered (one for miniature generation, one for transcription) — the fan-out pattern.",
+        "Use a single row Amazon SQS, of which both miniature and transcription workers consume the same messages.",
+        "Store the event again video in a table DynamoDB and set up the two groups of workers to poll (periodic consultation) in the table in search of new records.",
+        "Send notification of new video directly to miniature workers via call from API synchronous, and miniature workers themselves call the transcription service then."
+      ],
+      "explanation": "Right. SNS fan-out posts message UMA VEZ non-topic SNS, delivering a COPY INDEPENDENTE from message to CADA row SQS Each row (and its workers) processes its flow in a fully independent and durable way: if transcription workers are unavailable, messages simply accumulate in the transcription row, without affecting the thumbnail generation row (and workers).",
+      "hint": "Think about publishing a single event for a topic that distributes (faz 'fan-out') copies of the message to multiple independent rows, one per consumer process.",
+      "optionRationales": [
+        "Right. SNS fan-out posts message UMA VEZ non-topic SNS, delivering a COPY INDEPENDENTE from message to CADA row SQS Each row (and its workers) processes its flow in a fully independent and durable way: if transcription workers are unavailable, messages simply accumulate in the transcription row, without affecting the thumbnail generation row (and workers).",
+        "Incorrect. Chaining processes synchronously (and dependent on each other) means that a failure or slowness in the transcription service would directly impact the miniature generation flow — exactly the coupling that the requirement requires to avoid.",
+        "Incorrect. SQS standard, each message is delivered to APENAS A consumer (who removes it from the queue after processing it) — it is not possible for two different groups of workers to process the MESMA message independently from a single shared row; this would require the fan-out pattern with topic + multiple rows.",
+        "Incorrect as best approach. Although technically possible, polling in a table is a customized, inefficient solution (consumes capacity/cost even without new items) and more complex to operate than the managed standard SNS fan-out, which already delivers notifications in a durable and independent way to multiple consumers."
+      ]
+    },
+    "saa-med-112": {
+      "text": "A company uses several instances EC2 with volumes Amazon EBS, a file system Amazon EFS shared and a database Amazon RDS. Currently, each team independently configures backups of these resources (some using manual snapshots, others without backups). The compliance area requires a policy CENTRALIZADA automatically defining the frequency and retention of backups to TODOS these types of features, based on tags (e.g. 'Backup=Diario'), and generate compliance reports. AWS meets this requirement?",
+      "options": [
+        "Write a function AWS Lambda customized, scheduled via EventBridge, which calls the snapshot APIs of each service (EC2, RDS, EFS) individually.",
+        "Configure the Amazon Data Lifecycle Manager (DLM) only for volumes EBS and guide each team to continue making manual snapshots of RDS and EFS.",
+        "Use AWS Backup to create a centralized backup plan, with scheduling and retention rules, attributed by tags to resources EBS, RDS and EFS.",
+        "Enable versioning no Amazon S3 and periodically copy the data from EBS, RDS and EFS for a bucket S3."
+      ],
+      "explanation": "Correct. AWS Backup is a centralized backup service that supports natively EBS, RDS, EFS (among others). It allows you to create PLANOS OF BACKUP with frequency and retention rules, and ATRIBUIR these plans to resources automatically based on TAGS — meeting exactly the requirement of a central policy, based on tags, with compliance visibility (via AWS Backup Audit Manager).",
+      "hint": "Think about which service manages, schedules and centrally monitors backups for multiple services from AWS (EBS, RDS, EFS, among others) through policy-based backup plans.",
+      "optionRationales": [
+        "Correct. AWS Backup is a centralized backup service that supports natively EBS, RDS, EFS (among others). It allows you to create PLANOS OF BACKUP with frequency and retention rules, and ATRIBUIR these plans to resources automatically based on TAGS — meeting exactly the requirement of a central policy, based on tags, with compliance visibility (via AWS Backup Audit Manager).",
+        "Incorrect. DLM automate snapshots APENAS Volumes EBS (and AMIs) — it does not cover RDS nor EFS, then it would not meet the requirement of a policy CENTRALIZADA for TODOS the types of resources referred to; or AWS Backup covers all these services in one plan.",
+        "Incorrect as best approach. Although technically feasible, build and maintain a customized solution of Lambda + EventBridge to replicate features already offered in form GERENCIADA, with integrated conformity reports, by AWS Backup represents unnecessary engineering and maintenance effort.",
+        "Incorrect. Copy data from EBS/RDS/EFS for the S3 manually is not the native form of backup of these services (lose metadata and would require custom and complex restoration processes), and does not offer the definition of policy CENTRALIZADA based on tags required by the compliance area."
+      ]
+    },
+    "saa-med-113": {
+      "text": "A company migrated its MySQL database to a cluster Amazon Aurora with an instance WRITER and two reading replicas (READERS) in different AZs. The application connects using the 'cluster endpoint' (write endpoint) for writing operations. The team wants to understand what happens, from the point of view of availability, if the instance WRITER What statement correctly describes the behavior of the Aurora in this scenario?",
+      "options": [
+        "The application needs to monitor the cluster status and manually update its connection string to point to the IP address of the new writer instance.",
+        "The read replicas are also unavailable until the recovery of the original writer instance, as they depend directly on it to work.",
+        "The cluster is unavailable for writing until an administrator manually creates a new instance writer from the latest snapshot.",
+        "The Aurora detects the failure of the write instance and automatically promotes one of the existing read replicas to become the new write instance; the 'cluster endpoint' is redirected to the new writer, usually in less than 30 seconds, without requiring application reconfiguration."
+      ],
+      "explanation": "Correct. Aurora continuously monitor the health of the cluster instances. If the writer instance fails, the Aurora performs automatic failover by promoting an existing read replica (which already shares the same distributed underlying storage) to the writeer role, and updates the 'cluster endpoint' to point to it — typically in less than 30 seconds, without the application needing to change connection settings.",
+      "hint": "Think of how the Aurora automatically promotes one of the existing replicas to take on the writing role, without the application needing to discover a new endpoint.",
+      "optionRationales": [
+        "Correct. Aurora continuously monitor the health of the cluster instances. If the writer instance fails, the Aurora performs automatic failover by promoting an existing read replica (which already shares the same distributed underlying storage) to the writeer role, and updates the 'cluster endpoint' to point to it — typically in less than 30 seconds, without the application needing to change connection settings.",
+        "Incorrect. This would be the approximate behavior of a manual snapshot restoration, not the behavior of the Aurora in failover — or Aurora promotes an existing replica AUTOMATICAMENTE, no need to restore snapshots or manual intervention of an administrator.",
+        "Incorrect. Aurora share the same cluster-distributed storage (not operationally dependent on the writer instance for SEREM accesses) — during the failure, one of the replicas is promoted and continues to attend readings (and starts to answer written as well), instead of being unavailable.",
+        "Incorrect. Aurora provides a 'cluster endpoint' DNS) which is automatically redirected to the current writer instance during failure — the application continues to use the MESMO endpoint DNS, no need to manually discover or configure new IP addresses."
+      ]
+    },
+    "saa-med-114": {
+      "text": "A web application runs in a Auto Scaling Group behind a ALB. During implementations of new versions (rolling deployment), old instances are closed while still processing long-term requests (e.g. uploading files that takes up to 60 The team noted that some of these requests are abruptly CORTADAS when the instance is closed, resulting in errors for users. ALB solves this problem, allowing ongoing requests to be completed before the instance is removed from traffic?",
+      "options": [
+        "Increase the idle timeout of itself Application Load Balancer.",
+        "Configure the Auto Scaling Group to close old instances immediately, without waiting for the completion of the implementations.",
+        "Configure the target group's 'deregistration delay' (connection drainage) ALB for a value equal to or greater than the maximum expected time of the requests (e.g..: 60-120 seconds).",
+        "Reduce target group health check interval to detect problem instances more quickly."
+      ],
+      "explanation": "Correct. Deregistration delay (also known as connection drainage) causes the ALB stop ENVIAR NOVAS requests for an instance that is being removed, but continue to allow YOU TO CONNECTION ALREADY ANDAMENTO are completed up to the set time (or until the connection ends naturally) before closing the instance — avoiding long-term requests being abruptly cut.",
+      "hint": "Think about which target group configuration defines a time period during which ongoing connections continue to be served by an instance that is being removed.",
+      "optionRationales": [
+        "Correct. Deregistration delay (also known as connection drainage) causes the ALB stop ENVIAR NOVAS requests for an instance that is being removed, but continue to allow YOU TO CONNECTION ALREADY ANDAMENTO are completed up to the set time (or until the connection ends naturally) before closing the instance — avoiding long-term requests being abruptly cut.",
+        "Incorrect. Reducing the health check interval only makes the DETECTION of non-integral instances faster — unrelated to connection drainage behavior during removal PLANEJADA of an integral instance in an implementation.",
+        "Incorrect. ALB controls how long a connection can stay SEM ATIVIDADE before being closed by the balancer — it does not control the removal behavior of a target group instance during an implantation, which is managed by the deregistration delay.",
+        "Incorrect. Closing instances immediately is exactly the behavior that is causing the problem described (requirements cut abruptly) — this option worsens the situation instead of solving it."
+      ]
+    },
+    "saa-med-115": {
+      "text": "A company executes a legacy long-term application in a single instance EC2 (no Auto Scaling The team wants that, if a failure occurs HARDWARE underlying or network that makes the instance inaccessible (detected by failure in the 'StatusCheckFailed_System' verification of EC2), a AWS try it automatically RECUPERAR the instance — preserving your ID, private IP addresses, Elastic IP and other metadata — moving it to a new hardware without manual intervention. Which configuration meets this requirement?",
+      "options": [
+        "Configure the alarm action as 'Reboot this instance' whenever the 'CPUtilization' metric exceeds 90%.",
+        "Create a Auto Scaling Group with minimum capacity, desired and maximum equal to 1, containing this instance.",
+        "Enable AWS Trusted Advisor to monitor the instance and send an email notification to the administrator in case of hardware failure.",
+        "Create an Alarm CloudWatch in the instance 'StatusCheckFailed_System' metric and configure the alarm action as 'Recover this instance' (EC2 Auto Recovery)."
+      ],
+      "explanation": "Correct.The action 'Recover' of an alarm from CloudWatch on the metric 'StatusCheckFailed_System' (which indicates problems in the underlying infrastructure of AWS, not in the OS of the instance) automatically moves the instance to a new hardware, preserving your ID, private IP addresses, Elastic IPs associated, metadata and other settings — exactly the automatic recovery behavior described, without need of Auto Scaling Group.",
+      "hint": "Think of what action of an alarm of the CloudWatch, based on the system status verification metric, automatically migrates an instance to a new hardware preserving its configuration.",
+      "optionRationales": [
+        "Correct.The action 'Recover' of an alarm from CloudWatch on the metric 'StatusCheckFailed_System' (which indicates problems in the underlying infrastructure of AWS, not in the OS of the instance) automatically moves the instance to a new hardware, preserving your ID, private IP addresses, Elastic IPs associated, metadata and other settings — exactly the automatic recovery behavior described, without need of Auto Scaling Group.",
+        "Incorrect. Reboot the instance only restarts the operating system NO MESMO HARDWARE — if the problem is HARDWARE/underlying network (StatusCheckFailed_System), a reboot would not solve the failure; moreover, CPUtilization is not the appropriate indicator for this type of infrastructure failure.",
+        "Incorrect considering the restriction of the scenario. The requirement explicitly states that the application cannot use Auto Scaling Group; moreover, even if it could, an instance replaced by a ASG receives one NOVO Different IDs and private IP addresses, unlike recovery via 'Recover', which PRESERVA the original ID and addresses.",
+        "Incorrect. Trusted Advisor provides recommendations for good practice (cost, security, performance, etc.) based on periodic checks of account configuration — it does not continuously monitor the hardware health status of individual instances in real time, nor performs automatic recovery actions."
+      ]
+    },
+    "saa-med-116": {
+      "text": "A web application serves a home page with static content (HTML, CSS, JavaScript, marketing images) that rarely changes, besides dynamic features (login, account data) served by the application layer in EC2. The team wants you to, MESMO QUE the application layer EC2 is temporarily overloaded or partially unavailable, users can still view the home page and static content of the site. Which architecture increases the perceived resilience of the site for this scenario?",
+      "options": [
+        "Increase the size (type) of the instances EC2 of the application layer so that they have extra capacity to also serve the static content.",
+        "Configure a cache in ElastiCache to store the answers HTML full home page generated by the application layer.",
+        "Host static files (HTML, CSS, JS, images) in a pocket Amazon S3 and distribute them through the Amazon CloudFront, allowing only dynamic features depend on the application layer in EC2.",
+        "Store static content in a volume Amazon EBS additional attached to each instance EC2 of the application layer."
+      ],
+      "explanation": "Correct. By serving static content directly from S3 through the CloudFront (a global content delivery network, highly available and independent of the layer EC2), users can access the home page and static resources even if the application layer is EC2 is overloaded or partially out of the air — only the features that really depend on dynamic logic (login, account data) would be affected.",
+      "hint": "Think about hosting static content completely independent of the application layer, distributed by a global content delivery network.",
+      "optionRationales": [
+        "Correct. By serving static content directly from S3 through the CloudFront (a global content delivery network, highly available and independent of the layer EC2), users can access the home page and static resources even if the application layer is EC2 is overloaded or partially out of the air — only the features that really depend on dynamic logic (login, account data) would be affected.",
+        "Incorrect. Even with higher instances, static content would still depend on MESMA application layer EC2 — if this layer is unavailable for any reason (not related to capacity, e.g., failure to deploy), the entire site, including the home page, would be out of the air.",
+        "Incorrect. Store static content in volumes EBS attached to the MESMAS cases EC2 does not unplug the static content of the application layer availability — if these instances become unavailable, the static content in their volumes would also become inaccessible.",
+        "Incorrect as the main solution. Although the cache can reduce the load on the application layer, ElastiCache usually resides in a VPC private and is accessed PELA application layer — if the application layer itself (which checks the cache) is unavailable, users would still not be able to access the content. S3+CloudFront remove this dependency completely."
+      ]
+    },
+    "saa-med-117": {
+      "text": "A team is drawing the VPC for a new application of three layers (web, application and database). The requirement of resilience is that the failure of UMA Availability Zone does not drop any of the layers. Which sub-network design meets this standard and recommended requirement?",
+      "options": [
+        "Create a single large subnet (ex.: /16) in an AZ, with sufficient space for all instances of all layers.",
+        "Create, in at least two AZs, a public sub-network (for the web layer)/ALB) and private sub-networks (for the application layer and for the database), distributing the resources of each layer among the corresponding AZs.",
+        "Create subnets in multiple AZs, but use only public subnets for all layers, simplifying router.",
+        "Create multiple AZs subnets for the web layer only, keeping application layers and database in a single AZ to simplify network topology."
+      ],
+      "explanation": "Correct. Replicate the set of sub-networks (public + private) in at least two AZs, and distribute the instances/resources of each layer between these sub-networks, ensure that each layer has multiple AZs. If an AZ fails, the resources in the other AZ(s) remain available, taking into account the requirement of resilience the failure of AZ in all layers.",
+      "hint": "Think about replicating the same set of sub-networks (public and private) in at least two Availability Zones.",
+      "optionRationales": [
+        "Correct. Replicate the set of sub-networks (public + private) in at least two AZs, and distribute the instances/resources of each layer between these sub-networks, ensure that each layer has multiple AZs. If an AZ fails, the resources in the other AZ(s) remain available, taking into account the requirement of resilience the failure of AZ in all layers.",
+        "Incorrect. A subnet is always associated with UMA SINGLE AZ. Putting all layers into subnets of a single AZ means that the failure of this AZ would make TODAS layers not available simultaneously — the opposite of the resilience requirement.",
+        "Incorrect. Although distributing by multiple AZs is correct, putting the application layer and database into public sub-networks exposed them directly to the internet (with public IPs), violating recommended security practices — these layers should reside in private sub-networks, with controlled access via NAT (for exit) and Security Groups.",
+        "Incorrect. The requirement requires that failure of UMA AZ does not drop NENHUMA If the application and database layers are concentrated in a single AZ, the failure of that AZ would make them unavailable, even if the web layer remains accessible — not meeting the full requirement."
+      ]
+    },
+    "saa-med-118": {
+      "text": "A table of the Amazon DynamoDB store events of an IoT application. The volume of events is extremely IMPRESSIBLE: in a few days there are sudden traffic peaks 50 times greater than normal, followed by long periods of low activity. With the capacity mode PROVISIONADO currently, unexpected peaks cause 'ProvisionedThroughputExceedException' (throttling) errors until the team manually adjusts the capacity. The team wants the table to absorb these peaks automatically, without the need for manual capacity adjustment and without throttling.?",
+      "options": [
+        "Change the table to 'On-Demand' capacity mode (under demand), which automatically scales the read/write capacity in real time according to real traffic, without manual provisioning.",
+        "Configure the Auto Scaling of the DynamoDB in the provided mode, defining the maximum capacity as a very high value (ex.: 100x average capacity).",
+        "Add a Global Secondary Index (GSI) to the table to better distribute the load between partitions.",
+        "Enable DynamoDB Accelerator (DAX) in front of the table to absorb the writing peaks."
+      ],
+      "explanation": "The On-Demand mode of DynamoDB was designed exactly for IMPRESSIBLE workloads: it instantly scales to accommodate traffic peaks (covering twice the previous traffic peak already recorded as instantaneous capacity, and continuing to adapt), eliminating the need for manual adjustment of provided capacity and avoiding throttling caused by unexpected peaks..",
+      "hint": "Think of what mode of capacity the DynamoDB adjusts the capacity automatically in real time, based on real traffic, without the need for prior planning of capacity units.",
+      "optionRationales": [
+        "The On-Demand mode of DynamoDB was designed exactly for IMPRESSIBLE workloads: it instantly scales to accommodate traffic peaks (covering twice the previous traffic peak already recorded as instantaneous capacity, and continuing to adapt), eliminating the need for manual adjustment of provided capacity and avoiding throttling caused by unexpected peaks..",
+        "Incorrect as a better approach. Auto Scaling in the provided mode reacts to changes in use AO LONGO OF MINUTOS (based on CloudWatch), not instantaneously — peaks REPENTINOS (50(x) could still cause throttling before Auto Scaling adjustment of capacity; moreover, defining a very high maximum capacity without constant use would generate unnecessary costs when the Auto Scaling in fact climb to near that maximum.",
+        "Incorrect. GSI creates an alternative view of the data for consultations with different access patterns — it does not solve the problem of CAPACIDADE PROVISIONADA the table (or index itself) is insufficient for unpredictable traffic peaks; GSI you would also need your own provided capacity (or also use On-Demand).",
+        "Incorrect. DAX is a cache in memory that accelerates mainly operations of LEITURA (GetItem/Query/Scan) with low latency — it does not solve throttling in ESCRITAS in the underlying table, which remain subject to the provisioned capacity of the DynamoDB."
+      ]
+    },
+    "saa-med-119": {
+      "text": "A table of the Amazon DynamoDB store the catalog of products from an online store. A developer, when running a batch update script, accidentally deleted hundreds of items from the table there 3 The team wants to restore the table to the state it was in. ANTES of accidental exclusion, without impacting the current production table (which received new valid applications since). DynamoDB allows to meet this requirement, considering that it was enabled before the incident?",
+      "options": [
+        "Enable DynamoDB Streams in the table to automatically reverse exclusions made there are even 3 days.",
+        "Use Point-in-Time Recovery (PITR) of the DynamoDB to restore the table data to a timestamp prior to accidental deletion in a NOVA table, and then recover the deleted items from it.",
+        "Restore the entire table from the oldest available full backup, overwriting the current production table.",
+        "Enable DynamoDB Global Tables to create a replica in another region, which will automatically contain pre-exclusion data."
+      ],
+      "explanation": "Correct. PITR enabled, or DynamoDB keeps continuous backups that allow you to restore the table to QUALQUER PONTO NO TEMPO within the last few 35 days, creating a NOVA TABELA with the data of that moment — without affecting the original production table. The team can then identify and recover the excluded items from this new table, meeting the requirement without impacting the current production data..",
+      "hint": "Think of what resource the DynamoDB allows to restore a new table with data from any moment within the last 35 days, without affecting the original table.",
+      "optionRationales": [
+        "Correct. PITR enabled, or DynamoDB keeps continuous backups that allow you to restore the table to QUALQUER PONTO NO TEMPO within the last few 35 days, creating a NOVA TABELA with the data of that moment — without affecting the original production table. The team can then identify and recover the excluded items from this new table, meeting the requirement without impacting the current production data..",
+        "Incorrect. DynamoDB Streams captures a record of changes (creation, update, deletion of items) for a period of 24 hours, usually used to trigger downstream processing (ex.: Lambda) — it does not provide a 'undo' or reverse exclusions feature automatically, nor does it maintain history by 3 days.",
+        "Incorrect. Restore (overwrite) the production table ATUAL with a backup of 3 days ago I'd throw it away TODOS the legitimate requests and amendments made in those cases 3 days — the requirement explicitly requires NOT to impact current production data, which PITR for a new table allows.",
+        "Incorrect. The Global Tables replicates changes almost in real time between regions (multi-region replication active-active) — accidental exclusion would be replicated to TODAS the replicas also, then a Global Table would not contain the excluded items differently from the original table.."
+      ]
+    },
+    "saa-med-120": {
+      "text": "A telecommunications company operates a legacy service based on TCP which requires STATISTICAL IP addresses for each Availability Zone (requirement of customers who make whitelists of IPs) and needs to deal with millions of simultaneous connections with minimum latency. The team wants a resilient load balancer, with automatic failure between AZs, which preserves these features.?",
+      "options": [
+        "Application Load Balancer (ALB), configuring a static Elastic IP manually on each listener.",
+        "Classic Load Balancer (CLB), which offers native support to static IPs by AZ and is recommended for new high performance deployments.",
+        "Network Load Balancer (NLB), with a static IP Elastic associated with each enabled AZ.",
+        "Gateway Load Balancer (GWLB), configured with static AZ IPs for traffic distribution between application instances."
+      ],
+      "explanation": "Correct. The Network Load Balancer operates on the transport layer (chamber 4 - TCP/UDP), it was designed for ultra-low latency and millions of requests per second, and allows to associate an Elastic IP STATISTICAL to each enabled AZ — meeting the requirement of whitelist of IPs by customers. NLB automatically distributes traffic between healthy instances in multiple AZs, providing automatic failover.",
+      "hint": "Think about what type of balancer operates on the transport layer (chamber 4), offers a static IP address by AZ and is optimized for very high throughput with very low latency.",
+      "optionRationales": [
+        "Correct. The Network Load Balancer operates on the transport layer (chamber 4 - TCP/UDP), it was designed for ultra-low latency and millions of requests per second, and allows to associate an Elastic IP STATISTICAL to each enabled AZ — meeting the requirement of whitelist of IPs by customers. NLB automatically distributes traffic between healthy instances in multiple AZs, providing automatic failover.",
+        "Incorrect. ALB operates in the application layer (sleeve 7 - HTTP/HTTPS), suitable for content-based routing, but DOES NOT support the association of static IPs — your IP addresses may change over time, which would not meet the customers' static IP whitelist requirement.",
+        "Wrong. Load Balancer it was designed to implement and scale third-party network applications (firewalls, intrusion detection systems) in a transparent way, operating in the layer of the system. 3 with the protocol GENEVE — is not the appropriate balancer to distribute application traffic TCP end-users between instances.",
+        "Incorrect. The Classic Load Balancer is a previous generation resource, not recommended for new deployments, does NOT support static IPs by AZ, and does not have the optimizations of throughput/latence of the NLB for this scenario."
+      ]
+    }
+  }
+}

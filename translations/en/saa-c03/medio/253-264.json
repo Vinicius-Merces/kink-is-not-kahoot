@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "253-264",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-253": {
+      "text": "A company has a cluster Amazon EMR for data processing with Spark. The cluster has a Master Node and multiple Core Nodes. The team wants to ensure resilience to Core Nodes failures without data loss in processing. HDFS of the EMR protects against Core Nodes failure?",
+      "options": [
+        "The HDFS no EMR uses replication of data blocks between multiple Core Nodes (replication factor) 3 by default) — if a Core Node fails, the HDFS automatically re-replicates lost blocks to other available Core Nodes without data loss",
+        "The EMR makes automatic backup of data from HDFS for the S3 each 5 minutes — if a Core Node fails, the data is restored from S3 automatically for the remaining nodes",
+        "Master Node keeps copies of all data processed by Core Nodes — if a Core Node fails, Master Node redistributes its data to the remaining Core Nodes",
+        "The EMR use Auto Scaling to automatically replace failed Core Nodes with new instances — lost data from the old node is re-processed by Spark using Directed Acyclic Graph (DAG) Recovery"
+      ],
+      "explanation": "Correct. HDFS (Hadoop Distributed File System) EMR uses the configured replication factor (standard) 3) to store copies of each data block in multiple Core Nodes. If a Core Node fails, the HDFS detects sub-replicated blocks and automatically creates copies in the available nodes, maintaining data integrity.",
+      "hint": "The HDFS no EMR uses a data redundancy mechanism between multiple DataNodes (Core Nodes) — what is this mechanism, and what is the standard redundancy factor?",
+      "optionRationales": [
+        "Correct. HDFS (Hadoop Distributed File System) EMR uses the configured replication factor (standard) 3) to store copies of each data block in multiple Core Nodes. If a Core Node fails, the HDFS detects sub-replicated blocks and automatically creates copies in the available nodes, maintaining data integrity.",
+        "Incorrect. EMR does not backup automatically periodically from HDFS for S3 (this would need to be explicitly configured via DistCp or EMRFS). The resilience of the HDFS comes from the REPLECTION of blocks between Core Nodes, not backup to S3. S3 is used as external storage (via EMRFS) when the data needs to persist beyond the cluster life cycle.",
+        "Partially correct about Auto Scaling to be able to replace us, but the data protection mechanism is not DAG Spark recovery (which is for tolerance to computer task failures, not protection of stored data). HDFS is the mechanism that protects data stored in Core Nodes against loss due to node failure.",
+        "Incorrect. Master Node manages the metadata of HDFS (NameNode) and coordinates the cluster, but DO NOT store copies of CoreNodes block data. Block data is exclusively in CoreNodes (DataNodes no HDFS). Master Node knows ONDE the blocks are (namespace), and after a failure, directs the replication to other available Core Nodes."
+      ]
+    },
+    "saa-med-254": {
+      "text": "A company uses Amazon SQS with a Lambda the team realized that in periods of high traffic, the Lambda failure with competition limit errors (throttling). Unprocessed messages expire in the queue and are lost before the Lambda What combination of configurations solves the problem of message loss without increasing the competition of Lambda?",
+      "options": [
+        "Increase Batch Size in Event Source Mapping to 10.000 messages — a Lambda will process more invocation messages, reducing the number of invocations needed and throttling",
+        "Enable Long Polling in the queue SQS (waitTimeSeconds=20) — the long polling reduces empty chick calls and increases processing efficiency, allowing the Lambda processes more messages with the same competition",
+        "Migration to a queue SQS FIFO — rows FIFO process messages in order and guarantee exactly-once delivery, eliminating duplicate messages that cause excessive throttling",
+        "Increase Message Retention Period from the queue SQS (maximum 14 days) and set up a DLQ for messages that exceed maxReceiveCount — the long period retention ensures that messages do not expire while waiting for processing, and the DLQ capture messages that failed repeatedly for further analysis"
+      ],
+      "explanation": "Correct. Message Retention Longer period (up to 14 days) ensures that messages do not expire while the Lambda is being throtted and the backlog exists. DLQ It takes messages that have exceeded the maximum number of attempts — ensuring that they are not silently discarded. Together, these two mechanisms ensure that no messages are lost, even without increasing competition from the Lambda.",
+      "hint": "To ensure that messages are not PERDIDAS while awaiting processing with throttling, which row parameter SQS how long do you control messages? And what mechanism captures messages that have exhausted attempts?",
+      "optionRationales": [
+        "Correct. Message Retention Longer period (up to 14 days) ensures that messages do not expire while the Lambda is being throtted and the backlog exists. DLQ It takes messages that have exceeded the maximum number of attempts — ensuring that they are not silently discarded. Together, these two mechanisms ensure that no messages are lost, even without increasing competition from the Lambda.",
+        "Incorrect as a solution for message expiration. Long Polling reduces cost (less empty chicks) and message detection latency, but does not solve the problem of messages expiring when competition from Lambda is exhausted — bottleneck is the processing capacity of Lambda, not the polling frequency.",
+        "Incorrect. Increasing the Batch Size reduces the number of calls but does not necessarily reduce the throttling — if maximum competition has been reached, new calls are blocked independently of the batch size. Moreover, very large batch sizes increase the latency and the risk of timeout of the Lambda by summons.",
+        "Incorrect. SQS FIFO does not resolve throttling of Lambda — throttling is caused by the limit of competition of the Lambda, Not for duplicate messages. FIFO have throughput MENOR (300 TPS without batching vs. almost unlimited in the Standard), which would make the backlog problem worse."
+      ]
+    },
+    "saa-med-255": {
+      "text": "A company uses Amazon CloudFront to distribute content of a ALB The engineering team wants you to CloudFront serve cached content based on the path of URL: objects in /api/* should never be cached (TTL=0), as objects in /static/* should be cached by 24 hours. What functionality of CloudFront allows this differentiated configuration by way?",
+      "options": [
+        "Cache Behaviors no CloudFront — each Behavior Cache maps a path pattern (ex.: /api/*, /static/*) to independent configurations of TTL, referred headers, and origin; the order of precedence of the behaviors (more specific first) determines which configuration is applied to each request",
+        "Use Lambda@Edge no viewer request to modify or TTL based on the path — the function inspects the path and defines the correct Cache-Control header before the check cache",
+        "Create two distributions CloudFront separate — one for /api/* with TTL=0 and another for /static/* with TTL=24h — and use Route 53 to route the correct paths for each distribution",
+        "Configure Origin Response Heads Separate policies for each path — the origin returns different Cache-Control headers for /api/* and /static/*, and CloudFront automatically respect these headers by the way"
+      ],
+      "explanation": "That's right. CloudFront allow different configurations by path pattern. Default Cache Behavior applies to all path not covered by other behaviors. Specific Behaviors (such as /api/* and /static/*) are evaluated in order of precedence — more specific have priority. Each behavior has its own configurations of TTL, headers, cookies, and origin independently.",
+      "hint": "What is the functionality of CloudFront map road patterns from URL to independent cache settings within a single distribution?",
+      "optionRationales": [
+        "That's right. CloudFront allow different configurations by path pattern. Default Cache Behavior applies to all path not covered by other behaviors. Specific Behaviors (such as /api/* and /static/*) are evaluated in order of precedence — more specific have priority. Each behavior has its own configurations of TTL, headers, cookies, and origin independently.",
+        "Partially correct: or CloudFront respects Cache-Control headers of origin, but this would be configured in ORIGEM (ALB/application), not in CloudFront. In addition, without separate Behaviors Cache, the CloudFront I wouldn't know that /api/* and /static/* must have different behaviors — would apply the same cache policy to both. Cache Behaviors are the correct feature for this differentiation in the CloudFront.",
+        "Incorrect and unnecessarily complex. Creating two distributions for the same domain is not possible simply (each distribution has its own domain CloudFront) and it would require logic of custom routing. Cache Behaviors within a single distribution are designed exactly for this case of differentiation by way.",
+        "Incorrect as a primary approach. Lambda@Edge can dynamically modify behaviors, but for a static rule of TTL by way (something that never changes), using Cache Behaviors is much simpler, more efficient and without running cost by invoking Lambda. Lambda@Edge is suitable for dynamic logic that cannot be expressed in static settings."
+      ]
+    },
+    "saa-med-256": {
+      "text": "A company uses Application Load Balancer (ALB) for a web application. API return large binary files (PDFs, images). The team perceives high latency in these endpoints and wants to migrate to a balancer that supports TCP passthrough without termination SSL, to reduce overhead processing. Load Balancer AWS meets this requirement?",
+      "options": [
+        "Classic Load Balancer in mode TCP — o CLB supports TCP passthrough when configured in protocol mode TCP, no termination SSL",
+        "Application Load Balancer with IP type target groups — IP type targets support IP type bypasses SSL and direct connections directly to the endpoints without termination SSL no ALB",
+        "Gateway Load Balancer (GWLB) — operates in Layer 3 and forwards IP packages directly to network applications without any inspection or termination SSL",
+        "Network Load Balancer (NLB) operating in Layer 4 (TCP/UDP) — o NLB makes passthrough connections TCP without inspecting the content HTTP, allowing SSL is terminated directly by the instances EC2 backend, reducing overhead processing in the balancer"
+      ],
+      "explanation": "Correct. NLB operates in Layer 4 (TCP/UDP) and can do TCP passthrough — the connection TLS is passed directly to the backend without the NLB finish/inspect or SSL. This reduces the processing overhead SSL no load balancer (which is processed by backend instances) and is suitable for applications that need low latency for binary transfers.",
+      "hint": "Which AWS Load Balancer operates in Layer 4 (TCP/UDP) and can passthrough connections without finishing SSL, delegating processing SSL for backend servers?",
+      "optionRationales": [
+        "Correct. NLB operates in Layer 4 (TCP/UDP) and can do TCP passthrough — the connection TLS is passed directly to the backend without the NLB finish/inspect or SSL. This reduces the processing overhead SSL no load balancer (which is processed by backend instances) and is suitable for applications that need low latency for binary transfers.",
+        "Incorrect. ALB SEMPRE Finished SSL — independent of the target group type (institution, IP), Lambda). The ALB It's a Layer 7 load balancer inspecting the content HTTP to make decisions about routing. TCP passthrough without termination SSL no load balancer, o NLB is necessary.",
+        "Partially Historically Correct: The Classic Load Balancer supported mode TCP no termination SSL. However, CLB is in maintenance mode and its replacement is the NLB for Layer cases 4. The NLB is the correct and recommended response by AWS for new deployments.",
+        "Incorrect for this use case. The Gateway Load Balancer is designed to insert virtual network applications (firewalls), IDS/IPS) on the road of traffic of a VPC using the protocol GENEVE. Not an application load balancer — your usage case is network app traffic inspection, not web application load balancer."
+      ]
+    },
+    "saa-med-257": {
+      "text": "A company uses Amazon ElastiCache for Redis for caching user sessions. With application growth, Redis is reaching the memory limit of a single node, causing data avoidance. The team wants to scale the memory capacity of Redis without downtime. Which ElastiCache configuration allows to increase the total memory capacity of Redis beyond the limits of a single node?",
+      "options": [
+        "ElastiCache Redis without Cluster Mode with multiple Read Replicas — read replicas increase the total memory capacity of the cluster, as each replica stores additional data",
+        "Configure the Tiered Cashing Redis with Amazon S3 as secondary ter — data that do not fit in the memory of Redis are automatically moved to S3, effectively increasing total capacity",
+        "ElastiCache Redis with Enabled Cluster Mode — automatically distributes data between multiple shards using hash slots, increasing the total memory capacity proportional to the number of configured shards, with each shard being able to have replicas for reading and availability",
+        "Perform vertical scaling (institution type upgrade) for a more memory instance — ElastiCache allows you to modify the instance type without downtime using the 'Modify Cluster' mechanism'"
+      ],
+      "explanation": "Correct. Redis Cluster Mode distributes data between multiple shards (automatic partitioning via hash slots). Each shard has a primary and optional replicas. The total memory capacity is the sum of all primarys — allowing horizontal scaling beyond the limits of a single node. With Cluster Mode enabled, it is possible to add online shards with redistribution slots.",
+      "hint": "Which ElastiCache Redis mode distributes data between multiple shards (horizontal partitioning) to increase total memory capacity beyond the limits of a single node?",
+      "optionRationales": [
+        "Correct. Redis Cluster Mode distributes data between multiple shards (automatic partitioning via hash slots). Each shard has a primary and optional replicas. The total memory capacity is the sum of all primarys — allowing horizontal scaling beyond the limits of a single node. With Cluster Mode enabled, it is possible to add online shards with redistribution slots.",
+        "Incorrect. Read Replicas in Redis without Cluster Mode are COPY COMPLETAS of primary data — they increase the ability of LEITURA (throughput), not total memory. Each replica contains the MESMOS data that the primary, then the total memory capacity does not increase with more replicas. To increase the memory capacity, partitioning via Cluster Mode is necessary.",
+        "Partially correct: vertical scaling is possible but has limitations (maximum instance type available) and usually causes a brief interruption during modification. Furthermore, it does not scale indefinitely — eventually the major instance type will also be insufficient. Cluster Mode with multiple shards is the solution to scale beyond the limits of a single node without these trade-offs.",
+        "Incorrect. There is no native resource of 'Tiered Caching with S3' in ElastiCache for Redis. Redis is a cache in memory — has no ability to tie to S3 Automatically. Cluster Mode is the right solution to increase memory capacity."
+      ]
+    },
+    "saa-med-258": {
+      "text": "A company has a serverless application using API Gateway + Lambda processing requests that sometimes take 25 seconds to complete. Users are receiving timeout errors. API Gateway has a timeout configured from 29 What is the most likely cause and the solution?",
+      "options": [
+        "The Amazon API Gateway has a maximum timeout HARD LIMIT of 29 seconds for integration synchronous calls — for requests that take more than 29 seconds, it is necessary to migrate to an asynchronous architecture: API Gateway immediately returns one 202 Accepted, Lambda process in background, and the customer polling or receives notification by WebSocket/SNS",
+        "The problem is the default timeout of the function Lambda (3 (seconds) — increase the timeout of Lambda for 30 seconds will resolve the timeout error in API Gateway",
+        "Use Lambda Provided Competition to eliminate cold startups — the 25 seconds are caused by cold start of Lambda, and provided competition ensures that warm instances are available to respond in milliseconds",
+        "Migration from API Gateway REST for API Gateway HTTP API — HTTP APIs have a timeout of 60 seconds, sufficient for operations of 25 seconds"
+      ],
+      "explanation": "Correct. API Gateway has an absolute maximum timeout of 29 seconds for synchronous integrations — not configurable above that. For operations that exceed this limit, the solution is asynchronous architecture: the client makes the call and receives a request ID (202 Accepted), a Lambda process anointingly, and the customer receives the result via polling (GET /status/{id}), WebSocket (API Gateway WebSocket API), or push notification (SNS/SES).",
+      "hint": "The API Gateway has an absolute maximum limit of how long an integration response can wait. What is that limit, and what architecture resolves requests that exceed that limit?",
+      "optionRationales": [
+        "Correct. API Gateway has an absolute maximum timeout of 29 seconds for synchronous integrations — not configurable above that. For operations that exceed this limit, the solution is asynchronous architecture: the client makes the call and receives a request ID (202 Accepted), a Lambda process anointingly, and the customer receives the result via polling (GET /status/{id}), WebSocket (API Gateway WebSocket API), or push notification (SNS/SES).",
+        "Incorrect over the limit. The standard timeout of Lambda It's 3 seconds but it's CONFIGURABLE until 15 However, even with Lambda configured for 30 minutes of timeout, or API Gateway has its own hard limit of 29 seconds. Lambda take more than 29 seconds, the API Gateway will return timeout to the client independent of timeout from Lambda.",
+        "Incorrect. Cold beginnings of Lambda last milliseconds a few seconds at most — no 25 The statement describes the processing that genuinely takes 25 (not a start-up delay). Provided Competition would not solve a long-term processing.",
+        "Incorrect. Both types of API Gateway (REST and HTTP API) have the same hard limit of 29 seconds for integration with Lambda syncrona. Migration between types does not increase timeout beyond 29 seconds."
+      ]
+    },
+    "saa-med-259": {
+      "text": "A company uses Amazon S3 to store analytics data. The data has an unpredictable access pattern — some objects are accessed frequently for weeks, then they are almost out of access for months, and occasionally they are accessed again. The team wants to minimize storage costs without needing to manage class transitions manually or incur retriival rates. S3 is more suitable?",
+      "options": [
+        "S3 Standard-IA (Infrequent Access) with lifecycle rules for transition after 30 days — data that are not accessible by 30 days are moved to Standard-IA automatically, reducing storage costs",
+        "S3 Standard with lifecycle rules that move objects to S3 Glacier after 90 days without access — Glacier offers the lowest long-term storage cost",
+        "S3 One Zone-IA — stores data in only one AZ at lower cost than Standard-IA, suitable for data that may be reproducible in case of AZ loss and have infrequent access",
+        "S3 Intelligent-Tiering — automatically monitors the access patterns of each object and moves between third parties (Frequent Access, Infrequent Access, Archive Instant Access) without retrieving fees and no penalty for early removal, ideal for unpredictable access patterns"
+      ],
+      "explanation": "Correct.. S3 Intelligent-Tiering uses ML to monitor the access pattern of each object and automatically moves between third parties based on the actual access frequency — without manual intervention. It does not charge retrieval fees for frequent, infrequent and instantaneous access third parties. There is a small rate of monitoring per object, but for objects larger than 128KB, cost is usually compensated by storage savings.",
+      "hint": "Which class S3 Automatically monitor access patterns without manual intervention, without retrieving fees, and without removal penalties — designed for unpredictable access?",
+      "optionRationales": [
+        "Correct.. S3 Intelligent-Tiering uses ML to monitor the access pattern of each object and automatically moves between third parties based on the actual access frequency — without manual intervention. It does not charge retrieval fees for frequent, infrequent and instantaneous access third parties. There is a small rate of monitoring per object, but for objects larger than 128KB, cost is usually compensated by storage savings.",
+        "Incorrect for IMPRESSIBLE standards. Standard-IA has a retriival rate per GB and a minimum penalty of removal of 30 days — objects accessed earlier will pay for 30 For unpredictable patterns where objects can be accessed again frequently, Standard-IA retrieval rates make the cost unpredictable. Intelligent-Tiering has no retrieval rates.",
+        "Incorrect because Glacier has significant retriival rates and latency (minutes to hours) to recover objects. The statement describes objects that are 'occasionally accessed again' — Glacier would be inadequate because access to objects on the Glacier incurs recovery and delay costs, conflicting with the requirement of 'no retriival rates''.",
+        "Incorrect due to lack of adequate durability and the same limitations of the Standard-IA. S3 One Zone-IA has less durability (99.5% vs 99.999999999% of the S3 Standard) and has retriival rates per GB. For analytics data with unpredictable pattern, One Zone-IA presents a risk of data loss (if AZ fails) and is not suitable for unpredictable access patterns with occasional access."
+      ]
+    },
+    "saa-med-260": {
+      "text": "A company uses Amazon DynamoDB for a global e-commerce application with strong consistent readouts. The team observed that some partitions are receiving much more traffic than others ('hot partitions'), causing throttling errors. Data is accessed by ProductID as a key partition, and the most popular products cause hot partitions. What technique solves the hot partitions problem without changing the data model completely?",
+      "options": [
+        "Enable DynamoDB Adaptive Capacity — Automatically distributes throughput from the least used to the most used partitions, eliminating throttling in hot partitions without key change",
+        "Migratory to DynamoDB Global Tables — multi-region replication distributes readings across regions, reducing the load on each individual partition in the primary region",
+        "Write Shadding — add a random suffix to the partition key (e.g. ProductID)_1, ProductID_2, ProductID_N) distributes a popular product between N shards/partitions; readings need to consult all N shards and combine results in application",
+        "DynamoDB Auto Scaling — enable Auto Scaling in the tables with hot partitions makes the DynamoDB automatically distributes hot partitions between multiple physical partitions without the need for key change"
+      ],
+      "explanation": "Write Sharing artificially distributes a hot item between multiple partitions adding a suffix (1 a N) to the partition key. The load is distributed by up to N different partitions, each receiving 1/N of the original traffic. In reading, the application consults all N shards (ProductID_1 a ProductID_N) and combines the results. It is the standard technique to solve hot partitions in DynamoDB.",
+      "hint": "What key design technique does it have? DynamoDB artificially distributes a 'hot' item between multiple partitions by adding a variable component to the partition key?",
+      "optionRationales": [
+        "Write Sharing artificially distributes a hot item between multiple partitions adding a suffix (1 a N) to the partition key. The load is distributed by up to N different partitions, each receiving 1/N of the original traffic. In reading, the application consults all N shards (ProductID_1 a ProductID_N) and combines the results. It is the standard technique to solve hot partitions in DynamoDB.",
+        "Wrong about the mechanism. DynamoDB Auto Scaling automatically adjusts the provided throughput (RUS/WCUs) in response to demand — does not distribute data between partitions automatically. Hot partitions caused by unbalanced access to keys persist even with Auto Scaling, because the Auto Scaling increases total capacity but not balancing between individual partitions.",
+        "Partially correct: or DynamoDB Adaptive Capacity (Already enabled by default since 2019) redistribute throughput between partitions dynamically. However, it has limit: the adaptive capacity helps for temporary bursts but does not solve persistent hot partitions where a partition SEMPRE receives more traffic than your share — in this case, Write Shadding is needed to distribute the load structurally.",
+        "Incorrect for this specific problem. Global Tables replicates data in multiple regions for low latency global access, but does not solve hot partitions within a single region. Users from the same region will still access the same partitions of the local replica, causing the same hot partition problem.."
+      ]
+    },
+    "saa-med-261": {
+      "text": "A company is migrating a monolithic application for microservices using containers. Containers need shared access to a file system for reading/writing temporary files during processing, with low latency. Containers run on Amazon ECS with Fargate. Which shared storage solution meets this requirement?",
+      "options": [
+        "Amazon EBS Multi-Attach — a volume EBS with Multi-Attach enabled can be mounted in multiple tasks ECS Fargate simultaneously for shared access with very low latency",
+        "Amazon S3 with AWS SDK built into containers — containers make GetObject/PutObject for S3 to read/write temporary files, and S3 guarantees consistency of reading after writing",
+        "Amazon FSx for Lustre — High Performance File System for HPC with sub-millisecond latency, integrated with ECS Fargate for shared processing workloads",
+        "Amazon EFS (Elastic File System) mounted in the tasks ECS Fargate — o EFS is a file system NFS managed that can be mounted in multiple containers simultaneously (ReadWriteMany), with native support in ECS Fargate by volume definitions"
+      ],
+      "explanation": "Correct. EFS supports ReadWriteMany access (multiple containers in multiple hosts simultaneously), is fully managed, and has native integration with the ECS Fargate (configured in the Task Definitions as a type volume EFS). Latency is tens of milliseconds, suitable for most cases of shared access.",
+      "hint": "What storage service does the AWS is a file system NFS managed that supports simultaneous assembly in multiple containers ECS Fargate (ReadWriteMany)?",
+      "optionRationales": [
+        "Correct. EFS supports ReadWriteMany access (multiple containers in multiple hosts simultaneously), is fully managed, and has native integration with the ECS Fargate (configured in the Task Definitions as a type volume EFS). Latency is tens of milliseconds, suitable for most cases of shared access.",
+        "Incorrect for two reasons: (1) EBS Multi-Attach supports maximum 16 cases EC2 SIMULTANEAMENTE — and the ECS FARGATE does not support volumes EBS (o Fargate does not manage instances EC2 explicitly). EBS is for volume of instances EC2; EFS is the shared storage solution for containers Fargate. (2) EBS Multi-Attach requires application-level lock management (file system cluster-aware)).",
+        "Incorrect to use 'file system''. S3 is an object store — is not a file system with mount point semantics. Application temporary files that require file system access (open, write, read, seek, close) do not work natively with the API of the S3. In addition, S3 has a higher latency (~100ms) for small operations compared to EFS for frequent access to temporary files.",
+        "Incorrect for this use case. FSx for Lustre is a high performance file system for loads HPC (Machine Learning, Big Data, CFD) — does not support task mounting ECS Fargate native (is designed for EC2). In addition, it would be oversized and much more expensive for temporary container files."
+      ]
+    },
+    "saa-med-262": {
+      "text": "A company uses Amazon API Gateway REST API with integration Lambda for a high demand service. The team observed that many requests receive the same answer (data from products that change only once an hour). API Gateway can be enabled to reduce invocations of Lambda and decrease the latency of the responses?",
+      "options": [
+        "API Gateway Usage Plans with Throttling by API Key — limiting the number of requests per second per user reduces the load on Lambda by decreasing the total volume of calls",
+        "Lambda@Edge integrated with API Gateway — the Lambda@Edge processes the most user-friendly requests in the network CloudFront, eliminating network latency up to the API Gateway in the region",
+        "API Gateway Caching — enable cache in the stage of API Gateway stores integration responses by one TTL configured (1 second 1 time); subsequent identical requests are answered directly from the cache of API Gateway, without invoking Lambda",
+        "CloudFront in front of the API Gateway with TTL of 1 time — o CloudFront caches the answers of the API and serves as the edge location closer to the user, reducing both latency and invocations Lambda"
+      ],
+      "explanation": "Correct. API Gateway has a native response cache (in stage) that stores the responses by TTL configurable. Requirements that match in key cache (URL path, query strings, configured headers) receive the cache response, reducing invocations Lambda and latency. The cache is by stage (e.g. production) and has cost per hour based on the configured size (0.5 GB a 237 GB).",
+      "hint": "The API Gateway has a native response cache that can be enabled by stage — what is the name of that feature?",
+      "optionRationales": [
+        "Correct. API Gateway has a native response cache (in stage) that stores the responses by TTL configurable. Requirements that match in key cache (URL path, query strings, configured headers) receive the cache response, reducing invocations Lambda and latency. The cache is by stage (e.g. production) and has cost per hour based on the configured size (0.5 GB a 237 GB).",
+        "Partially correct: CloudFront + API Gateway is a valid standard for caching API. However, for a API REST with data from products that change per hour, the CloudFront cachey answers GET/HEAD by default but requires careful cache key configuration (including authentication headers) to avoid serving data from one user to another. API Gateway Caching is the most direct native solution for this case.",
+        "Incorrect. Lambda@Edge executes code in edge locations of the CloudFront, but this does not automatically create a cache — each request still invokes the Lambda@Edge and then the Lambda integration of the API Gateway. To cache answers and reduce invocations, an explicit cache would be required (CloudFront cache or API Cache Gateway).",
+        "Incorrect. Usage Plans with Throttling limit to QUANTIDADE of calls that a user can make, rejecting excesses with 429 Too Many Requests — does not hide answers. This would reduce traffic by rate limiting (blocking requests), not by serving cached answers in a transparent way."
+      ]
+    },
+    "saa-med-263": {
+      "text": "A company has a database Aurora PostgreSQL running a workload OLTP intensive with many simultaneous connections of multiple functions Lambda. The team is seeing 'too many connections' errors because Lambda creates a new connection by invocation. AWS solves the problem of managing connections between Lambda and Aurora without changing the query code SQL?",
+      "options": [
+        "Amazon RDS Proxy — acts as a connecting pooling intermediary between functions Lambda and the Aurora; maintains a pool of pre-established connections with the bank and multiplexes the Lambdas connections by the pool, drastically reducing the number of real connections to the bank",
+        "Migration from Aurora PostgreSQL for Amazon DynamoDB — o DynamoDB has no connection limits and scale automatically with the number of requests Lambda",
+        "Use Aurora Serverless v2 instead of Aurora Provisioned — Aurora Serverless automatically scales the demand-based connection capacity, without 'too many connections' errors'",
+        "Increase max_connections no Aurora PostgreSQL via Parameter Group — Aurora supports tens of thousands of simultaneous connections, so increase the limit resolves 'too many connections'"
+      ],
+      "explanation": "Correct. RDS Proxy maintains a pool of persistent connections to the database and allows multiple invocations Lambda share these connections. Even with hundreds of Lambdas invoked simultaneously, the RDS Proxy can serve all using a much smaller number of real connections to the bank Aurora. It is completely transparent for the query code SQL — only the connection endpoint changes.",
+      "hint": "What service AWS acts as a proxy for connecting pooling between Lambda and RDS/Aurora, reducing the number of simultaneous connections to the bank without changing the code SQL?",
+      "optionRationales": [
+        "Correct. RDS Proxy maintains a pool of persistent connections to the database and allows multiple invocations Lambda share these connections. Even with hundreds of Lambdas invoked simultaneously, the RDS Proxy can serve all using a much smaller number of real connections to the bank Aurora. It is completely transparent for the query code SQL — only the connection endpoint changes.",
+        "Incorrect as scalable solution. Increasing max_connections requires more memory per connection — each PostgreSQL connection uses ~5-10 MB of memory on the server. With Lambda being able to create hundreds of simultaneous connections and growing with traffic, increase the limit only postpones the problem, besides degrading performance with many active connections. RDS Proxy is the right architectural solution.",
+        "Incorrect. Aurora Serverless v2 ACUs scale (Aurora Capacity Units) based on CPU and memory — but the problem of 'too many connections' persists even in Serverless, as each PostgreSQL connection still uses significant memory. Serverless can help with capacity scaling, but does not solve the fundamental problem of managing short-term connections of Lambda. RDS Proxy is needed for this case.",
+        "Incorrect. PostgreSQL migration relational to DynamoDB NoSQL is a huge architectural change that requires redesign of the data model and queries — is not a practical solution to the problem of connections. RDS Proxy solves the problem without database migration."
+      ]
+    },
+    "saa-med-264": {
+      "text": "A company uses Amazon CloudFront to distribute a web application protected by authentication. The team wants only authenticated users can download objects from the pocket S3 way CloudFront, without exposing the pocket S3 Publicly. How to set this up correctly with the CloudFront?",
+      "options": [
+        "Use CloudFront Signed URLs generated by S3 — o S3 generates URLs with temporary signature that expire after a period, and the CloudFront validates the signature before serving the content",
+        "Configure the Bucket Policy S3 to allow only requests with the header 'X-CloudFront-Secret: <secret value>' — or CloudFront injects this custom header into all original requests, and the S3 block requests without the header",
+        "Enable S3 Block Public Access — this automatically restricts access to the pocket only via CloudFront, without the need for additional policies",
+        "Use Origin Access Control (OAC) no CloudFront — grants to CloudFront own identity to access the pocket S3 private, and the bucket policy only allows access to the OAC; unauthenticated users who try to access the S3 directly receive 403, and the CloudFront can be protected by Lambda@Edge or Cognito for user authentication"
+      ],
+      "explanation": "Correct. O Origin Access Control (OAC) is the modern mechanism (substitute of OAI) to ensure that the CloudFront be the only customer who can access the pocket S3. The bucket policy allows access only to the CloudFront way OAC, and the pocket remains private. For user authentication, Lambda@Edge or CloudFront Signed URLs/Cookies with validation via Cognito are the recommended additional approaches.",
+      "hint": "What is the mechanism of CloudFront creates an identity that CloudFront uses to access pocketes S3 private — being the modern replacement of the old Origin Access Identity (OAI)?",
+      "optionRationales": [
+        "Correct. O Origin Access Control (OAC) is the modern mechanism (substitute of OAI) to ensure that the CloudFront be the only customer who can access the pocket S3. The bucket policy allows access only to the CloudFront way OAC, and the pocket remains private. For user authentication, Lambda@Edge or CloudFront Signed URLs/Cookies with validation via Cognito are the recommended additional approaches.",
+        "Incorrect. S3 does not evaluate headers HTTP customised in the policies — the policies only assess conditions such as ARN of the main, IP of origin, and condition keys of the S3. Using a secret header is a technique used with CUSTOM ORIGINS (as ALB/EC2), not with S3 which requires OAC/OAI for direct access control.",
+        "Incorrect. S3 Block Public Access blocks settings that would make the bucket public (ACLs and bucket policies that grant public access) — but does not automatically create permission for CloudFront. No OAC/OAI and an explicit bucket policy, CloudFront I couldn't access the private bucket objects either..",
+        "Incorrect. Signed URLs are generated by CloudFront (not for S3) using a key pair of CloudFront. They control access to specific objects via CloudFront for a limited period — useful for distribution of temporary content. But the question asks access based on user authentication (not just temporary URLs), and the Bucket protection mechanism itself is the OAC, not signed URLs."
+      ]
+    }
+  }
+}

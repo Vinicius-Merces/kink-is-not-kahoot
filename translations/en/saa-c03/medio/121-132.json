@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "121-132",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-121": {
+      "text": "A financial institution stores customer documents in a pocket Amazon S3 in the sa-east region-1 (São Paulo). By regulatory requirement, TODAS the copies of the data must remain DENTRO OF THE TERRITORY BRASILEIRO. Still, the team wants to keep a redundant copy of the objects in a separate pocket, in another account of the AWS, for protection against accidental exclusion or impairment of credentials in the main account — without violating the data residence requirement. What configuration meets these requirements?",
+      "options": [
+        "Configure Replication Between Regions (Cross-Region Replication - CRR) of the S3 for a pocket in the us-east region-1, which offers greater durability.",
+        "Enable versioning in the original pocket and consider this sufficient as protection against accidental exclusion, without need of replication in another account.",
+        "Use AWS Backup to copy the Bucket objects to a Vault backup to another region account (cross-region backup).",
+        "Configure Replication in the Same Region (Same-Region Replication) - SRR) of the S3 to replicate the objects to a pocket from another account of the AWS, also in the sa-east region-1."
+      ],
+      "explanation": "Correct. Same-Region Replication (SRR) of the S3 automatically replicates objects to another bucket DENTRO DA MESMA REGION (included in an account of the AWS different, using the appropriate policies pocket), simultaneously meeting the redundancy requirement (accidental exclusion protection/commitment in the main account) and the regulatory requirement to keep all data in sa-east-1 (Brazil).",
+      "hint": "Think of what replication resource of the S3 allows you to copy objects to another pocket (including another account)) MANTENDO the data in the MESMA region of AWS.",
+      "optionRationales": [
+        "Correct. Same-Region Replication (SRR) of the S3 automatically replicates objects to another bucket DENTRO DA MESMA REGION (included in an account of the AWS different, using the appropriate policies pocket), simultaneously meeting the redundancy requirement (accidental exclusion protection/commitment in the main account) and the regulatory requirement to keep all data in sa-east-1 (Brazil).",
+        "Incorrect. CRR replicate the data to FORA of the brazilian territory (us-east)-1, no EUA), in direct violation of the regulatory requirement for data residence — regardless of the benefits of durability, this option is unfeasible for this scenario.",
+        "Incorrect. Versioning protects against overwriting/exclusion of OBJETOS within MESMO but does not protect against scenarios in which the CONTA the entire (or credentials with access to it) is compromised — the requirement explicitly requests a copy of OUTRA CONTA to mitigate this broader risk.",
+        "Incorrect. A backup copy in OUTRA REGION (cross-region) would also violate the regulatory requirement to keep all data within Brazilian territory — the solution needs to ensure both redundancy between accounts and stay in the same region (sa-east-1)."
+      ]
+    },
+    "saa-med-122": {
+      "text": "An image processing application, tolerant to interruptions (each task can be reprocessed if interrupted), rotates in a Auto Scaling Group. Team wants to reduce costs using Instantia Spot, but you're worried about the RESILENCE: if the AWS interrupt a specific instance type Spot (for lack of capacity), or ASG could temporarily run out of sufficient capacity to process the work queue. Auto Scaling Group reduces this risk while maintaining the cost benefit of the Spot, but increasing the probability of available capacity?",
+      "options": [
+        "Configure a 'Mixed Forums Policy' in Auto Scaling Group, specifying MULTIPLES eligible instance types and a combination of On-Demand capacity (base) with Spot (for the rest), using the 'capacity-optimized' allocation strategy for the Spot.",
+        "Configure the Auto Scaling Group to use exclusively Reserved Entities, eliminating the need for Spot.",
+        "Use only the type of instance Spot cheaper available in the region, to maximize cost savings.",
+        "Increase the desired capacity of Auto Scaling Group for double the required, all with the same type of instance Spot."
+      ],
+      "explanation": "Correct. A Mixed Forums Policy allows the ASG choice between various types of instance and capacity pools Spot — the strategy 'capacity-optimized' prioritizes pools with MAIOR capacity availability, reducing the chance of simultaneous interruptions. Combine an On-Demand base with Spot for the rest guarantees a guaranteed minimum capacity even if a pool Spot specific is interrupted, balancing cost and resilience.",
+      "hint": "Think about diversifying the types of instance and capacity sources (Spot and On-Demand) within the group itself, rather than depending on a single type of instance Spot.",
+      "optionRationales": [
+        "Correct. A Mixed Forums Policy allows the ASG choice between various types of instance and capacity pools Spot — the strategy 'capacity-optimized' prioritizes pools with MAIOR capacity availability, reducing the chance of simultaneous interruptions. Combine an On-Demand base with Spot for the rest guarantees a guaranteed minimum capacity even if a pool Spot specific is interrupted, balancing cost and resilience.",
+        "Incorrect. Depending on A ONLY type of instance Spot concentrate the risk: if the AWS need to recover the capacity of this specific pool, TODAS the instances of this type can be interrupted at the same time, leaving the ASG no capacity — exactly the risk the scenario seeks to mitigate.",
+        "Incorrect considering the stated objective. Reserved entities offer discount in exchange for long-term commitment (1 or 3 years) on capacity ON-DEMAND, but do not offer the level of discount Spot for workloads tolerant of interruption, and the scenario explicitly asks for MANTER the cost benefit of the Spot, only mitigating the risk of interruption.",
+        "Incorrect. Double the number of instances of MESMO type Spot does not reduce the risk of a mass interruption of that specific pool — if the AWS to recover the capacity of this type of instance, all (including extras) could be interrupted simultaneously, in addition to doubling costs without diversifying the risk."
+      ]
+    },
+    "saa-med-123": {
+      "text": "A web application in a Auto Scaling Group currently scale by adding 1 is used whenever the CPU average exceeds 70% by 5 minutes, and removing 1 instance when it is below 30% by 5 minutes (step-scaling/step-scaling with each 5 During sudden peaks of traffic (e.g., beginning of a promotion), the application is overloaded for several minutes until sufficient steps occur, causing timeouts for users — a problem of resilience under load. The team wants the Auto Scaling respond in form MAIS QUICK AND PROPORCIONAL the load changes, automatically maintaining the CPU average close to a target value. Which configuration change solves this problem?",
+      "options": [
+        "Configure the Auto Scaling Group to use Scheduled Scaling, automatically increasing capacity at fixed times of the day.",
+        "Reduce the cooldown period of Auto Scaling Group for 0 seconds, allowing continuous scaling actions.",
+        "Increase the number of instances added by step scaling step step of 1 for 2, maintaining the same evaluation interval of 5 minutes.",
+        "Replace the step scaling policy with a 'Target Tracking Scaling' policy with an average target of use of CPU (ex.: 50%), allowing the Auto Scaling adjust capacity proportionally and continuously to maintain this target."
+      ],
+      "explanation": "Right. Target Tracking Scaling works as a thermostat: Auto Scaling continuously calculates how many instances are required to maintain the metric (ex.: CPU mean) close to the target value, and adjusts the shape capacity PROPORCIONAL to deviation — responding much faster and more appropriately to sudden peaks than fixed rules of step scaling with long evaluation intervals.",
+      "hint": "Think about what type of scaling policy continuously adjusts the ability to keep a metric close to a defined target value, instead of adding/removing fixed units at evaluation intervals.",
+      "optionRationales": [
+        "Right. Target Tracking Scaling works as a thermostat: Auto Scaling continuously calculates how many instances are required to maintain the metric (ex.: CPU mean) close to the target value, and adjusts the shape capacity PROPORCIONAL to deviation — responding much faster and more appropriately to sudden peaks than fixed rules of step scaling with long evaluation intervals.",
+        "Incorrect as a better approach. Increasing the increment per step can help marginally, but it keeps the fundamental problem: the ASG still needs to wait for the INTERVALO ASSESSMENT OF 5 minutes to react, then sudden peaks would still cause overload for several minutes before the first step action.",
+        "Incorrect. Although reducing the cooldown allows more frequent actions, the trigger still depends on the EVALUATION PERIOD of the alarm CloudWatch (5 minutes in the scenario) — cooldown alone does not solve peak detection latency nor provides the proportional and continuous adjustment that Target Tracking offers.",
+        "Incorrect for the scenario described. Scheduled Scaling is useful for previsive and recurrent load patterns (e.g. increase every day to 9(h) — but the scenario describes a peak REPENTINO AND IMPREVIABLE (starting a promotion), which Scheduled Scaling would not be able to anticipate; Target Tracking responds dynamically to any load pattern, predictable or not."
+      ]
+    },
+    "saa-med-124": {
+      "text": "An order processing flow involves multiple sequential steps: validate payment, reserve stock, notify deposit and send confirmation email. Each step is implemented as a function AWS Lambda a separate function. Currently a function Lambda 'orchestrate' calls each stage sequentially via SDK, with retry logic and error processing written manually in the code. When a step fails persistently (e.g., unavailable storage service per hour), the order becomes inconsistent, because there is no record of which step failed or resuming mechanism. The team wants a managed service that orchestrates these steps with configurable delays, handling errors and visibility of the state of each execution, without custom orchestration logic.?",
+      "options": [
+        "Use Amazon EventBridge to publish an event after each step, without any additional orchestration or status tracking component.",
+        "Use AWS Step Functions to define a state machine that orchestrates the functions Lambda of each stage, setting 'Retry' and 'Catch' policies for each state.",
+        "Combining the four functions Lambda in a single larger function, performing all steps sequentially within the same code.",
+        "Configure each function Lambda to invoke the next directly (direct chaining of invocations) Lambda-for-Lambda), with try/catch error treatment in each function."
+      ],
+      "explanation": "Correct. AWS Step Functions it was specifically designed to orchestrate multi-stage workflows, coordinating calls to services such as Lambda. It allows you to configure 'Retry' (with configurable backoff) and 'Catch' (correction treatment including referral to compensation steps)) DECLARATIVAMENTE for each step, in addition to providing complete visibility of the state and history of each execution in the console — eliminating the need for orchestration logic and custom retry in the function Lambda orchestrator.",
+      "hint": "Think about which service allows you to define visually (or via JSON) a flow of steps with retries, error treatment and tracking of the status of each execution, coordinating calls to functions Lambda.",
+      "optionRationales": [
+        "Correct. AWS Step Functions it was specifically designed to orchestrate multi-stage workflows, coordinating calls to services such as Lambda. It allows you to configure 'Retry' (with configurable backoff) and 'Catch' (correction treatment including referral to compensation steps)) DECLARATIVAMENTE for each step, in addition to providing complete visibility of the state and history of each execution in the console — eliminating the need for orchestration logic and custom retry in the function Lambda orchestrator.",
+        "Incorrect as best approach. Chain invocations Lambda-for-Lambda directly creates a rigid coupling between the functions, hinders the visibility of the general state of the flow (there is no single panel showing at what stage each request is) and requires that CADA function implements its own logic of retry/error — exactly the complexity that the Step Functions solves centrally and declaratively.",
+        "Incorrect. Although the EventBridge be useful to uncouple components via events, it does not provide NATIVAMENTE configurable retreats by step of a NEGOCIO flow, nor a consolidated view of the state/historical of a specific end-to-end execution — central resources of the Step Functions for this scenario.",
+        "Incorrect. Combining everything into a monolithic function increases the execution time (and the risk of reaching the timeout of Lambda), makes it difficult to maintain/test independently of each step, and still does not solve the problem of FALTA OF VISIBILIDADE/RETOMADA in case of persistent failure — if the function fails in the middle, there is still no structured record of which stage was completed."
+      ]
+    },
+    "saa-med-125": {
+      "text": "An application uses a cluster Amazon ElasiCache for Redis with a primary node and a replica node, in different AZs, to store session data. The team wants that, if the PRIMARY node fails (e.g. hardware failure), the cluster continues to be available for reading and writing automatically, promoting the replica, without the application need to be manually reconfigured with a new endpoint. Which ElasiCache configuration meets this requirement?",
+      "options": [
+        "Configure the application to write on both nodes (first and replicate) simultaneously, eliminating the need to fail.",
+        "Configure ElastiCache for Memcached with multiple nodes, since Memcached offers native automatic failover among us.",
+        "Create daily manual snapshots of the Redis cluster and restore them to a new cluster if the primary node fails.",
+        "Create an ElastiCache for Redis Replication Group with Multi-AZ enabled and Automatic Failover enabled."
+      ],
+      "explanation": "Correct. An ElastiCache for Redis Replication Group with Multi-AZ and Automatic Failover enabled continuously monitors the health of the primary node. If the primary fails, ElastiCache automatically promotes a replica to become the new primary and updates the primary endpoint' (DNS) group to point to it — the application continues to use the same endpoint, without manual reconfiguration.",
+      "hint": "Think about which ElastiCache for Redis feature monitors the health of the primary node and automatically promotes a replica in case of failure, updating the main endpoint.",
+      "optionRationales": [
+        "Correct. An ElastiCache for Redis Replication Group with Multi-AZ and Automatic Failover enabled continuously monitors the health of the primary node. If the primary fails, ElastiCache automatically promotes a replica to become the new primary and updates the primary endpoint' (DNS) group to point to it — the application continues to use the same endpoint, without manual reconfiguration.",
+        "Incorrect. Memcached is a cache purely in memory, SEM REPLECTION or persistence between us — each node is independent, and loss of a node results in loss of the data stored in it, without automatic failure to another node with the same data. This replication behavior with automatic failure is specific to Redis in ElastiCache.",
+        "Incorrect. Restoring a snapshot creates a NOVO cluster (with new endpoint) and requires manual intervention, besides implying loss of data since the last snapshot — does not meet the requirement of automatic and continuous availability with the same endpoint.",
+        "Incorrect. Replicas of ElastiCache for Redis are SOMENTE LEITURA by default; writing directly in them is not supported in this configuration. Furthermore, this approach would add significant complexity to the application, when the Automatic Failover already resolves the requirement in a native and managed way.."
+      ]
+    },
+    "saa-med-126": {
+      "text": "A company hosts static files from its website (images, institutional videos) in a pocket Amazon S3, Distributed globally via Amazon CloudFront. The team wants to protect itself against possible Bucket unavailability S3 main (e.g. caused by incorrect configuration or regional interruption): if the S3 main not responding, the CloudFront must automatically search for the content in a pocket S3 of backup, in another region, without manual intervention. CloudFront meets this requirement?",
+      "options": [
+        "Create two distributions CloudFront separate (one for each pocket) and set the Route 53 with weighted routing between them.",
+        "Configure Replication Between Regions (CRR) of the S3 from the main bucket to the backup bucket, without any additional configuration in CloudFront.",
+        "Configure an 'Original Group' in CloudFront, with the bucket S3 main as primary origin and the bucket S3 of backup (in another region) as secondary origin, defining the status codes HTTP who shoot or fail.",
+        "Increase TTL (Time to Live) cache in CloudFront to serve cached content for longer during unavailability of origin."
+      ],
+      "explanation": "Right. CloudFront allows to define a PRIMARY origin and a SECONDARY; when the primary origin returns one of the status codes configured as 'failover' (ex.: 500, 502, 503, 504, or connection errors), or CloudFront automatically tries the secondary source requisition — providing automatic failover between the bucks S3 without manual intervention.",
+      "hint": "Think of what resource the CloudFront allows to define a group with a primary origin and a secondary origin, automatically alternating when the primary failure.",
+      "optionRationales": [
+        "Right. CloudFront allows to define a PRIMARY origin and a SECONDARY; when the primary origin returns one of the status codes configured as 'failover' (ex.: 500, 502, 503, 504, or connection errors), or CloudFront automatically tries the secondary source requisition — providing automatic failover between the bucks S3 without manual intervention.",
+        "Incorrectly isolated. CRR keeps the DOIS synchronised pocketes (which is a useful prerequisite), but by itself does NOT instruct the CloudFront to switch to the backup pocket in case of failure of the main pocket — the CloudFront would continue to be configured to serve APENAS from the original origin; the Origin Group is required for the failover in fact.",
+        "Incorrect as best approach. Weighted router distributes a PORCENTAGEM FIXA of traffic between distributions, regardless of which source is healthy — does not correspond to the behavior of failover (use backup SOMENTE when the main failure) that Origin Group offers natively within a single distribution.",
+        "Incorrect. Increase or TTL can mitigate TEMPORARIAMENTE the impact for objects already in CACHE, but does not solve requests for objects CACHEADOS (or after cache expiration) during prolonged unavailability of origin — is not a failover mechanism between origins."
+      ]
+    },
+    "saa-med-127": {
+      "text": "A team manages a fleet of instances EC2 identical web. Currently, when a instance needs to be replaced (e.g. after failure or termination by Auto Scaling), the new instance is launched from a AMI generic database and a user data script installs the necessary software and configurations — a process that takes 10-15 The team wants to reduce this recovery time, ensuring that new instances are ready to receive traffic in less than two minutes, during which the application has reduced capacity. 2 minutes. Which approach improves resilience (recovery time) in this scenario?",
+      "options": [
+        "Migrate application to use only instance storage (institution store) instead of volumes EBS, because instance store starts faster.",
+        "Configure the Auto Scaling Group to always keep twice as many instances needed, compensating for slow startup time.",
+        "Create a AMI customised ('golden AMI') from an instance already configured with all the necessary software and configurations, and configure the Launch Template Auto Scaling Group to use this AMI.",
+        "Increase the size (type) of the instances EC2 for the startup script to run faster."
+      ],
+      "explanation": "By creating a 'golden' AMI' with the operating system, software and configurations already installed, new instances launched from it start (boot) already ready to operate — eliminating the 10-15 installation minutes via initialization script at each release. This drastically reduces the recovery time after replacing an instance, improving the operational resilience.",
+      "hint": "Think about pre-installing the software and settings in an instance image, instead of installing them at each new release via startup script.",
+      "optionRationales": [
+        "By creating a 'golden' AMI' with the operating system, software and configurations already installed, new instances launched from it start (boot) already ready to operate — eliminating the 10-15 installation minutes via initialization script at each release. This drastically reduces the recovery time after replacing an instance, improving the operational resilience.",
+        "Incorrect as main solution. Although a larger instance can run the startup script a little faster, most of the time (10-15 minutes) tends to be spent on package downloads/installations and configuration — a 'golden' AMI' eliminates this step completely, providing a much more significant and predictable time reduction.",
+        "Incorrect. Maintain extra capacity permanently DOBRA the infrastructure costs continuously, only to compensate for a slow startup process — rather than solving the root cause (the instance configuration time), which the golden AMI eliminates much more efficiently at cost.",
+        "Incorrect. The type of storage (institution store vs.. EBS) it is not the factor that determines the time of software installation via the initialization script — in addition, the instance store is EFEMERO (data are lost when the instance is stopped/closed), which is unrelated to the problem described and can introduce unnecessary durability risks."
+      ]
+    },
+    "saa-med-128": {
+      "text": "A row Amazon SQS Standard is consumed by a fleet of workers EC2: each worker receives a message, processes the corresponding request (process that usually takes up to 2 The team noted that occasionally, the MESMO request is processed DUAS VEZES by different workers, causing duplicate charges to customers. The investigation revealed that the 'Visibility Timeout' of the row is configured with the default value of 30 What change solves this duplicate processing problem?",
+      "options": [
+        "Migration from SQS Standard for Amazon SNS, which guarantees unique delivery (exactly-once) by default.",
+        "Configure each worker to delete the message from the queue IMEDIATAMENTE when receiving it, before starting processing.",
+        "Increase row 'Visibility Timeout' to a value greater than the expected maximum processing time (ex.: 3-5 minutes), ensuring safety margin.",
+        "Reduce 'Visibility Timeout' from row to 5 seconds, so that problematic messages are reprocessed more quickly."
+      ],
+      "explanation": "Right. 'Visibility Timeout' determines how long a message RECEBIDA by a worker stays OCULTA for other consumers. If processing takes up to 2 minutes but the timeout is just 30 seconds, the message is back to visible (and can be delivered to another worker)) ANTES that the first worker finishes and excludes it — causing duplicate processing. Configuring the Visibility Timeout for a value greater than the maximum processing time (with margin of security) solves this problem.",
+      "hint": "Think of how the 'Visibility Timeout' needs to be longer than the actual processing time, so that the message does not become visible again to other workers before being deleted.",
+      "optionRationales": [
+        "Right. 'Visibility Timeout' determines how long a message RECEBIDA by a worker stays OCULTA for other consumers. If processing takes up to 2 minutes but the timeout is just 30 seconds, the message is back to visible (and can be delivered to another worker)) ANTES that the first worker finishes and excludes it — causing duplicate processing. Configuring the Visibility Timeout for a value greater than the maximum processing time (with margin of security) solves this problem.",
+        "Incorrect. Reduce Visibility Timeout even more PIORA the problem: the message would be visible to other workers even more quickly during normal processing of 2 minutes, increasing (not reducing) duplicate processing frequency.",
+        "Incorrect. SNS is a publication service/ASSINATURA (pub/sub) for notifications, not a row with a consumption model equal to SQS, and would not solve the pattern of 'a worker processes, excludes when finishing' described; moreover, delivery exactly once is a feature of SQS FIFO, not SNS in general, and the correct fit for this scenario is the Visibility Timeout.",
+        "Incorrect and risky. Delete message ANTES to complete the processing means that if the worker fails/stops DURANTE the processing, the message would be PERDIDA (without a chance of reprocessing) — exchanging the duplicate processing problem with a risk of PERDA of applications, which is usually even more serious."
+      ]
+    },
+    "saa-med-129": {
+      "text": "A company owns 8 VPCs (one per development team) that need to communicate with each other and with a VPC shared services central (e.g. directory, monitoring). VPC Peering between each pair of VPCs would require 28 peering connections, each with its own route tables — a complex model of managing and prone to configuration errors that could isolate parts of the network. The team wants to simplify this network topology, maintaining resilient connectivity between all VPCs, with route management CENTRALIZADO. Which service solves this problem?",
+      "options": [
+        "Configure a AWS Site-to-Site VPN between each pair of VPCs to establish the necessary connectivity.",
+        "Use AWS Transit Gateway as a central hub of routing, connecting each of the 9 VPCs (8 of teams + 1 of shared services) to it through a single attachment each.",
+        "Implement VPC Peering only between each VPC of team and VPC of shared services (8 connections), assuming that this is sufficient for all necessary communication.",
+        "Migratory all 8 teams for a single VPC shared, eliminating the need for connectivity between VPCs."
+      ],
+      "explanation": "Correct. AWS Transit Gateway acts as a hub of central routing: each VPC connects to it through A SINGLE Annex, and the Transit Gateway manages the routing between all connected VPCs (hub-and-spoke model) through centralized route tables. This replaces the need for 28 dot-to-point peering connections for only 9 attachments, drastically simplifying management and reducing the risk of configuration errors, maintaining connectivity between all VPCs,.",
+      "hint": "Think of which service acts as a central routing hub to which multiple VPCs (and on-premises connections) connect, avoiding the full mesh topology of VPC Peering.",
+      "optionRationales": [
+        "Correct. AWS Transit Gateway acts as a hub of central routing: each VPC connects to it through A SINGLE Annex, and the Transit Gateway manages the routing between all connected VPCs (hub-and-spoke model) through centralized route tables. This replaces the need for 28 dot-to-point peering connections for only 9 attachments, drastically simplifying management and reducing the risk of configuration errors, maintaining connectivity between all VPCs,.",
+        "Incorrect considering the requirement. Although it reduces the number of connections in relation to the full mesh, the VPC Peering IS NOT transitive — a VPC of team connected to VPC of shared services could not communicate with OUTRA VPC of team through this VPC central via peering. If there is a need for direct communication between VPCs of teams, this topology would not meet.",
+        "Incorrect. Site-to-Site VPN is designed to connect a network ON-PREMISES to one VPC of AWS through the public internet — it is not the appropriate mechanism (not the simplest or most performatic) to connect VPCs to one another within the own AWS, and would still face the same problem of point-to-point connection scale.",
+        "Incorrect as best approach to the declared requirement. Consolidate everything into a single VPC is a much more invasive organizational/architectural change (affect isolation, IP limits, management of permissions per team) than the requirement asks — the objective was to simplify the CONECTIVIDADE between existing VPCs, which Transit Gateway resolve without requiring such restructuring."
+      ]
+    },
+    "saa-med-130": {
+      "text": "A small development team wants to implement a Java web application in production quickly, with load balancing and Auto Scaling distributed by multiple Availability Zones, health monitoring and ability to roll back to the previous version in case of problems after implementation — but SEM need to manually configure each of these components (ALB, target groups, ASG, CloudWatch) separately. What service does the AWS meets this requirement with the least operational effort?",
+      "options": [
+        "Use AWS CloudShell to execute scripts that configure the infrastructure whenever a new version of the application is implemented.",
+        "Use AWS Elastic Beanstalk, creating an environment with load balancing and Auto Scaling enabled, distributed by multiple AZs.",
+        "Implement the application in a single instance EC2 greater capacity, without load balancer, simplifying the infrastructure.",
+        "Manually provide one ALB, a Target Group, a Launch Template and a Auto Scaling Group through the console EC2, individual configuration."
+      ],
+      "explanation": "Correct. AWS Elastic Beanstalk provisioning and management AUTOMATICAMENTE all necessary underlying infrastructure (EC2, Application Load Balancer, target groups, Auto Scaling Group distributed by multiple AZs, alarms of CloudWatch) from the code of the application sent — including environment health monitoring and rollback support for previous versions in case of problematic implementation, with the minimum manual configuration of each component.",
+      "hint": "Think about which application orchestration service provides and automatically manages the underlying infrastructure (balancer, Auto Scaling, monitoring) from application code sent by developer.",
+      "optionRationales": [
+        "Correct. AWS Elastic Beanstalk provisioning and management AUTOMATICAMENTE all necessary underlying infrastructure (EC2, Application Load Balancer, target groups, Auto Scaling Group distributed by multiple AZs, alarms of CloudWatch) from the code of the application sent — including environment health monitoring and rollback support for previous versions in case of problematic implementation, with the minimum manual configuration of each component.",
+        "Incorrect considering the requirement of less operational effort. This approach works, but requires the team to configure and maintain CADA component manually (ALB, target groups, ASG, alarms, rollback process) — exactly how much effort you Elastic Beanstalk deletes when orchestrating everything automatically from the application code.",
+        "Incorrect. A single instance without load balancing does NOT meet the explicit requirement of load balancing and Auto Scaling distributed by multiple AZs — in addition to representing a single point of failure, the opposite of a resilient architecture.",
+        "Incorrect. AWS CloudShell is just a browser-based shell environment with command line tools from AWS pre-installed — it is not an application orchestration service; using custom scripts in it to provide infrastructure would be a manual and customized solution, not the least operational effort managed service the scenario asks for."
+      ]
+    },
+    "saa-med-131": {
+      "text": "An institutional website, hosted in a pocket Amazon S3 as a static site, serves the same images and files CSS/JavaScript for users in Brazil, Europe and Asia. The team noticed that users far from the bucket region (us-east)-1) experience high latency when loading these files. The team wants to reduce latency loading for global users, without doubling the bucket in multiple regions. What solution solves this problem in the simplest way?",
+      "options": [
+        "Configure a distribution of the Amazon CloudFront with the bucket S3 as origin, making the content stored in cache in edge locations close to users.",
+        "Increase request limits per second of the bucket S3 configuring a random key prefix in object names.",
+        "Migratory or Bucket S3 for storage class S3 Intelligent-Tiering, which automatically optimizes global access latency.",
+        "Enable Replication Between Regions (CRR) of the S3 to create copies of the bucket in eu-west-1 and ap-souteast-1, and direct users to the nearest bucket via DNS."
+      ],
+      "explanation": "Correct. Amazon CloudFront is a content delivery network (CDN) with hundreds of edge locations globally. By setting up the bucket S3 as origin, the CloudFront cache copies of static content in edge locations closer to each user — significantly reducing the loading latency for users far from the bucket region, without the need to double the bucket in multiple regions.",
+      "hint": "Think about which service keeps copies of the content at points of presence (edge locations) close to users around the world, reducing the distance to the origin.",
+      "optionRationales": [
+        "Correct. Amazon CloudFront is a content delivery network (CDN) with hundreds of edge locations globally. By setting up the bucket S3 as origin, the CloudFront cache copies of static content in edge locations closer to each user — significantly reducing the loading latency for users far from the bucket region, without the need to double the bucket in multiple regions.",
+        "Incorrect as a simpler solution. Although technically reducing latency, this approach requires keeping MULTIPLES bundles synchronized (storage cost and additional replication) and setting up routing logic DNS based on location — a much more complex solution than simply putting the CloudFront in front of a single pocket, which the scenario asks to avoid ('without doubling the pocket').",
+        "Incorrect. The storage classes of the S3 (including Intelligent-Tiering) affect CUSTO and access time based on FREQUENCY of use of objects, but do not alter the GEOGRAPHICAL LOCATION from where data is served — all storage classes of the S3 reside in the bucket region, not solving the geographical latency for distant users.",
+        "Incorrect. Random key prefixes help to distribute the load of requests between internal parts of the S3 in scenarios of very high volume of requests — this technique has no relation to GEOGRAPHICAL LATENCY perceived by users distant from the bucket region, which is the problem described."
+      ]
+    },
+    "saa-med-132": {
+      "text": "A web application uses a database Amazon RDS for MySQL. The user profile page, which is one of the most accessed on the site, performs a complex query to assemble the activity summary — that MESMA consultation is performed repeatedly by the same users, returning RESULTADOS IDENTICALLY, most of the time (data change only a few times per hour). CPU the database. The team wants to reduce the load on RDS and the response latency for this page, without changing the business logic of the query. What solution solves this problem?",
+      "options": [
+        "Implement a cache with Amazon ElastiCache (Redis or Memcached): the application first checks if the query result is in the cache; if it is not (miss cache), it runs the query in the RDS and store the result in the cache with a TTL appropriate (e.g., a few minutes)).",
+        "Increase the type of instance of RDS for a class with more vCPUs, keeping the query running at each request.",
+        "Rewrite the query to use additional indexes in the tables involved.",
+        "Create a Read Replica RDS and direct this specific consultation to her."
+      ],
+      "explanation": "Correct. As the query results change little (a few times an hour) but are accessed repeatedly, a lazy loading cache pattern with ElastiCache allows most requests to be met in MICROSSEGUNDOS from memory, without touching the RDS — drastically reducing both the load of CPU in the database about the latency perceived by users, without any change in the business logic of the consultation itself.",
+      "hint": "Think about adding a cache layer in memory between the application and the database, storing the query result for a short time.",
+      "optionRationales": [
+        "Correct. As the query results change little (a few times an hour) but are accessed repeatedly, a lazy loading cache pattern with ElastiCache allows most requests to be met in MICROSSEGUNDOS from memory, without touching the RDS — drastically reducing both the load of CPU in the database about the latency perceived by users, without any change in the business logic of the consultation itself.",
+        "Incorrect as best approach. Increasing the type of instance (vertical scaling) reduces the IMPACTO PERCENTUAL of the consultation CPU, but continues to execute the MESMA repeatedly consult for IDENTICAL results — a waste of computational capacity that a cache would solve much more efficiently in cost and performance.",
+        "Incorrect as best approach. A Read Replica distributes the load of LEITURA among multiple database instances, but would still execute the MESMA repeatedly consult (in the replica) for results that are, in most of the time, IDENTICAL — a cache in memory eliminates this repetition much more effectively, with even less latency (microseconds vs. milliseconds).",
+        "Incorrect as best approach to this scenario. Although indices can improve performance of QUALQUER individual execution of the query, they do not eliminate the REPEAT OF a query whose results are, in most cases, IDENTICAL — a cache avoids running the query completely on most requests, which indexes, by themselves, cannot do."
+      ]
+    }
+  }
+}

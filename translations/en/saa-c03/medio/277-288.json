@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "277-288",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-277": {
+      "text": "A company uses Amazon EC2 with Auto Scaling for a batch data processing application. Batch jobs are started at 9h and finished at 17h, from Monday to Friday. Outside this time, the instances become idle. The team wants to reduce costs without compromising the availability of processing during business hours. MAIS economic for this use profile?",
+      "options": [
+        "EC2 Scheduled Reserved Instances or Auto Scaling with Scheduled Actions (scale-in to 0 outside the time + scale-out for the necessary capacity to 9(h) using Spot Instances for batch workers — Spot Instance with Spot Diversified Fleet reduces costs by up to 90% and Scheduled Actions avoid idle instances out of time",
+        "Use smaller (downsize) instances that run 24/7 instead of big instances that get idle out of time",
+        "Migrate batch workload to AWS Lambda with Scheduled Events — Lambda charge only for the execution time (thousands of seconds), without cost to idle instances",
+        "Reserved Instances Standard with 1 end year for all batch instances — ensure 40% discount on On-Demand even for out-of-time instances"
+      ],
+      "explanation": "Correct. For batch jobs with predictable schedule, Scheduled Actions no ASG combined with Spot Instances for batch workers (tolerating interruption — restartable processing) offer maximum economy: Spot reduces cost by up to 90% about On-Demand, and Scheduled Actions guarantee 0 instances outside working hours (8h * 5 days = 40h use by 168h weekly = ~24% of use, making RIs less efficient than On-Demand with Scheduled Actions).",
+      "hint": "For predictable batch jobs that only run on business hours, which combination eliminates cost of idle instances and uses the maximum discount for workloads tolerant of interruption?",
+      "optionRationales": [
+        "Correct. For batch jobs with predictable schedule, Scheduled Actions no ASG combined with Spot Instances for batch workers (tolerating interruption — restartable processing) offer maximum economy: Spot reduces cost by up to 90% about On-Demand, and Scheduled Actions guarantee 0 instances outside working hours (8h * 5 days = 40h use by 168h weekly = ~24% of use, making RIs less efficient than On-Demand with Scheduled Actions).",
+        "Incorrect. Reserved Instances Standard charge CONTINUAMENTE by the term — not only when the instance is running. Pay by 168weekly RI for use only 40h (24% of time) is not economical. EC2 Stopped state still charge RI fees in Standard RIs. Use On-Demand with Scheduled Actions (paying only 40h/week) + Spot It would be much cheaper..",
+        "Incorrect. Reducing the size to save in idle capacity results in slower batch jobs (less CPU/I would also like to pay for 24/7 with smaller instances instead of 40h/week with correct size instances. Turn off completely out of time + Spot is economically superior.",
+        "Incorrect for heavy batch workloads. Lambda has a limit of 15 minutes by invocation and is not suitable for data processing jobs that run for hours. Long-term batch jobs need to EC2, ECS, or AWS Batch — no Lambda. In addition, Lambda has memory limits (10GB) which may be insufficient for large-scale data processing."
+      ]
+    },
+    "saa-med-278": {
+      "text": "A company stores log data in Amazon S3 and use the Amazon Athena for analysis. The account AWS The team found out that the Lambda processing the results of the Athena is in a different region of the pocket S3. What change would eliminate these cross-region transfer costs?",
+      "options": [
+        "Create a replica S3 from the original bucket to a bucket in the same region of the Lambda — the replicated data can be accessed without cross-region transfer cost",
+        "Use VPC Peering between the two regions — Peering routes the transfer of data through the backbone network of AWS, making cross-region transfer free",
+        "Use S3 Transfer Acceleration to reduce cross-region transfer costs — Transfer Acceleration uses the network of AWS instead of the public internet, reducing the cost per GB transferred",
+        "Move function Lambda (or the service that consumes the results of Athena) for the same region where the bucket S3 is — data transfer within the same region AWS between services is free, eliminating cross-region transfer costs"
+      ],
+      "explanation": "Correct. Transfer of data between services AWS the MESMA REGION is free of charge (ex.: S3 → Lambda in the same region = $0). Cross-region transfer costs per GB. Move Lambda and other processing for the same region of S3 it eliminates these costs. It is a fundamental practice of architecture: keep data and compute in the same region to avoid transfer costs.",
+      "hint": "Transfer of data between services AWS within the MESMA And how does this compare to cross-region transfer??",
+      "optionRationales": [
+        "Correct. Transfer of data between services AWS the MESMA REGION is free of charge (ex.: S3 → Lambda in the same region = $0). Cross-region transfer costs per GB. Move Lambda and other processing for the same region of S3 it eliminates these costs. It is a fundamental practice of architecture: keep data and compute in the same region to avoid transfer costs.",
+        "Incorrect. S3 Transfer Acceleration UPLOADS from end-users to S3 using edge locations of the CloudFront — does not reduce cross-region transfer costs between services AWS. In fact, Transfer Acceleration has cost ADICIONAL per GB in addition to the normal transfer cost. Not suitable for this case.",
+        "Incorrect as cost solution. Create a replica S3 in another region has replication cost (cross-region transfer to replicate data) + duplicate storage cost in the new region. AUMENTA the total cost instead of eliminating the transfer costs. Move processing to the region of the S3 It's much simpler and cheaper..",
+        "Incorrect. VPC Peering between regions (Inter-region VPC Peering) uses the backbone network of AWS but it's NOT free — it has GB data transfer cost similar to the standard cross-region. VPC Peering reduces latency and increases security (does not pass through the public internet), but does not eliminate cross-region transfer costs."
+      ]
+    },
+    "saa-med-279": {
+      "text": "A company has a database Amazon RDS MySQL is interrupted every night at 22h and restarted at 7h in the morning to save costs. 7 days stopped, the instance is automatically restarted and the team receives an unexpected recovery. Why the RDS is automatically restarted?",
+      "options": [
+        "The CloudWatch has an alarm configured to restart the RDS if CPU stay below 0.1% for more than 7 days — this behavior is the standard and cannot be disabled",
+        "The Amazon RDS limits the time that an instance may remain standing 7 days — after that period, RDS automatically restarts the instance to ensure that patches and necessary maintenance can be applied; the team is normally charged after automatic reset",
+        "The RDS is restarted because the scheduled automatic backup happened during the stationary period — automated backups can only be done with the instance running, forcing the restart",
+        "The RDS automatically restarts when the standby Multi-AZ detects that the primary is inactive for more than 7 days and assumes the role of primary"
+      ],
+      "explanation": "Correct. RDS has a limitation that stalled instances are automatically restarted after 7 days. This ensures that instances receive security patches and maintenance updates that can only be applied with the instance in execution. If the team does not plan the RDS to save inside 7 days, the instance is restarted automatically and the billing returns to normal.",
+      "hint": "The RDS it has a maximum time limit for an instance to remain stationary — after that period, which happens automatically?",
+      "optionRationales": [
+        "Correct. RDS has a limitation that stalled instances are automatically restarted after 7 days. This ensures that instances receive security patches and maintenance updates that can only be applied with the instance in execution. If the team does not plan the RDS to save inside 7 days, the instance is restarted automatically and the billing returns to normal.",
+        "Incorrect. Automated backups of RDS do not force the restart of stalled instances — they are simply jumped during the stalled period and resumed when the instance returns to run. 7 days is the need to apply maintenance patches, not backups.",
+        "Incorrect. There is no standard behavior of the CloudWatch Restart RDS low use of CPU. Automatic restart after 7 days stopped is a behavior of the service itself RDS (documented by AWS), not an alarm CloudWatch standard.",
+        "Incorrect. Multi-AZ failover occurs when the primary instance becomes INACESSIBLE (hardware failure, AZ failure) — not simply when it is in the 'stopped' state. A stopped instance does not activate the Multi-AZ failover. 7 days is a behavior of RDS for maintenance, not Multi-AZ."
+      ]
+    },
+    "saa-med-280": {
+      "text": "A company uses NAT Gateway for which instances EC2 in private sub-networks access the internet. The team realized that 60% of the cost of NAT Gateway is of instances in 3 Different AZs communicating with the same NAT Gateway in a single AZ (cross-AZ traffic). How to reduce this cost by maintaining internet connectivity for private fora?",
+      "options": [
+        "Replace NAT Gateway by one NAT Forum (EC2 with NAT configured) in a single central AZ — NAT Mechanisms are cheaper per hour than NAT Gateway and eliminate the cost of processing by GB",
+        "Configure VPC Endpoints for all services AWS used — with VPC Endpoints, instances access services AWS directly without passing through NAT Gateway, eliminating 100% of the cost of NAT Gateway",
+        "Enable 'Split-horizon' DNS' the VPC to redirect service requests AWS for private endpoints, reducing traffic by NAT Gateway",
+        "Create a NAT Gateway in each AZ and configure the route tables of each private sub-network to use the NAT Gateway the MESMA AZ — traffic within the same AZ between instances EC2 and NAT Gateway is free, eliminating cross-AZ cost"
+      ],
+      "explanation": "Right. Traffic between sub-networks in the same AZ is free. By creating a NAT Gateway by AZ and configure the routes of each private sub-network to the NAT Gateway local (same AZ), all traffic of instances for the NAT Gateway is intra-AZ (free). NAT Gateway by GB still exists, but the cross-AZ transfer cost is eliminated. The cost of 3 NAT Gateways vs. 1 is offset by elimination of cross-AZ costs.",
+      "hint": "What is the cost of data transfer between resources in MESMA AZ? How does this change the positioning strategy of the NAT Gateway to eliminate cross-AZ collections?",
+      "optionRationales": [
+        "Right. Traffic between sub-networks in the same AZ is free. By creating a NAT Gateway by AZ and configure the routes of each private sub-network to the NAT Gateway local (same AZ), all traffic of instances for the NAT Gateway is intra-AZ (free). NAT Gateway by GB still exists, but the cross-AZ transfer cost is eliminated. The cost of 3 NAT Gateways vs. 1 is offset by elimination of cross-AZ costs.",
+        "Incorrect as a solution to the cross-AZ cost problem. NAT A single AZ procedure would still cause the same cross-AZ traffic problem of instances in other AZs., NAT Mechanisms require manual management (patches, scalability, high availability), adding operational overhead. Cross-AZ transfer cost would remain.",
+        "Partially correct but not a complete solution. VPC Endpoints eliminate the need for NAT Gateway for services AWS specific (S3, DynamoDB they are free; others have an endpoint cost. However, if the instances also need access to the public internet (downloads of packages, external APIs)), VPC Endpoints do not cover this traffic — the NAT Gateway The complete solution for the cross-AZ cost is to create a NAT Gateway by AZ.",
+        "Incorrect. 'Split-horizon' DNS' (or DNS divided) in the context AWS refers to solving names of DNS for private endpoints within the VPC instead of public endpoints — what is a functionality of VPC Endpoints (Private DNS), not an independent router mechanism. It is not a solution for the cross-AZ cost of NAT Gateway."
+      ]
+    },
+    "saa-med-281": {
+      "text": "A company uses Amazon DynamoDB for an e-commerce application. Traffic patterns are highly variable — peaks of 10.000 RCU/s during promotions and only 100 RCU/The team wants to optimize costs without manually managing the capacity provided. DynamoDB is more economical for this highly variable traffic profile?",
+      "options": [
+        "DynamoDB Provided with Auto Scaling configured with target of 70% of use — Auto Scaling automatically adjusts the capacity between 100 and 10.000 RCU/s as traffic varies",
+        "DynamoDB Provided with Reserved Capacity (Reserved Capacity Reservation by 1 or 3 years) for the 100 RCU/baseline, with On-Demand covering the additional peaks — the combination minimizes the total cost",
+        "DynamoDB On-Demand — charge for individual requests (RCU/WCU per operation) without providing capacity in advance; instantly adapts to any traffic without throttling and is more economical when traffic is unpredictable or has large variations between peaks and valleys",
+        "DynamoDB Provided with fixed capacity of 5.000 RCU/s (average between peak and valley) — balances cost and availability, paying less than provision for peak and tolerates occasional throttling at times of greatest demand"
+      ],
+      "explanation": "Correct.. DynamoDB On-Demand does not require capacity provisioning — you pay for what you use. For highly variable traffic with peak/valley ratio of 100:1 (10.000 vs 100 RCU/s), provisioning for peak would be wasteful 99% On-Demand is generally more economical when the average use is below the average use, and provide for the average would cause throttling in peaks. ~20-30% maximum capacity.",
+      "hint": "For traffic with large variations (100:1 between peak and valley), which mode of DynamoDB is more economical — to pay for continuously provided capacity, or to pay only for what is consumed?",
+      "optionRationales": [
+        "Correct.. DynamoDB On-Demand does not require capacity provisioning — you pay for what you use. For highly variable traffic with peak/valley ratio of 100:1 (10.000 vs 100 RCU/s), provisioning for peak would be wasteful 99% On-Demand is generally more economical when the average use is below the average use, and provide for the average would cause throttling in peaks. ~20-30% maximum capacity.",
+        "Partially correct: DynamoDB Auto Scaling adjusts the capacity provided based on use. Auto Scaling is not instantaneous (may take minutes to climb) — during abrupt peaks, throttling may occur. 100x (100 for 10.000 RCU/s), On-Demand instantly adapts without throttling and can be more economical, because Auto Scaling with a minimum capacity of 100 and maximum of 10.000 still collects by the provided capacity between scalings.",
+        "Incorrect. Provide the average between peak and valley (5.000 RCU/s) means: pay for 5.000 RCU/s continuously (much more than necessary in quiet hours of 100 RCU/s), and still have throttling in peaks of 10.000 RCU/s. On-Demand pays for real use — would be more economical in calm periods and without throttling in peaks.",
+        "Partially correct in concept (cover baseline with Reserved and overflow with On-demand), but the DynamoDB Reserved Capacity (purchase of RCU/WCU in volume with discount) DO NOT work in combination with On-Demand mode — Reserved Capacity applies only to the Provided mode. You cannot mix modes per table. For the highly variable profile described, On-Demand pure is simpler and often more economical."
+      ]
+    },
+    "saa-med-282": {
+      "text": "A company uses AWS Lambda Extensively. The team noticed that some functions Lambda use 3.008 MB of memory but metrics show that the actual memory use is of only 200 MB. What change reduces costs without affecting the performance of functions?",
+      "options": [
+        "Reduce configured memory from Lambda for a value close to actual use (ex.: 256 MB) — Lambda charge by memory product × duration (GB-seconds), then less memory = lower cost per execution, as long as the use of real memory does not exceed the new limit",
+        "Migrate functions Lambda memory sub-used for AWS Fargate — Fargate collects only by vCPU and memory used during execution, without overhead of allocated but unused memory",
+        "Use Lambda Power Tuning to find the optimal memory size that minimizes cost × performance — Power Tuning can identify if reducing memory increases both the duration and total cost increases instead of falling",
+        "Configure Lambda with Provided Competition for underutilized functions — provided competition reduces cold start and optimizes memory usage between multiple invocations"
+      ],
+      "explanation": "The cost of Lambda is calculated as the number of requests × (memory_GB × duration_seconds). 3.008 MB to 256 MB reduces cost in ~92% for the same duration (assuming that the function does not use more than 256 MB). It is important to check that the function uses no more memory than the new limit to avoid OOM (Out of Memory) errors.",
+      "hint": "The cost of Lambda It's GB-seconds (memory × duration). If memory is configured 15x above actual use, which is the most direct action to reduce cost?",
+      "optionRationales": [
+        "The cost of Lambda is calculated as the number of requests × (memory_GB × duration_seconds). 3.008 MB to 256 MB reduces cost in ~92% for the same duration (assuming that the function does not use more than 256 MB). It is important to check that the function uses no more memory than the new limit to avoid OOM (Out of Memory) errors.",
+        "Incorrect as cost solution for Lambda with excessive memory. Fargate is a significant change of platform (requires containerization), ECS Task Definitions etc.) and is not necessary — simply reduce the configured memory of Lambda is the direct solution and least effort for the same result.",
+        "Correct as an optimization tool, but more complex than what is needed for this scenario. 200 MB and memory is in 3.008 MB, simply reduce to 256-512 MB (leaving margin) is obvious and effective — does not require Power Tuning for this decision. Power Tuning is more useful to find the optimal size when the memory/duration/cost ratio is not obvious.",
+        "Incorrect and increased costs. Lambda Provided Competition AUMENTA the cost — you pay for instances Lambda hot kept 24/7, even when there are no invocations. It has no relation to memory usage optimization. The problem is memory CONFIGURADA excessive, not cold starters."
+      ]
+    },
+    "saa-med-283": {
+      "text": "A company uses Amazon CloudFront to distribute content globally. The application serves users mainly in North America and Europe, but rarely in Asia and Oceania. CloudFront is high due to the edge locations in all regions. How to reduce these costs without impacting the main users (North America and Europe)?",
+      "options": [
+        "Migrate static content to a bucket S3 with S3 Transfer Acceleration — Transfer Acceleration Uses edge locations of the CloudFront for uploads but has lower cost of egress to distant regions",
+        "Configure the CloudFront Price Class — use 'Price Class' 100' (only Americas and Europe) instead of the pattern that includes all regions; users of Asia/Oceania are still served but by edge locations closer within the Price Class (with slightly higher latency), while the transfer costs are reduced by excluding the regions of highest price per GB",
+        "Use a larger cache in CloudFront (increase or TTL maximum) — objects cached for longer result in fewer requests at source and less data transfer cost",
+        "Use CloudFront Signed URLs with TTL of 24 hours — signed URLs prevent bots and scrapers from consuming the band CloudFront in high-cost regions, reducing total cost"
+      ],
+      "explanation": "Correct.. CloudFront Price Classes allow you to select which regions of edge locations are used by the distribution. 100 includes only edge locations in the Americas and Europe — the regions with the lowest transfer cost per GB. Users from other regions will still be served by the edge locations of the selected Price Class (usually the nearest included), accepting slightly higher latency. Reduces costs excluding high-cost regions such as Asia, Oceania.",
+      "hint": "What configuration of the CloudFront allows you to choose which regions of edge locations are used by a distribution, excluding high-cost regions per GB when traffic in them is low?",
+      "optionRationales": [
+        "Correct.. CloudFront Price Classes allow you to select which regions of edge locations are used by the distribution. 100 includes only edge locations in the Americas and Europe — the regions with the lowest transfer cost per GB. Users from other regions will still be served by the edge locations of the selected Price Class (usually the nearest included), accepting slightly higher latency. Reduces costs excluding high-cost regions such as Asia, Oceania.",
+        "Partially correct about reducing requests at source, but the cost described is from TRANSFER OF THE CLOUDFRONT PARA USERS (egress) — not transferable from origin to CloudFront. Increase TTL reduces requests to origin (reduced cost of origin fetch), but does not change the cost of serving data to end users, which depends on where they are and which ones edge locations are used.",
+        "Incorrect. S3 Transfer Acceleration is for uploads (data input to S3), not to serve content for end users. For content distribution for end users with edge region control, CloudFront Price Classes are the right mechanism. Transfer Acceleration does not replace CloudFront for distribution.",
+        "Incorrect for the cost problem described. Signed URLs control ACESSO the specific content — do not control which edge regions serve the content. Even with Signed URLs, legitimate users in Asia and Oceania would continue to use edge locations price classes is the correct mechanism for controlling regions.."
+      ]
+    },
+    "saa-med-284": {
+      "text": "A company uses AWS Trusted Advisor and the AWS Compute Optimizer for Cost Optimization. The team wants to understand which one to use to get rightsizing recommendations (ideal size) for instances EC2 based on historical metrics of use. Which tool is best suited for rightsizing recommendations based on performance data?",
+      "options": [
+        "AWS Systems Manager Inventory — Collecting configuration data from all instances EC2 and compares with industry usage references to recommend ideal sizes",
+        "AWS Cost Explorer with Rightsizing Recommendations — offers instance size recommendations based on historical cost and economic projections, without dependence on CloudWatch Metrics",
+        "AWS Trusted Advisor — analyze the environment AWS and provides detailed recommendations for rightsizing based on metrics for the use of CPU and memory of the last 14 days",
+        "AWS Computer Optimizer — Uses Machine Learning to analyze historical metrics of CloudWatch (CPU, memory via CloudWatch Agent, network I/O and disk) and recommends the type and size of instance EC2 ideal for each workload, with performance and cost estimates"
+      ],
+      "explanation": "Correct. AWS Compute Optimizer is specifically designed for ML-based rightsizing recommendations using historical performance metrics. EC2, Lambda, ECS and volumes EBS. Provides detailed recommendations with performance justification (e.g. 'over-provided by 40% CPU, recommend m5.large instead of m5.xlarge') and estimates of economy and impact on performance.",
+      "hint": "What service AWS use Machine Learning to analyze historical metrics of CloudWatch and make recommendations of rightsizing to EC2, Lambda and other computer services?",
+      "optionRationales": [
+        "Correct. AWS Compute Optimizer is specifically designed for ML-based rightsizing recommendations using historical performance metrics. EC2, Lambda, ECS and volumes EBS. Provides detailed recommendations with performance justification (e.g. 'over-provided by 40% CPU, recommend m5.large instead of m5.xlarge') and estimates of economy and impact on performance.",
+        "Partially correct: or Trusted Advisor has a check of 'Low Usage' Amazon EC2 Mechanisms' identifying instances with low use of CPU (below 10%). However, it does not provide such detailed recommendations for rightsizing based on ML as the Computer Optimizer — only alert on under-utilization. Computer Optimizer is the specific tool for detailed rightsizing recommendations.",
+        "Partially correct: Cost Explorer it has recommendations of rightsizing that consider use and cost. However, these recommendations are based on use of CPU of the CloudWatch (requires CloudWatch Memory Agent), are not as detailed in performance analysis as the Compute Optimizer that uses ML. Compute Optimizer is the dedicated tool for this type of analysis.",
+        "Incorrect. Systems Manager Inventory collects software and hardware configuration metadata (which applications are installed, versions, hardware configurations) — does not analyze performance metrics for rightsizing recommendations. Computer Optimizer is the correct tool for this analysis."
+      ]
+    },
+    "saa-med-285": {
+      "text": "A company needs to run a big data analysis workload that uses Apache Spark in Amazon EMR. The workload runs by 4 The Core Nodes need to be reliable (cannot be interrupted), but the Task Nodes (additional workers) can be restarted. EMR for this profile?",
+      "options": [
+        "Use only Spot Instances for all nodes of the cluster EMR — o EMR automatically manages the replacement of us Spot interrupted, keeping processing without data loss",
+        "Use EMR Serverless instead of clusters EMR managed — or EMR Serverless does not have separate Master, Core and Task Nodes, charging only for processing time without managing us",
+        "Core Nodes with On-Demand or Reserved Instances (for reliability of data in HDFS) + Task Nodes with Spot Instances (for processing extra tolerant to interruption) — Spot Instances for Task Nodes reduce computing cost by up to 90% without affecting the integrity of the data in HDFS which resides in the Core Nodes",
+        "Use Spot Instances for Master Node and On-Demand for Core and Task Nodes — Master Node does not store data and can be easily replaced if interrupted"
+      ],
+      "explanation": "That's the architecture recommended by AWS for EMR with cost-benefit: Core Nodes (hosting the HDFS and need continuity) use On-Demand or RIs, while Task Nodes (only computing, no data HDFS) can use Spot Instances If a Task Node Spot is interrupted, Spark reprocesses lost tasks using other nodes — no data loss.",
+      "hint": "No. EMR, which we host data in HDFS (need reliability) and what are we purely for computing (tolerated interruption)? How this distinction guides the choice of On-Demand vs. Spot?",
+      "optionRationales": [
+        "That's the architecture recommended by AWS for EMR with cost-benefit: Core Nodes (hosting the HDFS and need continuity) use On-Demand or RIs, while Task Nodes (only computing, no data HDFS) can use Spot Instances If a Task Node Spot is interrupted, Spark reprocesses lost tasks using other nodes — no data loss.",
+        "Incorrect for Core Nodes. If a Core Node Spot is interrupted, HDFS may lose data blocks if replication has not been completed before interruption. EMR cannot instantly replace an interrupted Core Node without risk of data loss HDFS. Core Nodes need reliable instances (On-Demand or RIs)).",
+        "Incorrect. Master Node (NameNode of HDFS, ResourceManager of YARN) if the Master Node is interrupted, the whole cluster for — the analysis job would be lost and the cluster would need to be recreated. Master Node must be On-Demand, no Spot.",
+        "Partly correct that EMR Serverless simplifies management. However, to maximize ECONOMIA for workloads of 4 hours with Task Nodes tolerant to interruption, Spot Instances for Task Nodes can be more economical than EMR Serverless depending on usage and patterns., EMR Serverless has limitations on system configurations and custom dependencies."
+      ]
+    },
+    "saa-med-286": {
+      "text": "A company uses Amazon EBS and realized that it is paying for many volumes gp2. After analysis, the team discovered that most volumes have less than 1 TB and does not use the gp2 burst credits. How to migrate to gp3 would generate economy, and what is the main difference between gp2 and gp3?",
+      "options": [
+        "gp3 is cheaper by GB (20% less than gp2), offers 3.000 IOPS and 125 MB/s of guaranteed baseline INDEPENDENTE volume size (gp2 binds IOPS size: 3 IOPS/Minimum GB), and allows to increase IOPS and throughput separately from volume size via configuration — migration from gp2 to gp3 reduces cost without changing performance",
+        "Migration from gp2 to gp3 requires downtime of instance EC2 and volume reformation — therefore, despite the lower cost, migration is disruptive and should be carefully planned",
+        "gp3 is only available for new instances — existing gp2 volumes cannot be converted to gp3 and need to be replaced by new volumes created as gp3",
+        "gp2 uses accumulated burst credits over time (up to 3.000 IOPS in burst) that gp3 does not have — for workloads that need burst, gp2 is superior; for stable workloads, gp3 is cheaper"
+      ],
+      "explanation": "Right. Key differences: gp3 has price ~20% lower per GB than gp2; gp3 guarantees 3.000 IOPS and 125 MB/s shape FIXA (not dependent on size), while gp2 provides 3 IOPS/GB (small volumes have less IOPS baseline, depending on burst credits); gp3 allows to add IOPS/throughput extras independent of size. For small volumes (<334 GB) which do not use burst, gp3 is always more economical with equivalent performance or better.",
+      "hint": "What is the price difference between gp2 and gp3, and how the baseline of IOPS of both types behaves in relation to volume size — especially for small volumes?",
+      "optionRationales": [
+        "Right. Key differences: gp3 has price ~20% lower per GB than gp2; gp3 guarantees 3.000 IOPS and 125 MB/s shape FIXA (not dependent on size), while gp2 provides 3 IOPS/GB (small volumes have less IOPS baseline, depending on burst credits); gp3 allows to add IOPS/throughput extras independent of size. For small volumes (<334 GB) which do not use burst, gp3 is always more economical with equivalent performance or better.",
+        "Incorrect. gp3 GARANTIDO has 3.000 IOPS baseline with no need for burst credits — more IOPS that a gp2 volume of up to 1 TB (that you have 3 IOPS/GB × 1000 GB = 3.000 IOPS, not counting burst). For workloads that PRECISARIAM gp2 burst (peaks above 3.000 IOPS), gp3 with IOPS extra provisions would be the solution. gp3 is equal to or better than gp2 in all cases.",
+        "Incorrect. Migration from gp2 to gp3 is done online via EBS ModifyVolume without downtime — the volume remains connected and in use during the modification, which is applied progressively. There is no need to dismantle the volume, stop the instance, or reformat the file system.",
+        "Incorrect volume EBS gp2 can be converted to gp3 using the API ModifyVolume or console AWS without creating a new volume. The volume type is modified in-place, without data loss and without downtime."
+      ]
+    },
+    "saa-med-287": {
+      "text": "A company is reviewing its container architecture in Amazon ECS. There are two types of workloads: batch jobs that run sporadically by 30 minutes and can be restarted if they fail, and microservices of API Rolling 24/7. From the cost point of view, what a combination of launch types ECS It's more economical.?",
+      "options": [
+        "All workloads in ECS with Fargate — Fargate does not require instance management EC2, has zero cost of idleness (pays only for the execution of tasks), and is more economical than EC2 For microservices 24/7",
+        "Microservices of API no ECS Fargate with Provided Competition + Batch jobs with Lambda (no ECS) — Lambda scale to zero between executions, eliminating costs when there are no batch jobs",
+        "Microservices of API no ECS with EC2 launch type using Reserved Instances (use 24/7 predictable) + Batch jobs in ECS with Fargate Spot or EC2 Spot (Discontinuation tolerances, rotate sporadically) — RIs for continuous use and Spot for sporadic workloads is the most economical combination",
+        "All workloads in ECS with EC2 On-Demand — On-Demand offers maximum flexibility without compromise, ideal for variable traffic workloads as sporadic batch jobs"
+      ],
+      "explanation": "Correct. Microservices 24/7 with predictable profile, EC2 with Reserved Instances offers greater discount. For sporadic batch jobs tolerant to restart, Fargate Spot (discount up 70% about Fargate) or EC2 Spot are more economical. Fargate Spot is especially suitable for batch jobs: you pay only for the duration of the execution (per second) without managing instances EC2.",
+      "hint": "For microservices 24/7 with predictable profile, which model of purchase offers discount per commitment? For sporadic batch jobs tolerant to interruption, which launch type ECS offers even discount 70%?",
+      "optionRationales": [
+        "Correct. Microservices 24/7 with predictable profile, EC2 with Reserved Instances offers greater discount. For sporadic batch jobs tolerant to restart, Fargate Spot (discount up 70% about Fargate) or EC2 Spot are more economical. Fargate Spot is especially suitable for batch jobs: you pay only for the duration of the execution (per second) without managing instances EC2.",
+        "Partly correct that Fargate eliminates management of EC2 and charge for use, but for microservices 24/7, EC2 with Reserved Instances usually is more economical than Fargate pure (Fargate has cost per second of vCPU+memory that may be higher than RIs EC2 shared between multiple containers). For large clusters with high density of containers, EC2 with RIs is more economical than Fargate.",
+        "Incorrect as a more economical solution. On-Demand without any discount is not the most economical option for microservices 24/7 (RIs are cheaper) nor for sporadic batch jobs (Spot/Fargate Spot with up to 70-90% On-Demand offers flexibility but does not maximize economy..",
+        "Incorrect. 'Provisioned Competition' is a concept of Lambda, not ECS Fargate. In addition, Lambda has a limit of 15 minutes per run and is not suitable for batch jobs 30 The combination ECS EC2 with RIs for microservices + Fargate Spot for batch is the correct architecture for ECS."
+      ]
+    },
+    "saa-med-288": {
+      "text": "A company recently revised its account AWS and found multiple unused features: Elastic IP Addresses without associated instances, snapshots of EBS old, and volumes EBS which statement is correct about the collection of these resources?",
+      "options": [
+        "Volumes EBS not attached to bodies do not generate collection — a AWS suspends volume collection EBS when they are disconnected (detached), resuming only when they are reattached to an instance",
+        "Elastic IPs not associated with running instances have hourly collection; snapshots EBS have collection per GB stored per month; volumes EBS non-attached also have continuous collection per GB provided — all three generate continuous costs even without active use",
+        "Snapshots EBS are free if they are kept in the same region as the volume of origin — the collection occurs only when the snapshot is copied to another region",
+        "Only Elastic IPs generate collection when not used — snapshots and volumes EBS not attached are stored free of charge by AWS as courtesy to facilitate future restoration"
+      ],
+      "explanation": "Correct. AWS charges for allocated resources even if unused: (1) Elastic IPs DESASSOCIADOS or associated with fora PARADAS have hourly collection (~$0.005/hr); (2) Snapshots EBS are charged by stored GB/month at the rate of S3 incremental; (3) Volumes EBS are charged by GB provided/month regardless of whether they are attached to instances. These 'forgotten' resources accumulate costs over time..",
+      "hint": "What resources AWS generate continuous collections even when idle — no associated running instances? Think of Elastic IP, EBS Snapshot, and volume EBS non-attached.",
+      "optionRationales": [
+        "Correct. AWS charges for allocated resources even if unused: (1) Elastic IPs DESASSOCIADOS or associated with fora PARADAS have hourly collection (~$0.005/hr); (2) Snapshots EBS are charged by stored GB/month at the rate of S3 incremental; (3) Volumes EBS are charged by GB provided/month regardless of whether they are attached to instances. These 'forgotten' resources accumulate costs over time..",
+        "Incorrect. Both snapshots and volumes EBS have continuous storage charges, regardless of use. Snapshots are charged for GB/month stored in S3 (incrementally), and volumes EBS provideded (gp2, gp3, io1 etc.) charge for GB/month regardless of whether they are in use.",
+        "Incorrect volume EBS are charged continuously by storage PROVISIONADO whether or not they are attached to the bodies. 'Stop' the charge of a volume EBS requires DELETAR the volume (after creating a snapshot if necessary to preserve the data)).",
+        "Incorrect. Snapshots EBS have storage charge in the same region where they were created — they do not depend on the region of the volume of origin, and there is no exemption because they are from the same region. ADICIONAIS in the destination region, but those of the original region also charge."
+      ]
+    }
+  }
+}

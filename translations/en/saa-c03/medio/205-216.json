@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "205-216",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-205": {
+      "text": "A DevOps team stores database secrets in AWS Secrets Manager. The application (rounding in EC2) The team wants to ensure that only instances with a specific role can retrieve that secret — and that the encryption key KMS associated can only be used by this same roll to describe. Secrets Manager and no KMS the permissions to access the secret must be configured, respectively?",
+      "options": [
+        "Only the IAM Role of the court EC2 you need to have the right policy (Allow secretsmanager:GetSecretValue) KMS automatically descripts for any authorized streeter in Secrets Manager without checking the key policy",
+        "Secret Resources Policy (resourced-based policy no Secrets Manager) to control GetSecretValue, and key policy KMS (key policy) with IAM Roll as main for DecryptDataKey — both layers need to allow the roll to work",
+        "Only the key policy KMS needs to be configured with the IAM Role; Secrets Manager fully delegate access control to KMS, dispensing configuration in the secret resources policy",
+        "Only one IAM Policy attached directly to the roll with Allow for secretsmanager:GetSecretValue and kms:Decrypt is enough — resource policies (policies) Secrets Manager and no KMS are optional when policies IAM explicit exist"
+      ],
+      "explanation": "Right, access to a secret in Secrets Manager involves two independent layers: (1) the resource policy of the SEGREDO (resource policy), which controls who can call GetSecretValue, and (2) the policy of the CHAVE KMS used to encrypt the secret, which controls who can use the key for the description. EC2 Needs Allow in both layers — fail in any result of denied access.",
+      "hint": "Think of the two independent layers of authorization: the secret itself and the key KMS which protects it — both need to allow the identity of the application.",
+      "optionRationales": [
+        "Right, access to a secret in Secrets Manager involves two independent layers: (1) the resource policy of the SEGREDO (resource policy), which controls who can call GetSecretValue, and (2) the policy of the CHAVE KMS used to encrypt the secret, which controls who can use the key for the description. EC2 Needs Allow in both layers — fail in any result of denied access.",
+        "Incorrect. IAM Role be allowed to getsecretvalue in Secrets Manager, the description of the secret requires that the identity also has permission in key policy of the key KMS to use the key (kms:Decrypt or kms:GenerateDataKey). KMS DO NOT automatically grant access based only on the permission of the Secrets Manager — the two layers are evaluated independently.",
+        "Incorrect. Secrets Manager has its own layer of access control (resource policy of secrecy or policies) IAM), independent of KMS. Having access to the key KMS does not automatically grant access to the secret in Secrets Manager — the identity also needs explicit permission for GetSecretValue in Secrets Manager.",
+        "Partially incorrect. IAM with Allow for both actions is sufficient for access to IAM Roll when the secret and key police resources KMS do not have Deny explicit and when the key policy does not restrict access only via key policy (the KMS requires the key policy to authorize access, directly or by delegation to IAM). If the key policy does not delegate to IAM (do not include the root of the account in the main), IAM alone is not enough for the KMS."
+      ]
+    },
+    "saa-med-206": {
+      "text": "A company needs that instances EC2 in a private sub-network access the Amazon S3 without traffic running through the public internet. NAT Gateway in the public sub-network that the fora today use for other Internet access. What is the most recommended solution to maintain the traffic of S3 within the network AWS no use NAT?",
+      "options": [
+        "Keep it NAT Gateway and set up a S3 Bucket Policy that restricts access only to the IP of NAT Gateway — this ensures that traffic is controlled without the need for a VPC Endpoint",
+        "Create a VPC Interface Endpoint (PrivateLink) for the S3 — is the same as the Gateway Endpoint but with support to DNS and more security features, always being preferable to Gateway Endpoint",
+        "Create a VPC Gateway Endpoint for the S3 and add a route in the private subnet route table pointing to this endpoint — traffic S3 will flow directly through the backbone of AWS, without passing through NAT Gateway or on the Internet",
+        "Create a route to the CIDR of the S3 no IGW (Internet Gateway) of VPC, without passing through NAT Gateway"
+      ],
+      "explanation": "Right. VPC Gateway Endpoint for S3 (or DynamoDB) is a router feature that allows for instances in private sub-networks to access these services via the internal network of the AWS. By adding the path 'pl-xxxxxx (S3 prefix list)' → Gateway Endpoint in the route table, traffic to S3 Stop going through the NAT Gateway and the public internet — safer and free of transfer costs via NAT.",
+      "hint": "Think about the type of VPC Endpoint that has no cost per hour and functions as a route table entry — designed specifically for S3 and DynamoDB.",
+      "optionRationales": [
+        "Right. VPC Gateway Endpoint for S3 (or DynamoDB) is a router feature that allows for instances in private sub-networks to access these services via the internal network of the AWS. By adding the path 'pl-xxxxxx (S3 prefix list)' → Gateway Endpoint in the route table, traffic to S3 Stop going through the NAT Gateway and the public internet — safer and free of transfer costs via NAT.",
+        "Incorrect as an absolute statement. VPC Endpoint Interface for S3 (via PrivateLink) is a valid option and has specific advantages (such as accessibility via Direct Connect/VPN and support to more granular endpoint policies), but also has CUSTO per hour and per GB of processed data. For access of instances EC2 within VPC, the Gateway Endpoint to S3 is free and simpler — being the standard choice recommended for this case.",
+        "Incorrect for stated target. Configure bucket policy with IP of NAT Gateway still routes the traffic S3 PELO NAT Gateway and through the public internet, generating processing costs of NAT and keeping traffic out of the private network of AWS. The goal was EVITAR the Internet — a VPC Endpoint is the right solution.",
+        "Incorrect. CIDR of the S3 is a range of public IPs of AWS — add a route to these IPs in IGW it still involves the public internet, besides that instances in private sub-networks usually do not have direct route to IGW (this route exists in public sub-networks). This does not meet the objective of keeping traffic within the network. AWS."
+      ]
+    },
+    "saa-med-207": {
+      "text": "A company uses Amazon Macie to protect data in S3. The Macie reported that a bucket contains files with PII (names, CPFs, card numbers). The security team wants to be alerted in real time whenever Macie generate a new discovery of high severity, so that they can act immediately. What integration allows this with the least effort of configuration?",
+      "options": [
+        "Configure the Amazon Macie to export discoveries to a pocket S3 and create a script that polling the bucket S3 periodically to verify new discoveries of high severity",
+        "Configure the Amazon Macie to publish discoveries no Amazon EventBridge — create a rule EventBridge that filters high-severity discoveries and triggers a topic SNS (sending email/SMS time) or a function Lambda for automatic repair",
+        "Create a AWS Config Rule managed by Macie which detects PII and shoot one SNS topic for immediate notification",
+        "Enable AWS Security Hub and create a custom filter for discovery of Macie High-Severity — Security Hub will automatically send an email to the team when the rule is activated"
+      ],
+      "explanation": "Correct. Amazon Macie natively publishes all discoveries for the Amazon EventBridge in real time. A rule EventBridge with a filter by severity (HIGH/CRITICAL) can activate SNS for immediate notification, or Lambda for remediation — this native integration does not require polling and is the approach of less configuration effort recommended by AWS.",
+      "hint": "The Macie publishes discoveries in which local event bus AWS allowing real-time routing to multiple destinations?",
+      "optionRationales": [
+        "Correct. Amazon Macie natively publishes all discoveries for the Amazon EventBridge in real time. A rule EventBridge with a filter by severity (HIGH/CRITICAL) can activate SNS for immediate notification, or Lambda for remediation — this native integration does not require polling and is the approach of less configuration effort recommended by AWS.",
+        "Incorrect. Although the Macie can integrate with the Security Hub (sending discoveries for consolidation), the Security Hub itself DOES NOT send emails automatically. For notifications, it would still be necessary to create a rule EventBridge in Security Hub or a custom action — it's no simpler than using EventBridge directly from Macie.",
+        "Incorrect as a less effortful approach. Do periodic polling of a bucket S3 introduces latency (not in real time), requires maintenance of script and scheduling infrastructure, besides being more complex. EventBridge is the recommended and simplest way for real-time alerts.",
+        "Incorrect. AWS Config evaluates the conformity of resource configuration (such as 'does this pocket have enabled encryption?'), does not analyze the CONTENT of objects S3 in search of PII. The Macie is the specific service for discovery of sensitive data in content — and the correct integration for real-time alerts is via EventBridge, no Config."
+      ]
+    },
+    "saa-med-208": {
+      "text": "A web application receives traffic from legitimate customers around the world. The security team has detected that a botnet is generating requests from hundreds of different IPs, but each IP makes few requests per minute (under any reasonable rate-limiting threshold per IP). The attack vector uses user-agent variation and does not make repeated requests to the same resource. AWS WAF is more suitable to detect and mitigate this distributed bot traffic pattern?",
+      "options": [
+        "AWS Shield Advanced with Layer 7 DDoS protection enabled — automatically detects botnet patterns and creates rules WAF dynamics for each attack",
+        "AWS WAF Bot Control — a managed rule that analyzes bot behavior patterns (not just by IP or rate), using browser heuristics and telemetry signals to identify and block automated traffic, even if distributed in many IPs with few requests each",
+        "Rate-based rule no AWS WAF with a limit of 100 requests by 5 minutes per IP — by decreasing the threshold, the WAF block any IP that exceeds that limit, even those of the botnet",
+        "AWS WAF with rules based on geolocation blocking the regions where botnet operates"
+      ],
+      "explanation": "Correct. AWS WAF Bot Control is a group of rules specifically managed to identify bot traffic — it goes beyond simple IP limits and analyzes behavior patterns, browser fingerprints, session anomalies and other heuristics. It is designed for distributed bots that avoid rate-based rules thresholds by IP.",
+      "hint": "When a bot attack distributes the volume on many IPs to avoid rate-limits, which rule managed from WAF analyzes behavioral patterns instead of just volume per IP?",
+      "optionRationales": [
+        "Correct. AWS WAF Bot Control is a group of rules specifically managed to identify bot traffic — it goes beyond simple IP limits and analyzes behavior patterns, browser fingerprints, session anomalies and other heuristics. It is designed for distributed bots that avoid rate-based rules thresholds by IP.",
+        "Incorrect for this specific scenario. The statement describes a botnet where CADA IP makes few requests (under any reasonable threshold) — lowering the Threshold much would also block legitimate IPs from real users who make some requests per minute, generating false unacceptable positives. Rate-based IP rules are not effective against bots distributed with low volume IP behavior.",
+        "Incorrect. AWS Shield Advanced protects against volumetric and state DDoS attacks (Layer 3/4 mainly), with some support to Layer 7. However, he does not have the heuristics of individual bot behavior analysis that the WAF Bot Control offers for the described pattern (IPs with low volume, user-agent varied). Shield Advanced is more focused on mitigating volume peaks, not stealth bot traffic.",
+        "Incorrect. A globally distributed botnet usually uses IPs from many countries — including countries with legitimate users. Blocking geographical regions would cause legitimate users from the same regions to be blocked and would not solve the problem if the botnet uses proxies or IPs from regions that cannot be blocked (as the business country itself)."
+      ]
+    },
+    "saa-med-209": {
+      "text": "A company uses Amazon CloudWatch Logs to store application logs, including records that may contain user personal data (names, addresses, IDs). The legal team determined that records related to a specific user should be permanently removed from CloudWatch Logs when it requests data deletion. What approach meets this technical requirement in CloudWatch Logs?",
+      "options": [
+        "Enable encryption KMS in the Log Group and delete the key KMS corresponding to user data, making the logs unrecoverable",
+        "Export the logs to S3 with S3 Object Lock in compliance mode — data is protected against exclusion and privacy requirement is met by isolation",
+        "Use API CloudWatch Logs FilterLogEvents to identify logs streams and events containing user data and then use the API DeleteLogEvents (or DeleteLogStream) to remove these specific Log Group records",
+        "Configure a retention policy 1 day in the Log Group — so user logs will automatically expire in 24 hours, taking into account the exclusion requirement"
+      ],
+      "explanation": "Correct. CloudWatch Logs offers the FilterLogEvents APIs (to locate events by default) and delete operations for streams and events. The correct approach to meet 'right to forget' requests is: locate streams/events with user data via filter, and delete specific events (via DeleteLogEvents) or the entire stream (via DeleteLogStream) as needed.",
+      "hint": "Think of which APIs of CloudWatch Logs allow you to identify specific events by default and exclude them granularly — without affecting other users' logs.",
+      "optionRationales": [
+        "Correct. CloudWatch Logs offers the FilterLogEvents APIs (to locate events by default) and delete operations for streams and events. The correct approach to meet 'right to forget' requests is: locate streams/events with user data via filter, and delete specific events (via DeleteLogEvents) or the entire stream (via DeleteLogStream) as needed.",
+        "Incorrect. Reduce retention to 1 deleterious day TODOS the logs after 24 hours, impairing the operational diagnostic and audit capacity for TODOS the users. Furthermore, does not respond to an immediate request for data deletion from a specific user — the data would remain for up to 24 hours after request.",
+        "Incorrect. S3 Object Lock in conformity mode IMPEDE exclusion — is exactly the opposite of what the requirement requires. Object Lock is used for retention cases. WORM (write-once-read-many), not to facilitate data deletion according to privacy requests.",
+        "Incorrect. Delete a key KMS is a destructive and irreversible operation that would make TODOS the encrypted logs with that unrecoverable key — not just those of the user in question. KMS have a minimum waiting period (7-30 days) before effective exclusion, and the cost and operational risk are very high for this purpose."
+      ]
+    },
+    "saa-med-210": {
+      "text": "A security team uses the AWS IAM Access Analyzer to monitor external access to account resources. Access Analyzer created a discovery (finding) for a pocket S3 with a bucket policy that grants read access to another account AWS The team knows that this access is intentional and legitimate. How should they treat this discovery so that it does not continue to appear as an active alert, without removing permission?",
+      "options": [
+        "Temporaryly remove Bucket permission, wait for Access Analyzer to reprocess and remove the finding, and then restore permission — Access Analyzer will not generate new finding for pre-existing permissions already processed",
+        "File the discovery in IAM Access Analyzer (Archive Finding), indicating that external access has been reviewed and is intentional — the discovery will remain in the state 'Archived' and will not generate new alerts, while the bucket policy remains unchanged",
+        "Delete Discovery (Delete Finding) IAM Access Analyzer — it will be permanently removed and will not even reappear if the Bucket policy is changed in the future",
+        "Add external account to 'IAM Access Analyzer Trust Zone' in account settings — any account access within the trust zone will not generate active finding, and the existing discovery will be automatically resolved"
+      ],
+      "explanation": "Correct. IAM Access Analyzer allows you to archive finding (Archive Finding) to indicate that external access has been reviewed and is intentional — the discovery changes from 'Active' to 'Archived'. In addition, it is possible to add this account to the Access Analyzer's 'Trusted Accounts' (zone of trust) so that accesses from this account do not automatically generate new finding in the future.",
+      "hint": "The IAM Access Analyzer has a specific state for revised and approved discoveries as intentional — what is that state, distinct from 'Active' and 'Resolved''?",
+      "optionRationales": [
+        "Correct. IAM Access Analyzer allows you to archive finding (Archive Finding) to indicate that external access has been reviewed and is intentional — the discovery changes from 'Active' to 'Archived'. In addition, it is possible to add this account to the Access Analyzer's 'Trusted Accounts' (zone of trust) so that accesses from this account do not automatically generate new finding in the future.",
+        "Incorrect. IAM Access Analyzer does not have an option to permanently exclude active access finding. Archived Findings remain in history. Furthermore, if the policy changes and external access continues, the analytics would generate a new finding — the previous 'Archived' state does not prevent this, but is the correct treatment for the current state.",
+        "Partially correct but inaccurate in implementation. Access Analyzer's 'zone of trust' is defined when the analytics is created (it can be the account or the entire organization). It is not possible to add individual external accounts to a 'trust zone' of an analytics after creation — you need to create an Organization Analyzer if you want to treat the entire organization as trusted. For specific accounts outside the organization, the correct is to file the finding.",
+        "Incorrect. Removing and restoring permission would only generate a finding again when Access Analyzer reprocessed the restored policy — because external access would re-exist. Access Analyzer does not 'memorize' old permissions — it analyzes the current state of policies."
+      ]
+    },
+    "saa-med-211": {
+      "text": "A company needs to ensure that all objects stored in a pocket S3 are encrypted, using specific keys KMS managed by the customer (SSE-KMS with a CMK The company wants to IMPEDIR that objects are stored without encryption or with the key KMS standard of AWS (aws/s3), but without blocking all written in the pocket. What is the correct implementation?",
+      "options": [
+        "Bucket policy with Deny in s3:PutObject when the condition s3:x-amz-server-side-encryption-aws-kms-key-id does not match ARN of CMK specific, and also Deny when s3:x-amz-server-side-encryption is not 'aws:kms' — this forces the use of CMK correct",
+        "Create a policy of IAM which he denies kms:Encrypt for all identities except for the CMK specific — this prevents the use of other keys KMS no bucket",
+        "Enable SSE default encryption in the pocket with CMK specific — or S3 automatically apply correct encryption to all new objects, and no additional bucket policy is required to prevent other methods",
+        "Configure one AWS Config Rule that detects objects without correct encryption and uses automatic re-encryption to re-encrypt detected objects"
+      ],
+      "explanation": "Correct. To force the use of a CMK specific to SSE-KMS, the bucket policy must have two conditions of Deny: (1) Deny when the cryptographic header isn't 'aws:kms' (blocking uploads without encryption or with SSE-S3/AES256), and (2) Deny when the key KMS not to CMK specific (blocking uploads that would use aws/s3 standard key instead of CMK). Both conditions together ensure that only the CMK correct to be used.",
+      "hint": "Think of two Deny conditions in the bucket policy: one to ensure that encryption is SSE-KMS, other to ensure that the CMK be the right one — not just one of them.",
+      "optionRationales": [
+        "Correct. To force the use of a CMK specific to SSE-KMS, the bucket policy must have two conditions of Deny: (1) Deny when the cryptographic header isn't 'aws:kms' (blocking uploads without encryption or with SSE-S3/AES256), and (2) Deny when the key KMS not to CMK specific (blocking uploads that would use aws/s3 standard key instead of CMK). Both conditions together ensure that only the CMK correct to be used.",
+        "Incorrect as full control. The standard Bucket encryption applies SSE-KMS with the CMK configured when the client does NOT specify encryption on upload. However, if a client EXPLICITAMENTE send an object with SSE-S3 (AES256) or with a key KMS different, S3 IT WILL RESPECT the client's choice and overwrite the pattern. CMK specific without exception, a bucket policy is required with Deny.",
+        "Incorrect as preventive control. AWS Config is a control DETECTIVO and, at the most,, CORRETIVO (with SSM Automation for remediation). Incorrectly encrypted objects would still be ARMAZENADOS with the wrong encryption for some time before detection and re-encryption — does not prevent the incorrect recording in real time, as the bucket policy does.",
+        "Incorrect. A policy IAM which he denies kms:Encrypt for one CMK does not prevent the use of SSE-S3 (not using KMS). In addition, kms:Encrypt is not the action KMS used during upload SSE-KMS — o S3 use kms:GenerateDataKey in the name of uploading identity. The bucket policy with condition in the header S3 is the correct control to force the encryption method at the level of the pocket."
+      ]
+    },
+    "saa-med-212": {
+      "text": "A security team needs to have centralized visibility of security discoveries generated by multiple security services. AWS — GuardDuty, Inspector, Macie, Security Hub and AWS config — in a central audit account, without having to alternate between the consoles of each service individually. AWS was designed to add, normalize and correlate these discoveries in a single panel?",
+      "options": [
+        "Amazon EventBridge with custom bus event rules collecting all security events from different services for a central target",
+        "AWS CloudWatch Dashboards customized with metrics from each security service, configured to show alerts in a unified panel",
+        "Amazon GuardDuty Aggregation with delegated administrator — automatically centralizes the discoveries of all multiple account security services",
+        "AWS Security Hub — adds, normalizes (for format AWS Security Finding Format - ASFF) and correlates discoveries of multiple services AWS Security (GuardDuty, Inspector, Macie, Config) and partners in a centralized vision, with support for multi-account organizations"
+      ],
+      "explanation": "Correct. AWS Security Hub is specifically designed to be the 'single pane of glass' for security at AWS: aggregates finds of GuardDuty, Amazon Inspector, Amazon Macie, AWS Firewall Manager, AWS Config, and security partners; normalizes everyone in AWS Security Finding Format (ASFF); and offers a centralized dashboard with safety score based on CIS/AWS Foundational Security Best Practices.",
+      "hint": "What is the service of AWS acts as a single pane of glass for security discoveries, normalizing them in a common format and centralizing them with multiple services?",
+      "optionRationales": [
+        "Correct. AWS Security Hub is specifically designed to be the 'single pane of glass' for security at AWS: aggregates finds of GuardDuty, Amazon Inspector, Amazon Macie, AWS Firewall Manager, AWS Config, and security partners; normalizes everyone in AWS Security Finding Format (ASFF); and offers a centralized dashboard with safety score based on CIS/AWS Foundational Security Best Practices.",
+        "Incorrect for this use case. EventBridge can centralize EVENTOS of services, but does not normalize finding for a common format, does not correlate with each other, and does not offer the security dashboard, compliance score or finding management that Security Hub provides. EventBridge is more suitable for response automation (activate Lambda, Step Functions), not for visualization and centralized management.",
+        "Incorrect. CloudWatch Dashboards show metrics and alarms, not security finding with context, severity, recommended remediation and life cycle management of discoveries. Creating dashboards that replicate the functionality of Security Hub would be complex and without the automatic normalization between services that Security Hub natively offers.",
+        "Incorrect. GuardDuty has multi-account aggregation with managing director, but this only centralizes the discoveries of THEIR GuardDuty — does not add to the Inspector, Macie, config or other services. To add multiple security services finding in a single panel, Security Hub is the correct service."
+      ]
+    },
+    "saa-med-213": {
+      "text": "A company stores confidential documents in Amazon S3. Documents need to be protected against accidental or intentional exclusion by any user, including the account administrator AWS — during a mandatory regulatory retention period of 7 years. Once configured, this block cannot be removed even by the IT team during the period. S3 meets this requirement?",
+      "options": [
+        "S3 Object Lock in governance mode (Governance Mode) with retention period 7 years — equivalent to the mode of conformity for purposes of regulatory compliance",
+        "S3 Object Lock in compliance mode (Compliance Mode) with retention period of 7 years — in compliance mode, NENHUM user, neither the root of the account, can delete or change the object until the expiration period, being inviolable by design",
+        "S3 Replication with Delete Replication deactivated — Objects excluded in the original pocket are retained in the destination pocket for the required period",
+        "S3 Versioning enabled with MFA Delete enabled — any exclusion requires a second authentication MFA, making the process safe enough for regulatory compliance of 7 years"
+      ],
+      "explanation": "Correct. S3 Object Lock in compliance mode creates a lock that cannot be removed or shortened by NENHUMA identity — including root of account AWS. This makes it suitable for rigid regulatory requirements (ex.: SEC, FINRA) where retention WORM must be absolutely inviolable by the configured period.",
+      "hint": "There's a way in S3 Object Lock which is absolutely inviolable — neither the root of the account can bypass. What is it, and what differentiates it from the most flexible way?",
+      "optionRationales": [
+        "Correct. S3 Object Lock in compliance mode creates a lock that cannot be removed or shortened by NENHUMA identity — including root of account AWS. This makes it suitable for rigid regulatory requirements (ex.: SEC, FINRA) where retention WORM must be absolutely inviolable by the configured period.",
+        "Incorrect. Governance Mode also prevents exclusion by common users, but PODE be circumvented by users with permission IAM s3:BypassGovernanceRetention — including administrators with this permission. For requirements where NENHUM user can bypass the lock (including administrators), the mode of CONFORMIDADE is what is necessary.",
+        "Incorrect. MFA Delete requires additional authentication to permanently delete versions, but still PERMITE the exclusion by whom the device has MFA — usually the account administrator. There is no inviolable time lock as Object Lock in compliance mode offers., MFA delete protects against accidental exclusion, does not necessarily meet regulatory requirements of absolute immutability for fixed period.",
+        "Incorrect. Disabling the replication of exclusions means that exclusions in the source bucket are not spread to the destination bucket — but the objects in the source can still be excluded, and a certain administrator could exclude objects in the destination too. This is not an inviolable lock — it is only a partial layer of protection, not a secured regulatory restraint mechanism."
+      ]
+    },
+    "saa-med-214": {
+      "text": "A company uses AWS Systems Manager Session Manager for remote access to instances EC2 The audit team wants to ensure that TODAS the interactive sessions opened via Session Manager are recorded in detail — including all the typed commands and their outputs — for forensic audit purposes. What configuration in Session Manager activates this detailed record?",
+      "options": [
+        "Configure Session Manager to transmit session logs to Amazon CloudWatch Logs and/or Amazon S3 via the SSM Session Manager — this captures the full command and response history of each session, with encryption KMS optional",
+        "Configure VPC Flow Logs in the sub-network of instances — network flow logs will capture all bytes trafficd during sessions, including commands",
+        "Install Amazon Inspector in the instances to monitor all the processes executed via Session Manager and send activity reports to CloudWatch",
+        "Enable AWS CloudTrail to record calls from API of the SSM — o CloudTrail automatically capture the commands executed within each Session Manager session"
+      ],
+      "explanation": "Correct. Session Manager offers session logging configuration in the Preferences of SSM, allowing sending session logs to CloudWatch Logs (for real-time research) and/or S3 (when enabled, each session has its full input/output recorded — including commands and answers — with encryption support KMS to protect the contents of the logs.",
+      "hint": "Where in the console of SSM you find the configuration to send the full session history (input/output) to CloudWatch Logs or S3?",
+      "optionRationales": [
+        "Correct. Session Manager offers session logging configuration in the Preferences of SSM, allowing sending session logs to CloudWatch Logs (for real-time research) and/or S3 (when enabled, each session has its full input/output recorded — including commands and answers — with encryption support KMS to protect the contents of the logs.",
+        "Incorrect. CloudTrail records calls from API (as ssm:StartSession, ssm:TerminateSession), i.e., events of CONTROLE — when a session was started, by whom, what instance. CloudTrail DO NOT capture the content of the interactive sessions (digital commands and their outputs). To do this, session logging is required configured directly in Session Manager Preferences.",
+        "Incorrect. VPC Flow Logs record METADADOS Network flow (IPs of origin/destination, ports, bytes transmitted, protocol) — NOT the content (payload) of the connections. Entered commands and their responses are the payload of the session, which the Flow Logs do not register. Furthermore, the traffic of Session Manager is encrypted in transit, so even if Flow Logs captured payload, it would be unreadable.",
+        "Incorrect. Amazon Inspector is a vulnerability and compliance assessment service — it checks whether instances have known vulnerabilities, software non-conformities, or network exposure. It does NOT monitor interactive sessions in real time nor records commands executed via Session Manager."
+      ]
+    },
+    "saa-med-215": {
+      "text": "A company uses Amazon Route 53 and the AWS Certificate Manager (ACM) to host a website HTTPS. Security team needs to renew certificate SSL/TLS before it expires in 30 The certificate was issued by the ACM for a domain in an area hosted in the Route 53. What is the expected behavior of ACM for that certificate?",
+      "options": [
+        "For certificates ACM provided through validation DNS with records CNAME no Route 53, o ACM automatically renews before maturity — the renewal process is transparent and does not require manual intervention, provided the records CNAME validation exist in the DNS",
+        "The ACM automatically renews only certificates linked to CloudFront — for certificates linked to ALB or API Gateway, renewal requires manual intervention",
+        "The ACM send a notification email to the domain owner 30 days before maturity, requesting manual approval for renewal — the administrator must click on 'Renew' in the email to start the process",
+        "The ACM does not automatically renew certificates — the administrator must access the console ACM, apply for a new certificate and re-associate it with the resources (ALB, CloudFront) before maturity"
+      ],
+      "explanation": "Correct. Certificates provided by the ACM with validation DNS (CNAME Records not Route 53) renew AUTOMATICAMENTE for ACM before maturity, without any necessary manual action, as long as the records DNS validation still exist in the host area. ACM periodically verify the validity of the records CNAME and renews the certificate in advance when confirmed.",
+      "hint": "The key is in the certificate validation method ACM — DNS vs. e-mail — and which of them supports fully automatic renewal.",
+      "optionRationales": [
+        "Correct. Certificates provided by the ACM with validation DNS (CNAME Records not Route 53) renew AUTOMATICAMENTE for ACM before maturity, without any necessary manual action, as long as the records DNS validation still exist in the host area. ACM periodically verify the validity of the records CNAME and renews the certificate in advance when confirmed.",
+        "Incorrect for certificates with validation DNS. This approval behavior via email applies to certificates with VALIDATION POR E-MAIL — not to certificates with validation DNS. For certificates with validation DNS and records CNAME in force, the renewal is fully automatic, without approval emails.",
+        "Incorrect. GERENCIADOS for ACM (issued by itself ACM, non-imported) have automatic renewal when validation is correctly configured and records DNS The flow of 'request new certificate and re-associate' is necessary for certificates IMPORTADOS no ACM (external CA certificates), not for those natively issued by ACM.",
+        "Incorrect. The automatic renewal of the ACM does not depend on the service to which the certificate is linked (CloudFront, ALB, API Gateway, etc.) — depends on the VALIDATION METHOD (DNS vs e-mail) and validation records are in effect. Certificates with validation DNS automatically renews independently of the associated resource."
+      ]
+    },
+    "saa-med-216": {
+      "text": "A company has a multi-tier application: front-end in EC2 in a public sub-network, back-end in EC2 in a private sub-network, and database RDS also in private sub-network. The team wants to set up Security Groups following the principle of the least privilege. Security Group for the database layer correctly implements this principle?",
+      "options": [
+        "The database SG must have an inbound entry rule on the door 3306 with source being the ID of Security Group back-end layer (not a CIDR IP) — This ensures that only instances with that specific SG can access the bank, regardless of IP",
+        "The database SG must have all doors open with source 0.0.0.0/0, but protected by NACL of the sub-network blocking all external traffic — the in-depth defence is guaranteed by the combination NACL + SG",
+        "The database SG must have an entry rule on the door 3306 with source being the CIDR Back-end private sub-network — this restricts access to only this sub-network",
+        "The database SG must have an entry rule on the door 3306 with source being the CIDR of VPC the whole — this ensures that only resources within the VPC can access the bank"
+      ],
+      "explanation": "Correct. Use the ID of Security Group (not one CIDR) as a source in a rule of SG is the implementation of less privilege: only instances that have that specific SG can access the bank. This is dynamic (even with auto-scaling altering IPs) and granular (does not expose the door to the whole sub-network)./VPC).",
+      "hint": "Think of the difference between using a CIDR Subnet/VPC as source versus use of an ID Security Group as source — and which is more granular and dynamic for multi-tier architectures.",
+      "optionRationales": [
+        "Correct. Use the ID of Security Group (not one CIDR) as a source in a rule of SG is the implementation of less privilege: only instances that have that specific SG can access the bank. This is dynamic (even with auto-scaling altering IPs) and granular (does not expose the door to the whole sub-network)./VPC).",
+        "Incorrect for lack of granularity enough. Use the CIDR of the subnet allows QUALQUER In this sub-network (or any new future resource added to the sub-network) access the bank — not only back-end instances. By using the back-end layer SG ID as a source, access is restricted only to instances that have that specific SG, regardless of sub-network.",
+        "Incorrect. Use CIDR of VPC the principle of the lowest privilege — any remedy in QUALQUER sub-network of VPC could access the database. Access should be specifically restricted to the back-end layer, using the SG ID as a source for maximum granularity.",
+        "Incorrect. Open all doors in SG to 0.0.0.0/0 with unrestricted source completely violates the principle of the least privilege — the SG itself should be the restrictive control, not depend exclusively on the NACL. The correct approach is each layer have its own restrictive SG, and the NACL be an additional layer of defense (not the only control))."
+      ]
+    }
+  }
+}

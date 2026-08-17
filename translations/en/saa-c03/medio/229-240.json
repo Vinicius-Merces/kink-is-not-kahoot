@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "229-240",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-229": {
+      "text": "A company set up a AWS WAF in front of a Application Load Balancer. The security team wants to create a rule that specifically blocks requests where the User-Agent HTTP contains the string 'sqlmap' (a tool of SQL automated injection) anywhere in the header. What kind of rule WAF implements it directly?",
+      "options": [
+        "String match rules no AWS WAF with type of inspection 'Contains' in the field 'Single Header' with name 'User-Agent' and string 'sqlmap' — this rule matches in any request where the User-Agent contains 'sqlmap' and applies the Block action",
+        "SQL injection match rule no AWS WAF, which automatically detects patterns of SQL injection into User-Agent and other fields, including identification of the sqlmap tool",
+        "Rate-based rule with very low threshold (ex.: 1 request by 5 minutes) for IPs with User-Agent containing 'sqlmap' — this effectively blocks attacks from the sqlmap that make many requests",
+        "AWS WAF Managed Rules — AWS Colors Rules Set (CRS), which automatically includes protection against sqlmap and other known attack tools without manual configuration"
+      ],
+      "explanation": "Correct. AWS WAF supports string matching rules ('String match rules') with the options: header, query string, body, etc.), header name ('User-Agent'), and type of match ('Contains', 'Exactly matches', 'Starts with', 'Ends with', 'Regex'). A string match rule with 'Contains' in 'User-Agent' for 'sqlmap' will block any request with that string in the User-Agent header.",
+      "hint": "Think about the type of rule WAF inspecting the content of a header HTTP specific in search of a matching string — what type of match you use?",
+      "optionRationales": [
+        "Correct. AWS WAF supports string matching rules ('String match rules') with the options: header, query string, body, etc.), header name ('User-Agent'), and type of match ('Contains', 'Exactly matches', 'Starts with', 'Ends with', 'Regex'). A string match rule with 'Contains' in 'User-Agent' for 'sqlmap' will block any request with that string in the User-Agent header.",
+        "Incorrect. IP-based rate-based rules count IP requests over time — do not inspect header content HTTP A striker who uses sqlmap could do 1 requisitioning each different IP (IPs/botnets rotation) and bypass the rate-based rule without ever reaching the thread.",
+        "Incorrect. SQL injection match rules no WAF analyze the VALORES of fields (query strings, body, headers) in search of SINTAXE of SQL injection (ex.: SELECT, UNION, DROP TABLE) — they don't identify the FERRAMENTA used by name (e.g. 'sqlmap' in User-Agent). To block by tool name in User-Agent, string match rule is the correct type.",
+        "Partially correct but imprecise. AWS Colors Rules Set (CRS) and other managed rules include protections against attack patterns (SQL injection, XSS), but do not necessarily identify all the specific tools by name in the User-Agent. For an explicit rule that blocks 'sqlmap' in the User-Agent, a custom string match rule is more accurate and guaranteed than depending on CRS."
+      ]
+    },
+    "saa-med-230": {
+      "text": "A team developed a function Lambda that accesses a pocket S3 in OUTRA count AWS. The function uses one IAM Role with the right policy for sts:AssumeRole on cross-account roll, and the cross-account roll has permissions s3:GetObject for the bucket. However, the call fails with 'Access Denied'. The bucket policy of the bucket has no explicit configuration for the cross-account roll. What is the most likely cause?",
+      "options": [
+        "The function Lambda you need to have one VPN or Direct Connect with destination account for which calls S3 cross-account run with assumed credentials",
+        "A IAM Destination role (cross-account) cannot have permissions s3:GetObject to your own account — cross-account roles can only access resources in other accounts",
+        "The problem is that the function Lambda use one IAM Role, not a user IAM — o S3 only accept user cross-account access IAM with key accesses, not of temporary roles",
+        "When cross-account credentials assumed are used to access S3, the bucket on the account of DESTINO it needs to have an explicit loop policy granting access to the cross-account roll — unlike intra-account access, where the IAM Roll policy is enough."
+      ],
+      "explanation": "That's a fundamental behavior of the S3 for cross-account access: when a OUTRA tells access to a pocket, the IAM policy of identity in the account of origin is necessary but NOT enough — the pocket in the account of DESTINO it also needs a resource-based policy that explicitly authorizes cross-account identity access. Without the money policy in the destination account, the S3 denies access even if the IAM policy in the account of origin allows.",
+      "hint": "For access S3 DENTRO of the same account, IAM Roller policy is enough. S3 CROSS-ACCOUNT, what changes in the assessment of permissions of the S3?",
+      "optionRationales": [
+        "That's a fundamental behavior of the S3 for cross-account access: when a OUTRA tells access to a pocket, the IAM policy of identity in the account of origin is necessary but NOT enough — the pocket in the account of DESTINO it also needs a resource-based policy that explicitly authorizes cross-account identity access. Without the money policy in the destination account, the S3 denies access even if the IAM policy in the account of origin allows.",
+        "Incorrect. S3 Cross-account via assumed credentials (STS) are made via the public endpoint of the S3 (HTTPS) — do not require private network connectivity as VPN or Direct Connect. The problem is of AUTHORIZATION (lack of bucket policy in the destination account), not network connectivity.",
+        "Incorrect. There is no such restriction — a IAM Role in any account may have permissions to resources in the same account or in other accounts. The problem described is of authorization of the LADO DO BUCKET (absence of bucket policy), not a limitation of the type of permission that the roll may have.",
+        "Incorrect. S3 accepts cross-account access both from users IAM the roles — the temporary credentials obtained via AssumeRole are fully supported for access to the S3 (and all services AWS). There is no such distinction between users and roles for cross-account access to S3."
+      ]
+    },
+    "saa-med-231": {
+      "text": "An application uses the Amazon RDS with Multi-AZ enabled. During a failover test, the team realized that the bank's endpoint returned errors by about 60-120 seconds before application automatically reconnect. The architecture has connection pooling (without RDS Proxy) and the application tries to reconnect with immediate retry. RDS Multi-AZ did not completely eliminate downtime in this scenario?",
+      "options": [
+        "The RDS Multi-AZ provides only storage redundancy — doesn't do automatic computer failure; it's the Read Replica that provides instance failure",
+        "Multi-AZ failed because the standby instance was in a different AZ — applications in Multi-AZ need to be in the same AZ as the primary for seamless connection",
+        "The failover of RDS Multi-AZ requires a DNS TTL Flip — after promotion of the standby instance, the DNS of the endpoint delay between 60-120 seconds to propagate, period during which the application with TTL of DNS cached still points to the endpoint of the inactive primary instance",
+        "The failover team of the RDS Multi-AZ is of only 10-20 seconds; the 60-120 observed seconds indicate a bug in the application that does not release connections TCP old before trying to reconnect"
+      ],
+      "explanation": "Correct. RDS Multi-AZ makes automatic failover by updating the log DNS of the endpoint to point to the standby instance promoted. The downtime time observed corresponds to the propagation of the TTL of DNS (usually 60(s) added to the standby promotion time (~20-30s). To minimize, the application should use TTL of DNS low and ideally, RDS Proxy (which maintains a pool of connections and handles the failover transparently).",
+      "hint": "Multi-AZ uses DNS to fail — what happens to the TTL of record DNS during the transition to the standby instance?",
+      "optionRationales": [
+        "Correct. RDS Multi-AZ makes automatic failover by updating the log DNS of the endpoint to point to the standby instance promoted. The downtime time observed corresponds to the propagation of the TTL of DNS (usually 60(s) added to the standby promotion time (~20-30s). To minimize, the application should use TTL of DNS low and ideally, RDS Proxy (which maintains a pool of connections and handles the failover transparently).",
+        "Incorrect. The goal of Multi-AZ is to have standby in a different AZ — that's what ensures availability if primary AZ fails. Applications in any AZ within the region connect via the endpoint DNS of the RDS, which is updated to point to the new primary after failure. The application AZ does not need to correspond to the AZ of the instance. RDS.",
+        "Incorrect. RDS Multi-AZ makes FAILOVER AUTOMATICAL instance (computing + storage) — the standy instance is a complete synchronous replica, and in primary failure, the standy is automatically promoted. Read Replicas are asynchronous copies for scalable reading, not automatic failover.",
+        "Partially correct in part of the TTL: connections TCP old (TCP keepalive/timeouts) may contribute to the connection latency, but the main factor is the DNS TTL. The claim that the failover is 'only 10-20s' is a simplification — the total process includes failure detection, standby promotion and propagation of DNS, Can take it 1-2 minutes."
+      ]
+    },
+    "saa-med-232": {
+      "text": "A company has a critical application that uses Amazon SQS to process e-commerce requests. Over time, the team observed that some requests are processed DUAS VEZES, The row is of the Standard type (no FIFO). What is the root cause of this problem and how to solve it?",
+      "options": [
+        "The problem is the competition of multiple consumers in the same row — each message should be processed by only one specific consumer; use SNS with fanout for multiple dedicated consumers eliminates the dispute",
+        "The problem is that the Standard row is not ordered — messages arrive out of order, and the business code interprets out of order orders as duplicate orders; use SQS FIFO ensures ordination and eliminates perceived 'duplicate'",
+        "The problem is the very short visibility timeout — if the consumer function takes longer than the visibility timeout to process, the message becomes visible again in the queue to another consumer; increasing visibility timeout solves double processing",
+        "Rows SQS Standard guarantee delivery 'at-last-once' (at least once), not 'exactly-once' — messages can be delivered more than once. The solution is to use SQS FIFO for processing of orders (guarantee exactly-once within the group), or implement the consumer's own power (checking if the order has already been processed before executing the order).)"
+      ],
+      "explanation": "Right. SQS Standard deliver 'at-last-once' by design — messages can be delivered more than once in rare cases (distributed storage redundancy). For e-commerce orders, the solution is: (1) migrate to SQS FIFO (guarantee exactly-once per deduplication ID), or (2) implements power in the consumer (check a table/cache with the order ID before processing). The combination of both is more robust.",
+      "hint": "What is the guarantee of a row delivery SQS Standard (at-last-once vs. exactly-once), and what native solution of AWS offers exactly-once delivery for messages?",
+      "optionRationales": [
+        "Right. SQS Standard deliver 'at-last-once' by design — messages can be delivered more than once in rare cases (distributed storage redundancy). For e-commerce orders, the solution is: (1) migrate to SQS FIFO (guarantee exactly-once per deduplication ID), or (2) implements power in the consumer (check a table/cache with the order ID before processing). The combination of both is more robust.",
+        "Incorrect as a SINGLE cause. An inadequate visibility timeout can contribute to reprocessing (second delivery before ACK), but the statement describes Standard rows that have at-last-once delivery inherent. Furthermore, increasing the visibility timeout only reduces the probability of double delivery by timeout — does not eliminate the possibility, as Standard rows can deliver duplicates for other reasons (delete failure after processing, multiple storage nodes). Idepower or SQS FIFO are the correct solutions.",
+        "Incorrect as diagnosis. The statement describes real duplicate collections (processing occurred twice), not false-positive due to lack of ordering. Lack of ordering can cause problems in sequences (e.g. cancel before creating), but not directly duplicates of collection. The real problem is the delivery at-least-once of the Standard row.",
+        "Incorrect. Multiple consumers in a row SQS Standard is the standard — visibility timeout manages mutual exclusion (a message is invisible to other consumers while being processed)). SNS + fanout would distribute the message to MULTIPLES consumers simultaneously, worsening the duplicate processing problem."
+      ]
+    },
+    "saa-med-233": {
+      "text": "A company needs high availability for a API REST hosted in a region AWS. The team wants to automatically redirect traffic to a contingency region if the primary region becomes unavailable, with time to fail less than 60 seconds. What a combination of services AWS implements this requirement with multi-region automatic failover?",
+      "options": [
+        "Amazon Route 53 with routing policy of Failover (Primary/Secondary) and health checks active at the endpoint of API — when the health check detects failure in the primary region (30-60s), Route 53 automatically resolves the DNS for the secondary region endpoint",
+        "AWS Lambda with Event Source Mapping cross-region — Lambda automatically processes secondary region events when primary is unavailable",
+        "AWS Global Accelerator with endpoint groups in two regions and health checks — the Global Accelerator detects failure and redirects traffic in seconds via Anycast, without depending on propagation DNS",
+        "Amazon CloudFront with Origins in two regions and Origin Failover enabled — CloudFront detect errors HTTP 5xx of primary origin and automatically tries secondary origin in the same request"
+      ],
+      "explanation": "Correct.. Route 53 with Failover Routing and health checks is the standard solution for automated multi-region failure. The health check checks the availability of the primary region endpoint at configurable intervals (10s or 30s), and when failure threshold is reached, Route 53 updates answers DNS for the secondary region endpoint — reaching failure within 60-90 seconds (depending on configuration)).",
+      "hint": "What service does it offer? DNS managed by AWS supports routing policies with automatic failover based on health checks, redirecting between regions when primary failure?",
+      "optionRationales": [
+        "Correct.. Route 53 with Failover Routing and health checks is the standard solution for automated multi-region failure. The health check checks the availability of the primary region endpoint at configurable intervals (10s or 30s), and when failure threshold is reached, Route 53 updates answers DNS for the secondary region endpoint — reaching failure within 60-90 seconds (depending on configuration)).",
+        "Correct but not the ONLY correct solution — and the Global Accelerator has even lower failure latency (typically 30(s) use Anycast instead of DNS. Both are valid, but for the question about 'less than' 60 seconds', or Route 53 also responds — Global Accelerator is not the only correct alternative., Route 53 Failover is the most commonly cited solution for this scenario in certification SAA-C03.",
+        "Partially correct but for a specific case. CloudFront Origin Failover works for static/cacheable content and can cause failure to a secondary source within the same request in case of error. However, for a API REST dynamic, or CloudFront Origin Failover has limitations (does not work with POST/PUT/DELETE by default) and is not the standard multi-region failure solution. Route 53 with Failover Routing is more suitable for failing from API multi-region.",
+        "Incorrect. Lambda Event Source Mapping is not a multi-region failover mechanism of API — It connects Lambda to event sources (SQS, Kinesis, DynamoDB Streams) within a region. There is no automatic mechanism that redirects invocations from API Lambda from one region to another without Route 53 or API Gateway with explicit failover configuration."
+      ]
+    },
+    "saa-med-234": {
+      "text": "A team uses Amazon SQS to unplug an image processing application. Some messages repeatedly fail in processing (corrupted images). 3 attempts, these messages are blocking the queue, preventing the processing of subsequent valid messages. SQS solve this problem by isolating problematic messages?",
+      "options": [
+        "Configure a Dead Letter Queue (DLQ) associated with the main row with maxReceiveCount=3 — after 3 processing failures, message is automatically moved to DLQ, where it can be investigated without blocking the main row",
+        "Configure a row SQS FIFO instead of Standard — messages in rows FIFO are processed in order and a problematic message blocks only your group of messages, not the whole row",
+        "Increase visibility timeout to 24 hours — messages in processing become invisible for longer, giving the code a chance of retry attempts over a whole day before giving up",
+        "Enable Server-Side Encryption (SSE) in the row — corrupted messages are automatically discarded by SQS if they do not pass the integrity validation during the description"
+      ],
+      "explanation": "That's right. (DLQ) is the mechanism of the SQS to isolate problematic messages. When setting up the redirect policy with maxReceiveCount=3, messages that failed 3 times are automatically moved to the DLQ associated. The main row continues to process valid messages without blocking, and the team can investigate messages in DLQ to understand and correct errors.",
+      "hint": "What is the functionality of SQS automatically receives messages that have exceeded the maximum number of processing attempts, isolating them from the main row?",
+      "optionRationales": [
+        "That's right. (DLQ) is the mechanism of the SQS to isolate problematic messages. When setting up the redirect policy with maxReceiveCount=3, messages that failed 3 times are automatically moved to the DLQ associated. The main row continues to process valid messages without blocking, and the team can investigate messages in DLQ to understand and correct errors.",
+        "Incorrect. Increasing visibility timeout does not solve intrinsically problematic messages (such as corrupted images) — they will continue to fail regardless of how long the application tries. This would only delay the problem without isolating it. DLQ is the correct mechanism for isolating messages that repeatedly fail.",
+        "Partially correct about blocking behavior by Message Group ID in rows FIFO, but does not solve the problem of corrupted messages. A corrupted message in a Message Group still blocks that group indefinitely. The correct solution is the DLQ, which can be configured in both Standard and Standard rows FIFO to isolate messages that exceed maxReceiveCount.",
+        "Incorrect. SSE encrypts messages at rest for security — has no connection to message content validation (such as corrupted images). Corrupt messages in the CONTENT (invalid data for the application) pass through the validation of the integrity of the SQS no problem — SQS does not understand the business context of content."
+      ]
+    },
+    "saa-med-235": {
+      "text": "An application uses Amazon DynamoDB to store session data from users. The application is growing globally and the team wants users in Asia to have low latency when accessing their session data, without session changes made in Asia appearing inconsistent for the same user if he accesses the application from Europe a few seconds later. DynamoDB is more suitable?",
+      "options": [
+        "DynamoDB Global Tables — replicates data between multiple regions automatically with replication latency typically below 1 second (possibly consistency cross-region); for the session scenario, the application can use sticky sessions or route by region of origin of the user to minimize cross-region accesses in the same user",
+        "DynamoDB with Read Replicas in multiple regions — replicas of reading in each region serve users locally with low latency for readings, while written go to the master table in the primary region",
+        "Amazon ElastiCache for Redis with Redis Cluster Mode Global — Centralizes Redis sessions with replication between regions for low access latency",
+        "DynamoDB with Streams and Lambda for custom replication — each change in the primary region, a Lambda replicates data to tables DynamoDB in other regions"
+      ],
+      "explanation": "Correct.. DynamoDB Global Tables is the multi-region replication mechanism of DynamoDB — supports readings and writings in each region with asynchronous replication between regions (if any consistency). For user sessions, the cross-region inconsistency problem is usually mitigated via geographic rotation (Route 53) which keeps the user in the same region in most sessions. For cases where this is insufficient, the application can implement session versioning.",
+      "hint": "What is the functionality of DynamoDB creates replicated tables in multiple regions AWS with the support of E readings written in each region, for globally distributed applications?",
+      "optionRationales": [
+        "Correct.. DynamoDB Global Tables is the multi-region replication mechanism of DynamoDB — supports readings and writings in each region with asynchronous replication between regions (if any consistency). For user sessions, the cross-region inconsistency problem is usually mitigated via geographic rotation (Route 53) which keeps the user in the same region in most sessions. For cases where this is insufficient, the application can implement session versioning.",
+        "Incorrect. DynamoDB DO NOT have a separate 'Read Replicas' concept as the RDS. The DynamoDB Global Tables is the multi-region replication mechanism, where each region has a full copy and WRITABLE Table (not just reading)). DynamoDB Accelerator (DAX) It's a cache in memory but it's intra-regional..",
+        "Incorrect as recommended approach. DynamoDB Streams + Lambda for custom replication is a workable solution that reinvents what Global Tables already offers natively — with lower latency and greater reliability. Lambda, sorting of events, dealing with conflicts) makes this approach inferior to the Global Tables for this case.",
+        "Incorrect. Amazon ElastiCache does not support multi-region automatic replication (cross-region) as the DynamoDB Global Tables — ElastiCache is an intra-regional service. For sessions in multiple regions with ElastiCache, a complex customized implementation would be required, which is not the recommended standard."
+      ]
+    },
+    "saa-med-236": {
+      "text": "A company operates a web application with Auto Scaling Group (ASG). The team detected that the ASG is making scale-out and scale-in quickly in short cycles (thrashing), adding and removing instances several times an hour, even with stable traffic. This causes impact on users and generates unnecessary cost. What configuration of the ASG helps prevent such behavior?",
+      "options": [
+        "Increase the cooldown period of ASG (standard 300 seconds) — cooldown prevents new scaling activities from starting before the effect of the previous action is fully reflected in metrics, reducing thrashing",
+        "Configure the escalator protection in all instances of the ASG — this prevents the ASG remove instances, eliminating the removal and addition cycle",
+        "Increase the polling interval of the metrics of CloudWatch for 5 minutes — metrics with a higher interval produce less frequent scaling decisions",
+        "Replace the simple scaling policy with Target Tracking Scaling — Target Tracking continuously adjusts the ability to maintain a metric-target, avoiding overshooting that causes thrashing"
+      ],
+      "explanation": "Right. The cooldown period doesn't ASG defines how long it should go after a scaling action before another is started. A very short (or standard) cooldown can cause thrashing if metrics don't have time to stabilize after adding/removing instances. Increasing the cooldown gives time for traffic to spread through new instances and metrics to stabilize before a new scaling decision is made..",
+      "hint": "What parameter in Auto Scaling Group defines a waiting time after each scaling action, during which no new scaling action can be initiated?",
+      "optionRationales": [
+        "Right. The cooldown period doesn't ASG defines how long it should go after a scaling action before another is started. A very short (or standard) cooldown can cause thrashing if metrics don't have time to stabilize after adding/removing instances. Increasing the cooldown gives time for traffic to spread through new instances and metrics to stabilize before a new scaling decision is made..",
+        "Target Tracking is an improvement on Simple Scaling, because Target Tracking algorithm is designed to minimize thrashing by making gradual adjustments. However, the statement specifically asks about cooldown as a thrashing prevention mechanism — and cooldown is the configuration directly related to the behavior described. Target Tracking still uses warmup periods (equivalent to cooldown) to mitigate the same problem..",
+        "Incorrect. Scale-in protection in TODAS the instances would prevent the ASG to remove instances permanently — the group would always be in the maximum size reached, without dynamic adjustment. This eliminates the scale-in (not thrashing), causing continuous oversupply — the opposite and equally undesirable problem.",
+        "Incorrect. Auto Scaling uses metrics of CloudWatch, but has no direct control over the 'polling interval' of metrics for scaling purposes. ASG) and the warmup period are the correct controls for the frequency of scaling decisions. 5 minutes could introduce excessive latency in the scale-out (slower reaction to actual peaks of load)."
+      ]
+    },
+    "saa-med-237": {
+      "text": "A company uses Amazon RDS PostgreSQL with auto backup enabled (retention of 7 A developer accidentally executed a command DROP TABLE in a table critical to the 14:23 The team needs to recover the data with the least possible impact on production. What is the correct approach?",
+      "options": [
+        "Perform a Point-in-Time Recovery (PITR) for 14:22 (1 minutes before DROP TABLE) restoring to a new instance RDS — examine and export the data from the restored instance table, then import to the production instance, without need to replace the production instance",
+        "Enable Multi-AZ retrospectively in the instance — the standby instance was synchronized continuously before DROP TABLE and can be promoted to recover data",
+        "Use AWS Database Migration Service (DMS) to make a complete migration from the last snapshot to the production instance, preserving all transactions from the snapshot",
+        "Restore the latest automatic snapshot (previous to DROP TABLE) directly on the existing production instance — this will replace the production instance with the previous version of the bank"
+      ],
+      "explanation": "Correct. PITR restores the instance to any point in the last 7 days (according to set retention) for a NOVA instance RDS — does not replace the production instance directly. The correct process is: restore to T-1 minute (new instance), export the lost table of the restored instance (pg_dump), import to production (pg_restore). This minimizes the impact because production is not interrupted during restoration.",
+      "hint": "Remember: PITR restores to one NOVA instance (does not replace production) with granularity of minutes — this allows you to recover specific data from a table without replacing all production.",
+      "optionRationales": [
+        "Correct. PITR restores the instance to any point in the last 7 days (according to set retention) for a NOVA instance RDS — does not replace the production instance directly. The correct process is: restore to T-1 minute (new instance), export the lost table of the restored instance (pg_dump), import to production (pg_restore). This minimizes the impact because production is not interrupted during restoration.",
+        "Incorrect for two reasons: (1) Restoring a snapshot DOES NOT replace the existing instance — always creates a NOVA the court; and (2) restoring a daily snapshot would mean losing TODAS transactions since the last automatic snapshot (which may be hours before the DROP TABLE), while the PITR allows you to recover up to 5 minutes before the incident with granularity of minutes.",
+        "Incorrect. DMS is a continuous migration tool between different banks or for replication CDC — is not suitable for data recovery within the same bank. DMS has no direct access to snapshots for 'replay' transactions. PITR with new instance + table export is the correct approach.",
+        "Incorrect. Multi-AZ uses SYNCRON replication — standby replica TODAS the transactions of the primary, including the DROP TABLE. Promoting standby would result in a bank also without the table, as the deletion has already been replicated. Multi-AZ is for failure of availability (hardware/AZ failure protection), not for protection against logical data errors."
+      ]
+    },
+    "saa-med-238": {
+      "text": "A company has an e-commerce application with predictable traffic peaks (Black Friday, Cyber Monday). The team wants to ensure sufficient capacity ANTES of the peak, without depending that the Auto Scaling is reacting to the real-time burden. Auto Scaling implements this proactivity requirement?",
+      "options": [
+        "Step Scaling with low thread (ex.: 30% CPU) — when climbing aggressively before reaching 100% of CPU, o ASG always will have free capacity available during peak",
+        "Predictive Scaling — uses Machine Learning to analyze historical traffic patterns and pre-provide capacity automatically before peaks, without manual schedule setting",
+        "Target Tracking Scaling with RequestCount metric by Target — or ASG automatically increases before peak based on request forecast",
+        "Scheduled Scaling — the pre-set team sets actions to increase the minimum/desirable capacity of the ASG at specific times (e.g., Friday) 23h before Black Friday), ensuring ready instances before peak without metric dependence"
+      ],
+      "explanation": "Correct. The Scheduled Scaling of ASG allows for pre-configuration of specific date/hour capacity increases — ideal for predictable peaks such as Black Friday. Capacity is proactively added before peak, without expecting metrics such as CPU/RequestCount reach thresholds. After peak, other scheduled action can reduce capacity.",
+      "hint": "When peak dates/hours are known in advance (Black Friday), what is the policy ASG allows you to set up exactly QUANDO the capacity should be increased proactively?",
+      "optionRationales": [
+        "Correct. The Scheduled Scaling of ASG allows for pre-configuration of specific date/hour capacity increases — ideal for predictable peaks such as Black Friday. Capacity is proactively added before peak, without expecting metrics such as CPU/RequestCount reach thresholds. After peak, other scheduled action can reduce capacity.",
+        "Incorrect in response MAIS Predictive Scaling uses ML to predict and pre-provide based on historical patterns — it is excellent for recurring but unpredictable peaks at exact times. CONHECIDOS (Black Friday), Scheduled Scaling is more reliable and immediate — it doesn't depend on enough data history for prediction, and the team has direct control over when capacity is added.",
+        "Incorrect. Target Tracking Scaling is REATIVO — it responds to metrics that are already elevated, does not foresee future peaks. The reactive scale-out takes minutes after the peak start (collection of metrics + time of provisioning of instances), which can cause degradation during the beginning of the peak. The question asks capacity ANTES peak.",
+        "Incorrect. Step Scaling with low threshold is still REATIVO — waits for CPU reach 30% in steep peaks (like Black Friday at 00(h), the load may go from 10% for 300% in minutes — reactive Step Scaling may not be able to add fast enough capacity to avoid degradation."
+      ]
+    },
+    "saa-med-239": {
+      "text": "A company uses Amazon Kinesis Data Streams for real-time log intake. The team is seeing an increase in the 'ProvisionedThroughputExceedException' error when multiple applications try to read the same shard. What change solves this shard read throughput problem?",
+      "options": [
+        "Migratory to Amazon Kinesis Data Firehose — Firehose has no shard reading throughput limits",
+        "Increase the number of shards (Shard Splitting) — with more shards, the total readthroughput increases and the error ProvidedThroughputExceeded is solved",
+        "Enable Enhanced Fan-Out no Kinesis Data Streams — With Enhanced Fan-Out, every registered consumer receives 2 MB/s reading by shard via a connection HTTP/2 dedicated (push), without sharing the 2 MB/s standard reading among all shard consumers",
+        "Implement polling with exponential backoff in consumer applications — by reducing the frequency of polling, readings are below the limit of 2 MB/s per shard"
+      ],
+      "explanation": "Correct. The standard reading limit of Kinesis Data Streams 2 MB/s per shard, shared between TODOS The Enhanced Fan-Out (HTTP/2) gives each registered consumer their own connection with 2 MB/s dedicated to shard, eliminating the sharing gargalo. Ideal when multiple applications need to consume the same shard data.",
+      "hint": "The Kinesis has two consumption models: standard polling (2 MB/s shared by shard among all consumers) and a dedicated model that gives each consumer its own throughput — which is the second model?",
+      "optionRationales": [
+        "Correct. The standard reading limit of Kinesis Data Streams 2 MB/s per shard, shared between TODOS The Enhanced Fan-Out (HTTP/2) gives each registered consumer their own connection with 2 MB/s dedicated to shard, eliminating the sharing gargalo. Ideal when multiple applications need to consume the same shard data.",
+        "Incorrect for this specific problem. Shard Splitting increases the number of shards (and therefore the total stream throughput), but does not solve the problem when MULTIPLES CONSUMIDORES share the 2 MB/s of UM MESMO shard. Increase shards distributes data, but each new shard would still have the same limit of 2 MB/s shared among all consumers. Enhanced Fan-Out solves multiple consumers problem in the same shard.",
+        "Incorrect. Kinesis Data Firehose is a data delivery service for destinations (S3, Redshift, OpenSearch) — is not a substitute for Kinesis Data Streams for cases of multiple custom consumers who process data in real time. Besides, Firehose does not eliminate the problem of multiple consumers; the question is about reading the stream, not delivering data.",
+        "Incorrect as scalable solution. exponential backoff is a retry technique that temporarily reduces errors, but reduces the actual processing throughput — applications read data slower. For a case where multiple legitimate consumers need real-time reading, Enhanced Fan-Out is the correct solution that increases capacity without compromising processing speed.."
+      ]
+    },
+    "saa-med-240": {
+      "text": "A company has one Application Load Balancer (ALB) in front of the fora EC2 in one Auto Scaling A developer noticed that when the ALB detects an instance with failure in the health check and starts the deregistration process, still arrive errors 502/503 no ALB for a few seconds. How to avoid these errors while removing an instance?",
+      "options": [
+        "Configure Connection Draining (Deregistration Delay) no ALB Target Group — it defines a period (default) 300s, configurable) during which ALB does not send NOVAS requests to the instance being deregistered, but allows the requests in progress to be completed before removing the instance from the pool",
+        "Configure a more aggressive health check in ALB (interval 5s, threshold of 2 failures) — or ALB removes sick instances faster, before they start returning errors",
+        "Enable Stickiness (sticky sessions) on ALB — existing sessions continue to be routed to the same instance, preventing users from receiving errors when having their sessions migrated to another instance.",
+        "Use AWS Auto Scaling Lifecycle Hooks to pause the scale-in, run one Lambda Waiting 60 seconds, and only then complete the termination — the ALB has time to remove the instance before it is finished"
+      ],
+      "explanation": "Correct. Connection Draining (called Deregistration Delay no ALB) does exactly that: when an instance begins to be removed (via Auto Scaling or health check), or ALB stop sending NOVAS requests for it, but waits for the set timeout for existing connections to end gracefully. 502/503 caused by connections being cut abruptly.",
+      "hint": "What is the functionality of ALB Target Group defines a waiting period during which new requests are not sent to an instance being removed, but existing ones may complete?",
+      "optionRationales": [
+        "Correct. Connection Draining (called Deregistration Delay no ALB) does exactly that: when an instance begins to be removed (via Auto Scaling or health check), or ALB stop sending NOVAS requests for it, but waits for the set timeout for existing connections to end gracefully. 502/503 caused by connections being cut abruptly.",
+        "Incorrect for the problem described. More aggressive health checks help to DETECTAR patients earlier, but do not resolve the problem of errors during DEREGISTRATION of a court which Auto Scaling is removing (by scale-in, for example). The instance may be healthy but being removed by ASG — Connection Draining is the mechanism that protects against errors during this process..",
+        "Partially correct in concept (Lifecycle Hooks can be used to coordinate graceful closure) but it is a more complex and indirect solution. ALB Target Group is the right and direct mechanism — it ensures that the ALB stop sending traffic to the instance before it is completed, without the need for additional Lifecycle Hooks for this specific case.",
+        "Incorrect. Stickiness ensures that a user is routed to MESMA instance in subsequent requests (useful for local session status), but does not solve the problem of errors while removing an instance. In removal, Stickiness causes the ALB need to migrate all sessions glued to that instance — without Connection Draining, these sessions may receive abrupt errors."
+      ]
+    }
+  }
+}
