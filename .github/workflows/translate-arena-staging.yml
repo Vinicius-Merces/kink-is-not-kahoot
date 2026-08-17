@@ -2,7 +2,6 @@ name: Gerar CloudArena EN
 
 permissions:
   contents: write
-  models: read
 
 on:
   push:
@@ -23,6 +22,10 @@ concurrency:
 jobs:
   translate:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,15 +45,20 @@ jobs:
             test -n "$REQUEST"
             echo "path=$REQUEST" >> "$GITHUB_OUTPUT"
           fi
+      - name: Instalar motor de tradução local
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'torch>=2.3,<3' --index-url https://download.pytorch.org/whl/cpu
+          pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
       - name: Validar ferramentas
         run: |
-          python3 -m py_compile scripts/translate_arena_staging_with_github_models.py
+          python3 -m py_compile scripts/translation_integrity.py
+          python3 -m py_compile scripts/offline_mt.py
+          python3 -m py_compile scripts/translate_arena_staging_offline.py
           python3 -m py_compile scripts/build_arena_translation.py
           python3 -m py_compile scripts/validate_arena_locale_parity.py
-      - name: Gerar staging pedagógico EN
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 scripts/translate_arena_staging_with_github_models.py "${{ steps.req.outputs.path }}"
+      - name: Gerar staging pedagógico EN offline
+        run: python3 scripts/translate_arena_staging_offline.py "${{ steps.req.outputs.path }}"
       - name: Extrair certId
         id: cert
         shell: bash
@@ -68,5 +76,6 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(i18n): add validated English CloudArena overlay'
+          git commit -m 'feat(i18n): add validated offline English CloudArena overlay'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
