@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dea-c01",
+    "range": "020-028",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dea-avc-020": {
+      "optionReasons": {
+        "dea-avc-020:option:0": "",
+        "dea-avc-020:option:1": "It's the closest because 300 Task states would 'process' partitions — but chaining them by hand is impossible to maintain, without controlled parallelism or item tolerance; iterating on the list with limited competition and Retry/Catch by iteration is the state MAP (Distributed Map in large scale).",
+        "dea-avc-020:option:2": "A unique execution with timeout of 1 year does not parallelize or isolate partition failures — only wait.",
+        "dea-avc-020:option:3": "A Wait of 24h only pauses flow — does not process 300 partitions."
+      },
+      "finalJustifications": [
+        "Because the state MAP (or Distributed Map) itera on 300 partitions with MaxCompetition=10 and Retry/Catch by iteration — controlled parallelism and item failure tolerance, elegantly.",
+        "Because 300 Task states chained up on partitions with MaxCompetition=10 and Retry/Catch by iteration — controlled parallelism and item failure tolerance, elegantly.",
+        "Because the unique execution with timeout of 1 year itera on the 300 partitions with MaxCompetition=10 and Retry/Catch by iteration — controlled parallelism and item failure tolerance.",
+        "Because the Wait of 24h itera on the 300 partitions with MaxCompetition=10 and Retry/Catch by iteration — controlled parallelism and item failure tolerance, elegantly."
+      ]
+    },
+    "dea-avc-021": {
+      "optionReasons": {
+        "dea-avc-021:option:0": "It's the closest because it treats the duplicates on the dashboard — but not the duplicates. PREVINE in origin: the re-execution continues to record repeated lines, and every downstream consumer needs to deal with it; the correct principle is IDEMPOTENCE, so that re-execution produces the same final state.",
+        "dea-avc-021:option:1": "Roll 1x per week does not eliminate duplicate in a partial failure re-execution — only reduces frequency.",
+        "dea-avc-021:option:2": "",
+        "dea-avc-021:option:3": "Deactivating retries leaves partial failures without recovery — duplicate exchange for data loss."
+      },
+      "finalJustifications": [
+        "Because the idempotence makes the reexecution produce the same final state: overwrite the target partition (INSERT OVERWRITE), use MERGE/upsert by key or deduplication keys removes duplicate records.",
+        "Because accepting and treating on the dashboard makes the reexecution produce the same final state: overwrite the target partition, use MERGE/upsert by key or deduplication keys removes duplicates.",
+        "♪ Why roll ♪ 1x per week makes the rerun produce the same final state: overwrite the target partition, use MERGE/upsert by key or deduplication keys removes duplicate records.",
+        "Because deactivating recesses makes the rerun produce the same final state: overwrite the target partition, use MERGE/upsert by key or deduplication keys removes duplicate records."
+      ]
+    },
+    "dea-avc-022": {
+      "optionReasons": {
+        "dea-avc-022:option:0": "SELECT * read MAIS columns — increases scanning instead of cutting waste.",
+        "dea-avc-022:option:1": "",
+        "dea-avc-022:option:2": "It's the closest because Partition Projection reduces the cost of actually consulting — but it accelerates the PLANEJAMENTO of partitions, does not avoid rescanning the data when the MESMA query repeats on static data; serving the cache result without rescanning is Query Result Reuse.",
+        "dea-avc-022:option:3": "Increase workgroup does not exist as cost adjustment — workgroup separates metrics/limits, does not cache results."
+      },
+      "finalJustifications": [
+        "Because Query Result Reuse serves the cache result when the same query repeats within the maximum age — how data changes 1x/day, dashboards stop rescanning everything at each execution.",
+        "Because Partition Projection serves the cache result when the same query repeats within the maximum age — how data changes 1x/day, dashboards stop rescanning everything at each execution.",
+        "Because SELECT * serves the cache result when the same query repeats within the maximum age — how data changes 1x/day, dashboards stop rescanning everything at each execution.",
+        "Because increasing the workgroup serves the result in cache when the same query repeats within the maximum age — how data changes 1x/day, dashboards stop rescanning everything at each execution."
+      ]
+    },
+    "dea-avc-023": {
+      "optionReasons": {
+        "dea-avc-023:option:0": "It's the closest because two alarms by e-mail cover both signals — but fire ISOLADAMENTE, generating the noise you want to avoid and without the logic 'both together'; combine child alarms with AND in one action is the Composite Alarm.",
+        "dea-avc-023:option:1": "Logs Insights scheduled to consult logs periodically — does not combine alarms with logic AND in real time.",
+        "dea-avc-023:option:2": "",
+        "dea-avc-023:option:3": "A dashboard shows the state — does not fire conditional alert by combining two alarms."
+      },
+      "finalJustifications": [
+        "Because Composite Alarm combines the fault alarm of Glue And Firehose's delay with AND in a single action — shoots only when the two occur together, without the noise of isolated alerts.",
+        "Because two e-mail alarms combine the failure of Glue And Firehose's delay with AND in a single action — they only fire when the two occur together, without the noise of isolated alerts.",
+        "Because the scheduled Logs Insights combines the failure of Glue And Firehose's delay with AND in a single action — shoots only when the two occur together, without the noise of isolated alerts.",
+        "Because the colorful dashboard combines the failure of Glue And Firehose's delay with AND in a single action — shoots only when the two occur together, without the noise of isolated alerts."
+      ]
+    },
+    "dea-avc-025": {
+      "optionReasons": {
+        "dea-avc-025:option:0": "Lack of space in S3 would cause writing error — not an overloaded executioner while the others were idle.",
+        "dea-avc-025:option:1": "",
+        "dea-avc-025:option:2": "Bucket in another region adds uniform latency — does not concentrate the load on a single executor.",
+        "dea-avc-025:option:3": "It's the closest because bookmarks are real configuration of Glue — But they control the INCREMENTAL, not the load distribution between executors; an executor working alone for hours while the others idle is the classic symptom of DATA SKEW (key concentrating data)."
+      },
+      "finalJustifications": [
+        "Because the diagnosis is data skew: a key/partition concentrates the data on an executor; it is corrected by re-partitioning, jumping the key or treating the dominant key to the part.",
+        "Because the diagnosis is lack of space in S3: the data concentrates on an executor; it is corrected by re-partitioning, jumping the key or treating the dominant key to the part.",
+        "Because the diagnosis is the bucket in another region: the data concentrates on an executor; it is corrected by re-partitioning, jumping the key or treating the dominant key to the part.",
+        "Because the diagnosis is the bookmarks activated: the data concentrates on an executor; it is corrected by re-partitioning, jumping the key or treating the dominant key to the part."
+      ]
+    },
+    "dea-avc-026": {
+      "optionReasons": {
+        "dea-avc-026:option:0": "Trusting the memory of the team is not traceability — failure and not scale.",
+        "dea-avc-026:option:1": "A chat to ask who moved is anecdotal — not structured and auditable lineage.",
+        "dea-avc-026:option:2": "It's the closest because backups preserve DADOS and seem to help in traceability — but backup is RECOVERY, no LINHAGEM: does not say which tables/jobs/sources the given came from; the lineage comes from the central catalog (Glue Data Catalog) + job/execution tracking + raw→curated→serving layer convention.",
+        "dea-avc-026:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Glue Data Catalog as a real source, job/execution tracking (Glue/Step Functions) and the raw→curated→serving convention rebuild from which tables, jobs and sources the dashboard data came.",
+        "Because the memory of the team as a source of truth, the tracking of jobs/executions and the raw→curated→serving convention rebuild from which tables, jobs and sources the dashboard data came.",
+        "Because the chat channel as a real source, job tracking/execution and the raw→curated→serving convention rebuild from which tables, jobs and sources the dashboard data came.",
+        "Because backups as a real source, job/execution tracking and the raw→curated→serving convention rebuild from which tables, jobs and sources the dashboard data came."
+      ]
+    },
+    "dea-avc-027": {
+      "optionReasons": {
+        "dea-avc-027:option:0": "WHERE combined 'verbally' is not technical control — any query without the filter would see everything.",
+        "dea-avc-027:option:1": "One copy per region duplicates data and maintenance — the opposite of 'without doubling''.",
+        "dea-avc-027:option:2": "It's the closest because a regional prefix Bucket Policy would restrict access to files — but it only works if the data are FISICAMENTE by region and operates at the level of OBJETO, not of LINHA in the same table; filter lines by region in the same table via Athena is the row-level security of Lake Formation.",
+        "dea-avc-027:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the data filters (row-level security) of Lake Formation associated with the main ones make each manager see only the lines of the region itself in MESMA Table, way Athena — without duplicate data.",
+        "Because the bucket policy by prefix makes each manager see only the lines of the region itself in the same table, via Athena — without doubling data from the lake between regions.",
+        "Because WHERE verbally combined makes each manager see only the lines of the region itself in the same table, via Athena — without doubling data from the lake between regions.",
+        "Because the copy by region makes each manager see only the lines of the region itself in the same table, via Athena — without doubling data from the lake between regions."
+      ]
+    },
+    "dea-avc-028": {
+      "optionReasons": {
+        "dea-avc-028:option:0": "",
+        "dea-avc-028:option:1": "It's the closest because it points to the SSE-KMS, which is where the problem is — but the statement is FALSA: SSE-KMS SUPORTA cross-account access; what's missing is the KEY POLICY of CMK grant kms:Decrypt the account/roll partner, because the permission of the bucket alone does not decipher objects SSE-KMS.",
+        "dea-avc-028:option:2": "Making the public bucket is insecure and unnecessary — cross-account access is made by policy, not exposing the bucket.",
+        "dea-avc-028:option:3": "No need to create user IAM in the owner's account — the partner accesses the role itself, provided the key policy authorizes."
+      },
+      "finalJustifications": [
+        "Because objects SSE-KMS require kms:Decrypt KEY POLICY of CMK for the account/roll partner: the bucket policy authorizes the object, but without permission in the key the reading gives AccessDenied.",
+        "Because SSE-KMS does not support cross-account: the bucket policy authorizes the object, but the partner account reading gives AccessDenied anyway on encrypted objects.",
+        "Because the bucket needs to be public for SSE-KMS: the bucket policy authorizes the object, but without the public exposure the read of the partner account gives AccessDenied.",
+        "Because the partner needs a user IAM in the dona account: the bucket policy authorizes the object, but without this user the reading of the objects SSE-KMS gives AccessDenied."
+      ]
+    }
+  }
+}

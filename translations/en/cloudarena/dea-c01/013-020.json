@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dea-c01",
+    "range": "013-020",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dea-med-013": {
+      "optionReasons": {
+        "dea-med-013:option:0": "",
+        "dea-med-013:option:1": "It's the closest because DISTSTYLE EVEN distributes the data in a balanced way — but balancing does not co-location the JOIN: how the lines stay in us different by client_id, the Redshift REDISTRIBUI data at the time of join (the shuffle that is to be avoided); distribute by KEY in client_id puts the corresponding lines in the same node.",
+        "dea-med-013:option:2": "DISTSTYLE ALL replicates the entire table in all nodes — unfeasible for a table FATO Giant.",
+        "dea-med-013:option:3": "'AUTO deactivated' is not a distribution style — does not define the key that eliminates shuffle."
+      },
+      "finalJustifications": [
+        "Because DISTSTYLE KEY in client_id in the two tables places the corresponding lines in the MESMO node: or JOIN is local and the redistribution of data between us disappears.",
+        "Because DISTSTYLE EVEN in the two tables put the corresponding lines in the same node: the JOIN is local and the redistribution of data between us disappears in the consultations.",
+        "Because DISTSTYLE ALL in fact it places the corresponding lines in the same node: the JOIN is local and the redistribution of data between us disappears in the cluster consultations.",
+        "Why disable the DISTSTYLE AUTO puts the corresponding lines in the same node: the JOIN is local and the redistribution of data between us disappears in the cluster consultations."
+      ]
+    },
+    "dea-med-014": {
+      "optionReasons": {
+        "dea-med-014:option:0": "It's the closest one to associate. DISTSTYLE a JOIN and distribution seems to fit in a fact — but ALL COPIA the table INTEIRA for TODOS the knots: in a fact with billions of lines this explodes the storage and maintenance; ALL is for small and stable DIMENSION tables, accelerating the joins.",
+        "dea-med-014:option:1": "Intense writing is worse with ALL — every recording needs to replicate in all nodes.",
+        "dea-med-014:option:2": "Temporary staging does not benefit from replication in all nodes — ALL It's not for that.",
+        "dea-med-014:option:3": ""
+      },
+      "finalJustifications": [
+        "Because DISTSTYLE ALL replicates the table in all nodes: ideal for small and little altered DIMENSIONS, leaving the JOIN location without redistributing the fact — without bursting storage.",
+        "Because DISTSTYLE ALL replicates the table in all knots: ideal for billions of lines facts, leaving the JOIN location without redistributing the size — without bursting the cluster storage.",
+        "Because DISTSTYLE ALL replicates the table in all nodes: ideal for any intense writing table, leaving the JOIN location without redistributing data — without blowing up storage.",
+        "Because DISTSTYLE ALL replicates the table in all nodes: ideal for temporary staging, leaving the JOIN location without redistributing data — without bursting cluster storage."
+      ]
+    },
+    "dea-med-015": {
+      "optionReasons": {
+        "dea-med-015:option:0": "Restarting the cluster does not add capacity for simultaneous consultations — does not resolve competition.",
+        "dea-med-015:option:1": "It's the closest because folding the knots (Elastic Resize) would solve the second peak — but in shape PERMANENTE: you pay extra capacity all week, and the requirement is NOT pay bigger cluster all the time; adding transitional capacity only at peaks is the Competition Scaling.",
+        "dea-med-015:option:2": "Migratory to RDS exchange the data warehouse for a transactional bank — unsuitable for analytical BI.",
+        "dea-med-015:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Competition Scaling automatically adds transient clusters to the simultaneous morning Monday consultation peaks and removes them later — without paying a larger cluster for the rest of the week.",
+        "Because the Elastic Resize permanent adds capacity automatically at the simultaneous consultations peaks of Monday mornings and then removes it — without paying a larger cluster for the rest of the week.",
+        "Why rebooting the cluster automatically adds transitional capacity to the simultaneous morning consultations peaks on Monday mornings and then removes it — without paying a larger cluster all week long.",
+        "Why migrate to RDS adds transitional capacity automatically to the simultaneous consultations peaks of Monday mornings and then removes it — without paying a larger cluster all week long."
+      ]
+    },
+    "dea-med-016": {
+      "optionReasons": {
+        "dea-med-016:option:0": "Cluster dc2 always connected paid 24/7 — the opposite of 'only for use' for sporadic loads.",
+        "dea-med-016:option:1": "Cluster ra3 with reservation of 3 years is continuous capacity commitment — inadequate for use of a few hours a week.",
+        "dea-med-016:option:2": "It's the closest because the Redshift Spectrum consults data in S3 and it sounds 'serverless' — but he EXIGE a cluster Redshift (or endpoint Serverless) to run the queries: it is not warehouse alone; paying only for the processing consumed without managing cluster is the Redshift Serverless.",
+        "dea-med-016:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Redshift Serverless charges for RPU-time only during consultations and does not require clustering — the exact fit for sporadic and unpredictable analytical loads, with idle weeks at no cost.",
+        "Because the dc2 cluster always connected collects by RPU-time only during consultations and does not require clustering — the fit for sporadic and unpredictable loads, with idle weeks at no cost.",
+        "Because the reserved ra3 cluster charges for RPU-time only during consultations and does not require clustering — the fit for sporadic and unpredictable loads, with idle weeks at no cost.",
+        "Because Redshift Spectrum alone collects by RPU-time only during consultations and does not require clustering — the fit for sporadic and unpredictable loads, with idle weeks at no cost."
+      ]
+    },
+    "dea-med-017": {
+      "optionReasons": {
+        "dea-med-017:option:0": "It's the closest because the UNLOAD also materializes a result in Parquet no S3 — But it's command of the REDSHIFT, and the requirement is to use the PROPER ATHENA; materialize a SELECT in Parquet partitioned inside the Athena is the CTAS (CREATE TABLE AS SELECT).",
+        "dea-med-017:option:1": "VACUUM reorganize/recover table space — does not materialize query result.",
+        "dea-med-017:option:2": "Trigger of DynamoDB reacts to changes in items — nothing to do with materializing aggregation of Athena.",
+        "dea-med-017:option:3": ""
+      },
+      "finalJustifications": [
+        "Because CTAS of the Athena record the result of the SELECT already in Parquet partitioned in S3 in the creation itself — the aggregate cut is materialized, without scanning the 2 TB of JSON at each consultation.",
+        "Because UNLOAD of the Redshift record the result of the SELECT already in Parquet partitioned in S3 in the creation itself — the aggregate cut is materialized, without scanning the 2 TB of JSON at each consultation.",
+        "Because VACUUM record the result of the SELECT already in Parquet partitioned in S3 in the creation itself — the aggregate cut is materialized, without scanning the 2 TB of JSON at each consultation.",
+        "Because the trigger of DynamoDB record the result of the SELECT already in Parquet partitioned in S3 in the creation itself — the aggregate cut is materialized, without scanning the 2 TB of JSON at each consultation."
+      ]
+    },
+    "dea-med-018": {
+      "optionReasons": {
+        "dea-med-018:option:0": "It's the closest because the Requester Country is also control of CUSTO no S3 — but he transfers the transfer account to the lower; he does not impose LIMITE of bytes scanned by reference no Athena nor does it separate metrics per team; the ceiling of scan and metrics per group are Workgroups.",
+        "dea-med-018:option:1": "Increase timeout lets queries run more — does not limit cost or separate metrics.",
+        "dea-med-018:option:2": "",
+        "dea-med-018:option:3": "Federated Query consult external sources (RDS, DynamoDB) — does not impose cost limit or metrics per team."
+      },
+      "finalJustifications": [
+        "Because the Workgroups impose a limit of bytes scanned by query and isolate the use metrics per group (marketing, financial) — they contain the cost and separate the consumption of each team.",
+        "Because S3 Requester Pays imposes a limit of bytes scanned by query and isolates the use metrics by group (marketing, financial) — contains the cost and separates the consumption of each time.",
+        "Because increasing the timeout imposes a limit of bytes scanned by query and isolates the use metrics per group (marketing, financial) — contains the cost and separates the consumption of each timeout.",
+        "Because the Federated Query imposes a limit of bytes scanned by query and isolates the use metrics by group (marketing, financial) — contains the cost and separates the consumption of each team."
+      ]
+    },
+    "dea-med-019": {
+      "optionReasons": {
+        "dea-med-019:option:0": "",
+        "dea-med-019:option:1": "It's the closest because a scan really reads the whole table for analysis — but CONSOME the production RCUs (which the requirement vetoes) and does not integrate to the data lake for SQL complex; export PITR for the S3 without spending RCU and consult with Athena answers the two points.",
+        "dea-med-019:option:2": "Global Table replica between regions for availability — not for analysis SQL without consuming capacity.",
+        "dea-med-019:option:3": "DynamoDB has no 'reading replicas' like the RDS — the concept does not apply."
+      },
+      "finalJustifications": [
+        "Because the native export of DynamoDB (from PITR) record no S3 without consuming table RCUs, and the Athena spin the SQL complex next to the data lake — without touching the production capacity.",
+        "Because the massive scan records on S3 without consuming table RCUs, and the Athena spin the SQL complex next to the data lake — without touching the production capacity of the table in use.",
+        "Because the Global Table records on S3 without consuming table RCUs, and the Athena spin the SQL complex next to the data lake — without touching the production capacity of the table in use.",
+        "Because the reading replica records in S3 without consuming table RCUs, and the Athena spin the SQL complex next to the data lake — without touching the production capacity of the table in use."
+      ]
+    },
+    "dea-med-020": {
+      "optionReasons": {
+        "dea-med-020:option:0": "Exporting to spreadsheets takes data from the warehouse — is not internal managed pre-computer.",
+        "dea-med-020:option:1": "More we accelerate the recompute — not pre-compute or store the aggregate result.",
+        "dea-med-020:option:2": "",
+        "dea-med-020:option:3": "It's the closest because a common view also encapsulates the aggregation — but it's just a query SALVA: recomposes everything to each execution, without pre-computer or storage; pre-computer inside the warehouse with managed update is Materialized View."
+      },
+      "finalJustifications": [
+        "Because Materialized View pre-computes and ARMAZENA the aggregation inside the warehouse, with REFRESH (incremental when possible) — dashboards read the result ready instead of always recompute.",
+        "Why export to pre-compute spreadsheets and store the aggregation inside the warehouse, with REFRESH incremental — dashboards read the result ready instead of always recompute.",
+        "Because increase the nodes pre-compute and store the aggregation within the warehouse, with REFRESH incremental — dashboards read the result ready instead of always recompute.",
+        "Because the common view pre-computes and stores the aggregation inside the warehouse, with REFRESH incremental — dashboards read the result ready instead of always recompute."
+      ]
+    }
+  }
+}
