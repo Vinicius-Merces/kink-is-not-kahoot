@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Shared mechanical integrity checks for PT-BR -> EN exam translations.
+"""Shared mechanical integrity checks for PT-BR -> EN translations.
 
 The goal is not to judge prose style. It protects semantic anchors that must not
-silently change during translation: AWS/service names, technical acronyms,
-numeric literals and option/rationale cardinality. Checks are field-local, so a
-service mentioned in source option 3 must remain in translated option 3 rather
-than merely appearing somewhere else in the question.
+silently change during translation: AWS/service names, technical acronyms and
+numeric facts. Checks are field-local, so a service mentioned in source option 3
+must remain in translated option 3 rather than merely appearing elsewhere.
 """
 from __future__ import annotations
 
@@ -35,12 +34,16 @@ TECHNICAL_PATTERNS = [
 ]
 
 TECHNICAL_RE = re.compile(r"\b(?:" + "|".join(TECHNICAL_PATTERNS) + r")\b", re.I)
+
 # Do not start a numeric anchor inside an alphanumeric identifier such as C01,
-# C03, EC2 or S3. Those identities are protected by technical anchors instead.
-# Standalone facts such as 6 Rs, 90 days, 24/7, percentages and storage sizes
-# remain numeric anchors.
+# C03, EC2 or S3. Identifiers are protected by technical anchors instead.
+# Common translated time units are consumed by the matcher but normalized to the
+# numeric value, so `9 anos` -> `9 years` is considered equivalent. Percentages and
+# byte-size units retain their semantic suffix because those symbols/units do not
+# change across PT/EN.
 NUMBER_RE = re.compile(
-    r"(?<![A-Za-z0-9])\d+(?:[.,]\d+)?(?:\s*%|\s*(?:ms|s|sec|seconds?|minutes?|hours?|days?|months?|years?|GB|TB|PB))?",
+    r"(?<![A-Za-z0-9])(?P<number>\d+(?:[.,]\d+)?)"
+    r"(?P<suffix>\s*%|\s*(?:ms|s|sec|seconds?|segundos?|minutes?|minutos?|hours?|horas?|days?|dias?|months?|meses?|years?|anos?|GB|TB|PB))?",
     re.I,
 )
 
@@ -54,7 +57,6 @@ def technical_anchors(text: str) -> set[str]:
     anchors = set()
     for match in TECHNICAL_RE.finditer(text or ""):
         token = re.sub(r"\s+", "", match.group(0)).casefold()
-        # Normalize equivalent surface forms that can vary harmlessly.
         token = token.replace("instances", "instance")
         anchors.add(token)
     return anchors
@@ -63,8 +65,16 @@ def technical_anchors(text: str) -> set[str]:
 def numeric_anchors(text: str) -> set[str]:
     anchors = set()
     for match in NUMBER_RE.finditer(text or ""):
-        token = re.sub(r"\s+", "", match.group(0)).replace(",", ".").casefold()
-        anchors.add(token)
+        number = match.group("number").replace(",", ".").casefold()
+        suffix = re.sub(r"\s+", "", match.group("suffix") or "").casefold()
+        if "%" in suffix:
+            anchors.add(number + "%")
+        elif suffix in {"gb", "tb", "pb"}:
+            anchors.add(number + suffix)
+        else:
+            # Human-language duration units are translated, so the numeric value is
+            # the stable cross-locale fact. Technical units remain preserved above.
+            anchors.add(number)
     return anchors
 
 
