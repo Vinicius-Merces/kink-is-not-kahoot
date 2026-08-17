@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate CloudPath locale catalogs and referenced UI translation keys."""
+"""Validate CloudPath modular locale catalogs and referenced translation keys."""
 
 from __future__ import annotations
 
@@ -21,14 +21,41 @@ KEY_LITERAL_PATTERN = re.compile(
 )
 
 
+def deep_merge(target: dict, source: dict) -> dict:
+    for key, value in source.items():
+        if isinstance(value, dict):
+            current = target.get(key)
+            if current is not None and not isinstance(current, dict):
+                raise ValueError(f"catalog namespace collision at {key}")
+            target[key] = deep_merge(current or {}, value)
+        else:
+            if key in target and isinstance(target[key], dict):
+                raise ValueError(f"catalog namespace collision at {key}")
+            target[key] = value
+    return target
+
+
+def catalog_files(locale: str) -> list[Path]:
+    directory = LOCALES_DIR / locale
+    if not directory.exists():
+        raise ValueError(f"missing locale directory: {directory.relative_to(ROOT)}")
+    files = sorted(directory.glob("*.json"))
+    if not files:
+        raise ValueError(f"no locale catalogs in {directory.relative_to(ROOT)}")
+    return files
+
+
 def load_catalog(locale: str) -> dict:
-    path = LOCALES_DIR / locale / "ui.json"
-    if not path.exists():
-        raise ValueError(f"missing locale catalog: {path.relative_to(ROOT)}")
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"invalid JSON in {path.relative_to(ROOT)}: {exc}") from exc
+    merged: dict = {}
+    for path in catalog_files(locale):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid JSON in {path.relative_to(ROOT)}: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise ValueError(f"catalog root must be an object: {path.relative_to(ROOT)}")
+        deep_merge(merged, payload)
+    return merged
 
 
 def flatten(value: object, prefix: str = "") -> dict[str, object]:
@@ -56,8 +83,21 @@ def main() -> int:
     errors: list[str] = []
     flattened: dict[str, dict[str, object]] = {}
 
+    try:
+        base_files = {p.name for p in catalog_files(BASE_LOCALE)}
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
+
     for locale in SUPPORTED_LOCALES:
         try:
+            locale_files = {p.name for p in catalog_files(locale)}
+            missing_files = sorted(base_files - locale_files)
+            extra_files = sorted(locale_files - base_files)
+            if missing_files:
+                errors.append(f"{locale}: missing catalog files: {', '.join(missing_files)}")
+            if extra_files:
+                errors.append(f"{locale}: extra catalog files: {', '.join(extra_files)}")
             flattened[locale] = flatten(load_catalog(locale))
         except ValueError as exc:
             errors.append(str(exc))
@@ -97,7 +137,8 @@ def main() -> int:
 
     print(
         f"CloudPath i18n OK: {len(SUPPORTED_LOCALES)} locales, "
-        f"{len(base_keys)} catalog keys, {len(refs)} frontend references."
+        f"{len(base_files)} catalog files/locale, {len(base_keys)} keys, "
+        f"{len(refs)} frontend references."
     )
     return 0
 
