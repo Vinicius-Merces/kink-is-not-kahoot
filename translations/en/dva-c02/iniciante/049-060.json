@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "iniciante",
+    "sourcePath": "data/exams/dva-c02/iniciante.json",
+    "range": "049-060",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-ini-049": {
+      "text": "As a recurrent practice of safety hygiene, what the AWS recommends to do periodically with user key accesses IAM which need to exist?",
+      "options": [
+        "Share them among team members to reduce the amount of keys",
+        "Post them on the internal wiki to facilitate access",
+        "Rotate them regularly: create the new key, update the applications, disable and then delete the old one",
+        "Print and save on paper as a single copy"
+      ],
+      "explanation": "Periodic rotation limits the window of use of a eventually leaked key; the flow with intermediate deactivation allows to reverse without downtime if something still uses the old one.",
+      "hint": "Static key that needs to exist must at least have a term of validity in practice: rotate, migrate, retire.",
+      "optionRationales": [
+        "Periodic rotation limits the window of use of a eventually leaked key; the flow with intermediate deactivation allows to reverse without downtime if something still uses the old one.",
+        "Sharing credentials destroys individual traceability and expands exposure.",
+        "Wiki is a repository of broad knowledge — disclosing credentials there is direct exposure.",
+        "Inviable operationally and without any gain — correct control is rotation and minimal use of static keys."
+      ]
+    },
+    "dva-ini-050": {
+      "text": "A developer of the A account needs to temporarily access resources in the B account of the same company. The security team set up a role in the B account relying on the A account. What service/operation the developer uses to obtain temporary credentials for this role?",
+      "options": [
+        "Request key accesses from account manager B",
+        "AWS STS with the AssumeRole operation, which returns temporary credentials of the B account roll",
+        "Create an additional root user in the B account",
+        "Close account B within account A"
+      ],
+      "explanation": "Security Token Service issues short-term credentials: AssumeRole on the trusted role of the B account grants temporary and auditable access, without creating permanent users or keys in the other account.",
+      "hint": "The 'temporary token counter' of AWS: Take the roll and receive credentials with time to expire.",
+      "optionRationales": [
+        "Security Token Service issues short-term credentials: AssumeRole on the trusted role of the B account grants temporary and auditable access, without creating permanent users or keys in the other account.",
+        "Transferring permanent credentials between people is basic violation — the correct mechanism are roles and STS.",
+        "Each account has a single root — and you never use root for routine access.",
+        "There is no cloning of accounts — access between accounts is resolved by trust between roles."
+      ]
+    },
+    "dva-ini-051": {
+      "text": "A Bucket S3 of an application keeps internal customer documents. The team wants a lock in the configuration that prevents that QUALQUER political or ACL make this content public, even by mistake from a developer. Which resource applies this protection?",
+      "options": [
+        "Move objects to the Standard-IA class",
+        "Enable bucket versioning",
+        "S3 Block Public Access enabled in the pocket (or account))",
+        "Rename the bucket with a hard to guess name"
+      ],
+      "explanation": "Block Public Access overlaps with policies and ACLs: with it active, public concessions are blocked or ignored — the network of protection against accidental exposures.",
+      "hint": "The master's gift S3 that vetoes public access even when someone tries to grant.",
+      "optionRationales": [
+        "Block Public Access overlaps with policies and ACLs: with it active, public concessions are blocked or ignored — the network of protection against accidental exposures.",
+        "Version protects against loss of versions — not against public exposure.",
+        "Storage class treats cost/access — irrelevant for public visibility.",
+        "Darkness is not access control — listings and leaks reveal names."
+      ]
+    },
+    "dva-ini-052": {
+      "text": "One API no API Gateway will be consumed by partners, and the team wants to distribute a key to each partner in order to apply Throttling and monthly quotes per consumer. API Gateway implements this control, and what security relief applies?",
+      "options": [
+        "API keys, which are the official user authentication mechanism of the API Gateway",
+        "Separate internships for each partner",
+        "Distribute credentials IAM account for each partner",
+        "API keys associated with use plans — remembering that API keys control consumption and identification, but do not replace authentication/authorization"
+      ],
+      "explanation": "Use plans with API keys apply throttling and quotes per consumer; as keys are not strong authentication mechanism, real security should come from autors (Cognito/IAM/Lambda).",
+      "hint": "Key API measures and limits the consumption of each partner — but the real 'identity crack' is another mechanism.",
+      "optionRationales": [
+        "Use plans with API keys apply throttling and quotes per consumer; as keys are not strong authentication mechanism, real security should come from autors (Cognito/IAM/Lambda).",
+        "API keys identify consumers for measurement/limits — documentation is explicit in not using them as authentication.",
+        "Delivering account credentials to third parties is extremely serious — partners receive key API and/or appropriate federation.",
+        "Internships separate publishing environments — do not apply consumer quotes."
+      ]
+    },
+    "dva-ini-053": {
+      "text": "For a bucket S3 may invoke a function Lambda when new objects are created, the service must be authorised S3 Calling the function.?",
+      "options": [
+        "No. Security Group function",
+        "In the execution role of the function",
+        "In the bucket tags",
+        "In the resource-based policy of the function Lambda, allowing the main s3.amazonaws.com invokes it from that bucket"
+      ],
+      "explanation": "The function-based policy (lambda add-permission) authorizes other services/accounts to invoke it — this is how the S3 wins the right to shoot the function in the events of the bucket.",
+      "hint": "To 'who can call me', the function has its own glued policy NELA (resource), not in the role.",
+      "optionRationales": [
+        "The function-based policy (lambda add-permission) authorizes other services/accounts to invoke it — this is how the S3 wins the right to shoot the function in the events of the bucket.",
+        "Execution roll defines what the OPERATION can do in services — not who can invoke it.",
+        "Security Groups network traffic in VPC — do not authorize invocations between services.",
+        "Tags are organizational metadata — do not grant permissions."
+      ]
+    },
+    "dva-ini-054": {
+      "text": "In an IC/CD pipeline with AWS CodeBuild, the build needs a token of access to a private package registry. What is the recommended way to provide this secret to the buildspec without exposing it in the repository?",
+      "options": [
+        "Print token in build logs for reuse",
+        "Reference the secret in the buildspec from the Secrets Manager or Parameter Store (SecureString), with the service role of CodeBuild authorized to read it",
+        "Send token by message to the team to each build",
+        "Save token to buildspec.yml commit"
+      ],
+      "explanation": "The buildspec supports variables coming from secrets-manager and parameter-store: the value is injected in build time, outside the source code, with access controlled by the project roll.",
+      "hint": "The buildspec knows how to search for values 'in the safe' at build time — the repository never sees the secret.",
+      "optionRationales": [
+        "The buildspec supports variables coming from secrets-manager and parameter-store: the value is injected in build time, outside the source code, with access controlled by the project roll.",
+        "The buildspec lives in the repository — secret there is secret leaked.",
+        "Logs are widely accessible and retained — never to contain secrets.",
+        "Manual secret distribution is insecure and unautomated."
+      ]
+    },
+    "dva-ini-055": {
+      "text": "A company requires multifactor authentication for all users IAM Humans who access the console, as additional protection against stolen passwords. MFA adds to the login process?",
+      "options": [
+        "A second password stored by the user",
+        "Manual approval of the administrator at each login",
+        "A second possession factor (authenticator application code or physical key) required beyond the password",
+        "Automatic encryption of all user's pocketes"
+      ],
+      "explanation": "The MFA combines 'something you know' (sign) with 'something you have' (device) — an empty password is no longer enough for the invader to enter.",
+      "hint": "Password (what you know) + device (what you have) = two factors.",
+      "optionRationales": [
+        "The MFA combines 'something you know' (sign) with 'something you have' (device) — an empty password is no longer enough for the invader to enter.",
+        "Two passwords remain the same (knowledge) factor — the MFA requires a different nature factor.",
+        "MFA is authentication control — does not configure storage encryption.",
+        "The MFA is automatic with the user's own device — does not involve human approval of third parties."
+      ]
+    },
+    "dva-ini-056": {
+      "text": "A developer noticed that tables of the DynamoDB recently created displays enabled cryptography, although no one has configured it. What is the correct explanation?",
+      "options": [
+        "It is a console display error; the data is in clear text",
+        "The DynamoDB encrypts all tables at rest by default, using keys managed by AWS, with switching option for customer keys",
+        "Another developer manually activated and hid the configuration",
+        "Encryption only exists in tables with secondary indexes"
+      ],
+      "explanation": "Cryptography at rest is native and compulsory in DynamoDB: by default uses property keys of the AWS, and the customer can choose keys KMS managed by AWS or by himself.",
+      "hint": "Some services were born with the factory locked safe — the DynamoDB He's one of them..",
+      "optionRationales": [
+        "Cryptography at rest is native and compulsory in DynamoDB: by default uses property keys of the AWS, and the customer can choose keys KMS managed by AWS or by himself.",
+        "No need to activate — the service applies rest encryption to all tables since creation.",
+        "The indication is real — there is no table DynamoDB no cryptography at rest.",
+        "The protection covers all tables, indices and streams — regardless of GSIs."
+      ]
+    },
+    "dva-ini-057": {
+      "text": "An application in EC2 access a bank RDS PostgreSQL. In secure network configuration, as a rule of Security Group of the RDS follow good practice to allow only this application?",
+      "options": [
+        "Entry into all doors for the VPC whole",
+        "Door entrance 5432 having as its origin Security Group of the implementing bodies",
+        "Door entrance 5432 open for 0.0.0.0/0",
+        "No entry rules, connecting via exit door"
+      ],
+      "explanation": "Restricting the door of the bank to the origin of the application SG ensures that only members of that group reach the RDS — dynamic (follows the Auto Scaling) and minimum.",
+      "hint": "Exact port + origin 'app group crack' = minimal and dynamic access.",
+      "optionRationales": [
+        "Restricting the door of the bank to the origin of the application SG ensures that only members of that group reach the RDS — dynamic (follows the Auto Scaling) and minimum.",
+        "Bank exposed to the entire internet is one of the most exploited errors — violates the least network privilege.",
+        "All ports for the whole network far exceeds what is needed — only the PostgreSQL port, only for the application.",
+        "Without entry rule in the bank's SG, application connections are blocked — exit rules of call do not replace entry authorization."
+      ]
+    },
+    "dva-ini-058": {
+      "text": "In the assessment of permissions of the IAM, a request does not correspond to any statement Allow in the applicable policies. What is the result and what concept explains this behavior?",
+      "options": [
+        "The request is pending by 24 hours",
+        "The IAM ask the administrator in real time",
+        "The request is allowed, because there was no explicit prohibition",
+        "The request is denied: the IAM denies by default (implicit deny) anything that is not explicitly allowed"
+      ],
+      "explanation": "The model of IAM part of the implicit deny: without an applicable Allow the action is denied, and an explicit Deny wins any Allow — the basis of the 'closing by default'.",
+      "hint": "No. IAM, silence means 'no': everything starts denied until someone allows.",
+      "optionRationales": [
+        "The model of IAM part of the implicit deny: without an applicable Allow the action is denied, and an explicit Deny wins any Allow — the basis of the 'closing by default'.",
+        "It is the opposite: the absence of permission already denies — the IAM does not work as 'freed except prohibition'.",
+        "The evaluation is automatic and instantaneous — no interactive approval.",
+        "There is no queue — the verdict is immediate: denied without Allow applicable."
+      ]
+    },
+    "dva-ini-059": {
+      "text": "The logs of an application recorded the complete body of the requests, including card and password numbers — discovered during an audit.?",
+      "options": [
+        "Compact logs to make reading difficult",
+        "Never record sensitive data: mask or remove secrets, passwords and card data before logging in",
+        "Disable all application logs",
+        "Log everything, because the logs of CloudWatch are secrets by nature"
+      ],
+      "explanation": "Logs replicate for analysis systems, backups and large teams — sensitive data on them have seen permanent leak; sanitization at origin is mandatory (and required by standards such as PCI DSS).",
+      "hint": "What falls into the log spreads — sensitive data masks ANTES to write.",
+      "optionRationales": [
+        "Logs replicate for analysis systems, backups and large teams — sensitive data on them have seen permanent leak; sanitization at origin is mandatory (and required by standards such as PCI DSS).",
+        "Logs have wide audience and retention — they are not safes, and access to them is usually less restricted than production data.",
+        "Without logs there is no diagnosis or audit — the solution is to sanitize, not blind the operation.",
+        "Compaction is reversible and is not security control."
+      ]
+    },
+    "dva-ini-060": {
+      "text": "One SPA (single-page application) hosted in a domain calls a API no API Gateway in another domain, and the browser blocks responses with cross-source policy errors. What configuration solves the problem on the side of the API?",
+      "options": [
+        "Disable the HTTPS of API",
+        "Increase integration timeout",
+        "Enable CORS the API, returning the Access-Control-Allow-Origin (and related) headers appropriate for the domain of the SPA",
+        "Ask users to use another browser"
+      ],
+      "explanation": "The CORS is the mechanism that authorizes distinct origins in the browser: a API needs to respond to the prelights OPTIONS and include the permission headers for the application domain.",
+      "hint": "Different domains in the browser require that the API 'authorize origin' in the headers — the acronym is four letters.",
+      "optionRationales": [
+        "The CORS is the mechanism that authorizes distinct origins in the browser: a API needs to respond to the prelights OPTIONS and include the permission headers for the application domain.",
+        "The blockage is of policy of origin, not of TLS — remove HTTPS only degrades safety.",
+        "All modern browsers apply to same-origin policy — the correction is on the server, not the client.",
+        "Timeout has nothing to do with cross-source blockage."
+      ]
+    }
+  }
+}
