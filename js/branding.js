@@ -36,6 +36,11 @@
         icon: 'images/branding/cloudpath-icon.png',
     };
 
+    const CREATOR = {
+        name: 'Orbital Studio',
+        url: 'https://orbitalstudio.com.br',
+    };
+
     // Preview: abrir qualquer página com ?brand=cloudpath mostra a marca nova
     // sem precisar mexer na data. ?brand=kink força a antiga.
     function _override() {
@@ -167,9 +172,24 @@
         const heroTagline = document.querySelector('.hero-section .tagline');
         if (heroTagline) heroTagline.textContent = brand.tagline;
 
-        // Rodape da landing: "KINK is not Kahoot - We do things differently"
+        // Rodape da landing: preserva a assinatura do produto e referencia
+        // explicitamente a Orbital Studio como criadora do CloudPath.
         const badge = document.querySelector('.rebellion-badge p');
-        if (badge) badge.textContent = `☁️ ${brand.name} — ${brand.tagline} ☁️`;
+        if (badge) {
+            badge.textContent = `☁️ ${brand.name} — ${brand.tagline} · criado pela `;
+
+            const creatorLink = document.createElement('a');
+            creatorLink.href = CREATOR.url;
+            creatorLink.target = '_blank';
+            creatorLink.rel = 'noopener noreferrer';
+            creatorLink.textContent = CREATOR.name;
+            creatorLink.setAttribute('aria-label', `${CREATOR.name}, criadora do ${brand.name}`);
+            creatorLink.style.color = 'inherit';
+            creatorLink.style.textDecoration = 'none';
+            creatorLink.style.borderBottom = '1px solid currentColor';
+
+            badge.appendChild(creatorLink);
+        }
 
         // Titulo do app no iOS
         const appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
@@ -204,7 +224,7 @@
     }
 
     global.Brand = {
-        LEGACY, NEXT, CUTOVER,
+        LEGACY, NEXT, CUTOVER, CREATOR,
         isLive, daysUntilCutover, cutoverLabel,
         migrateStorage, storageGet, storageSet, apply,
         /** Marca ativa neste momento. */
