@@ -300,3 +300,22 @@
         initRebrandNotice();
     }
 })(window);
+
+/**
+ * Internationalization bootstrap.
+ * Branding is already included across the product, so it is the safest single
+ * entry point for the locale runtime. The translator itself remains isolated
+ * in js/i18n.js and can evolve without coupling locale logic to branding.
+ */
+(function bootstrapI18n(global) {
+    'use strict';
+
+    if (global.I18n || document.querySelector('script[data-cloudpath-i18n]')) return;
+
+    const script = document.createElement('script');
+    script.src = new URL('js/i18n.js', document.baseURI).href;
+    script.dataset.cloudpathI18n = 'true';
+    script.async = true;
+    script.onerror = () => console.warn('[i18n] runtime unavailable; keeping pt-BR content');
+    document.head.appendChild(script);
+})(window);

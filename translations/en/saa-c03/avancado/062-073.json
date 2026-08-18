@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "062-073",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-062": {
+      "text": "A company is going through an audit SOC 2 and PCI DSS, and the external auditor requests compliance reports from himself AWS (as reports SOC and certifications ISO) and review/acceptance of agreements such as Business Associate Addendum (BAA), as evidence that the underlying infrastructure of AWS meet relevant standards. Where the team can quickly obtain these reports and agreements, under self-service regime, without opening a call for support?",
+      "options": [
+        "Conformity Packages AWS Config, which automatically generates certification reports SOC and PCI DSS of AWS.",
+        "AWS Trusted Advisor, providing compliance reports on the infrastructure of the AWS specific to the customer account.",
+        "AWS Audit Manager, which automatically collects certifications SOC and PCI DSS of AWS to attach to the client's audit reports.",
+        "AWS Artifact, a self-service portal that provides on-demand access to compliance reports from the AWS (SOC, PCI DSS, certifications ISO) and allows to review and accept agreements such as the BAA and NDAs."
+      ],
+      "explanation": "The AWS Artifact it was specifically designed as a self-service portal for downloading audit reports and compliance certifications of its own AWS (SOC 1/2/3, PCI DSS, ISO 27001, among others), in addition to allowing the online review and acceptance of agreements such as the Business Associate Addendum, meeting exactly the need for audit.",
+      "hint": "Think of the self-service portal created specifically to provide customers with third-party audit reports on the infrastructure itself of the AWS and legal agreements related to compliance.",
+      "optionRationales": [
+        "The AWS Artifact it was specifically designed as a self-service portal for downloading audit reports and compliance certifications of its own AWS (SOC 1/2/3, PCI DSS, ISO 27001, among others), in addition to allowing the online review and acceptance of agreements such as the Business Associate Addendum, meeting exactly the need for audit.",
+        "The Trusted Advisor provides specific recommendations on the resources of the customer's own account (cost, security, performance, limits), not third party audit reports on the overall infrastructure of the AWS required by an auditor SOC 2/PCI DSS.",
+        "Conformity Packages AWS Config evaluate the CONFIGURATION DOS RECURSOS DO CLIENTE in relation to a compliance framework, but do not generate or provide third-party audit reports on the infrastructure of its own AWS.",
+        "The AWS Audit Manager helps the customer to collect evidence about the USO QUE ELE FAZ of AWS to support their own audits; third-party audit reports on the infrastructure of the AWS in itself are obtained through the AWS Artifact."
+      ]
+    },
+    "saa-avc-063": {
+      "text": "Several instances EC2, distributed in multiple AZs, mount a file system Amazon EFS shared containing sensitive financial records. A compliance requirement determines that the file system is encrypted EM REPOUSO and that all traffic NFS between the instances EC2 and the EFS is encrypted in a cross-section, with the least possible configuration complexity on the client's side. AMBOS requirements?",
+      "options": [
+        "Create File System EFS with cryptography at rest enabled (using a CMK of the KMS, defined at the time of creation) and assemble it in the instances EC2 using the EFS mount helper (amazon-efs-useful) with the option 'tls', which automatically establishes a tunnel TLS for traffic NFS.",
+        "Enable rest cryptography in a file system EFS existing and unencrypted via the 'Modify' option on the console.",
+        "Trust only in rest cryptography, since the traffic of EFS remains within the network of the AWS and does not need additional cryptography in transit.",
+        "Configure a tunnel VPN IPsec between each instance EC2 and mount targets of EFS."
+      ],
+      "explanation": "Cryptography at rest of EFS is defined at the time of creation of the file system using a CMK of the KMS; o EFS mount helper with the option 'tls' automatically establishes (via stunnel) an encrypted tunnel for all traffic NFS between the customer and the EFS, meeting both requirements with minimum configuration on the customer side.",
+      "hint": "For both requirements (on rest and in transit), think of when each type of encryption should be defined and in which mounting utility already offers native support to one of these protections with a simple option.",
+      "optionRationales": [
+        "Cryptography at rest of EFS is defined at the time of creation of the file system using a CMK of the KMS; o EFS mount helper with the option 'tls' automatically establishes (via stunnel) an encrypted tunnel for all traffic NFS between the customer and the EFS, meeting both requirements with minimum configuration on the customer side.",
+        "Just like it happens with the RDS, the cryptography at rest of the EFS can only be defined at the time of creation of the file system; it cannot be later enabled in an existing and unencrypted file system — it would be necessary to create a new encrypted file system and migrate the data (e.g. with AWS DataSync).",
+        "Stay within the network of AWS does not meet an explicit requirement for encryption in transit; traffic NFS is not encrypted by default, and the mount helper 'tls' option is required to meet this explicit compliance requirement.",
+        "The EFS does not require or is designed to use tunnels VPN IPsec for transit encryption; the supported and simple mechanism for this is the tls option embedded in the EFS mount helper, based on stunnel."
+      ]
+    },
+    "saa-avc-064": {
+      "text": "An organization wants that relevant security events (such as GuardDuty and policy changes IAM detected via CloudTrail) generated in dozens of member accounts are automatically routed, in almost real time, to a custom event bus in a central security account, where automated response flows (Step Functions, Lambda) are activated — using an event-oriented architecture and weakly coupled, without polling. What configuration meets this requirement?",
+      "options": [
+        "Configure each member account to publish events in a topic SNS in the central account, and have a function Lambda in the security account doing polling the GuardDuty in each account periodically.",
+        "In the central security account, create a custom event bus from Amazon EventBridge with a resource-based policy that allows PutEvents of the member accounts (using the condition) aws:MainOrgID); in each member account, create rules of the EventBridge which correspond to relevant events and have the central bus as the destination between accounts.",
+        "Use one AWS config aggregator in the security account to receive Findings from GuardDuty and policy changes IAM Member accounts.",
+        "Configure scheduled queries no CloudTrail Lake from the security account to periodically recover relevant events from member accounts."
+      ],
+      "explanation": "A custom event bus from EventBridge with resource policy allowing PutEvents of the entire organization (via aws:MainOrgID) allows rules of the EventBridge in each member account they send relevant events (such as GuardDuty, available in the standard event bar) directly to the central bar as a destination between accounts, in almost real time and without polling.",
+      "hint": "Think of the event routing service that allows rules in member accounts to send events directly to a custom bus on another account, controlled by a resource-based policy.",
+      "optionRationales": [
+        "A custom event bus from EventBridge with resource policy allowing PutEvents of the entire organization (via aws:MainOrgID) allows rules of the EventBridge in each member account they send relevant events (such as GuardDuty, available in the standard event bar) directly to the central bar as a destination between accounts, in almost real time and without polling.",
+        "Do regular polling of API of the GuardDuty in dozens of accounts introduces latency, does not scale well and it is exactly the polling-based pattern that event-oriented architecture seeks to avoid, in contrast to routing by rules and busses of the EventBridge.",
+        "Aggregaters of the AWS config aggregates configuration data and resource compliance between accounts, not finding the GuardDuty or arbitrary events detected via CloudTrail; is not the appropriate mechanism to route these specific events.",
+        "The CloudTrail Lake allows you to consult historical events via SQL, but scheduled consultations represent a periodic polling model, not a router mechanism oriented to events in near real time, comparable to the barrages and rules of the EventBridge between accounts."
+      ]
+    },
+    "saa-avc-065": {
+      "text": "A company uses AWS Backup to centrally manage instance backups RDS, volumes EBS and tables DynamoDB in multiple accounts via AWS Organizations. A new regulatory requirement determines that such backups are unchangeable for a minimum retention period — NEM MESMO an account administrator with total permissions in AWS Backup must be able to delete recovery points or reduce the retention period before its termination as ransomware protection. Which configuration meets this requirement?",
+      "options": [
+        "Enable AWS Backup Vault Lock in Compliance mode in backup safe, with a defined minimum retention period.",
+        "Enable AWS Backup Vault Lock in Governance mode in the backup safe, with a defined minimum retention period.",
+        "Create a policy IAM denying backup action:DeleteRecoveryPoint for all roles except a roll named 'backup-admin''.",
+        "Enable S3 Object Lock in storage S3 underlying used by AWS Backup."
+      ],
+      "explanation": "The AWS Backup Vault Lock in Compliance mode prevents any user — including administrators with total permissions in AWS Backup and root user — excludes recovery points or reduces retention periods before the defined term; furthermore, Vault Lock itself cannot be removed during the compliance period, ensuring total immutability.",
+      "hint": "Think about the specific immutability mechanism of the managed backup service of AWS, equivalent in concept to the Object Lock of S3, but applied to backup safes.",
+      "optionRationales": [
+        "The AWS Backup Vault Lock in Compliance mode prevents any user — including administrators with total permissions in AWS Backup and root user — excludes recovery points or reduces retention periods before the defined term; furthermore, Vault Lock itself cannot be removed during the compliance period, ensuring total immutability.",
+        "In Governance mode, users with specific permissions may still exclude recovery points or remove the vault lock before the end of the retention period, not meeting the requirement that NEM MESMO an administrator can do that.",
+        "The roll itself 'backup-admin' (or anyone with permission to change policies IAM) could still exclude recovery points or modify this policy, not offering the guarantee of immutability provided by Vault Lock in Compliance mode.",
+        "The AWS Backup stores recovery points in your own managed storage, not in a pocket S3 accessible by the customer where Object Lock can be configured directly; the equivalent immutability mechanism for the AWS Backup is Vault Lock."
+      ]
+    },
+    "saa-avc-066": {
+      "text": "A multi-tenant application encrypts data from different clients using the MESMA CMK of the AWS KMS through calls kms:Encrypt/kms:Decrypt. The security team wants an additional layer of integrity and audit so that: (a) an encrypted ciphertext for the 'tenant A' cannot be successfully described if presented with the context of the 'tenant B', even using the same CMK; and (b) the logs of the CloudTrail clearly show which holder belongs to each cryptography/description call to KMS. What's the use of KMS responds to AMBOS requirements?",
+      "options": [
+        "Embed the holder ID as a prefix in the clear text data before encryption, and validate this prefix in the application layer after description.",
+        "Use an encryption context (a set of key-value pairs, e.g.: {\"tenant_id\": \"A\"}) in every call kms:Encryption and kms:Decrypt; or KMS it uses as additional authenticated data (AAD) — the description fails if the context does not correspond exactly to the one used in the encryption — and the encryption context is recorded in clear text in the CloudTrail for each call from API of the KMS.",
+        "Trust the annual automatic rotation of the CMK to ensure that data from different holders are never described with incorrect key material.",
+        "Apply resource tags to CMK identifying each holder who uses it."
+      ],
+      "explanation": "The Encryption context of the KMS works as additional authenticated data (AAD): if the context provided in the call kms:Decrypt does not match exactly the one used during kms:Encrypt, operation fails cryptographically, even using the same CMK — meeting the requirement (a); moreover, the KMS records the context encryption in clear text in the events of CloudTrail, allowing to identify which holder each call refers to — meeting the requirement (b).",
+      "hint": "Think about the optional parameter that can be passed on encryption/description calls from KMS, which acts as additional authenticated data and also appears in the audit records of each call.",
+      "optionRationales": [
+        "The Encryption context of the KMS works as additional authenticated data (AAD): if the context provided in the call kms:Decrypt does not match exactly the one used during kms:Encrypt, operation fails cryptographically, even using the same CMK — meeting the requirement (a); moreover, the KMS records the context encryption in clear text in the events of CloudTrail, allowing to identify which holder each call refers to — meeting the requirement (b).",
+        "This validation occurs only in the application layer, after the description has already been successful by KMS independently of the holder; or KMS would not refuse the operation for an incorrect context, and this approach does not generate any record by holding in the logs of the CloudTrail of calls to KMS.",
+        "Resource Tags on CMK are metadata applied to the key as a whole (helpful for organization, allocation of costs or ABAC on the key itself), but do not link a specific ciphertext to a tenant nor appear as context by call in the logs of the CloudTrail of individual cryptography/description operations.",
+        "The automatic key rotation periodically generates new cryptographic material, but the previous material is retained to describe old data; this rotation does not link a specific ciphertext to the context of a holder nor prevents cross-description between holders who share the same CMK."
+      ]
+    },
+    "saa-avc-067": {
+      "text": "A SaaS company stores data from hundreds of customers (tenants) in a shared table of Amazon DynamoDB and in a pocket S3 shared. A new corporate client requires 'tenant cryptographic isolation': the ability to independently revoke access APENAS to the data of this client (disabling or scheduling the deletion of a key), without affecting the other tenants, and the guarantee that the data of this client were encrypted with a dedicated key, not shared with other tenants.?",
+      "options": [
+        "Use SSE-S3 (AES-256 with keys of ownership of the AWS) for the data of each holder, since the AES-256 already offers strong encryption by object.",
+        "Partitioning the Tenants into Tables DynamoDB and prefixes S3 separate, depending on policy conditions IAM for isolation, without involving the KMS.",
+        "Use Envelope Encryption with a CMK of the AWS KMS dedicated by tenant; the items/objects of each tenant are encrypted using data keys generated from the CMK specific to the holder, allowing to disable or schedule the exclusion of the CMK of an individual holder to cryptographically revoke access only to his data.",
+        "Use a single CMK shared for all the tenants, applying policies IAM different by application roll of each holder."
+      ],
+      "explanation": "With a CMK dedicated by holding, disabling or deleting the key of a specific holding makes its cryptographic data inaccessible (even if the item/object still exists in shared storage), without affecting the data keys derived from the CMKs of other holding, precisely meeting the requirement of cryptographic isolation and revocation by holding.",
+      "hint": "Think of how envelope encryption, combined with a customer-managed key by entity, makes specific cryptographic data inaccessible without affecting other data that share the same physical storage.",
+      "optionRationales": [
+        "With a CMK dedicated by holding, disabling or deleting the key of a specific holding makes its cryptographic data inaccessible (even if the item/object still exists in shared storage), without affecting the data keys derived from the CMKs of other holding, precisely meeting the requirement of cryptographic isolation and revocation by holding.",
+        "With a CMK shared, disable this key would affect TODOS the holders simultaneously; there is no way to cryptographically revoke the access to the data of a single holder independently when the underlying key material is shared by all.",
+        "The SSE-S3 uses keys property of the AWS without key separation for each holder and without the possibility of the customer disabling a key for a specific holder; offers confidentiality, but not cryptographic revocation at the holder level.",
+        "Partitioning based on access control (IAM) offers logical access isolation, but not CRIPTOGRAPHIC isolation; a compromised credentials or a poorly configured policy could still expose the data, and this approach does not offer the key-revocation mechanism required by the customer."
+      ]
+    },
+    "saa-avc-068": {
+      "text": "A mobile application uses Amazon Cognito Identity Pools to provide temporary credentials to both authenticated users (via User Pool) and unauthenticated users ('guest', who navigate through public content before registering). The security team is concerned that the role IAM attributed to unauthenticated identities may be with excessive permissions, allowing guest users to access resources intended only for authenticated users. What is the recommended practice to mitigate this risk without eliminating the experience of 'navigating as a guest''?",
+      "options": [
+        "Use a single roll IAM shared for authenticated and un authenticated identities, relying on application logic to prevent guests from calling sensitive APIs.",
+        "Allow unauthenticated role the managed AmazonS3ReadOnlyAccess policy, since 'read only' is considered inherently safe for guest users.",
+        "Configure Two Roles IAM SEPARADAS in Identity Pool — one for authenticated identities and one for un authenticated identities — with the un authenticated role strictly restricted to the minimum permissions of reading/public content (last privilege), and periodically review this policy.",
+        "Completely disable unauthenticated access to Identity Pool, requiring all users, including visitors browsing public content, to log in via User Pool first."
+      ],
+      "explanation": "The Cognito Identity Pool allows you to associate roles IAM distinct for authenticated and unauthenticated identities; restricting the unauthenticated role to the minimum necessary (only public reading resources) ensures that guest credentials never be able to access actions or resources reserved for authenticated users, preserving the browsing experience as a guest with least privilege.",
+      "hint": "Remember that Identity Pool allows you to assign roles IAM different for each type of identity — the problem lies in the scope of the specific role policy, not in the unauthenticated access functionality itself.",
+      "optionRationales": [
+        "The Cognito Identity Pool allows you to associate roles IAM distinct for authenticated and unauthenticated identities; restricting the unauthenticated role to the minimum necessary (only public reading resources) ensures that guest credentials never be able to access actions or resources reserved for authenticated users, preserving the browsing experience as a guest with least privilege.",
+        "Disableing unauthenticated access would eliminate the legitimate experience of 'navigating as a guest' before the registration the application requires, being an excessive correction rather than simply restricting correctly unauthenticated roller permissions.",
+        "Depending on customer-side logic for authorization control is insecure as a malicious user could bypass the application and use guest credentials directly to call any action allowed by the shared role, including actions intended for authenticated users.",
+        "AmazonS3ReadOnlyAccess policy grants read access to TODOS the pocketes and objects S3 of the account, not only to those intended for public content, which could expose private newsletters to unauthenticated users, violating the principle of lesser privilege."
+      ]
+    },
+    "saa-avc-069": {
+      "text": "A company wants access logs from Application Load Balancers, snapshots of AWS Config and other logs/exports generated by dozens of your accounts AWS Organizations are delivered to a pocket S3 centralized in a logging account — without individually listing each of the account IDs in the bucket policy, which would be difficult to maintain as accounts are added or removed from the organization. What configuration in the centralized bucket policy meets this requirement in a scalable way?",
+      "options": [
+        "Grant the necessary permissions (ex.: s3:PutObject) to the mains in the policy of the pocket using a condition with aws:MainOrgID corresponding to the organization's ID, so that any current or future account within the organization is automatically authorized to deliver logs.",
+        "Create a Bucket S3 separate in each account and use S3 Cross-Region Replication to replicate the logs for the central bucket.",
+        "Individually list each account ID of the dozens of accounts as main allowed in the main element of the pocket policy.",
+        "Use one SCP to force all accounts to record logs only in the centralized bucket."
+      ],
+      "explanation": "The global condition aws:MainOrgID allows you to restrict access to any principal who belongs to the specified organization, without needing to list individual account IDs; new accounts added to the organization are automatically covered by the condition, and removed accounts automatically lose access, without requiring manual updates in the bucket policy.",
+      "hint": "Think about the overall political condition of the IAM which refers to the entire organization of the AWS Organizations, instead of individual account IDs.",
+      "optionRationales": [
+        "The global condition aws:MainOrgID allows you to restrict access to any principal who belongs to the specified organization, without needing to list individual account IDs; new accounts added to the organization are automatically covered by the condition, and removed accounts automatically lose access, without requiring manual updates in the bucket policy.",
+        "This approach is operationally fragile: to each account added or removed from the organization, the bucket policy would need to be manually updated, and the AWS have a maximum size limit that could be reached with many listed account RNAs.",
+        "This approach adds unnecessary infrastructure (one bucket per account) and replication cost/configuration, when a single centralized bucket with an organization level condition is a much simpler solution.",
+        "SCPs restrict or allow which actions the main PODEM the centralised Bucket's policy of recourse is not granted by themselves the permission to RECEBER recording of these accounts; the policy of the pocket still needs to explicitly authorize access between accounts."
+      ]
+    },
+    "saa-avc-070": {
+      "text": "A company maintains a hierarchy of private certification authority (CA root + CA subordinate) in AWS Certificate Manager Private CA, in a central security account, used to issue certificates TLS multiple application accounts need to issue certificates from this MESMA CA hierarchy — for all internal certificates to bind up to the same reliable root distributed to internal customers — without each account creating its own separate CA (which would require multiple reliable roots to be distributed).?",
+      "options": [
+        "Create a hierarchy independent of ACM Private CA on each application account, distributing the separate root certificate from each account to all internal customers.",
+        "Share subordinate CA of ACM Private CA from the security account with the application accounts using the AWS Resource Access Manager (RAM); the application accounts can then apply for certificates via ACM issued by this shared CA, all chaining up to the same root.",
+        "Export CA's private key to the security account and import it into ACM Private CA of each application account.",
+        "Use a delegated administrator of the AWS Organizations for the ACM Private CA, so that application accounts automatically inherit a copy of CA."
+      ],
+      "explanation": "The AWS RAM allows you to share a CA of ACM Private CA between accounts; application accounts that receive the sharing may request certificates from ACM using this shared subordinate CA, ensuring that all certificates issued, in any account, chain up to the same root hierarchy, without doubling CAs.",
+      "hint": "Think about the service used to share the resources of AWS (including private CAs) between accounts without doubling them.",
+      "optionRationales": [
+        "The AWS RAM allows you to share a CA of ACM Private CA between accounts; application accounts that receive the sharing may request certificates from ACM using this shared subordinate CA, ensuring that all certificates issued, in any account, chain up to the same root hierarchy, without doubling CAs.",
+        "The AWS Certificate Manager Private CA does not permit the export of CA's private key for security reasons; this operation is not supported and is not a viable way to replicate CA between accounts.",
+        "This approach multiplies the number of reliable root certificates that need to be distributed and managed in all internal clients, increasing operational complexity and contradicting the goal of a single hierarchy of shared trust.",
+        "The ACM Private CA does not have a delegated administrator model of the Organizations which automatically replicates an AC to member accounts; the use between accounts of a single CA hierarchy is obtained through sharing via AWS RAM."
+      ]
+    },
+    "saa-avc-071": {
+      "text": "Security team wants permission set 'AdministratorAccess' from IAM Identity Center, used for emergency access ('break-glass'), generate credentials that expire after maximum 1 time, forcing re-authentication for any continuous privileged work; already the Permission Set 'ReadOnlyAccess', used for routine monitoring, can have longer sessions (8 which configuration meets this differentiation?",
+      "options": [
+        "Use AWS STS GetSessionToken with the parameter DurationSeconds manually defined by each user when taking over the Permission Set AdministratorAccess.",
+        "Attach one SCP automatically revoke any session with more than 1 time for mains using Permission Set AdministratorAccess.",
+        "Configure a single definition of maximum session duration at the account level of the IAM, also applied to all Permission Sets of IAM Identity Center.",
+        "Configure the session duration independently in each Permission Set IAM Identity Center — defining 1 Time for Permission Set AdministratorAccess and 8 hours for Permission Set ReadOnlyAccess."
+      ],
+      "explanation": "No. IAM Identity Center, the duration of the session is a configuration defined individually by Permission Set; each Permission Set controls how long the credentials obtained through it remain valid, allowing exactly the desired differentiation. (1 time for emergency administration, 8 hours for routine reading access).",
+      "hint": "Think about what level of granularity the IAM Identity Center allows you to configure the lifespan of credentials — on a full account or by individual permission set.",
+      "optionRationales": [
+        "No. IAM Identity Center, the duration of the session is a configuration defined individually by Permission Set; each Permission Set controls how long the credentials obtained through it remain valid, allowing exactly the desired differentiation. (1 time for emergency administration, 8 hours for routine reading access).",
+        "The duration of the sitting at IAM Identity Center is configured by Permission Set, not as a single account level configuration; a global configuration could not provide different durations (1h vs. 8(h) for Permission Different sets.",
+        "Allowing users themselves to choose the duration of their session does not guarantee the mandatory maximum limit of 1 time; duration should be centrally configured in the Permission Set by an administrator, not left to the user's choice.",
+        "SCPs do not have a mechanism to track the age of a session and revoke active sessions based on the time elapsed; the expiry of the session is determined by the configured duration of the credentials, defined in Permission Set itself."
+      ]
+    },
+    "saa-avc-072": {
+      "text": "A company connects production and non-production VPCs (distributed in multiple accounts) to a single AWS Transit Gateway The safety requirement is that production VPCs can communicate with each other and with a VPC of shared services, but non-production VPCs NUNCA must be able to route traffic from/to production VPCs, while non-production VPCs can communicate freely with each other and with the VPC all VPCs share the same Transit Gateway. Which architecture meets this requirement?",
+      "options": [
+        "Create two separate Transit Gateways — one for production and one for non-production — and a third for VPC of shared services, without peering among them.",
+        "Trust Security Groups in each VPC to block traffic between intervals CIDR production and non-production, keeping all the annexes in the standard route table of the Transit Gateway.",
+        "Create separate route tables in Transit Gateway (one 'production' and another 'non-production'), associate each Annex to VPC the appropriate table, and spread routes so that the production table has only routes for production VPCs and the VPC of shared services, and the non-production table only has routes for non-production VPCs and the VPC of shared services.",
+        "Use Network ACLs in the sub-networks of the Annexes to Transit Gateway to deny traffic between intervals CIDR Production and non-production."
+      ],
+      "explanation": "The Transit Gateway allows to associate each Annex of VPC to a specific route table and control which routes are propagated for each table; creating separate tables for production and non-production, each containing only the appropriate routes (including VPC of services shared in both, but never routes between production and non-production), complete network segmentation is obtained within a single Transit Gateway.",
+      "hint": "Think about the resource of Transit Gateway which allows for control, by Annex VPC, which destinations are visible/routeable — without multiple Transit Gateways.",
+      "optionRationales": [
+        "The Transit Gateway allows to associate each Annex of VPC to a specific route table and control which routes are propagated for each table; creating separate tables for production and non-production, each containing only the appropriate routes (including VPC of services shared in both, but never routes between production and non-production), complete network segmentation is obtained within a single Transit Gateway.",
+        "A VPC of shared services needs to be reachable both by production and by non-production, which would require attaching it to both Transit Gateways (greater complexity and cost) or establishing peering between them; a single Transit Gateway with multiple route tables achieves segmentation in a simpler and more economical way.",
+        "The standard route table would propagate routes between all the annexes, making production and non-production VPCs routeable between them in the network layer; depend only on Security Groups (filtering at the instance level/ENI, not at the routing level of the Transit Gateway) leaves the underlying route path open, not being the recommended segmentation approach.",
+        "Annexes Transit Gateway do not NACLs directly associated (NACLs apply to sub-networks within a VPC); this approach would not provide the segmentation at route level between annexes of VPC that separate route tables from Transit Gateway provide."
+      ]
+    },
+    "saa-avc-073": {
+      "text": "A company has a critical database Amazon RDS for PostgreSQL. In case of primary node failure (e.g. due to interruption in your Availability Zone), the requirements are: automatic failure without manual intervention, RPO close to zero (synchronous replication) and the application should continue to use the MESMO endpoint/DNS after the failover. Which configuration meets the TODOS these requirements with the least complexity?",
+      "options": [
+        "Amazon ElestiCache as a write-through cache in front of RDS, to mask primary bank interruptions.",
+        "Implementation RDS Multi-AZ, with synchronous replication for a standby instance in another Availability Zone.",
+        "Automated backups of RDS (snapshots) with restoration from the latest snapshot in another Availability Zone during an interruption.",
+        "A Read Replica in another Availability Zone, manually promoted the independent instance during an interruption."
+      ],
+      "explanation": "The RDS Multi-AZ replicates data synchronously to a standby instance in another AZ; in the event of primary failure, the RDS performs automatic failover for the standby, updating the log CNAME the endpoint to point to the new primary instance — the application continues to use the same endpoint, without manual intervention, and the RPO is close to zero thanks to synchronous replication.",
+      "hint": "Think about the resource of RDS designed specifically for automatic failure with synchronous replication and endpoint preservation, in contrast to replicas used for reading scalability.",
+      "optionRationales": [
+        "The RDS Multi-AZ replicates data synchronously to a standby instance in another AZ; in the event of primary failure, the RDS performs automatic failover for the standby, updating the log CNAME the endpoint to point to the new primary instance — the application continues to use the same endpoint, without manual intervention, and the RPO is close to zero thanks to synchronous replication.",
+        "Read Replicas use ASSIGNANCE replication, which may result in data loss (RPO greater than zero) in case of primary failure; moreover, promotion is an action MANUAL which requires operator intervention and usually requires updating of the endpoint used by the application, increasing the RTO.",
+        "Restore from a snapshot has RPO equal to the interval between backups (potentially lost data hours) and RTO high (time to provide a new instance from snapshot), much higher than the almost immediate and automatic failure of Multi-AZ.",
+        "Cache layers meet requirements of LEITURA with cached data, but they can't attend operations of ESCRITA during an interruption of the primary database, and do not provide automatic failover of the underlying database itself."
+      ]
+    }
+  }
+}

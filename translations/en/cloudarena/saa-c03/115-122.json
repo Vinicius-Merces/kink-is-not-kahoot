@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "115-122",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-115": {
+      "optionReasons": {
+        "saa-avc-115:option:0": "It's the closest because 'distinctInstitution' also spreads tasks — but it only guarantees UMA task by instance; does not distribute uniformly between AZs and can leave underutilized areas; distribution by AZ (and by host within it) is the spread strategy in attribute:ecs.availability-zone.",
+        "saa-avc-115:option:1": "Migratory to Fargate solves, but changes the entire launch type — the question is how to set up the positioning in EC2.",
+        "saa-avc-115:option:2": "",
+        "saa-avc-115:option:3": "Reducing the desired count doesn't change the logic of binpack — it only reduces the amount of concentrated tasks."
+      },
+      "finalJustifications": [
+        "Because the spread strategy in attribute:ecs.availability-zone distributes the tasks evenly between the AZs (and per instanceId within each), prioritizing availability over the binpack.",
+        "Because the distinct constraintInstitution distributes the tasks evenly between the AZs (and per instanceId within each), prioritizing availability over binpack efficiency.",
+        "Why migrate to Fargate distributes the tasks evenly between the AZs (and per instanceId within each), prioritizing availability over binpack efficiency.",
+        "Because reducing the desired count distributes the tasks evenly between the AZs (and per instanceId within each), prioritizing availability over binpack efficiency."
+      ]
+    },
+    "saa-avc-116": {
+      "optionReasons": {
+        "saa-avc-116:option:0": "",
+        "saa-avc-116:option:1": "It's the closest because Route 53 with latency + health checks also route to NLB great regional and makes failover — but resolves by DNS, and the requirement (a) requires fixed STATISTICAL IPs, without depending on resolution that can be cached; static IP anycast with routing and failure is the Global Accelerator.",
+        "saa-avc-116:option:2": "Transit Gateway with multicast is for replication of multicast traffic between VPCs — it is not global input of players per static IP.",
+        "saa-avc-116:option:3": "CloudFront Can't stand it. UDP arbitrary — the statement itself discards; and origin group is cache failure, not front failure UDP."
+      },
+      "finalJustifications": [
+        "Because Global Accelerator gives fixed static IPs anycast, route the UDP from players to the healthy region of less latency and makes automatic failover for the NLB of the other region.",
+        "Because Route 53 by latency gives fixed static anycast IPs, route the UDP from the players to the region of lower latency and makes automatic failure for the NLB of the other region.",
+        "Because Transit Gateway multicast gives fixed static IPs anycast, route the UDP from the players to the region of lower latency and makes automatic failure for the NLB of the other region.",
+        "Because CloudFront with origin group gives fixed static IPs anycasts, route the UDP from the players to the region of lower latency and makes automatic failure for the NLB of the other region."
+      ]
+    },
+    "saa-avc-117": {
+      "optionReasons": {
+        "saa-avc-117:option:0": "Gateway Load Balancer is to insert inspection apps — does not distribute traffic to an Endpoint Interface.",
+        "saa-avc-117:option:1": "",
+        "saa-avc-117:option:2": "There is no Cross-Zone Load Balancing on Interface Endpoint — it is a resource of load balancer, not endpoint.",
+        "saa-avc-117:option:3": "It's the closest because creating endpoints by AZ would also put a ENI in each area — but are 3 endpoints SEPARADOS (3x the cost per hour, DNS and distinct management) for the same service; the correct is A endpoint with additional sub-network associations in AZ-B and AZ-C (one ENI by AZ)."
+      },
+      "finalJustifications": [
+        "Why add sub-network associations in AZ-B and AZ-C at the same endpoint creates a ENI place by AZ: each instance uses the one of the zone itself, eliminating the cross-AZ rate and the single point of failure.",
+        "♪ Why do you create ♪ 3 separate endpoints creates a ENI place by AZ: each instance uses the one of the zone itself, eliminating the cross-AZ rate and the single point of failure, with only one endpoint to manage.",
+        "Because enabling Cross-Zone in the endpoint creates a ENI place by AZ: each instance uses the one of the zone itself, eliminating the cross-AZ rate and the single point of failure of the connectivity.",
+        "Because the Gateway Load Balancer creates a ENI location by AZ: each instance uses that of the zone itself, eliminating the cross-AZ rate and the single point of failure of the PrivateLink connectivity."
+      ]
+    },
+    "saa-avc-118": {
+      "optionReasons": {
+        "saa-avc-118:option:0": "Move everything to public sub-network with EIP by instance expands the exposure — the opposite of the insulation requested.",
+        "saa-avc-118:option:1": "",
+        "saa-avc-118:option:2": "NAT Gateway is zonal and NOT automatically replicated to another AZ — the premise of the option is false.",
+        "saa-avc-118:option:3": "It's the closest because a NAT Commission ASG gives some redundancy — but an instance NAT serves at once and the failure between AZs requires route rewriting scripts; reintroduces SO and gargalo management; the native and resilient design by AZ is a NAT Gateway by AZ with local route in each sub-network."
+      },
+      "finalJustifications": [
+        "Because one NAT Gateway by AZ with the route 0.0.0.0/0 pointing to the NAT of the zone itself isolates the failure: the fall of the AZ-A does not affect the AZ-B and AZ-C, which follow by their local NATs.",
+        "Because one NAT Commission ASG on 3 AZs with the route pointing to the NAT of the zone itself isolates the failure: the fall of the AZ-A does not affect the AZ-B and AZ-C, which follow by their local NATs.",
+        "Because NAT Gateway single with EIP, replicated to the other AZ, with the route pointing to the NAT of the zone itself isolates the failure: the fall of the AZ-A does not affect the AZ-B and AZ-C.",
+        "Why move instances to public sub-network with route pointing to NAT of the zone itself isolates the failure: the fall of the AZ-A does not affect the AZ-B and AZ-C, which follow the locations."
+      ]
+    },
+    "saa-avc-119": {
+      "optionReasons": {
+        "saa-avc-119:option:0": "Change for Direct Connect it's expensive architecture change — and DC itself recommends redundancy; it's not tunnel correction VPN.",
+        "saa-avc-119:option:1": "It's the closest because it seems reasonable to AWS managing redundancy alone — but is ERRADA: the two tunnels are independent endpoints and fit to the CUSTOMER GATEWAY establish/alternate between them; AWS not 'activate the second for you' if the customer did not set it up, then a maintenance in the tunnel in use knocks down everything.",
+        "saa-avc-119:option:2": "",
+        "saa-avc-119:option:3": "Increase rekey intervals does not add redundancy — the second tunnel continues idle and the single point remains."
+      },
+      "finalJustifications": [
+        "Because the risk is the only point: using only one tunnel knocks down the connection in an endpoint maintenance in use; setting up the customer gateway for both (active-active via BGP/ECMP or failover) eliminates this.",
+        "Because the configuration is expected and the AWS activates the second tunnel alone in maintaining the first; configure the customer gateway for both only anticipates this automatic behavior.",
+        "Because risk is the only point: replace by Direct Connect eliminates the need for tunnels, and configure the custom gateway for both tunnels becomes unnecessary in this drawing.",
+        "Because the risk is the only point: increasing the rekey intervals stabilizes the tunnel in use, and setting up the customer gateway for both tunnels no longer necessary with the stable connection."
+      ]
+    },
+    "saa-avc-120": {
+      "optionReasons": {
+        "saa-avc-120:option:0": "CRR replica to another region — the scenario is intra-region and accidental exclusion would also replicate.",
+        "saa-avc-120:option:1": "It's the closest because Object Lock also protects objects and depends on versioning — but it IMPEDE exclusion/overwritten for a period (WORM); is not the mechanism for RECUPERAR an earlier version neither 'undo' an accidental delete; recover versions and reverse deletion marker is Versioning.",
+        "saa-avc-120:option:2": "",
+        "saa-avc-120:option:3": "AWS Backup is precisely the 'separate backup system' that the requirement wants to avoid."
+      },
+      "finalJustifications": [
+        "Because Versioning preserves the previous version of each PUT and transforms the DELETE a reversible marker — recovers by the ID version, and Lifecycle expires old versions to control the cost.",
+        "Because Object Lock Compliance preserves the previous version of each PUT and transforms the DELETE a reversible marker — recovers by the ID version, and Lifecycle expires old versions for cost.",
+        "Because the CRR preserves the previous version to each PUT and transforms the DELETE a reversible marker — recovers by the ID version, and Lifecycle expires old versions to control the cost.",
+        "Because AWS Daily backup preserves the previous version of each PUT and transforms the DELETE a reversible marker — recovers by the ID version, and Lifecycle expires old versions for cost."
+      ]
+    },
+    "saa-avc-121": {
+      "optionReasons": {
+        "saa-avc-121:option:0": "It's the closest because it's also an automatic alarm action in the instance. EC2 — but 'Reboot' just restarts the server; no EXECUTA the cleaning script (the old logs continue there after boot); run a script in the instance without SSH by the alarm is via SSM Automation/Run Command.",
+        "saa-avc-121:option:1": "Notify by SNS for someone to open SSH and handwheeling is human intervention — the opposite of the requirement.",
+        "saa-avc-121:option:2": "",
+        "saa-avc-121:option:3": "Config detects CONFIGURATION deviations (non-disk metric) and terminates/replaces instance is destructive — excessive to clean logs."
+      },
+      "finalJustifications": [
+        "Because the alarm triggers a runbook from SSM Automation (or Run Command) in the affected instance, which executes the cleaning script via SSM Agent — automatic remediation without SSH or human intervention.",
+        "Because the alarm Reboot action fires in the affected instance and executes the cleaning script via SSM Agent — automatic remediation without SSH nor human intervention when passing 90%.",
+        "Because the notification SNS of the alarm shoots in the affected instance and executes the cleaning script via SSM Agent — automatic remediation without SSH nor human intervention when passing 90%.",
+        "Because config's remediation shoots in the affected instance and executes the cleaning script via SSM Agent — automatic remediation without SSH nor human intervention when passing 90%."
+      ]
+    },
+    "saa-avc-122": {
+      "optionReasons": {
+        "saa-avc-122:option:0": "Keeping the minimum high for peak leaves fully active instances charged all the time — the cost you want to avoid.",
+        "saa-avc-122:option:1": "Larger instance accelerates the bootstrap a bit — but does not eliminate the minutes of preparation nor reaches immediate scale-out.",
+        "saa-avc-122:option:2": "It's the closest because a AMI with pre-installed software REALMENTE shorten the bootstrap — but the scenario describes complex configuration that still takes minutes after the release (and not all config fits into the image): the new instance still needs to go up and set up; scale-out latency near ZERO with already ready instances and no computer charge is Warm Pool.",
+        "saa-avc-122:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Warm Pool keeps instances already initialized in a standstill state (without charging computers): in the scale-out they enter into service almost immediately, without waiting for the 8-10 min of bootstrap.",
+        "Because the AMI customized keeps instances already initialized in a standstill state (without charging computer): in the scale-out they enter into service almost immediately, without waiting for the 8-10 min of bootstrap.",
+        "Because the minimum high capacity keeps instances already initialized in a standstill state (without charging computers): in the scale-out they enter into service almost immediately, without waiting for the bootstrap.",
+        "Because the type of higher instance keeps instances already initialized in a standstill state (without charging computers): in the scale-out they enter into service almost immediately, without waiting for the bootstrap."
+      ]
+    }
+  }
+}

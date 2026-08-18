@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "265-276",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-265": {
+      "text": "A company uses Amazon Athena to analyze stored logs in S3 in format JSON. The cherries are taking a long time. (>10 minutes) and generating high cost (scanning many GB). The team wants to optimize performance and cost without changing the query tool. What change in format and organization of data has the greatest impact on performance and cost in Athena?",
+      "options": [
+        "Convert data from JSON for columnar format Parquet or ORC And partition the data into S3 by date/hour (ex.: s3://Bucket/logs/year=2024/month=01/day=15/) — o Public Prosecutor's Office/ORC allows the Athena make column pruning (read only the necessary columns), and partitions allow the Athena make partition pruning (scan only files from filtered partitions)",
+        "Increase the number of DPUs (Data Processing Units) Athena to process more data in parallel, reducing the execution time of queries",
+        "Compress files JSON with GZIP before you store them S3 — compression reduces the bytes transferred from S3 for the Athena, decreasing both the time and the cost of the desires",
+        "Use Athena Query Result Reuse — the Athena reuses results of recent identical queries (up to 7 days), eliminating the need to scan data again for repeated queries"
+      ],
+      "explanation": "Correct. The combination of column format + partitioning has the greatest impact on Athena: (1) Parquet/ORC allows you to read only the columns needed for the query (column pruning) — if the query uses 3 of 50 columns, or Athena read only ~6% data; (2) Partitioning allows filters WHERE in the partition column do the Athena do not scan non-relevant partitions. Together, they drastically reduce the scanned GB — which is what determines both the cost and the time of the query.",
+      "hint": "Which two storage features have the greatest impact on performance and cost of Athena — one related to the format (columns vs. lines) and another to the organization in S3?",
+      "optionRationales": [
+        "Correct. The combination of column format + partitioning has the greatest impact on Athena: (1) Parquet/ORC allows you to read only the columns needed for the query (column pruning) — if the query uses 3 of 50 columns, or Athena read only ~6% data; (2) Partitioning allows filters WHERE in the partition column do the Athena do not scan non-relevant partitions. Together, they drastically reduce the scanned GB — which is what determines both the cost and the time of the query.",
+        "Incorrect as greater impact. Compression GZIP files JSON reduces the stored size and read bytes of S3, but the Athena still need to decompress and parsley TODOS the fields of TODOS records JSON even if the query uses only a few columns — there is no benefit of column pruning in JSON tablet., GZIP is not splittable (the entire file needs to be processed as a unit), limiting parallelism./ORC tablets are much higher.",
+        "Incorrect. Athena does not have a 'DPUs' configuration that the user adjusts directly (different from AWS Glue using DPUs). Athena automatically scale data-based processing. The cost of Athena is by scanned GB — more parallel processing does not reduce the cost if the same amount of data is scanned.",
+        "Partially correct: Query Result Reuse eliminates executions of recent IDENTICAL Queries, but does not improve the performance of queries NOVAS or different. For exploratory analysis where each query is different, Result Reuse does not help. Column format + partitioning are the fundamental optimizations that improve TODAS the ones you want."
+      ]
+    },
+    "saa-med-266": {
+      "text": "A company uses AWS Lambda with batch data processing. A function Lambda delay 12 minutes to process a file, but the maximum timeout of Lambda It's 15 The team wants to increase throughput by processing 10 files simultaneously, without a single invocation Lambda try to process all the 10. What is the most appropriate approach??",
+      "options": [
+        "Publish each file as a separate message in SQS and use the Event Source Mapping SQS→Lambda with batch size 1 — o SQS automatically invokes one Lambda by message in parallel, processing up to 10 files simultaneously (limited by competition from Lambda)",
+        "Use AWS Step Functions Map state to invoke Lambda in parallel for each file — Map state distributes file array for invocations Lambda independent with up to 40 competing claims",
+        "Increase the memory of Lambda for 10.240 MB (maximum) — more memory means more CPU allocated, allowing a single invocation to sue 10 files in parallel threads within the timeout of 15 minutes",
+        "Migratory to AWS Fargate with ECS Containers Fargate do not have the limit 15 minutes of Lambda and can process long-term files without timeout restrictions"
+      ],
+      "explanation": "Correct. Use SQS with one message per file and batch size=1 in Event Source Mapping does the AWS automatically invoke an instance Lambda by message (in parallel), up to the competition limit set. 10 files in the queue, 10 cases Lambda run competitively — each processing its file by up to 15 minutes. It's the fan-out parallelization pattern with Lambda.",
+      "hint": "To process multiple files in parallel with Lambda, how to structure the trigger so that each file invokes an instance Lambda independent — which queue service facilitates this fan-out pattern?",
+      "optionRationales": [
+        "Correct. Use SQS with one message per file and batch size=1 in Event Source Mapping does the AWS automatically invoke an instance Lambda by message (in parallel), up to the competition limit set. 10 files in the queue, 10 cases Lambda run competitively — each processing its file by up to 15 minutes. It's the fan-out parallelization pattern with Lambda.",
+        "Incorrect for scalability. Lambda allocation CPU proportional to memory, and with more CPU it would be possible to parallel threads within an invocation — but an invocation of 12 minutes per file will not become 1.2 minutes with 10x plus CPU, because processing time per file does not scale linearly with CPU. In addition, it keeps architecture fragile: a failure loses all the 10 files, not just one.",
+        "Partially correct: Step Functions Map state is a valid solution for parallel file processing with Lambda. However, for continuous file processing (not a single batch), the approach SQS + Lambda is more suitable — supports new file arrivals dynamically without starting a new workflow Step Functions each batch.",
+        "Incorrect as a solution for parallel processing requirement. Fargate is valid if the timeout of 15 minutes is a real limit, but the statement says that 12 minutes is inside the 15 minutes of Lambda. The question is of parallel throughput — that SQS + Lambda elegantly solve without platform migration."
+      ]
+    },
+    "saa-med-267": {
+      "text": "A company has a web application that uses Amazon DynamoDB to store inventory data. Queries always filter by ProductCategory AND PriceRange (e.g. 'Electronics with price between R$100 and R$500'). Currently, ProductCategory is the key partition and ProductID is the key lot. The filtered queries by PriceRange result in full scans. How to optimize these queries without creating a new table?",
+      "options": [
+        "Use DynamoDB PartiQL with a SELECT including WHERE ProductCategory = ? AND Price BETWEEN ? AND ? — PartiQL automatically optimizes queries with multiple filters to avoid full scans",
+        "Create a Global Secondary Index (GSI) with ProductCategory as partition key and Price as spell key — the GSI allows efficient queries by ProductCategory (equal match) followed by filter by Price (range query in the key spell of GSI), No full scan",
+        "Create a Secondary Site Index (LSI) with Price as alternative key spell — or LSI allows you to want in the same key partition (ProductCategory) to efficiently filter by Price as alternative key sort",
+        "Add Price as an attribute to the existing key spell (ProductID) using a key compound (ProductID#Price) — you want can then use FilterExpression in both fields simultaneously without additional index"
+      ],
+      "explanation": "Right. GSI with ProductCategory as partition key and Price as sort key allows efficient queries: a query specifies ProductCategory (partition key of GSI, exact match) and use BETWEEN/GreaterThan/LessThan at Price GSI, range query). This avoids full scan of the table — the query goes directly to the partition of the GSI for that category and then make range scan in the spell key.",
+      "hint": "What kind of index is there? DynamoDB can be created at any time (not just in table creation) and use any attribute as partition key and sort key — allowing efficient queries by attribute combinations?",
+      "optionRationales": [
+        "Right. GSI with ProductCategory as partition key and Price as sort key allows efficient queries: a query specifies ProductCategory (partition key of GSI, exact match) and use BETWEEN/GreaterThan/LessThan at Price GSI, range query). This avoids full scan of the table — the query goes directly to the partition of the GSI for that category and then make range scan in the spell key.",
+        "Incorrect by technical limitation. Local Secondary Indexes need to use the same PARTITION KEY of the main table (ProductID would be used as partition key of the table, not ProductCategory). If ProductID is the sort key of the table and ProductCategory is the partition key, the LSI would allow filtering by Price within a specific ProductCategory — but LSIs need to have the same partition key. In addition, LSIs need to be created at the time of table creation.",
+        "Incorrect. PartiQL is an interface SQL for DynamoDB, but does not change the behavior of access to data — a PartiQL query that filters by attributes without corresponding index still results in a scan table or inefficient query. Optimization comes from creating appropriate indexes (GSI/LSI), not of the used query language.",
+        "Incorrect. FilterExpression no DynamoDB does not use indexes — only filters the result AFTER the Query/Scan operation has already been executed. Add Price to the key spell as a composition string would be a change of scheme that would impact all existing operations, and FilterExpression with Price would still not be efficient for range queries without a dedicated key spell via GSI."
+      ]
+    },
+    "saa-med-268": {
+      "text": "A company uses Amazon Kinesis Data Streams for IoT event processing. The consumer application needs to process events from each device in order, but different devices can be processed in parallel. The application uses a single function Lambda as a consumer of the stream. How to ensure device sorting and parallelism between devices?",
+      "options": [
+        "Configure multiple functions Lambda (one per device) as consumers of the same stream Kinesis — each Lambda process only the records of your device, ensuring ordination and parallelism",
+        "Use the Sequence Number of Kinesis to sort records after processing — the Lambda processes all events in any order and then orders by Sequence Number before persisting",
+        "Use SQS FIFO instead of Kinesis — o SQS FIFO ensures ordering by Message Group ID (DeviceID), and messages from different groups are processed in parallel with the Lambda as a consumera",
+        "Use DeviceID as a partition key when producing events in Kinesis — o Kinesis ensures that all records with the same partition key go to the same shard, preserving the order per device inside the shard; multiple shards process different devices in parallel"
+      ],
+      "explanation": "Correct. Kinesis uses the key partition to determine which shard a record is stored in — all records with the same key partition (DeviceID) go to the same shard and are processed in order within that shard. Different shards process different key partitions in parallel, ensuring parallelism between devices without compromising device sorting.",
+      "hint": "No. Kinesis, which attribute determines in which shard a record is stored, ensuring that records with the same value are processed in order within a shard?",
+      "optionRationales": [
+        "Correct. Kinesis uses the key partition to determine which shard a record is stored in — all records with the same key partition (DeviceID) go to the same shard and are processed in order within that shard. Different shards process different key partitions in parallel, ensuring parallelism between devices without compromising device sorting.",
+        "Partially correct about SQS FIFO: he really guarantees ordination by Message Group ID. But the question asks about Kinesis specifically, and the answer about using partition key is the mechanism DENTRO of the Kinesis to ensure device ordering with parallelism between devices. SQS FIFO would be a change of architecture, not the optimization of Kinesis.",
+        "Incorrect and inescalable. With IoT, there may be thousands of devices — having a Lambda by device is unfeasible. In addition, multiple Lambdas consuming the same stream Kinesis do not guarantee that each Lambda process only records of a specific device — all would receive all the stream shards.",
+        "Incorrect. Sorting after processing works for events that can be reordered, but for IoT it is common that the ORDEM processing import (e.g. 'open door' must be processed before 'close door' to the same device). Sorting after processing can cause state inconsistencies. The correct design is to ensure that events of the same device are processed sequentially — not randomly followed by correction."
+      ]
+    },
+    "saa-med-269": {
+      "text": "A company has a machine learning application that processes images using GPU. The cases EC2 with GPU have high latency of cold start when launched on demand. The team wants instances to be ready before ML jobs arrive, without keeping idle instances 24/7. Which strategy reduces cold start without cost of permanently connected instances?",
+      "options": [
+        "EC2 Auto Scaling with Warm Pool — a Warm Pool keeps instances EC2 pre-initiated in 'stopped' or 'running' (not registered in ALB), ready for immediate use when ASG decides to scale-out; the cost is lower than fully active instances 24/7",
+        "Amazon SageMaker with Elastic Inference — SageMaker Elastic Inference connects acceleration of GPU fractionated to inference instances, reducing the cost of GPU no start cold",
+        "Amazon EC2 Spot Instances in one ASG — Spot Instances have lower cost and are available immediately when requested, without cold start",
+        "Lambda with container images including ML model — containers Lambda preheated eliminate cold start, and Lambda automatically scale with image processing requirements"
+      ],
+      "explanation": "Right, Warm Pool of the Auto Scaling keeps pre-initialized instances in the state of stopped (covering only of EBS) or running (normal coverage of EC2 but no traffic). ASG detects the need to scale, Warm Pool instances are promoted for assets much faster than launching new instances — eliminating the cold start of OS and dependencies startup. GPU with slow start time.",
+      "hint": "What is the functionality of EC2 Auto Scaling keeps pre-initialized instances at a lower cost (stopped or running without traffic), ready for immediate promotion when necessary, eliminating cold start?",
+      "optionRationales": [
+        "Right, Warm Pool of the Auto Scaling keeps pre-initialized instances in the state of stopped (covering only of EBS) or running (normal coverage of EC2 but no traffic). ASG detects the need to scale, Warm Pool instances are promoted for assets much faster than launching new instances — eliminating the cold start of OS and dependencies startup. GPU with slow start time.",
+        "Incorrect about removing cold start. Spot Instances have lower costs but AINDA have the same cold start of initialization of the SO and dependencies when launched., Spot Instances may be interrupted with 2 warning minutes — are not reliable for continuous ML processing workloads without checkpoint logic.",
+        "Incorrect for workloads of GPU. Lambda does not support GPUs — runs on CPUs only. For ML processing that requires GPU (especially for inference of computational vision models), EC2 with GPU (P3, P4, G4) is necessary. Lambda with containers would be viable only for light models of CPU.",
+        "Partially correct about Elastic Inference for cost reduction of GPU, but does not solve the cold start. Elastic Inference is an accelerator of GPU fractionated to SageMaker and EC2, not a mechanism for having pre-heated instances. + EC2 GPU is the correct solution for cold start."
+      ]
+    },
+    "saa-med-270": {
+      "text": "A company uses Amazon ElasticSearch (OpenSearch Service) to index and search for application logs. With data volume growth, search queries are getting slow. The team realized that most of the queries are looking for only the latest ones. 7 log days, but the index has 2 years of data. Which index management strategy improves the performance of queries without deleting historical data?",
+      "options": [
+        "Implement Index State Management (ISM) with rollover and index transition policies — create indices per day/week (hot tie), after 7 days move to warm tier indices (less shards, lower cost knots), and after 30 days for cold tier (UltraWarm in OpenSearch) or archive in S3, so you wanted the last 7 days only scan recent hot indexes",
+        "Using OpenSearch Serverless — has no fixed indexes and automatically scales the demand-based search capability without degradation with increasing data volumes",
+        "Enable Request Cache in OpenSearch — frequent queries are cached in the memory of nodes, making the same searches instantly return without re-scanning the index",
+        "Increase the number of shards by 5 for 50 — more shards distribute the search load among more us, improving the throughput of wants"
+      ],
+      "explanation": "Correct. ISM (Index State Management) at OpenSearch Service allows you to create policies that automatically manage the index life cycle: daily rollover for new indexes, transition to UltraWarm (low cost ter for cold data) after N days, and finally archiving. By separating recent data into dedicated hot indexes, you want the latest 7 days scan only these indices, ignoring years of historical data.",
+      "hint": "Which feature of OpenSearch Service allows you to create automated policies that move data from 'hot' (recent) indexes to lower cost (cold/filed) third parties based on age?",
+      "optionRationales": [
+        "Correct. ISM (Index State Management) at OpenSearch Service allows you to create policies that automatically manage the index life cycle: daily rollover for new indexes, transition to UltraWarm (low cost ter for cold data) after N days, and finally archiving. By separating recent data into dedicated hot indexes, you want the latest 7 days scan only these indices, ignoring years of historical data.",
+        "Incorrect. Increasing shards beyond necessary may PIORAR performance — each shard has overhead management, and with more shards than we available, distributed search efficiency decreases. The problem described is scanning irrelevant historical data, not lack of parallelism. (ISM) is the correct solution.",
+        "Partially correct: Request Cache helps with repeated IDENTICAL queries. But logs are usually unique (timestamps, different IDs), so queries are rarely identical — the hit rate cache would be low. In addition, the cache is limited in size and queries from different periods would be constantly cleared. ISM with tiering per period is the correct structural solution.",
+        "Incorrect as a direct solution to the problem. OpenSearch Serverless removes the need to provide capacity manually, but still scans TODOS the index data for each query — with 2 years of logs in the same index, the query would still take time proportional to the total volume. The correct solution is to separate indexes by period via ISM to limit the scope of each query."
+      ]
+    },
+    "saa-med-271": {
+      "text": "A company uses Amazon SQS with a Standard row and a function Lambda as a consumer. When processing messages, the Lambda often receives the same message multiple times because processing takes longer than the configured Visibility Timeout (30 (seconds). The average processing takes 2 How to solve this without DLQ?",
+      "options": [
+        "Use SQS FIFO with Message Deduplication ID — the deduplication ID ensures that identical messages are not delivered more than once inside a 5 minutes",
+        "Enable Long Polling in the queue SQS (WaitTimeSeconds=20) — the long polling ensures that each message is received only once per consumer, eliminating duplicate deliveries.",
+        "Increase the Visibility Timeout from the queue SQS for a value greater than the maximum processing time (ex.: 5 minutes) — while the message is being processed, it remains invisible to other consumers for the set period, avoiding duplicate deliveries by timeout",
+        "Configure the Lambda to call ChangeMessageVisibility during processing to extend the Visibility Timeout before it expires — this keeps the message invisible while the Lambda Still processing."
+      ],
+      "explanation": "Right. Visibility Timeout should be longer than the maximum processing time of a message. If processing takes 2 minutes, the Visibility Timeout should be at least 3-5 minutes (with safety margin). Lambda is processing, the message remains invisible — only after the full processing and the DeleteMessage is called (or the timeout expires) the message will be available again.",
+      "hint": "Which row parameter SQS determines how long a message becomes invisible after it is received by a consumer — and what value it should have in relation to processing time?",
+      "optionRationales": [
+        "Right. Visibility Timeout should be longer than the maximum processing time of a message. If processing takes 2 minutes, the Visibility Timeout should be at least 3-5 minutes (with safety margin). Lambda is processing, the message remains invisible — only after the full processing and the DeleteMessage is called (or the timeout expires) the message will be available again.",
+        "Incorrect. Long Polling reduces the number of empty chicks and is more efficient than Short Polling (immediate response), but does not solve duplicate deliveries by Visibility Timeout. Long Polling affects the DETECTION of messages in the queue, not the behavior of redelivery by expired timeout.",
+        "Partially correct: SQS FIFO with deduplication ID prevents that MENSAGENS IDENTICALS (same content) are added multiple times in a row within 5 minutes — but does not solve the problem of a message being RE-ENTREGUE because Visibility Timeout expired before processing completes. They are different scenarios: deduplication in ENQUEUE vs. redelivered by timeout.",
+        "Correct as advanced mechanism (heartbeat visibility), but is not the PRIMEIRA solution to the problem described. Increasing the row's Visibility Timeout to a value appropriate to processing time is the simple and direct solution. ChangeMessageVisibility is useful for processings with variable and unpredictable duration where a fixed timeout is not enough."
+      ]
+    },
+    "saa-med-272": {
+      "text": "A company uses AWS Global Accelerator to host an application of online games with ultra-low latency requirements. The team wants to understand the fundamental difference between Global Accelerator and the Amazon CloudFront to choose the correct solution. What statement correctly describes the difference between the two services?",
+      "options": [
+        "Global Accelerator cache content HTTP on edge locations as well as CloudFront, but also supports UDP for gaming applications — both services are CDNs, with the Global Accelerator being more complete",
+        "Global Accelerator uses the private backbone network of AWS (Anycast of static IPs) to route traffic TCP/UDP with more predictable latency for any origin — ideal for non-applications-HTTP (UDP, TCP custom), static IPs required, and endpoint failure; CloudFront is a CDN which caches content in edge locations, optimized for HTTP/S with maximum benefit in cacheable content",
+        "Both services are equivalent for web applications — the difference is only cost: Global Accelerator is more expensive per GB of data, while CloudFront is charged by request",
+        "CloudFront supports protocols TCP/UDP including WebSockets and gRPC — therefore for online games with low latency requirements, CloudFront is greater than Global Accelerator because it also caches static assets of the game"
+      ],
+      "explanation": "Correct. Global Accelerator provides two static Anycast IPs that route user traffic to the endpoint AWS closer via the private backbone network of the AWS — reducing hops on the public internet. TCP and UDP. Do not cache content. It is ideal for applications that need static IPs, support protocols not-HTTP, or need transparent multi-regional failover. CloudFront is a CDN which caches content HTTP/S in edge locations, with greater benefit for static or cacheable content.",
+      "hint": "What is the fundamental difference between a CDN (which stores content in edges) and a network accelerator (which routes traffic through the private backbone without cache) — and for which scenario each is most suitable?",
+      "optionRationales": [
+        "Correct. Global Accelerator provides two static Anycast IPs that route user traffic to the endpoint AWS closer via the private backbone network of the AWS — reducing hops on the public internet. TCP and UDP. Do not cache content. It is ideal for applications that need static IPs, support protocols not-HTTP, or need transparent multi-regional failover. CloudFront is a CDN which caches content HTTP/S in edge locations, with greater benefit for static or cacheable content.",
+        "Incorrect. Global Accelerator DO NOT cache content — is a network accelerator, not a CDN. It routed traffic to the nearest backend endpoint via the backbone of AWS, but does not store content in edge locations. CloudFront is the CDN which caches content.",
+        "Partially correct about CloudFront support WebSockets. However, for games that use UDP (ultra-low latency, tolerance to loss of packages), CloudFront I can't stand it. UDP. The Global Accelerator supports TCP and UDP, making it more suitable for online games that use custom network protocols based on UDP.",
+        "Incorrect. The difference is not just cost — they are fundamentally different services in purpose: Global Accelerator is a network accelerator for TCP/UDP, CloudFront is a CDN for HTTP/S with caching. Using them for the same use cases produces different results in terms of functionality (caching, protocol support, static IPs))."
+      ]
+    },
+    "saa-med-273": {
+      "text": "A company uses Amazon DynamoDB to store data from financial transactions. Some critical operations need to ensure that multiple tables are atomically updated — or all writings happen successfully, or none happens (multi-item multi-table atom). What functionality of the DynamoDB You can stand it.?",
+      "options": [
+        "Use DynamoDB Global Tables with synchronous replication between regions — synchronous replication ensures that written in all regions are atomically confirmed before returning to successful application",
+        "DynamoDB Conditional Writes with ConditionExpression in each table individually — if the condition fails in any table, the writing is rejected in that table and the application code reverses the writings in the others",
+        "DynamoDB Transactions (TransactWriteItems and TransactGetItems) — allow atomic operations on multiple items of multiple tables in the same region AWS; if any operation in the set fails, all are reversed automatically, ensuring atomicity",
+        "DynamoDB Streams Lambda Coordination — a Lambda monitors changes in table A via Stream and updates table B in response; if the Lambda fail, Stream allows replay and operation is reprocessed"
+      ],
+      "explanation": "Correct. DynamoDB Transactions (using TransactWriteItems and TransactGetItems) provide guarantees ACID for operations in multiple items and multiple tables in the same region. TransactWriteItems accepts up 100 operations (Put, Update, Delete, ConditionCheck) that are performed atomicly — or all are successful, or none is applied. Ideal for financial transactions that need consistency between tables.",
+      "hint": "Which API of the DynamoDB allows you to perform multiple writing operations (in multiple tables) atomicly — or all happen, or none?",
+      "optionRationales": [
+        "Correct. DynamoDB Transactions (using TransactWriteItems and TransactGetItems) provide guarantees ACID for operations in multiple items and multiple tables in the same region. TransactWriteItems accepts up 100 operations (Put, Update, Delete, ConditionCheck) that are performed atomicly — or all are successful, or none is applied. Ideal for financial transactions that need consistency between tables.",
+        "Incorrect. DynamoDB Streams + Lambda is an eventual consistency — non-atomic architecture. Between the writing in table A and the processing of the Stream by Lambda to update Table B, there is a period where the tables are inconsistent. In addition, failures in Lambda can leave permanently drawn tables without complex compensation logic.",
+        "Incorrect. Conditional Writes check conditions before CADA individual operation — they are not atomic among multiple tables. If the writing in Table A happens but the condition in Table B fails, the application would need to manually 'undo' Table A with compensation logic — this is complex and prone to errors, especially in case of process failure between the writings. DynamoDB Transactions are designed to eliminate exactly this problem.",
+        "Incorrect. DynamoDB Global Tables uses ASSINCRONA replication between regions (possibly consistency cross-region), not synchronous. In addition, Global Tables replicates data from a table to multiple regions — does not provide atomicity between MULTIPLES TABELAS DIFERENTES in the same region, which is the requirement of the."
+      ]
+    },
+    "saa-med-274": {
+      "text": "A company uses AWS Direct Connect with a connection of 1 Gbps for data transfer from your data center to AWS. The team realized that the actual throughput hit is of only 600 Mbps due to high round-trip latency (150ms) between sites. Why the throughput TCP is limited even with available bandwidth, and as the Direct Connect can be optimized for this scenario?",
+      "options": [
+        "The Direct Connect does not support speeds above 600 Mbps for connections of 1 Gbps — nominal speed includes protocol overhead, and actual throughput is always ~60% of nominal speed",
+        "The problem is the MTU (Maximum Transmission Unit) not optimized — the Direct Connect supports Jumbo Frames (MTU 9001) increase the payload per package; activate Jumbo Frames in ENIs of instances EC2 increases the throughput to the maximum available",
+        "The Throughput TCP is limited by bandwidth-delay product (BDP = bandwidth × RTT) — with 150more than RTT and window size standard of 64KB, the theoretical maximum throughput is ~430Kbps per flow TCP; to use the whole band of Direct Connect, multiple flows are required TCP parallel or tune o TCP window size in instances EC2 (stairs receiving windows)",
+        "The limit of 600 Mbps is a limitation of Direct Connect Standard — to achieve 1 Gbps of actual throughput, it is necessary to hire the Direct Connect Dedicated Connection Boost that increases effective throughput"
+      ],
+      "explanation": "Correct. TCP Bandwidth-Delay Product (BDP) defines how much data may be 'on flight' without confirmation: BDP = bandwidth × RTT. With 150ms RTT and window size of 64KB, flow throughput TCP It's ~3.4 Mbps — far below 1 Gbps. To saturated the band, TCP window size needs to be at least BDP = 1Gbps × 0.15s = 150 Mbit = ~18.75 MB. Multiple parallel streams or window size tuning (tcp window scaling) solve that. Direct Connect reduces latency but does not eliminate the problem of BDP.",
+      "hint": "The Throughput TCP in high latency connections is limited by the 'bandwidth-delay product' — the window TCP must be large enough to keep the line full. What is the formula and what needs to be adjusted?",
+      "optionRationales": [
+        "Correct. TCP Bandwidth-Delay Product (BDP) defines how much data may be 'on flight' without confirmation: BDP = bandwidth × RTT. With 150ms RTT and window size of 64KB, flow throughput TCP It's ~3.4 Mbps — far below 1 Gbps. To saturated the band, TCP window size needs to be at least BDP = 1Gbps × 0.15s = 150 Mbit = ~18.75 MB. Multiple parallel streams or window size tuning (tcp window scaling) solve that. Direct Connect reduces latency but does not eliminate the problem of BDP.",
+        "Incorrect. There is no 'Direct Connect Boost' as a separate product. The throughput limit is determined by the speed of the contracted door (1 Gbps, 10 Gbps, 100 Gbps) and by network factors such as BDP, not by an arbitrary limitation of the product which can be 'unlocked''.",
+        "Incorrect. There's no such thing '60% Overhead' fixed. Effective throughput depends on network factors (window TCP, RTT, number of flows), not of a product limitation. TCP window size and RTT appropriate, it is possible to approach 100% of nominal door speed Direct Connect.",
+        "Partially correct: Jumbo Frames (MTU 9001) reduces the overhead header by data byte and can improve throughput in high latency links — but is not the main cause of the problem described. BDP (bandwidth-delay product) is the primary limiting factor, and Jumbo Frames itself do not compensate for the limitation of TCP window size 150more than RTT."
+      ]
+    },
+    "saa-med-275": {
+      "text": "A company has instances EC2 with predictable use of CPU throughout the week for a critical business application that runs 24/7 there is 3 years. The team wants to maximize the economy in relation to On-Demand. Which purchase option offers the biggest discount for this predictable and committed usage profile?",
+      "options": [
+        "EC2 Spot Instances with Spot Fleet — Offer Up 90% discount on On-Demand and are suitable for critical applications 24/7 with pool diversification configuration",
+        "Computer Savings Plans with 3 years and All Upfront — more flexible than RIs Standard and offer similar discounts (up to 66%), applicable to any family of court EC2, Lambda and Fargate no commitment with specific size",
+        "On-Demand Payment-per-second proceedings — the flexibility to switch off when not in use reduces the total cost throughout the year, because the company pays only for real use",
+        "EC2 Reserved Instances (Standard) with a 3 years and advance total payment (All Upfront) — offer up 72% discount on On-Demand, the largest discount available for long-term compromised use in a specific family/size/region"
+      ],
+      "explanation": "Correct.. EC2 Reserved Instances Standard with 3 years of term and payment All Upfront offer the highest absolute discount (up to 72% about On-Demand) for compromised use. They are ideal for stable and predictable workloads that run continuously. The commitment is with family of instance, size, operating system and specific region.",
+      "hint": "For long-term compromised use (3 years) with stable and predictable profile, which option to purchase EC2 offers the absolute maximum discount — above all other saving plans?",
+      "optionRationales": [
+        "Correct.. EC2 Reserved Instances Standard with 3 years of term and payment All Upfront offer the highest absolute discount (up to 72% about On-Demand) for compromised use. They are ideal for stable and predictable workloads that run continuously. The commitment is with family of instance, size, operating system and specific region.",
+        "Partially correct about flexibility, but incorrect about maximum discount. Savings Plans offer even ~66% of discount — slightly less than EC2 Reserved Instances Standard ~72%). For maximum discount in use committed to family/size/region specific and stable, Standard RIs 3 All Upfront years gain in absolute economy. If flexibility is needed, Savings Plans are superior — but the statement calls for maximising economy for predictable and stable use.",
+        "Incorrect for CRITICAL applications 24/7. Spot Instances may be interrupted with 2 minutes of warning when the AWS need capacity — inadequate for critical business applications without interruption tolerance. High discount does not justify the risk of interruption for this usage profile.",
+        "Incorrect for use 24/7. If the application is continuously running 24/7, shutting down instances is not an option — On-Demand would be the most expensive option without any commitment discount. Reserved Instances or Savings Plans are always more economical for predictable continuous use."
+      ]
+    },
+    "saa-med-276": {
+      "text": "A company stores 500 TB historical backups no Amazon S3 Standard. Backups are rarely accessed, but occasionally they need to be restored urgently (within 1-2 The team wants to reduce storage costs while maintaining fast restoration capacity when needed. S3 offers the best trade-off between storage cost and availability of restoration in up 2 hours?",
+      "options": [
+        "S3 Flexible Retrieval Glacier (old S3 Glacier) with Expedited Recovery option — Expedited offers recovery in 1-5 minutes, meeting the requirement of 2 hours with much lower storage cost",
+        "S3 Glacier Deep Archive — Cheapest storage cost available (~96% less than S3 Standard), and with the Standard Recovery option (up to 12 (h) meets the requirement of 2 hours",
+        "S3 Standard-IA (Infrequent Access) — has storage cost ~57% less than S3 Standard, with instant access without special retriival collection for rarely accessed data",
+        "S3 Glacier Instant Retrieval — long-term storage with cost ~68% less than S3 Standard, with millisecond recovery time (immediate access) and collection of retriival per GB; suitable for rarely accessed data but with requirement of immediate availability when necessary"
+      ],
+      "explanation": "Correct.. S3 Glacier Instant Retrieval offers the best trade-off for the scenario: much lower storage cost than S3 Standard (saving ~68%), but with recovery time of milliseconds (not hours like Glacier Flexible Retrieval or Glacier Deep Archive). The recoveries are by GB recovered, but with rare access, the total cost is much lower than S3 Standard. Meets the requirement for restoration in 1-2 hours — in practice in milliseconds.",
+      "hint": "For rarely accessed data but with rapid recovery requirement (millimeters to minutes), which class S3 Glacier offers instant recovery with much lower storage cost than S3 Standard?",
+      "optionRationales": [
+        "Correct.. S3 Glacier Instant Retrieval offers the best trade-off for the scenario: much lower storage cost than S3 Standard (saving ~68%), but with recovery time of milliseconds (not hours like Glacier Flexible Retrieval or Glacier Deep Archive). The recoveries are by GB recovered, but with rare access, the total cost is much lower than S3 Standard. Meets the requirement for restoration in 1-2 hours — in practice in milliseconds.",
+        "Partially correct: Glacier Flexible Retrieval with Expedited recovers in 1-5 However, Expedited recrieval has a much higher cost ($0.03/GB + $0.01/1000 requests) than Instant Retrieval, and to 500 TB rarely but urgently accessed, the cost of retrieval can be significant. S3 Glacier Instant Retrieval has instant retrieval with lower cost of retrieval than Flexible Retrieval Expedited.",
+        "Incorrect about 'no recovery charge''. S3 Standard-IA TEM Retriival Collection by GB — this is one of its features (storage cheaper, retriival more expensive). 500 TB with rare but urgent access, Standard-IA offers less storage economy than Glacier Instant Retrieval (~57% vs ~68% of economy), and also has retrieval collection. Glacier Instant Retrieval is more economical for this profile.",
+        "Incorrect. S3 Glacier Deep Archive has recovery time from 12 hours (Standard) or 48 hours (Bulk) — DOES NOT meet the restoration requirement in 1-2 The Bulk/Standard emergency recovery is not within the SLA of 2 hours. Glacier Instant Retrieval is the right choice for rare data with urgent recovery requirement."
+      ]
+    }
+  }
+}

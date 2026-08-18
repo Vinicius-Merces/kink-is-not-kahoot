@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-med-091..dva-med-098",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-091": {
+      "optionReasons": {
+        "dva-med-091:option:0": "It's the closest because it invents a plausible cache limit — but the DAX has no ceiling of 1 GB by table; the reason is the TIPO OF LEITURA: o DAX serves cache only readings EVENTUALMENTE consistent, and the strongly consistent (ConsistentRead=true) are transferred to DynamoDB.",
+        "dva-med-091:option:1": "The DAX does not need to 'restart daily' to cache — it caches as accesses.",
+        "dva-med-091:option:2": "",
+        "dva-med-091:option:3": "The cluster in another account would give access error, not a silent cache bypass by consistent reading."
+      },
+      "finalJustifications": [
+        "Because DAX serves the cache only possibly consistent readings: the strongly consistent readings (ConsistentRead=true) are passed directly to the DynamoDB, no cache gain.",
+        "Because DAX only cache tables with less than 1 GB: the strongly consistent readings are passed directly to the DynamoDB, no cache gain on calls with ConsistentRead=true.",
+        "Because DAX needs to restart daily: the strongly consistent readings are passed directly to DynamoDB, no cache gain on calls with ConsistentRead=true.",
+        "Because the cluster DAX it is in another account: the strongly consistent readings are passed directly to DynamoDB, no cache gain on calls with ConsistentRead=true."
+      ]
+    },
+    "dva-med-092": {
+      "optionReasons": {
+        "dva-med-092:option:0": "The size of the message body does not measure backlog — it is irrelevant for processing delay.",
+        "dva-med-092:option:1": "It's the closest because NumberOfMessagesDeleted is the actual line metric — but it tells what it's already been PROCESSADO, not the accumulated backlog; the best delay indicator is the ApproximateNumberOfMessagesVisible (row size), which can feed target tracking to scale consumers.",
+        "dva-med-092:option:2": "'The color of the icon on the console' is not metric — no auto-correction guide.",
+        "dva-med-092:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the ApproximateNumberOfMessagesVisible measures the size of the row (backlog) and feeds an alarm/target tracking that scales consumers (ASG or competition) as the delay increases.",
+        "Because NumberOfMessagesDeleted measures row size (backlog) and feeds an alarm/target tracking that scales consumers (ASG or competition) as the delay increases.",
+        "Because the average body size measures the row size (backlog) and feeds an alarm/target tracking that scales consumers (ASG or competition) as the delay increases.",
+        "Because the color of the row icon measures the row size (backlog) and feeds an alarm/target tracking that scales consumers (ASG or competition) as the delay increases."
+      ]
+    },
+    "dva-med-093": {
+      "optionReasons": {
+        "dva-med-093:option:0": "It is the closest because it associates IteratorAge with the state of the stream — but it grows when the CONSUMO is delayed in relation to the arrival of records (not because the stream is empty); risk of expiring retention data, corrected accelerating the function, increasing parallelism or batch size.",
+        "dva-med-093:option:1": "Excessive permissions do not affect IteratorAge — it is processing delay metric, not IAM.",
+        "dva-med-093:option:2": "",
+        "dva-med-093:option:3": "Timestamps 'of the future' is not the cause — IteratorAge measures how far back the consumer is from the end of the stream."
+      },
+      "finalJustifications": [
+        "Because iteratorAge is increasing means that processing is delayed in relation to the arrival of records (risk of expiring retention): it corrects by accelerating the function, increasing parallelism or batch size.",
+        "Because the empty stream means that the processing is delayed in relation to the arrival of the records (risk of expiring the retention): it is corrected by accelerating the function, parallelism or batch size.",
+        "Because excessive permissions mean that processing is delayed in relation to the arrival of records: it corrects by accelerating the function, increasing parallelism or batch size.",
+        "Because the timestamps of the future mean that the processing is delayed in relation to the arrival of the records: it corrects by accelerating the function, increasing parallelism or batch size."
+      ]
+    },
+    "dva-med-094": {
+      "optionReasons": {
+        "dva-med-094:option:0": "It's the closest because CORS is common problem of API Gateway — But Failure to CORS generates browser error, no 504 the gateway; or 504 has exceeded the TIMEOUT Integration (~29s in the pattern), and the correction is the asynchronous pattern (202 + ID to consult status).",
+        "dva-med-094:option:1": "API Gateway has no 'resize memory' — it's managed; the 504 It's timeout, not memory..",
+        "dva-med-094:option:2": "Certificate TLS expired would give connection error/handshake — not the 504 time-to-time processing.",
+        "dva-med-094:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the integration timeout of API Gateway (~29s in the pattern) is exceeded by processing of ~50s: correction is the asynchronous pattern — a API returns 202 with an ID for the customer consult the status.",
+        "Because the mistake of CORS is exceeded by processing of ~50s: correction is the asynchronous pattern — a API returns 202 with an ID for the client consult the status of the work lined up.",
+        "Because the lack of memory of API Gateway is exceeded by processing of ~50s: correction is the asynchronous pattern — a API returns 202 with an ID for the customer consult the status.",
+        "Because the certificate TLS expired is exceeded by processing of ~50s: correction is the asynchronous pattern — a API returns 202 with an ID for the customer consult the status."
+      ]
+    },
+    "dva-med-095": {
+      "optionReasons": {
+        "dva-med-095:option:0": "It is the closest because part of the actual fact (the average is healthy) — but it concludes wrong: removing the alarm erases the only chance of seeing slowness; the slow, severe and sporadic tail appears in the PERCENTIS high (p95/p99), that the average dilute.",
+        "dva-med-095:option:1": "",
+        "dva-med-095:option:2": "Period of 24h smoothens the peaks even more — hides the slowness instead of exposing it.",
+        "dva-med-095:option:3": "The minimum latency is the best case — hides the slow tail completely."
+      },
+      "finalJustifications": [
+        "Because alarming about high percentages (p95/p99) exposes the slow tail that the average dilutes — capturing the severe sporadic slowness that users feel and the average alarm never sees.",
+        "Because removing the alarm exposes the slow tail that the average dilutes — capturing the severe sporadic slowness that users feel and the average alarm never sees in the real experience.",
+        "Why increase the period to 24h exposes the slow tail that the average dilute — capturing the severe sporadic slowness that users feel and the average alarm never sees.",
+        "Because exchanging for minimum latency exposes the slow tail that the average dilutes — capturing the severe sporadic slowness that users feel and the average alarm never sees."
+      ]
+    },
+    "dva-med-096": {
+      "optionReasons": {
+        "dva-med-096:option:0": "Read reply does not receive ESCRITAS — does not relieve the exhaustion of primary connections.",
+        "dva-med-096:option:1": "Reduce timeout does not change the connection opening pattern by concurrent execution.",
+        "dva-med-096:option:2": "",
+        "dva-med-096:option:3": "It's the closest because more max_connections accept more connections — but it's treating the symptom: the RDS has roof of connections and explosion of executions Lambda the burst again; to solve structurally is the RDS Proxy, which multiplies thousands of executions into a controlled pool."
+      },
+      "finalJustifications": [
+        "Because RDS Proxy is between functions and the bank multiplexing thousands of executions in a controlled connection pool — the 'too many connections' disappears structurally.",
+        "Because the read replica lies between functions and the bank by multiplying thousands of executions in a controlled connection pool — the 'too many connections' disappears structurally.",
+        "Because reducing the timeout is between functions and the bank by multiplying thousands of executions in a controlled connection pool — the 'too many connections' disappears structurally.",
+        "Because increasing max_connections stays between functions and the bank by multiplying thousands of executions in a controlled connection pool — the 'too many connections' disappears structurally."
+      ]
+    },
+    "dva-med-097": {
+      "optionReasons": {
+        "dva-med-097:option:0": "False: arm64 functions generate log no CloudWatch usually — architecture doesn't change that.",
+        "dva-med-097:option:1": "",
+        "dva-med-097:option:2": "It's the closest because it mentions a real migration care — but it's wrong: changing to arm64 DOES NOT require rewriting in Rust; real care is validating dependencies with binary NATIVOS compatible with ARM; the gain is ~20% less by ms with equal or better performance.",
+        "dva-med-097:option:3": "False: arm64 is not free until 1 GB — the collection model continues by GB-Second, only cheaper."
+      },
+      "finalJustifications": [
+        "Because the cost per ms falls ~20% with equal or better performance in arm64 (Graviton); care is to validate that dependencies with native binaries are compatible with ARM before migrating.",
+        "Because the cost per ms falls ~20% with equal or better performance in arm64, but the functions do not generate logs in CloudWatch; the care is to validate native dependencies compatible with ARM.",
+        "Because the cost per ms falls ~20% with equal or better performance in arm64, but migration requires rewriting the code in Rust; care is to validate native dependencies compatible with ARM.",
+        "Because the cost per ms falls ~20% with equal or better performance in arm64, being free even 1 GB; care is to validate that dependencies with native binaries are compatible with ARM."
+      ]
+    },
+    "dva-med-098": {
+      "optionReasons": {
+        "dva-med-098:option:0": "Record in spreadsheet at S3 does not generate metrics of CloudWatch no alarms.",
+        "dva-med-098:option:1": "It's the closest because it quotes the API right (PutMetricData) — but call it only twice DOBRA the synchronous cost and latency that you want to avoid; issuing metrics in scale without extra calls is the Embedded Metric Format (EMF), of which CloudWatch extract the metrics from the asynchronous log.",
+        "dva-med-098:option:2": "False: Customized metrics operate in high volume — via EMF, just without synchronous calls.",
+        "dva-med-098:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Embedded Metric Format (EMF) records structured logs of which the CloudWatch removes the metrics automatically and asynchronously — metrics in scale without extra calls from API.",
+        "Why call PutMetricData twice records structured logs of which the CloudWatch extract the asynchronous metrics — scale metrics without extra calls from API.",
+        "Why record on a spreadsheet in S3 records structured logs of which the CloudWatch extract the asynchronous metrics — scale metrics without extra calls from API by request.",
+        "Because, even custom metrics not working in high volume, the EMF records logs of which the CloudWatch extract the asynchronous metrics — scale metrics without extra calls."
+      ]
+    }
+  }
+}

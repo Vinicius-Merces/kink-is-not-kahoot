@@ -1,0 +1,48 @@
+name: Aplicar UI EN da CloudArena
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'locales/en/cloudarena-literals.json'
+      - 'locales/pt-BR/cloudarena-literals.json'
+      - 'js/i18n-cloudarena.js'
+      - 'scripts/inject_cloudarena_i18n_adapter.py'
+      - '.github/workflows/cloudarena-visual-i18n.yml'
+  workflow_dispatch: {}
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Injetar adapter da Arena
+        run: python3 scripts/inject_cloudarena_i18n_adapter.py
+      - name: Validar JavaScript e catálogos
+        run: |
+          node --check js/i18n-cloudarena.js
+          python3 scripts/validate_i18n.py
+      - name: Garantir referência única
+        run: test "$(grep -c 'js/i18n-cloudarena.js' cloudarena.html)" -eq 1
+      - name: Versionar wiring validado
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add cloudarena.html
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): wire CloudArena visual localization'
+          git push origin "HEAD:${HEAD_BRANCH}"

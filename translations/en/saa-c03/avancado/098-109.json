@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "098-109",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-098": {
+      "text": "A company executes a API multi-region active-using API Gateway (regional endpoints)) + Lambda + DynamoDB Global Tables, implemented in us-east-1 and me-west-1, with latency routing Route 53 targeting users to the nearest healthy region. DynamoDB Global Tables uses conflict resolution 'last writer wins' with eventual consistency between replicas. What architectural consideration is most important for this active-active architecture avoid silent loss of data/overwritten DURANTE OPERATION NORMAL (not only during failover)?",
+      "options": [
+        "Configure the DynamoDB Global Tables in 'strong consistency' mode for replication between regions, preventing any conflict.",
+        "Trust in latency routing Route 53 to ensure that each user is always directed to the same region, eliminating the possibility of competing writings between regions in the same item.",
+        "Use transactions from DynamoDB (TransactWriteItems) in any writing to ensure atomicity between replicas of both regions simultaneously.",
+        "Design the application so that, for items that can be modified by users in MULTIPLE regions, written in MESMO item from different regions are minimized or use a conflict-resilient pattern (e.g. partitioning items so that each is usually written only from a 'dona' region, use conditional expressions, or design idempotent/additive updates)."
+      ],
+      "explanation": "The 'last writer wins' resolution of DynamoDB Global Tables can silently overwrite concurrent updates to the same item made in different regions, even outside a failure scenario; therefore, active-active design needs to consider this from the beginning — through partitioning by 'domestic region', writing conditions or updating patterns that tolerate conflicts — not only during failure.",
+      "hint": "Think of the conflict resolution model of the DynamoDB Global Tables and how it behaves when the MESMO item is written from different regions in a short time interval, regardless of whether or not there is a failover in progress.",
+      "optionRationales": [
+        "The 'last writer wins' resolution of DynamoDB Global Tables can silently overwrite concurrent updates to the same item made in different regions, even outside a failure scenario; therefore, active-active design needs to consider this from the beginning — through partitioning by 'domestic region', writing conditions or updating patterns that tolerate conflicts — not only during failure.",
+        "The DynamoDB Global Tables provides, by design, consistency EVENTUAL for replication between regions; there is no 'strong consistency' configuration option for replications between regions that would prevent competing competing writings from different regions.",
+        "Latency routing optimizes for the nearest region based on network conditions, which may change over time (or vary for users close to a border between regions), and not GARANTE that a particular user/item is always routed to a specific region — is a heuristic, not a partitioning/consistency mechanism.",
+        "The transactions of the DynamoDB ensure atomicity for multiple operations DENTRO of a single replica/table at the time of transaction; they do not provide atomic/synchronous coordination between regions for replicas of the Global Tables in different regions, which eventually remain consistent."
+      ]
+    },
+    "saa-avc-099": {
+      "text": "A company's DR plan involves replicating workloads from a VPC in the primary region (us-east-1) for one VPC in the region of DR (us-west)-2). Both VPCs are attached to their respective AWS Transit Regional Gateways. The company needs that resources in VPC Of us-east-1 can communicate with resources in VPC of us-west-2 (for continuous replication of data and DR tests/validation) through the private backbone network of the AWS, without going through the public internet and without setting up VPN. What should be configured?",
+      "options": [
+        "Enable the 'Multi-Region mode' in one of the Transit Gateways so it automatically covers both regions.",
+        "Use AWS Direct Connect with a VIF private in both regions to connect the two Transit Gateways.",
+        "Configure VPC Peering directly between the VPC Of us-east-1 and the VPC of us-west-2, in addition to the existing annexes to the Transit Gateway.",
+        "Configure Transit Gateway Peering (interregional peering annex) between the Transit Gateways of us-east-1 and us-west-2, and add appropriate routes to each route tables Transit Gateway (and the route tables of the attached VPCs) pointing to the peering annex towards the CIDRs of the other region."
+      ],
+      "explanation": "The Transit Gateway Peering provides private connectivity through the global backbone network of AWS between Transit Gateways from different regions; with the appropriate routes configured on both sides, the VPCs attached to each Transit Gateway can communicate between regions without the internet or VPN.",
+      "hint": "Think about the attachment type of the Transit Gateway specifically designed to connect two Transit Gateways located in different regions by the backbone of AWS.",
+      "optionRationales": [
+        "The Transit Gateway Peering provides private connectivity through the global backbone network of AWS between Transit Gateways from different regions; with the appropriate routes configured on both sides, the VPCs attached to each Transit Gateway can communicate between regions without the internet or VPN.",
+        "Although the VPC Peering between regions is technically possible and use the backbone of AWS, it would be redundant/conflicting with existing annexes to Transit Gateway (VPC Peering and annexes TGW for the same VPCs can create router complexity; Transit Gateway Peering is the most consistent approach when both VPCs are already managed via Transit Gateway, especially if more VPCs/accounts need similar connectivity in the future.",
+        "The Direct Connect provides connectivity between networks ON-PREMISES and the AWS, not a mechanism to connect two Transit Gateways from AWS in regions different from each other; it is unnecessary and does not directly solve the connectivity TGW-for-TGW between regions.",
+        "An appeal Transit Gateway It's REGIONAL; there is no 'Multi-Region mode' that extends a single resource Transit Gateway between regions — connecting Transit Gateways from different regions requires an explicit peering annex."
+      ]
+    },
+    "saa-avc-100": {
+      "text": "A company executes the Amazon RDS for MySQL in a traditional Multi-AZ deployment (one standby). During failure events, the observed unavailability is 60-120 The company wants to reduce the time to fail to less than one second, and the standby instance cannot be used for reading traffic. ~35 second And manage to download part of the reading traffic for standby instances, keeping the architecture fully managed by RDS (without migrating Aurora). What configuration they should migrate to?",
+      "options": [
+        "Implementation RDS Multi-AZ DB Cluster, with a writer and DUAS readable standby instances distributed in 3 Availability Zones, using a reading endpoint dedicated to booths.",
+        "Migrate to Read Replica RDS in the same region, configured as the Multi-AZ standby.",
+        "Migratory to Aurora MySQL with a single Aurora Replica.",
+        "Increase the instance class of the traditional Multi-AZ deployment to reduce the time to fail."
+      ],
+      "explanation": "The Multi-AZ DB Cluster of RDS provides a writeer and two readable stands in different AZs, with semi-synchronous replication based on quorum that reduces the time to failover to typically less than 35 second; moreover, a dedicated reader (reader endpoint) allows to distribute reading traffic to booths, unlike the traditional Multi-AZ, in which the booth is not accessible.",
+      "hint": "Think about the latest Multi-AZ implementation variant of RDS which adds a second readable standby and drastically reduces the time to fail compared to the traditional single instance Multi-AZ.",
+      "optionRationales": [
+        "The Multi-AZ DB Cluster of RDS provides a writeer and two readable stands in different AZs, with semi-synchronous replication based on quorum that reduces the time to failover to typically less than 35 second; moreover, a dedicated reader (reader endpoint) allows to distribute reading traffic to booths, unlike the traditional Multi-AZ, in which the booth is not accessible.",
+        "Read Replicas use ASSINCRONA replication and are not automatically used to fail the Multi-AZ; manual promotion would be required, which increases the time to fail, contrary to the requirement.",
+        "The Aurora is a database engine different from RDS traditional; the requirement explicitly asks for a solution that remains fully managed by RDS (without migrating Aurora), therefore, this option is contrary to the declared restriction.",
+        "The failover time of the traditional Multi-AZ (based on update of DNS, ~60-120(s) is largely independent of the size of the instance; increasing the class would not reduce the time to ~35s would not enable reading traffic on standby."
+      ]
+    },
+    "saa-avc-101": {
+      "text": "A company executes Apache Kafka in Amazon MSK for a critical event streaming pipeline. The cluster MSK is currently provided with brokers in only UMA Availability Zone. To improve the resilience against failure of an AZ (unavailability of brokers causing partition leader elections and potential loss of messages in topics with replication factor 1), what changes should be made?",
+      "options": [
+        "Enable a Multi-Region replication feature from MSK to mirror the cluster synchronously for one cluster in another AZ.",
+        "Configure the MSK Connect with a sink connector that backups all the data from the topics to the S3 every few minutes.",
+        "Reconfiguring the cluster MSK to implement brokers in (at least) 3 Availability Zones, and set up topics with replication factor of at least 3 (with min.insync.replicas appropriately defined, ex.: 2), so that the replicas of each partition are distributed among multiple AZs/brokers.",
+        "Increase the number of partitions of each topic within the single AZ cluster."
+      ],
+      "explanation": "With brokers distributed in multiple AZs and replication factor ≥3, a failure of AZ takes down only one subset of the replicas of each partition; the Kafka leader election mechanism promotes a replica in synchrony (in-sync replica) in a healthy AZ, without loss of data for properly confirmed writing (acks)).",
+      "hint": "Think of what two aspects of the configuration of the MSK (positioning of brokers and replication factor of topics) determine whether the replicas of a partition survive the failure of a single Availability Zone.",
+      "optionRationales": [
+        "With brokers distributed in multiple AZs and replication factor ≥3, a failure of AZ takes down only one subset of the replicas of each partition; the Kafka leader election mechanism promotes a replica in synchrony (in-sync replica) in a healthy AZ, without loss of data for properly confirmed writing (acks)).",
+        "Increasing the number of partitions improves the PARALELISMO/throughput, but does not resolve the resilience at AZ level if all brokers (and therefore all replicas of partitions) reside in the same AZ; a failure of AZ would still knock down all replicas.",
+        "The MSK does not have a 'multi-region synchronous mirroring' feature for intracluster resilience between AZs; the AZ level resilience comes from the positioning of brokers between AZs and the configuration of the replication factor within a single regional cluster — replication between regions (for DR) is obtained via MSK Replicator/MirrorMaker, a different concern of AZ resilience in a single region.",
+        "Back up for the S3 provides a DR/recovery mechanism for historical data, but does not resolve resilience/availability IMEDIATA of the streaming pipeline in production against a failure of AZ (producers/consumers in progress would still be interrupted); the correction must be in the positioning of brokers/cluster replicas."
+      ]
+    },
+    "saa-avc-102": {
+      "text": "A developer accidentally executed, there 4 hours, a script that deleted thousands of items from a table DynamoDB The team needs to recover these items, restoring the table to the state at a specific point in the time immediately prior to the script execution, with minimal impact on the table in production (which continued to receive new writings since the incident and should remain operational).?",
+      "options": [
+        "Use AWS Backup to complete table restoration, which automatically mixes restored items with the table in production without creating a new table.",
+        "Enable DynamoDB Streams retroactively and reproduce the stream of 4 hours ago to recreate deleted items.",
+        "Restore the table from the latest on-demand backup made before the incident, overwriting the current production table.",
+        "Use Point-in-Time Recovery (PITR) of the DynamoDB to restore the table in a NOVA table reflecting the status in the chosen timestamp (right before exclusion); then identify and selectively copy the excluded items from the restored table back to the production table in use."
+      ],
+      "explanation": "The PITR of the DynamoDB always restores for one NOVA table, reflecting the status in a specific timestamp, without affecting the production table in operation; from this new table, excluded items can be identified and copied selectively back to the table in production (via script or job of the AWS Glue, for example), without interrupting ongoing operations.",
+      "hint": "Think about the resource of DynamoDB which allows to restore the table status in a specific timestamp for a new table, without affecting the original table in production.",
+      "optionRationales": [
+        "The PITR of the DynamoDB always restores for one NOVA table, reflecting the status in a specific timestamp, without affecting the production table in operation; from this new table, excluded items can be identified and copied selectively back to the table in production (via script or job of the AWS Glue, for example), without interrupting ongoing operations.",
+        "Restore a backup SOBRE the table in production (in-place) would discard all the legitimate writings made in the table since the incident, and the restorations of the DynamoDB always create one NOVA table instead of overwriting on site; this approach would cause additional unnecessary data loss.",
+        "The DynamoDB Streams retains data by only 24 hours And need to be enabled ANTES of events occur to capture them; enabling it now would not provide retroactively a stream of events of 4 hours ago (before being enabled), therefore exclusion events (and previous states of items) are not available for reproduction.",
+        "The AWS Backup (and native restoration of DynamoDB) always restores for one NOVA table, never 'mix' automatically with the table in production; a manual reconciliation step is required regardless of the restoration mechanism used."
+      ]
+    },
+    "saa-avc-103": {
+      "text": "A function Lambda is invoked in an ASSINCRONA way (for example, from notifications of events of the S3) to process sent files. Occasionally, the function fails after exhausting its automatic retaliatory (2 default retentes for asynchronous invocations). The team wants faulty invocations to be automatically directed to a row SQS for analysis and subsequent reprocessing, SEM modify function code Lambda to add explicit logic of error/filing treatment.",
+      "options": [
+        "Involve the treatment code of the event of the S3 in a try/catch block and use the AWS SDK to manually call SQS SendMessage when capturing an exception.",
+        "Configure a Dead-Letter Queue (DLQ) in the function and add code in the function to publish a custom message in that DLQ by capturing an error.",
+        "Configure an on-failure Destination Lambda pointing to a row SQS (or topical SNS/bus EventBridge/other function Lambda).",
+        "Increase the reserved competition of the function so that faulty invocations are reprocessed more often before giving up."
+      ],
+      "explanation": "After the asynchronous invocation retentatives are exhausted and the function still fails, the Lambda automatically send a record of the invocation (including the original event payload and error details) to the configured failure destination — no need for any change in function code.",
+      "hint": "Think about the resource of Lambda, configured outside the function code, which automatically forwards the event and error details to a destination after exhausting the asynchronous invocation retentatives.",
+      "optionRationales": [
+        "After the asynchronous invocation retentatives are exhausted and the function still fails, the Lambda automatically send a record of the invocation (including the original event payload and error details) to the configured failure destination — no need for any change in function code.",
+        "Although DLQs are a valid (legacy) mechanism to capture asynchronous invocations with failure, this option describes the need for ADICIONAR code in the function to be published in DLQ — or contrary to the requirement to 'without changing the code'; or Lambda it is already automatically forwarding to the DLQ configured after exhausting the retentatives, but Destinations is the most recent and recommended mechanism, without requiring any code change.",
+        "The reserved competition controls the MAXIMUM number of simultaneous executions, not the number of retry attempts for failed asynchronous invocations; it does not direct failed invocations to any place for analysis.",
+        "This approach requires changing the function code (against the declared requirement) and would not capture failures that occur FORA of try/catch (e.g. function timeout, memory failure, or crash before reaching the catch) — Lambda Destinations capture faults regardless of failure mode."
+      ]
+    },
+    "saa-avc-104": {
+      "text": "A function Lambda processes messages from a row SQS, where each message can lead from 30 seconds to 10 minutes to be processed, depending on the size of the payload (the function timeout) Lambda is configured for 15 The visibility timeout of the row SQS is configured for 30 seconds. The team notes that long processing messages (which take several minutes) are being captured and processed by MULTIPLE invocations Lambda competitors simultaneously, causing duplicate processing and waste of resources, even without errors. What is causing this and how to correct?",
+      "options": [
+        "The visibility timeout (30s) is less than the actual processing time of many messages; when it expires (while the original invocation is still processing), the SQS makes the message visible again and another invocation capture, processing it competitively. fix: increase the visibility timeout of the row to be MAIOR that the maximum expected processing time (e.g. at least equal to the timeout of the function, 15 minutes, ideally with margin).",
+        "The problem is caused by the queue SQS do not have a dead-letter tail configured, making the messages enter loop indefinitely.",
+        "The problem is caused by the batch size of the event source mapping of Lambda be configured with a very high value, making the same message appear in multiple batches.",
+        "The problem is caused by the reserved competition of the function Lambda be configured with a very high value, allowing parallel invocations in excess."
+      ],
+      "explanation": "When the visibility timeout expires before the original processing ends, or SQS considers the message available again to other consumers, resulting in duplicate concurrent processing of the same message without any error; aligning the visibility timeout to exceed the maximum processing time ensures that the message remains invisible throughout the processing attempt.",
+      "hint": "Think of the relationship between the visibility timeout of the row SQS and the real time needed to process a message — what happens if the timeout expires before processing ends?",
+      "optionRationales": [
+        "When the visibility timeout expires before the original processing ends, or SQS considers the message available again to other consumers, resulting in duplicate concurrent processing of the same message without any error; aligning the visibility timeout to exceed the maximum processing time ensures that the message remains invisible throughout the processing attempt.",
+        "The reserved competition limits parallelism, but does not explain why the MESMA message is processed multiple times; this specific symptom (the same concurrently reprocessed message) is a problem of visibility timeout, not competition limit.",
+        "DLQs handle messages that fail repeatedly after maxReceiveCount attempts; they do not resolve messages that become visible again ENQUANTO they are still being successfully processed due to a very short visibility timeout, which is the symptom described (no errors occurring).).",
+        "The SQS ensures that a given message is delivered in just one batch, to one consumer at a time (as invisible); the batch size affects how many messages are grouped by invocation, but does not cause duplication of the message. MESMA message between competing invocations — this is specifically a problem of expiration of visibility timeout."
+      ]
+    },
+    "saa-avc-105": {
+      "text": "An event-oriented architecture uses the Amazon EventBridge to route events from various producers to multiple consumers (functions) Lambda/Targets). 6 hours, the function Lambda of one of the consumers had a bug that caused her to fail silently by processing certain events correctly (without launching errors that would trigger retaliatory/DLQ). After correcting the bug, the team needs REPROCESSAR all events sent to EventBridge during this window of 6 hours, reproducing them for function Lambda corrected, without affecting other consumers who processed these events correctly the first time. What approach meets this requirement?",
+      "options": [
+        "Use EventBridge Archive (if an archive has been configured on the event bus to retain corresponding events) and the EventBridge Replay to play archived events from the 6 hours for one NOVA rule/target pointing only to function Lambda corrected.",
+        "Re-activate original event producers to forward all events from this window 6 hours.",
+        "Use CloudWatch Logs Insights to extract the payloads from the events of the log EventBridge and manually invoke the function Lambda for each route AWS CLI.",
+        "Increase the retention period of the DLQ function Lambda so that events with this window failure can be reprocessed from the DLQ."
+      ],
+      "explanation": "The Replay of EventBridge send the events archived as new events (with a replay metadata marker), directed to the chosen rule(s); when creating a new rule pointing only to the function Lambda corrected, the replay reprocesses only for this consumer, without affecting the original consumers who are not part of the replay.",
+      "hint": "Think of the pair of resources EventBridge which allows to retain historical events of the bus event and forward them later to specific rules/targets.",
+      "optionRationales": [
+        "The Replay of EventBridge send the events archived as new events (with a replay metadata marker), directed to the chosen rule(s); when creating a new rule pointing only to the function Lambda corrected, the replay reprocesses only for this consumer, without affecting the original consumers who are not part of the replay.",
+        "This would require that producers have retained or could regenerate exactly these historic events, and would forward them to TODOS the original targets/consumers (not just the corrected one), potentially causing unwanted reprocessing in consumers who have already worked correctly the first time.",
+        "This is a totally manual process, prone to errors and unscalable on scale for potentially thousands of events; the EventBridge Archive/Replay is the native mechanism specifically designed for this scenario.",
+        "The scenario specifies that the function failed SILENCIOSAMENTE (without making mistakes), so the events never entered a DLQ; there's nothing on DLQ for reprocessing, since the EventBridge/Lambda Never recorded these executions as failures."
+      ]
+    },
+    "saa-avc-106": {
+      "text": "An organization has dozens of applications, each with a defined architecture via CloudFormation/Terraform, but without a formal way of assessing whether the actual configuration of each application in AWS meets the goals of RTO and RPO as defined by the NEGOTIATION, or to identify specific resilience gaps (e.g.: 'the database of this application is not Multi-AZ, but its target of RTO They want a service that analyzes the actual configuration of the resources. AWS of an application in relation to RTO/RPO which service meets this requirement.?",
+      "options": [
+        "AWS Well-Architected Tool with the selected Reliability pillar.",
+        "Checks in the 'Fault Tolerance' category of the AWS Trusted Advisor.",
+        "AWS Resilience Hub.",
+        "AWS Optimizer Computers."
+      ],
+      "explanation": "The AWS Resilience Hub allows you to define an application (importing stack features from CloudFormation, status of Terraform or tag-marked resources), define goals of RTO/RPO based on a chosen resilience policy, and perform an evaluation; the Resilience Hub analyzes the actual configuration (e.g. Multi-AZ configurations, backup configurations) in relation to the goals, producing a resilience score and specific and actionable recommendations to close identified gaps..",
+      "hint": "Think of the service of AWS specifically designed to define quantitative targets of RTO/RPO for an application and automatically evaluate your real configuration against these goals.",
+      "optionRationales": [
+        "The AWS Resilience Hub allows you to define an application (importing stack features from CloudFormation, status of Terraform or tag-marked resources), define goals of RTO/RPO based on a chosen resilience policy, and perform an evaluation; the Resilience Hub analyzes the actual configuration (e.g. Multi-AZ configurations, backup configurations) in relation to the goals, producing a resilience score and specific and actionable recommendations to close identified gaps..",
+        "The Trusted Advisor provides general verifications of good practice (e.g.: ELB has less than 2 health care institutions') in the whole account, but does not allow defining goals of RTO/RPO specific by application or evaluate the architecture of a specific application in relation to these custom goals with a resilience score.",
+        "Computer Optimizer provides rightsizing recommendations for computing resources (EC2, Lambda, EBS, etc.) based on use, focused on cost/performance optimization, not on resilience assessment/RTO/RPO.",
+        "The Well-Architected Tool is a majority self-assessment process MANUAL, based on questionnaires answered by humans about architecture; it does not automatically analyze the real configurations of the implemented resources in relation to quantitative goals of the RTO/RPO to produce a resilience score as the Resilience Hub does."
+      ]
+    },
+    "saa-avc-107": {
+      "text": "A company needs to update its database Amazon RDS for MySQL production for a new version MAJOR They are concerned about the risk of a major in-place upgrade (which requires unavailability and brings about a risk of compatibility problems discovered only after the upgrade, with complex rollback). They want to: create a complete copy of the production environment with the new version of the engine, validate it thoroughly with tests equivalent to those of production, and then make the turn (switchover) with minimal unavailability (seconds) — with the ability to quickly revoke if problems are found shortly after the turn.?",
+      "options": [
+        "Perform major in-place update during a maintenance window, relying on the automatic snapshot taken before update to rollback if necessary.",
+        "Use AWS DMS to perform a single homogeneous (one-time) migration of the bank in the old version to a new bank running the new version of the engine, and then redirect traffic.",
+        "Use Amazon RDS Blue/Green Deployments — o RDS creates a fully managed staging environment ('green'), synchronized with production ('blue') via logical replication, but running the new engine version/configuration; after validation, the RDS performs a switchhover (typically with less than a minute of writing unavailability) that promotes the 'green' the new production, keeping the 'blue' available briefly for fast rollback if necessary.",
+        "Create a Read Replica with the new version of the engine, validate it, then promote it to the independent instance and update the connection string of the application."
+      ],
+      "explanation": "The Blue/Green Deployments RDS keeps the green environment synchronized with the continuous changes of the blue via logical replication, allowing complete tests against the green without impacting the production; when ready, the managed switchhover promotes the green with writing unavailability typically less than a minute, and the blue can be temporarily maintained for fast rollback.",
+      "hint": "Think about the resource of RDS which creates a fully synchronized staging environment with production via logical replication, allowing a managed twistchover with minimal unavailability.",
+      "optionRationales": [
+        "The Blue/Green Deployments RDS keeps the green environment synchronized with the continuous changes of the blue via logical replication, allowing complete tests against the green without impacting the production; when ready, the managed switchhover promotes the green with writing unavailability typically less than a minute, and the blue can be temporarily maintained for fast rollback.",
+        "Promote a Read Replica independent instance is a manual and unidirectional operation; changing the connection string of the application introduces more unavailability/coordination than the managed Blue/Green switchhover (which preserves the same endpoint), and there is no integrated fast rollback path back to the original blue environment after promotion.",
+        "This is the most risky and unavailable approach that the company explicitly wants EVITAR; reverse from a pre-update snapshot means restoring a new instance from it (losing written after snapshot) and updating endpoints, which is slower and with more data loss than the Blue/Green switchhover/rollback.",
+        "A single migration DMS captures the data at a point in time, requiring a cutover plan to deal with continuous writings during migration (the CDC of the DMS may help, but the DMS is not the native and fully managed mechanism of RDS for in-place engine version updates with synchronized staging and quick switchover/rollback, such as Blue/Green Deployments)."
+      ]
+    },
+    "saa-avc-108": {
+      "text": "A global application has its primary writing workload in us-east-1 using Amazon ElastiCache for Redis, and wants to provide access to LEITURA low latency to the same cached data for an application implanted in ap-souteast-1, with cached data kept in almost real-time synchrony of us-east-1 for ap-souteast-1, and the ability to promote the ap-souteast cluster-1 to accept writings (becoming the new primary) if us-east-1 Which ElastiCache resource meets this requirement?",
+      "options": [
+        "Amazon ElestiCache Global Datastore for Redis.",
+        "Use ElastiCache for Memcached with Auto Discovery enabled in both regions.",
+        "Employ independent ElastiCache for Redis clusters in both regions and use functions Lambda powered by Redis Keyspace Notifications to replicate writings between them.",
+        "Configure ElastiCache for Redis with Multi-AZ enabled, which automatically extends the replication group between regions."
+      ],
+      "explanation": "The Global Datastore provides a fully managed replication mechanism between regions, replicating data from a primary cluster (us-east)-1) for one or more secondary clusters in other regions (ap-souteast)-1), allowing low latency local readings in ap-souteast-1; in case of regional interruption, the secondary cluster region can be promoted the new primary, starting to accept written.",
+      "hint": "Think about the ElastiCache for Redis feature designed specifically for asynchronous replication ENTRE REGIONS with primary secondary cluster promotion capacity.",
+      "optionRationales": [
+        "The Global Datastore provides a fully managed replication mechanism between regions, replicating data from a primary cluster (us-east)-1) for one or more secondary clusters in other regions (ap-souteast)-1), allowing low latency local readings in ap-souteast-1; in case of regional interruption, the secondary cluster region can be promoted the new primary, starting to accept written.",
+        "Build replica between custom regions via Lambda and keyspace notifications is complex, introduces additional latency/cost and brings data inconsistency risks, when ElastiCache Global Datastore already provides this as a fully managed native resource.",
+        "Multi-AZ in ElastiCache for Redis provides automatic replication and failure ENTRE ZONAS OF DISPONIBILIDADE DENTRO OF UMA SINGLE REGION; it does not extend between REGIONS — replication between regions specifically requires Global Datastore.",
+        "Memcached has no built-in replication mechanism (it's a simple distributed cache without persistence or replication relationships), and Auto Discovery only helps customers to discover cache nodes DENTRO of a single cluster, not to replicate data between regions."
+      ]
+    },
+    "saa-avc-109": {
+      "text": "A company has two workflows in AWS Step Functions: (1) IoT telemetry processing, with millions of short executions (a few seconds) per day, where the cost per execution is priority and semantic 'at-last-once' (at least once) is acceptable, since the processing is identical; (2) processing of payments, with much smaller volume, longer executions, demanding semantics of execution 'exactly-once' (exactly once) and complete history of execution (visible in the console by up 90 days) for audit/compliance. What type of workflow of Step Functions should be used for (1) and to (2), respectively?",
+      "options": [
+        "Express Workflows for both (1) and (2), since Express Workflows are cheaper and support all the same features as Standard.",
+        "Express Workflows for (1) and Standard Workflows for (2).",
+        "Express Workflows for (1) and AWS Step Functions Activities (with workers EC2 making polling of tasks) to (2), avoiding Standard Workflows completely.",
+        "Standard Workflows for both (1) and (2), since Standard Workflows provide semantics exactly-once for all use cases."
+      ],
+      "explanation": "Express Workflows are precised by duration/number of executions and optimized for high volume and short duration loads at lower cost, but provide semantics 'at-last-once' (with history sent to CloudWatch Logs, not to the history of 90 Console days). Standard Workflows provide semantics 'exactly-once' and maintain running history by up to 90 days in the console of Step Functions, suitable for smaller, longer and more audit-sensitive workflows, such as payment processing.",
+      "hint": "Think of what two types of workflow Step Functions differ in precision, semantics of execution (at-last-once vs. exactly-once) and retention of the execution history in the console.",
+      "optionRationales": [
+        "Express Workflows are precised by duration/number of executions and optimized for high volume and short duration loads at lower cost, but provide semantics 'at-last-once' (with history sent to CloudWatch Logs, not to the history of 90 Console days). Standard Workflows provide semantics 'exactly-once' and maintain running history by up to 90 days in the console of Step Functions, suitable for smaller, longer and more audit-sensitive workflows, such as payment processing.",
+        "Using Standard Workflows for the high volume case of IoT would be considerably more expensive (Standard is precised by state transition, which becomes costly in millions of executions/day) compared to Express, which is optimized exactly for this pattern..",
+        "Express Workflows provide only semantic 'at-last-once' and do not retain the execution history of 90 days in the console of Step Functions (the logs go to the CloudWatch Logs); this does not meet the requirements of workflow (2) of semantics exactly-once and history of friendly execution for audit.",
+        "Activities are a task integration standard (for integration with external workers)/EC2/on-premises), usable within standard or express workflows; are not a TIPO alternative workflow and do not by themselves provide semantics exactly-once or the execution history of 90 days — these properties come specifically from the Standard Workflow type choice."
+      ]
+    }
+  }
+}

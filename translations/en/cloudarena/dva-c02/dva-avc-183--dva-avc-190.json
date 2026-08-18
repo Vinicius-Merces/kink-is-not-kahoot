@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-183..dva-avc-190",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-183": {
+      "optionReasons": {
+        "dva-avc-183:option:0": "Marking tracks on X-Ray and alarming by track count requires code instrumentation and is not the log count metric requested.",
+        "dva-avc-183:option:1": "",
+        "dva-avc-183:option:2": "It's the closest because a Logs Insights consultation CONTA the occurrences — but there is no reason to alarm DIRETAMENTE about the result of an Insights query: the standard alarm needs a METRIC; converting the log pattern into metric is the Metric Filter, on which the alarm triggers.",
+        "dva-avc-183:option:3": "PutMetricDate in code MODIFICA the function — the requirement is without changing the code."
+      },
+      "finalJustifications": [
+        "Because a Metric Filter with the pattern 'PAYMENT_FAILED' emits a metric (PaymentFailureCount) for each event, and a standard alarm of the CloudWatch shoots when it goes past 10 in 5 minutes — without touching the code.",
+        "Because an X-Ray annotation with the pattern 'PAYMENT_FAILED' emits a metric to each event, and a standard alarm triggers when it goes from 10 in 5 minutes — without touching function code.",
+        "Because a query saved from Logs Insights with the pattern 'PAYMENT_FAILED' emits a metric to each event, and a standard alarm triggers when it goes from 10 in 5 minutes — without touching the code.",
+        "Because PutMetricData with the pattern 'PAYMENT_FAILED' emits a metric to each event, and a standard alarm triggers when it goes from 10 in 5 minutes — without touching function code."
+      ]
+    },
+    "dva-avc-184": {
+      "optionReasons": {
+        "dva-avc-184:option:0": "DynamoDB + Lambda Scheduled adding is extra pipeline to operate — the EMF resolves in the log output itself.",
+        "dva-avc-184:option:1": "It is the closest because grouping in a single PutMetricData reduces the number of calls — but it is still a called SYNCRON by invocation (latence) and the high cardinality (thousands of dimensions) bursts limits; issuing metrics without called synchronous is the EMF, of which CloudWatch Asynchronous extract.",
+        "dva-avc-184:option:2": "X-Ray notes didn't see any metrics from CloudWatch automatically — the premise is false.",
+        "dva-avc-184:option:3": ""
+      },
+      "finalJustifications": [
+        "Because EMF record a log line JSON structured (with metrics, dimensions and _aws block), and CloudWatch extract the ASSINCRONA-shaped metrics — without synchronous call to API no risk of high cardinality thrombotling.",
+        "Because the PutMetricData batch records the metrics asynchronously via structured log, and the CloudWatch the extracts — without synchronous call to the API no risk of high cardinality thrombotling.",
+        "Why record in DynamoDB records asynchronous metrics via structured log, and the CloudWatch the extracts — without synchronous call to the API no risk of high cardinality thrombotling.",
+        "Because X-Ray notes record metrics asynchronously via structured log, and the CloudWatch the extracts — without synchronous call to the API no risk of high cardinality thrombotling."
+      ]
+    },
+    "dva-avc-185": {
+      "optionReasons": {
+        "dva-avc-185:option:0": "It's the closest because Metric Filter + Alarm + SNS reaction a 'CRITICAL' — but via METRICA aggregated by period (the alarm evaluates windows, not every line), late, and does not deliver the DADOS DO EVENTO from log to Lambda; immediately invoke with the contents of the log is the Subscription Filter.",
+        "dva-avc-185:option:1": "Insights scheduled consultation is POLLING periodic — exactly what the requirement vetoes.",
+        "dva-avc-185:option:2": "",
+        "dva-avc-185:option:3": "Invoke Lambda direct from the code links the functions and requires to change the origin — Subscription Filter does this natively."
+      },
+      "finalJustifications": [
+        "Because Subscribe Filter with Pattern 'CRITICAL' invokes Lambda Notification IMEDIATAMENTE to each corresponding log event, delivering the log data — no polling (with permission for logs.amazonaws.com to invoke it)).",
+        "Because Metric Filter + Alarm + SNS invokes Lambda reporting immediately to each corresponding event, delivering log data — no polling, when setting the alarm on 'CRITICAL'.",
+        "Because Insights' scheduled consultation calls for Lambda notification immediately to each corresponding event, delivering log data — no polling, when running every minute looking 'CRITICAL'.",
+        "Why call on Lambda for SDK in the origin calls the notification immediately to each corresponding event, delivering the log data — without polling, when registering 'CRITICAL' in code."
+      ]
+    },
+    "dva-avc-186": {
+      "optionReasons": {
+        "dva-avc-186:option:0": "",
+        "dva-avc-186:option:1": "Step Functions consulting DescriptionAlarms every minute is artisanal polling — Composite Alarm already does the AND native.",
+        "dva-avc-186:option:2": "Aim both SNS the same topic only joins notifications — does not prevent alert when ONLY an alarm fires.",
+        "dva-avc-186:option:3": "It's the closest because a mathematical expression combines the two metrics in one — but SOMAR error rate (%) with latency (ms) is semantically meaningless and does not represent 'both in ALARM'; combine two alarms with logic AND It's Composite Alarm.."
+      },
+      "finalJustifications": [
+        "Because Composite Alarm combines the two alarms with ALARM(a) AND ALARM((b) and only triggers action when AMBOS are in ALARM — no false-positive by any of them alone.",
+        "Because Step Functions consulting the alarms combines the two with AND and only shoots the action when both are in ALARM — no false-positive by any of them alone.",
+        "Why point both of them out SNS the same topic combines the two alarms with AND and only shoots the action when both are in ALARM — no false-positive by any of them alone.",
+        "Because the mathematical expression adding the metrics combines the two alarms with AND and only shoots the action when both are in ALARM — no false-positive by any of them alone."
+      ]
+    },
+    "dva-avc-187": {
+      "optionReasons": {
+        "dva-avc-187:option:0": "X-Ray Service Map shows service topology — does not rank customers by volume of requests.",
+        "dva-avc-187:option:1": "It's the closest because a Metric Filter by API key would count by key — but requires creating and maintaining a rule for CADA key CONHECIDA (does not scale and does not take new keys); add the logs by API key and produce the top-N automatically is the Contributor Insights.",
+        "dva-avc-187:option:2": "",
+        "dva-avc-187:option:3": "Logs Insights in a single query finds the largest one in that window — but it is manual and punctual; the Contributor Insights delivers the continuous top-N."
+      },
+      "finalJustifications": [
+        "Because Contributor Insights aggregates access logs through the field of API key and produces a top-N report of the customers who contribute most to the volume — the misbehaved customer appears without scanning logs by hand.",
+        "Because Metric Filter by API key aggregates key field access logs and produces a top-N of the customers who most contribute to the volume — the misbehaved client appears without scanning log by hand.",
+        "Because X-Ray Service Map adds access logs by API key and produces a top-N of the customers who most contribute to the volume — the misbehaved customer appears without scanning logs by hand.",
+        "Because Logs Insights in a query aggregates access logs by API key and produces a top-N of the customers who most contribute to the volume — the misbehaved customer appears without scanning logs by hand."
+      ]
+    },
+    "dva-avc-188": {
+      "optionReasons": {
+        "dva-avc-188:option:0": "Excluding groups does not guarantee recreation with 30 days — the Lambda replay with 'Never Expire' again; and lose the logs.",
+        "dva-avc-188:option:1": "It's the closest because a 'standard account retention' would solve everything at once — but this AUTOMATICAL configuration on account doesn't exist in CloudWatch Logs; setting retention is by group (via IAC/PutRetentionPolicy), creating LogGroup in IAC for futures and adjusting existing ones by script.",
+        "dva-avc-188:option:2": "",
+        "dva-avc-188:option:3": "Sharing a single log group between all functions breaks the isolation by function and the nomenclature /aws/lambda/<name> — not practice."
+      },
+      "finalJustifications": [
+        "Why set the LogGroup of each IAC function with RetentionInDays: 30 (created before the first invocation) covers the futures, and PutRetentionPolicy in a script about /aws/lambda/* adjusts the existing 'Never Expire's'.",
+        "Because the Default Log Retention account with 30 days covers the futures automatically, and PutRetentionPolicy in a script about /aws/lambda/* adjusts the existing 'Never Expire' — without setting each.",
+        "Because excluding existing groups covers futures with recreation in 30 days, and PutRetentionPolicy in a script about /aws/lambda/* adjusts the existing 'Never Expire' — without setting each.",
+        "Because a log group shared with 30 days covers the futures and existing ones at once, and PutRetentionPolicy over it adjusts the retention — without setting each group by function manually."
+      ]
+    },
+    "dva-avc-189": {
+      "optionReasons": {
+        "dva-avc-189:option:0": "",
+        "dva-avc-189:option:1": "Change TOKEN by REQUEST part of a missing bug — does not diagnose the root cause of 403.",
+        "dva-avc-189:option:2": "X-Ray shows the duration/segment of the authorizer — neither the policy response nor the evaluation of the resource policy.",
+        "dva-avc-189:option:3": "It's the closest because the logs from Lambda Authorizer helps to see her logic — but they do NOT show the ARN of the policy evaluated by the API Gateway not even if the RESOURCE POLICY of the gateway denied before the authorizer; distinguishing the three causes requires the EXECUTION LOGGING of the API Gateway."
+      },
+      "finalJustifications": [
+        "Because the execution logging of API Gateway (level INFO/ERROR) shows the invocation of the authorizer, the returned gross policy (Effect/Resource) and if the RESOURCE POLICY of the gateway denied before — distinguishing (a), (b) and (c)).",
+        "Why switch to REQUEST shows the invocation of the author, the returned gross policy (Effect/Resource) and whether the gateway's resource policy denied before — distinguishing (a), (b) and (c) from the causes.",
+        "Because X-Ray shows the invocation of the authorizer, the returned gross policy (Effect/Resource) and whether the gateway's resource policy has previously denied — distinguishing (a), (b) and (c) from the causes of the 403.",
+        "Because the logs of Lambda the author shows the invocation, the returned gross policy (Effect/Resource) and if the resource policy of the gateway has previously denied — distinguishing (a), (b) and (c) the causes."
+      ]
+    },
+    "dva-avc-190": {
+      "optionReasons": {
+        "dva-avc-190:option:0": "It's the closest because 429 usually suggests lack of competition — but the metrics of Lambda DO NOT show throttling: o 429 comes from the throttling of the API GATEWAY (Internship/account rate/Burst), ANTES of the Lambda; increase the Reserved Competition does not resolve, and deal by customer is with Usage Plan/API Key.",
+        "dva-avc-190:option:1": "",
+        "dva-avc-190:option:2": "Edge-optimized does not have 'higher throttling limits' — throttling is stage/account, not endpoint type.",
+        "dva-avc-190:option:3": "Caching reduces backend, but does not change the throttle of the stage that generates the 429 — and not every endpoint is traceable."
+      },
+      "finalJustifications": [
+        "Because 429 comes from the throttling of the API Gateway (Strategic/Content Rate/Burst) before Lambda — so the Lambda does not show throttle; a Use Plan with higher limits by API Key treats high volume customer without affecting others.",
+        "Because 429 comes from the lack of Reserved Competition Lambda before the gateway — increase competition and a Use Plan by API Key treats high volume customer without affecting others.",
+        "Because 429 comes from the endpoint REGIONAL with smaller limits — change to EDGE-OPTIMIZED and a Usage Plan by API Key treats high volume customer without affecting other customers.",
+        "Because 429 comes from the overloaded backend before the gateway — enable caching and a Usage Plan by API Key treats high volume customer without affecting other customers."
+      ]
+    }
+  }
+}

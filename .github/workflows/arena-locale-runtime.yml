@@ -1,0 +1,44 @@
+name: Aplicar runtime EN da CloudArena
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'data/cloudarena/breakdowns-en/**'
+      - 'scripts/apply_arena_locale_runtime.py'
+      - '.github/workflows/arena-locale-runtime.yml'
+  workflow_dispatch: {}
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Aplicar runtime locale-aware
+        run: python3 scripts/apply_arena_locale_runtime.py
+      - name: Validar sintaxe do servidor
+        run: node --check server.js
+      - name: Validar paridade dos overlays EN
+        run: python3 scripts/validate_arena_locale_parity.py
+      - name: Versionar runtime validado
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add server.js
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): enable locale-aware CloudArena API'
+          git push origin "HEAD:${HEAD_BRANCH}"

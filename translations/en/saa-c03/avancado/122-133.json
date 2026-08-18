@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "122-133",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-122": {
+      "text": "An application has a slow and complex bootstrap process: after the launch of an instance EC2, are necessary 8 a 10 minutes to install and configure the software before the instance passes the health checks and starts to meet traffic. During sudden peaks of demand, the Auto Scaling Group (ASG) scale horizontally, but the new instances take 8-10 minutes to get ready, causing degradation/errors during this window. The team wants to reduce this scale-out latency to close to zero, without keeping a large number of instances fully running (and charged at the normal computer rate) as a standby for a capacity used only occasionally.",
+      "options": [
+        "Increase the minimum capacity of ASG to permanently maintain fully active instances sufficient to meet peak traffic at any time",
+        "Use a Launch Template with a larger instance type to speed up the bootstrap process",
+        "Create a AMI customized with the application already installed, eliminating the need for any bootstrap process",
+        "Configure a Warm Pool Auto Scaling: o ASG maintains a set of pre-initialized instances (which have already completed the bootstrap process) in state PARADO (stopped) or other low-cost state; when the scale-out is required, these instances are moved to the service much faster than launch and initialize from zero, and instances stopped in the warm pool do not generate computer charge (storage only)"
+      ],
+      "explanation": "Warm Pools keep pre-initiated instances ready to go into service quickly when the ASG scale, eliminating bootstrap time from the critical scale-out path, while instances in the 'stopped' state in the warm pool are not charged by the computer — simultaneously meeting the near-zero latency requirement and the cost requirement.",
+      "hint": "Think of an intermediate state for instances EC2 which have already gone through the initialisation process, but are not being charged as if they were fully implemented.",
+      "optionRationales": [
+        "Warm Pools keep pre-initiated instances ready to go into service quickly when the ASG scale, eliminating bootstrap time from the critical scale-out path, while instances in the 'stopped' state in the warm pool are not charged by the computer — simultaneously meeting the near-zero latency requirement and the cost requirement.",
+        "Incorrect. Keeping peak capacity permanently fully active and charged at the normal rate, even during periods of low demand, directly contradicts the requirement to avoid 'a large number of instances fully running... charged at the normal rate' as standby.",
+        "Incorrect. Bootstrap time is dominated by install/configuration steps of software, which are usually not significantly faster with a larger instance type (especially if the gargalo is package download, execution of configuration tools, etc.); this does not reliably resolve a booting process of 8-10 minutes.",
+        "Incorrect. Although pre-constructing a AMI with the installed application is a good practice that can REDUZIR the bootstrap time, the scenario describes a 'slow and complex' process, suggesting additional steps of dynamic configuration/service record that can still occur in the boot; even with a faster boot, only the Warm Pools ensure near-zero scale-out latency while maintaining already fully initialized and ready instances, without the fully active standby capacity cost."
+      ]
+    },
+    "saa-avc-123": {
+      "text": "A company is migrating a critical containerized application to the Amazon EKS. The requirements are: (a) the Kubernetes flat control must be resilient to the failure of a single Availability Zone, without the team having to manage the flat control infrastructure; and (b) the workers nodes (where pods run) must also be distributed among multiple AZs, with automatic replacement of unhealthy nodes.?",
+      "options": [
+        "((a) O Amazon EKS automatically executes Kubernetes managed plan control (API server, etcd, etc.) distributed in MULTIPLES AZs within the chosen region, by default and without any additional client configuration; (b) create a EKS Managed Node Group specifying multiple sub-networks in multiple AZs — managed node groups automatically distribute workers nodes between specified AZs and integrate into EC2 Auto Scaling to replace unhealthy us automatically",
+        "((a) Configure 3 clusters EKS separate (one per AZ) and use a Kubernetes federation tool to unify them into a single logical plane control",
+        "((a) Implement 3 cases EC2 running self-managed components of Kubernetes flat control (kube-apiserver, etcd) in 3 AZs, registered for a NLB Internal",
+        "((b) Use profiles of the EKS Fargate only for all workloads, since pods of Fargate are automatically distributed among multiple AZs without any node group configuration"
+      ],
+      "explanation": "Right. The multi-AZ resilience of the plane control is a characteristic inherent in the EKS managed, without configuration; for workers nodes, a Managed Node Group with multiple AZs sub-networks ensures distribution between AZs and automatic replacement of us via integration with Auto Scaling — meeting both requirements without additional operational overhead.",
+      "hint": "Separate what the AWS it guarantees automatically for the flat control of the EKS of what needs to be explicitly configured for worker nodes based on EC2.",
+      "optionRationales": [
+        "Right. The multi-AZ resilience of the plane control is a characteristic inherent in the EKS managed, without configuration; for workers nodes, a Managed Node Group with multiple AZs sub-networks ensures distribution between AZs and automatic replacement of us via integration with Auto Scaling — meeting both requirements without additional operational overhead.",
+        "Incorrect. This approach greatly complicates the architecture; the management plan control of the EKS It is already Multi-AZ within a single cluster/region by default — there is no need to federate multiple clusters to achieve AZ resilience in the plane control.",
+        "Incorrect. This describes a Kubernetes SELF-MANAGED (not the managed plan control of EKS), which is exactly the operational effort that the EKS was designed to eliminate; the EKS already provides multi-AZ resilience of plane control as managed service, without this complexity.",
+        "Incorrect. Although the EKS Fargate abstracts the management of us, the scenario specifies that the 'workers nodes' should be distributed between AZs (i.e., by applying us based on EC2, for example for specific instance types or DaemonSets not supported in Fargate); for worker knots EC2, the distribution between AZs is configured by the selection of sub-networks of the Managed Node Group, not automatically as in pod abstraction of the Fargate."
+      ]
+    },
+    "saa-avc-124": {
+      "text": "Within a single region of the AWS, a company owns a pocket S3 of 'production' in Account A and needs an automatic copy, in real time, of all new objects in a pocket S3 separate from 'compliance/audit' in Account B (one account AWS dedicated and separate, for unchangeable storage of compliance), by regulatory requirement of segregation of data by account/property — without incurring in latency or costs of data transfer between regions, since the resources of both accounts are in the same Region.",
+      "options": [
+        "Configure S3 Cross-Region Replication (CRR), but define the region of destination equal to the region of origin",
+        "Use AWS DataSync to perform continuous and real-time synchronization between the two bucks in the same Region",
+        "Configure the Amazon S3 Same-Region Replication (SRR) from the production pocket in Account A to the compliance pocket in Account B (replication between accounts in the same Region); SRR Supports replication to another account property pocket AWS, with version enabled on both the bucks, and can optionally change the object property to the destination account and/or use S3 Replica Time Control (RTC) for predictable replication times — no latency or transfer cost between regions",
+        "Grant to Bucket S3 from Account B cross-account reading permissions on the A-Bucket Bucket via Bucket Policy, and have the applications in Account B read the objects directly from Account A's Bucket"
+      ],
+      "explanation": "Correct. SRR is specifically designed for replication within the same Region, including cross-account scenarios, taking into account the requirement of data segregation by account without the costs/latence of a replication between regions.",
+      "hint": "Consider which recourse to replication of the S3 is designed to operate within the limits of a single region, including between accounts AWS different.",
+      "optionRationales": [
+        "Correct. SRR is specifically designed for replication within the same Region, including cross-account scenarios, taking into account the requirement of data segregation by account without the costs/latence of a replication between regions.",
+        "Incorrect. CRR is designed specifically for replication ENTRE Regions DIFERENTES; this is not how replication is configured within the same Region — the correct resource for this (including cross-account scenarios) is Same-Region Replication (SRR).",
+        "Incorrect. AWS DataSync is usually used for scheduled/disparate data transfer tasks (often for migration or periodic synchronization between storage systems, including on-premises), not for native replication of the S3, continuous and by object, with the same level of integration of the Replication of S3 — introducing more operational overhead than native resource SRR.",
+        "That doesn't create a COPY. SEPARADA of the objects in the B Account pocket (declared requirement); only grants read access to objects that continue to reside in the A Account pocket, which does not meet the requirement for data segregation by account/property with an independent copy for compliance."
+      ]
+    },
+    "saa-avc-125": {
+      "text": "A company uses Amazon CloudFront with origin in a Application Load Balancer in front of web servers EC2. During traffic peaks, even with the cache of CloudFront enabled, the origin (ALB/EC2) suffers high load, because each edge location of the CloudFront worldwide makes its own request for 'cache miss' to origin by searching for the same popular object (when its regional cache does not yet have it), multiplying the load on the origin. How to reduce this charge without changing the cache behavior by object?",
+      "options": [
+        "Replace Application Load Balancer by a Network Load Balancer to support greater throughput at source",
+        "Configure multiple distributions of CloudFront, one by geographical region, each pointing to a separate origin",
+        "Enable a Origin Shield of the CloudFront, choosing a region close to origin",
+        "Increase TTL (Time to Live) cache CloudFront for the maximum value on all objects"
+      ],
+      "explanation": "Right. Shield acts as an additional centralized cache layer between border/regional caches of the CloudFront and origin, consolidating requests so that only one request per object reaches the origin even if multiple edge locations have 'cache miss' simultaneously, significantly reducing the load on the origin.",
+      "hint": "Think of an additional cache layer, positioned between border locations and origin, which consolidates duplicate requests.",
+      "optionRationales": [
+        "Right. Shield acts as an additional centralized cache layer between border/regional caches of the CloudFront and origin, consolidating requests so that only one request per object reaches the origin even if multiple edge locations have 'cache miss' simultaneously, significantly reducing the load on the origin.",
+        "Incorrect. Increase or TTL reduces the frequency of mass caches over time, but does not solve the problem of 'thundering herd' when multiple edge locations error the cache simultaneously (e.g. right after expiration of the TTL or for new-popular content); the Origin Shield solves this concentration of requests regardless of the configuration of TTL.",
+        "Incorrect. Changing the type of load balancer increases the capacity of throughput, but does not reduce the number of redundant requests that arrive at the origin from multiple edge locations of the CloudFront for the same object — treats a symptom, not the multiplication of requests itself.",
+        "Incorrect. Creating multiple distributions/origins adds operational complexity (managing multiple origins, caching invalidation between them) and does not inherently solve the problem of multiple searches at origin from different border locations; the Origin Shield solves this within a unique distribution."
+      ]
+    },
+    "saa-avc-126": {
+      "text": "A high-traffic application uses Amazon ElastiCache for Redis (cluster mode disabled, with primary and replicas) to store session data and frequently consulted results. With traffic growth, a single Redis node has become a gargalo both for the total size of the dataset (exceeding the memory of a single node) and for the writing throughput (all writings go to the same primary). How to scale horizontally to solve both problems?",
+      "options": [
+        "Increase the number of existing unique shard cluster read replicas",
+        "Migrate from ElastiCache for Redis to ElastiCache for Memcached, which natively supports multi-no writing distribution",
+        "Switch to a larger ElastiCache knot type (vertical scaling) within the same unique shard cluster",
+        "Enable Cluster Mode (Cluster Mode Enabled) with multiple shards"
+      ],
+      "explanation": "Correct. ElastiCache for Redis with cluster mode enabled partitions data between multiple shards (each with its own primary and optional replicas), distributing both the dataset (via hash slots) and the throughput of writing between multiple primary nos, allowing horizontal scalability beyond the memory and writing capacity of a single node.",
+      "hint": "Think of a Redis configuration that partitions data between multiple primary nos instead of relying on a single primary with replicas.",
+      "optionRationales": [
+        "Correct. ElastiCache for Redis with cluster mode enabled partitions data between multiple shards (each with its own primary and optional replicas), distributing both the dataset (via hash slots) and the throughput of writing between multiple primary nos, allowing horizontal scalability beyond the memory and writing capacity of a single node.",
+        "Incorrect. Adding more reading replicas increases the ability to LEITURA and provides additional copies of the data, but does not solve the limit of TAMANHO of the dataset (still limited by the memory of the primary) nor the THROUGHPUT OF ESCRITA (all writings continue to go to the only primary).",
+        "Incorrect. Vertical scaling (no greater) may temporarily increase capacity, but has a higher limit (the largest type of knot available) and still represents a single point for all writings; it does not provide the same horizontal scalability of sharding.",
+        "Incorrect. Although sharding on the client's side of Memcached distributes data between us, switching engine is a major architectural change that loses Redis specific features (data structures, persistence, replication) on which the application may depend; Redis Cluster Mode provides equivalent horizontal writing scalability natively within Redis."
+      ]
+    },
+    "saa-avc-127": {
+      "text": "A latency-sensitive transactional database, executed in EC2, requires IOPS extremely high and consistent (well above 64.000) and sub-millisecond latency, with very low IO error rates. IOPS SSD) currently, in a type of instance without support to Block Express, it cannot reach the ceiling of IOPS What should be done??",
+      "options": [
+        "Migrate the database to use Forum Store volumes (NVMe SSD) for maximum IOPS",
+        "Use a volume EBS io2 Block Express attached to a type of Nitro-based instance supported by Block Express (e.g. eligible instance families as R5b))",
+        "Increase the configuration of IOPS provided from current volume io2 to above 64.000 in the existing instance",
+        "Combine (strip) multiple volumes gp3 using RAID 0 at the level of the operating system to add IOPS"
+      ],
+      "explanation": "Right. I2 Block Express offers even 256.000 IOPS, until 4.000 MB/s of throughput, sub-millisecond latency and durability of 99,999%, being designed specifically for the most demanding workloads in I/O, exceeding the limits of standard io2 volumes.",
+      "hint": "Consider which variant of the volume EBS Provisioned IOPS it was specifically designed to overcome the roof of 64.000 IOPS, and which bodies support it.",
+      "optionRationales": [
+        "Right. I2 Block Express offers even 256.000 IOPS, until 4.000 MB/s of throughput, sub-millisecond latency and durability of 99,999%, being designed specifically for the most demanding workloads in I/O, exceeding the limits of standard io2 volumes.",
+        "Incorrect. RAID 0 between volumes gp3 can increase the IOPS/throughput aggregates to a certain point, but manage RAID in software adds operational complexity, does not provide the same roof of IOPS by volume nor the characteristics of sub-millisecond latency and durability of 99,999% of the Io2 Block Express, and the failure of a single volume in the array RAID 0 causes total loss of array data.",
+        "Incorrect. Volumes Forum Store offer IOPS/throughput very high, but are EFFEMERS (data lost when stopping/finalizing the instance or in case of failure), making them inadequate for a transactional database that requires durability, despite meeting the requirement of IOPS.",
+        "Incorrect. Volumes io2 (not Block Express) have a roof of 64.000 IOPS regardless of the required provision value; exceeding this ceiling requires io2 Block Express in a compatible Nitro instance type, not simply increasing the provision value in an incompatible configuration."
+      ]
+    },
+    "saa-avc-128": {
+      "text": "A media company has users all over the world uploading large video files directly to a single bucket S3 in us-east-1. Users in Asia and Australia face slow upload speeds and frequent timeouts due to long network distance and variable internet route to us-east-1, as users close to us-east-1 The company wants to improve upload speed/reliability for remote users, without creating regional newsletters or requiring users to manually choose a 'closer' endpoint'.",
+      "options": [
+        "Enable Amazon S3 Transfer Acceleration in the pocket and get customers to upload via the different endpoint 's3-accelerated'",
+        "Create Buckets S3 separate in multiple regions (e.g. ap-souteast)-2, ap-northeast-1) and make the client application choose the nearest bucket based on the user location",
+        "Use AWS Direct Connect from the location of each user to establish a dedicated network connection to the Bucket Region S3",
+        "Increase the size of the parts (parts) in the multipart upload to reduce the number of requests HTTP large files"
+      ],
+      "explanation": "Correct. S3 Transfer Acceleration route uploads through the edge location of CloudFront nearest (using the global network of edge locations of the AWS) through an optimized path to the Bucket Region, significantly improving throughput/reliability for geographically distant uploaders, without requiring region selection logic on the client's side.",
+      "hint": "Think of a resource of the S3 taking advantage of the global network of edge locations of the AWS to accelerate uploads to the destination region without requiring additional newsletters.",
+      "optionRationales": [
+        "Correct. S3 Transfer Acceleration route uploads through the edge location of CloudFront nearest (using the global network of edge locations of the AWS) through an optimized path to the Bucket Region, significantly improving throughput/reliability for geographically distant uploaders, without requiring region selection logic on the client's side.",
+        "Incorrect. Although multi-region buckets can reduce latency, this requires significant logic in the application to detect the user's location, route to the correct bucket and additional complexity to consolidate/replicate data back to a primary bucket — a much more complex solution than enabling a single feature in the existing bucket.",
+        "Incorrect. Direct Connect requires dedicated physical connections from specific locations (typically data centers of companies, not devices/locations of individual end users around the world), making it completely impractical for arbitrary end users by uploading from their own devices.",
+        "Incorrect. Although multipart upload (and size/competition adjustment of parts) helps with large file uploads in general and improves resilience to failures in individual parts, this does not solve the fundamental problem of latency/network routing for geographically distant customers — requests still travel the same long-distance path to us-east-1."
+      ]
+    },
+    "saa-avc-129": {
+      "text": "The reading traffic of an application grew significantly, and the team added several Aurora Replicas to a cluster Aurora MySQL to scale the readability. However, the application connects using a fixed (hardcoded) list of individual replica endpoints, requiring manual updating whenever replicas are added/removed, and the load is not evenly distributed (some replicas receive more connections than others, depending on which endpoint developers used). As the application must connect to automatically distribute the read load among all current replicas?",
+      "options": [
+        "Configure the application to use the cluster 'reader endpoint' Aurora for all consultations read only",
+        "Use weighted routing records of the Amazon Route 53 pointing to the individual endpoint of each replica, manually updating the weights as the replicas change",
+        "Implementing a Network Load Balancer in front of all instances Aurora Replica and make the application connect via the NLB",
+        "Configure the application to connect to the 'cluster endpoint' (write endpoint) for all reading queries, as it always points to the current primary instance"
+      ],
+      "explanation": "Correct. The endpoint reader automatically balances the connections between all the Aurora Replicas available (and the writer, if there are no replicas), and automatically reflects the current set of replicas as they are added or removed, without requiring endpoint list management by the application.",
+      "hint": "The Aurora provides a specific endpoint, separated from the endpoint of the writer, which already performs load balancing between replicas automatically.",
+      "optionRationales": [
+        "Correct. The endpoint reader automatically balances the connections between all the Aurora Replicas available (and the writer, if there are no replicas), and automatically reflects the current set of replicas as they are added or removed, without requiring endpoint list management by the application.",
+        "Incorrect. Cluster/writer endpoint always points to the only instance WRITER ATUAL; routing all reading traffic for it would NOT distribute cargo between the Aurora Replicas — would focus all readings (and written) on the write instance, nullifying the purpose of having replicas reading.",
+        "Incorrect. Build and maintain manually one load balancer in front of the fora Aurora Replica duplicate functionality that the native endpoint reader of Aurora already provides, adding unnecessary infrastructure and operating overhead, and would not automatically follow changes in the composition of replicas as the endpoint reader does.",
+        "Incorrect. This requires manual record management DNS whenever replicas are added/removed (exactly the problem described) and does not provide the automatic and real-time load balancing, nor the connection drainage, of the native endpoint reader of the Aurora."
+      ]
+    },
+    "saa-avc-130": {
+      "text": "An application realizes millions of reading requests per second to a table of the DynamoDB, most repeated readings of the same 'hot' items (e.g., popular product details), and the application tolerates readings eventually consistent with up to a few seconds lag for these items. auto scaling of the DynamoDB, reading costs are high and reading latency (a few milliseconds) is too slow for the latency requirement in microseconds of the application for these specific readings of hot items..",
+      "options": [
+        "Add a Global Secondary Index (GSI) in the attribute frequently accessed to accelerate these readings",
+        "Enable DynamoDB Streams and use a function Lambda to pre-compute and cache the results of hot items in a table DynamoDB separate",
+        "Substantially increase the Read Capacity Units (RCUs) provided in the table, or change to On-Demand Capacity Mode",
+        "Implement o Amazon DynamoDB Accelerator (DAX) as a cache layer in memory in front of the table DynamoDB"
+      ],
+      "explanation": "Correct. DAX is a cache service compatible with the API of the DynamoDB, write-through, which reduces reading response times from a few milliseconds to microseconds in 'hot' items (cache), transparently treating cache invalidation/population, and application tolerance eventual consistency in these readings aligns with possibly consistent cache readings (standard) of the DAX.",
+      "hint": "Think of a cache service in memory, compatible with the API of the DynamoDB, designed specifically to reduce reading latency from milliseconds to microseconds.",
+      "optionRationales": [
+        "Correct. DAX is a cache service compatible with the API of the DynamoDB, write-through, which reduces reading response times from a few milliseconds to microseconds in 'hot' items (cache), transparently treating cache invalidation/population, and application tolerance eventual consistency in these readings aligns with possibly consistent cache readings (standard) of the DAX.",
+        "Incorrect. Increasing RCUs (or moving to On-Demand) can deal with greater THROUGHPUT OF LEITURA and avoid throttling, but does not alter the fundamental feature of latency of few milliseconds of direct readings of the DynamoDB — does not meet the microsecond latency requirement.",
+        "Incorrect. GSI changes the FATHER OF CONSULTA/access path (e.g. consult for a different attribute), but does not reduce the fundamental latency of a reading operation of the DynamoDB for microseconds — readings via GSI have latency characteristics similar to the basic table readings.",
+        "Incorrect. This is a complex custom cache solution (using the own DynamoDB as cache) which would still display reading latency at millisecond level of the DynamoDB for the 'cache' table — does not provide the latency characteristics in memory, in microseconds, of a dedicated cache layer such as the DAX."
+      ]
+    },
+    "saa-avc-131": {
+      "text": "A real-time multiplayer gaming company runs gaming servers in instances EC2 behind Network Load Balancers in multiple regions of AWS. Players all over the world face inconsistent latency and occasional routing problems because their traffic runs through the public internet (with unforeseeable peering/routing) to the NLB The company wants to improve and stabilize latency for players globally, routing traffic to the global high performance network of AWS As soon as possible, using static IP addresses that do not change even if the Backend Regions/endpoints change.",
+      "options": [
+        "Use latency-based routing of Route 53 to direct players to NLB regional with the lowest latency from their location",
+        "Implement o Amazon CloudFront in front of the NLBs to cache and speed up the game traffic",
+        "Implement o AWS Global Accelerator with regional NLBs as endpoints",
+        "Set up connections AWS Direct Connect from the location of each player to the Region AWS nearest"
+      ],
+      "explanation": "Correct. Global Accelerator provides static anycast IP addresses which, once traffic enters the edge location of the AWS closer, are routed by the private global network of AWS (instead of the public internet) to the ideal healthy endpoint, improving the consistency/performance of latency and providing static IPs independent of changes in the underlying endpoints — meeting both latency and static IP requirements.",
+      "hint": "Think of a service that provides static anycast IPs and takes traffic to the private backbone network of AWS as close as possible to the origin, operating at the level of TCP/UDP.",
+      "optionRationales": [
+        "Correct. Global Accelerator provides static anycast IP addresses which, once traffic enters the edge location of the AWS closer, are routed by the private global network of AWS (instead of the public internet) to the ideal healthy endpoint, improving the consistency/performance of latency and providing static IPs independent of changes in the underlying endpoints — meeting both latency and static IP requirements.",
+        "Incorrect. CloudFront is a CDN focusing on HTTP/HTTPS, designed to cache content; real-time multiplayer game traffic usually uses connections TCP/UDP persistent (non-requisitions HTTP (see section 4.4), making the CloudFront inadequate as the main acceleration mechanism for this type of traffic, unlike Global Accelerator, operating at the level TCP/UDP.",
+        "Incorrect. Latency-based routing helps direct players to the nearest geographic/network region, but routing based on DNS has limitations (cache)/TTL of the DNS causing outdated routing, no protection against sub-optimal paths on the public internet after traffic leaves the ISP of the player) and does not provide static IPs or route traffic through the private network of the AWS — o Global Accelerator solve both gaps.",
+        "Incorrect. Direct Connect requires dedicated physical connections from specific locations, being completely impractical for individual arbitrary players connecting from their homes/offices around the world."
+      ]
+    },
+    "saa-avc-132": {
+      "text": "A company executes a fleet of containerized and computer intensive microservices in the EC2 (types of instance based on x86, e.g. m5.xlarge) behind a ALB. The application is built in a runtime/language with native support to ARM64, and the team wants to improve the price-performance (performance per dollar) of this workload without altering the architecture of the application or the amount of instances, only changing the architecture of CPU the underlying, since the workload is suitable for processors based on ARM.",
+      "options": [
+        "Exchange from On-Demand to Reserved Instances of the same type of instance x86 to reduce cost",
+        "Migrate instances EC2 for instance types based on AWS Graviton (e.g. m7g.xlarge))",
+        "Enable Enhanced Networking (ENA) in the existing x86 instances to improve the price-performance",
+        "Move workload to the AWS Lambda to eliminate the costs of EC2 completely"
+      ],
+      "explanation": "Right. Processors AWS Graviton (CPUs Customized Arms designed by AWS) offer significantly better price-performance (commonly cited in ~40% better) compared to x86 equivalent instances for compatible workloads, requiring that the application be recompiled/available for architecture ARM64, but without change in general architecture, amount of instances or orchestration.",
+      "hint": "Think of a family of custom processors from AWS, based on an architecture CPU different, known for offering better performance per dollar for compatible workloads.",
+      "optionRationales": [
+        "Right. Processors AWS Graviton (CPUs Customized Arms designed by AWS) offer significantly better price-performance (commonly cited in ~40% better) compared to x86 equivalent instances for compatible workloads, requiring that the application be recompiled/available for architecture ARM64, but without change in general architecture, amount of instances or orchestration.",
+        "Incorrect. Reserved Instances reduce the price POR HORA by an undertaking, but do not change the performance characteristics per dollar of the same type of instance x86 — it is an optimization of price/commitment, not an improvement of price-PERFORMANCE (computational efficiency) as requested.",
+        "Incorrect. Enhanced Networking improves throughput/latence/PPS of network, but does not fundamentally change the price-performance relationship of CPU for intensive workloads in computing — addresses a different performance dimension (network) from which is being optimized (general price-performance of computing via architecture of the CPU).",
+        "Incorrect. Move to the Lambda is a larger architectural change (the specific scenario 'without changing the architecture of the application') and may not be suitable for long-term containerized microservices with sustained computing needs; it does not simply represent 'change the architecture of CPU underlying' as requested."
+      ]
+    },
+    "saa-avc-133": {
+      "text": "A company executes clusters Amazon EMR for processing big data (Jobs Spark) that read input data and record output data on Amazon S3. They want the cluster to scale dynamically according to the workload and use a flexible combination of instance types/purchase options to optimize availability and performance, ensuring that the data persists regardless of the cluster life cycle (so that the cluster can be completed after each job without loss of data).).",
+      "options": [
+        "Replace Amazon EMR completely by Apache Spark self-managed clusters in instances EC2, using local instance store for HDFS",
+        "Configure the cluster EMR with a fixed instance groups set using only one type of instance, and store the data in HDFS in volumes EBS cluster locations for maximum performance",
+        "Use EMRFS (EMR File System) to read/record directly at S3 as persistent storage (instead of HDFS in local cluster storage), and configure the EMR with Fleets Forum (allowing multiple types of instance and a combination of On-Demand/Spot in the fleet)",
+        "Use a single cluster EMR large and dedicated, in execution 24/7 with HDFS based on EBS for all storage, to avoid dynamic overhead scaling"
+      ],
+      "explanation": "Correct. Unplug the storage (S3 way EMRFS) (cluster) EMR transient) allows to finish the cluster after each job without loss of data, while Forum Fleets provide flexibility in the selection of instance type/purchase option to optimize availability and cost/performance.",
+      "hint": "Think about how to uncouple the persistent storage of the processing cluster life cycle, and what resource the EMR allows you to combine instance types and purchase options.",
+      "optionRationales": [
+        "Correct. Unplug the storage (S3 way EMRFS) (cluster) EMR transient) allows to finish the cluster after each job without loss of data, while Forum Fleets provide flexibility in the selection of instance type/purchase option to optimize availability and cost/performance.",
+        "Incorrect. Store persistent dataset in HDFS in local cluster storage links the data to the cluster life cycle; finalize the cluster (a common cost optimization practice for clusters) EMR (i) it would cause data loss, contrary to the requirement for data to remain independent of the cluster;.",
+        "Incorrect. Run a cluster 24/7 contrary to the dynamic load-based scaling requirement, and links data persistence to a continuously running cluster instead of uncoupled storage.",
+        "Incorrect. Managing Spark clusters in a self-managed way increases operational overhead (supply, patches, cluster monitoring) compared to managed service EMR, and instance store is ephemeral, again linking the persistence of data to the instance life cycle."
+      ]
+    }
+  }
+}

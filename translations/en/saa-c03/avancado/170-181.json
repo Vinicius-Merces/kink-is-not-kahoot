@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "170-181",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-170": {
+      "text": "A company operates a transactional database Amazon RDS for MySQL (db.r6g.xlarge) that supports an application OLTP. The Business Intelligence team wants to perform long-term, heavy analytical consultations on the same data, but these consultations currently consume resources and degrade the application performance OLTP when performed in the primary instance. Reporting queries do not need to run in the same class of the primary instance (they are less sensitive in time and can tolerate replication/consistency lag if possible), but EXIGEM CPU/substantial memory for complex aggregations over a larger volume of data.",
+      "options": [
+        "Increase the class of instance from the primary to a larger size, so as to accommodate both the workload OLTP the number of reports",
+        "Create a Read Replica Amazon RDS with a class of instance MAIOR (or more optimized for memory/CPU) than the primary, and direct the IB/report consultations to this read reply",
+        "Use the standby instance of the Multi-AZ of Amazon RDS to execute the report queries (since it is a copy of the primary)",
+        "Migrate the entire database to the Amazon Redshift, to meet both the workload OLTP the analytical"
+      ],
+      "explanation": "Right. The Read Replicas of RDS can use a class of instance DIFERENTE of origin/primary, allowing to dimension the replica appropriately to the resource needs of the report load (independent of the dimensioning) OLTP of the primary), while fully removing the analytical load from the primary, which continues to attend traffic OLTP without containment; replication lag is an acceptable trade-off for reports, as required.",
+      "hint": "Think about which property of the Read Replicas RDS allows them to be dimensioned independently of the primary instance for reading workloads with different resource requirements.",
+      "optionRationales": [
+        "Right. The Read Replicas of RDS can use a class of instance DIFERENTE of origin/primary, allowing to dimension the replica appropriately to the resource needs of the report load (independent of the dimensioning) OLTP of the primary), while fully removing the analytical load from the primary, which continues to attend traffic OLTP without containment; replication lag is an acceptable trade-off for reports, as required.",
+        "Incorrect. Increasing the PRIMARY instance to support both workloads still means that report queries will compete with transactions OLTP by resources in the MESMA instance (CPU, I/O, buffer pool), causing restraint regardless of the size of the instance; a separate read replica isolates the workloads.",
+        "Incorrect. STANDBY Multi-AZ is not accessible for reading queries (it exists exclusively for failover, using synchronous replication for high availability, not for downloading readings) — this differs from a Read Replica, which is consultable; trying to consult the standby is not a supported standard.",
+        "Incorrect. Redshift is a data warehouse OLAP columnar, not optimized for workloads OLTP transactional (line-to-line inserts/updates, short transactions of high competition) — migrate TODO the bank OLTP for the Redshift would be inadequate for the transactional needs of the application; a response directed to the reports is a much smaller and less disruptive change."
+      ]
+    },
+    "saa-avc-171": {
+      "text": "One API REST built on Amazon API Gateway + AWS Lambda exposes the endpoint 'GET /products/{id}', called with very high frequency for the same product IDs, with product data changing only a few times a day. Lambda consults the database and moderately costly calculations, and the team wants to reduce both the number of invocations of the Lambda (cost) as to the response latency for repeated requests of the same product ID, without building a separate cache layer (such as ElastiCache) and without changing the logic of the function Lambda.",
+      "options": [
+        "Enable cache of API Gateway in the stage of API REST, configuring a TTL appropriate for the frequency of change of product data",
+        "Increase the reserved competition of the function Lambda to deal with more simultaneous requests for the same product ID more efficiently",
+        "Implant Amazon ElastiCache for Redis and modify the function Lambda to check the cache before the database",
+        "Implement cache logic within function Lambda using a dictionary in memory that persists between invocations through the reuse of the execution context"
+      ],
+      "explanation": "Correct. The integrated response cache of the API Gateway stores answers for one TTL configurable by cache key (which may include path/query parameters as {id}), serving cache responses directly without invoking the Lambda from backend to repeated requests with the same cache key — reducing invocations from Lambda and latency without code changes, only via configuration of the API Gateway.",
+      "hint": "Think of what native resource of API Gateway allows you to store responses by cache key (including path parameters) without changing the backend code.",
+      "optionRationales": [
+        "Correct. The integrated response cache of the API Gateway stores answers for one TTL configurable by cache key (which may include path/query parameters as {id}), serving cache responses directly without invoking the Lambda from backend to repeated requests with the same cache key — reducing invocations from Lambda and latency without code changes, only via configuration of the API Gateway.",
+        "Incorrect. Trust the re-use of the context of implementation of the Lambda for cache is unreliable (cold startups create new contexts with empty caches, and competing invocations receive separate contexts with separate caches) — does not provide a consistent cache layer between all invocations/competition, unlike the managed cache of API Gateway, which is shared throughout the stage.",
+        "Incorrect. This approach would work, but requires building/managing additional infrastructure (ElastiCache cluster, configuration of VPC for the Lambda) And modify the function code Lambda — contradicting the requirement to avoid a separate cache layer and code changes; the cache of API Gateway achieves goal only with configuration.",
+        "Incorrect. Reserved competition controls how many simultaneous executions are available/guaranteeed; does not reduce the number of invocations for identical repeated requests or improves latency by cache request — is a lever unrelated to the cache/cost reduction goal."
+      ]
+    },
+    "saa-avc-172": {
+      "text": "An application uses Amazon ElasiCache for Memcached with a cluster of multiple nodes. As the load grows, the team periodically adds or removes cache nodes to scale the cluster, but at each change in the list of nodes, it is necessary to manually update the application configuration with the new list of endpoints and reimplant — generating operational overhead and potential miss cache 'storms' during these reconfigurations. They want the application to automatically detect changes in the cluster's list of nodes without manual reconfiguration.",
+      "options": [
+        "Migrate Memcached to Redis (Cluster Mode Enabled), which automatically rebalances data between shards as we are added",
+        "Configure the application's Memcached client to use the ElastiCache Auto Discovery feature, connecting through the cluster endpoint configuration",
+        "Place all cache nodes behind a Network Load Balancer and connect the application to the unique endpoint of NLB",
+        "Use a function AWS Lambda to consult regularly with API of ElastiCache and update a configuration file in S3 that the application reads in the initialization"
+      ],
+      "explanation": "Correct. Auto Discovery allows a Memcached client library (with Auto Discovery support) to connect to a single CONFIGURATION ENDPOINT which automatically tracks the current cache nos list; the client periodically consults this endpoint and updates its internal nos list automatically as we are added/retreaded, eliminating manual reconfiguration.",
+      "hint": "Think about which ElastiCache feature provides a unique and stable endpoint that always reflects the current cluster node list, without manual reconfiguration.",
+      "optionRationales": [
+        "Correct. Auto Discovery allows a Memcached client library (with Auto Discovery support) to connect to a single CONFIGURATION ENDPOINT which automatically tracks the current cache nos list; the client periodically consults this endpoint and updates its internal nos list automatically as we are added/retreaded, eliminating manual reconfiguration.",
+        "Incorrect. Although Redis in Cluster Mode handles reharding automatically, this would require migrating from Memcached to Redis completely (data model/set of different resources, changes in application) — a much larger change than enabling a client-side resource (Auto Discovery) that directly resolves the problem of tracking the list of us within Memcached itself.",
+        "Incorrect. Memcached customers use a distributed hashing scheme (consistent hashing) between MULTIPLOS node endpoints to determine which node is responsible for a given key; routing all traffic through a single balanced endpoint would break this partitioning model on the client's side (the customer needs to know and connect directly to the individual nodes to calculate the position of the keys) — that's not how Memcached clustering works.",
+        "Incorrect. This is a customized and indirect solution (requiring a function) Lambda, reading/polling of S3 in initialization, and still not treating changes of us EM TEMPO EXECUTION without re-implantation/restart) for a problem that ElastiCache's native Auto Discovery resource resolves directly and continuously at customer level, without any custom infrastructure."
+      ]
+    },
+    "saa-avc-173": {
+      "text": "A company signs a commitment to 3 years to get discounts in computing, but your mix of workloads changes frequently: it migrates loads between families of instances EC2 (for example, from M5 to M6g/Graviton), alternating between EC2, AWS Fargate and AWS Lambda, and move workloads between regions. The company wants the greatest possible discount, preserving the flexibility of changing computing services, instance families and regions without losing the coverage of the contracted discount.",
+      "options": [
+        "Purchase Reserved Instances Standard 3 years with full advance payment (All Upfront)",
+        "Use On-Demand Capacity Reservations combined with a commitment to 1 year",
+        "Purchase Computer Savings Plans",
+        "Purchase EC2 Forum Savings Plans"
+      ],
+      "explanation": "Right. Savings Plans offer the greatest flexibility: the contracted discount applies automatically to use in any family/instance size EC2, operating system, tenancy and region, besides use in AWS Fargate and AWS Lambda, in exchange for a consistent time commitment — ideal for a mix of workloads that changes between instance families, services and regions.",
+      "hint": "Think of what type of economy plan applies the discount to computational expenditure as a whole, regardless of the family of instance, service or region used.",
+      "optionRationales": [
+        "Right. Savings Plans offer the greatest flexibility: the contracted discount applies automatically to use in any family/instance size EC2, operating system, tenancy and region, besides use in AWS Fargate and AWS Lambda, in exchange for a consistent time commitment — ideal for a mix of workloads that changes between instance families, services and regions.",
+        "Incorrect. EC2 Forum Savings Plans offer a higher discount rate, but the commitment is linked to a family of specific instance in a specific Region (with flexibility only of size, SO and tenancy within that family/region); migrate workloads to other families, services (Fargate/Lambda) or Regions did not benefit from the discount, contradicting the flexibility requirement.",
+        "Incorrect. Reserved Instances Standard are linked to a specific instance/Region/SO family, with little flexibility for family changes (Convertible RIs allow exchanges, but with manual processes); engage with RIs for a workload that frequently changes family/service/Region risks underutilized reserved capacity and requires manual exchanges/changes, much less automatically than the Computers Savings Plans.",
+        "Incorrect. Capacity Reservations guarantee a DISPONIBILIDADE OF CAPACIDADE in a specific AZ for a specific instance type, but do not provide, by themselves, a DESCONTO invoicing (usually combined with Savings Plans/RIs for discount, but separately reserve capacity at On-Demand prices) — do not meet the discount objective with flexibility between families/services."
+      ]
+    },
+    "saa-avc-174": {
+      "text": "A financial sector company needs to retain audit logs by 10 years according to regulatory requirements. These logs are practically NUNCA are accessed (maybe once every few years, in rare audit scenarios), and recovery can tolerate up to 12 hours. Currently, the logs are stored in S3 Standard, generating significant monthly storage costs for data that will probably never be read again in normal operations.",
+      "options": [
+        "Transition objects to the S3 One Zone-IA",
+        "Transition objects to the S3 Instant Retrieval Glacier",
+        "Transition objects to the S3 Standard-IA (Infrequent Access))",
+        "Configure a Lifecycle policy from S3 to transition the objects to the Amazon S3 Glacier Deep Archive after a short initial period (ex.: 30-90 days at S3 Standard for possible short-term access needs)"
+      ],
+      "explanation": "Correct. S3 Glacier Deep Archive offers the lowest cost storage of S3 (cheaper than Glacier Flexible Retrieval), with recovery times of 12 a 48 hours — ideal for data accessed less than once or twice a year, with long retention requirements such as audit logs of 10 years, where recovery can tolerate up to 12 hours.",
+      "hint": "Consider access frequency (once every few years) and recovery tolerance (up to 12 hours) to choose the lowest cost storage class between the archiving options of S3.",
+      "optionRationales": [
+        "Correct. S3 Glacier Deep Archive offers the lowest cost storage of S3 (cheaper than Glacier Flexible Retrieval), with recovery times of 12 a 48 hours — ideal for data accessed less than once or twice a year, with long retention requirements such as audit logs of 10 years, where recovery can tolerate up to 12 hours.",
+        "Incorrect. S3 Standard-IA reduces the storage cost compared to Standard, but is designed for data accessed monthly with recovery in milliseconds and cost per GB MAIOR that the Deep Archive Glacier; for data accessed once every few ANOS with recovery tolerance of 12 hours, the Deep Archive offers a substantially lower storage cost.",
+        "Incorrect. The Glacier Instant Retrieval provides access in milliseconds at an intermediate cost between Standard-IA and the Glacier Flexible Retrieval, designed for file data accessed once per quarter; for extremely rarely (once every few years) accessed data with recovery tolerance of 12 hours, the lower storage cost of the Deep Archive Glacier is more appropriate, as the Instant Retrieval Glacier Instant Access Award is not required.",
+        "Incorrect. S3 One Zone-IA stores data in a Single AZ (minor durability in case of AZ failure) with infrequent access prices — but still has a higher cost per GB than the Glacier Deep Archive for long-term archiving, and the trade-off of durability in a single AZ is generally inadequate for regulatory audit logs of 10 years that need to remain durable/recoverable."
+      ]
+    },
+    "saa-avc-175": {
+      "text": "A company executes dozens of instances EC2 many were provided on the basis of rough initial estimates made years ago, and the team suspected of significant over-supply (low use of the CPU/memory/network), but has no systematic way of identifying QUAIS instances are over-provided and what would be the sizing recommendation CORRETO, without manually analyzing metrics of CloudWatch for each instance.",
+      "options": [
+        "Enable AWS Optimizer Computers",
+        "Use AWS Systems Manager Inventory to catalog all types and sizes of instance EC2",
+        "Use AWS Cost Explorer with cost allocation tags",
+        "Use 'Low Usage' check Amazon EC2 Mechanisms AWS Trusted Advisor (Business/Enterprise support plans)"
+      ],
+      "explanation": "Correct. Computer Optimizer analyzes historical metrics of use of the CloudWatch (CPU, memory via the agent CloudWatch, network, EBS) for instance EC2, volumes EBS, functions Lambda and services ECS no Fargate, and provides specific sizing recommendations (e.g. reduce m5.2xlarge for m5.xlarge) with estimated cost savings, automating this analysis across the fleet.",
+      "hint": "Think of what service the AWS automatically analyzes historical metrics for the use of the entire fleet and generates specific dimensioning recommendations, without manual analysis.",
+      "optionRationales": [
+        "Correct. Computer Optimizer analyzes historical metrics of use of the CloudWatch (CPU, memory via the agent CloudWatch, network, EBS) for instance EC2, volumes EBS, functions Lambda and services ECS no Fargate, and provides specific sizing recommendations (e.g. reduce m5.2xlarge for m5.xlarge) with estimated cost savings, automating this analysis across the fleet.",
+        "Incorrect. Cost Explorer shows DISTRIBUTION and trends in GASTO by tag/service/account, helping to understand ONDE the money is being spent, but does not analyze UTILIZATION metrics to recommend specific changes in instance size — it is a cost visibility tool, not a usage-based recommendation engine..",
+        "Incorrect. This check signals instances with low use of CPU as candidates for review, but offers a much less granular, continuous and multidimensional analysis (CPU+memory+network+EBS), with specific recommendations of type of destination instance, compared to the Compute Optimizer, which was created specifically for this and is available at no additional cost even in the Basic support plan.",
+        "Incorrect. Systems Manager Inventory catalog metadata about instances (SO, software installed, type of instance), but does not analyze UTILIZATION metrics nor provide sizing recommendations — it is an inventory/configuration tool, not a performance-based recommendation engine."
+      ]
+    },
+    "saa-avc-176": {
+      "text": "An application executed in instances EC2 in private subnets accesses intensely the Amazon S3 and the Amazon DynamoDB, routing this traffic through a NAT Gateway to achieve these services by their public endpoints. The team perceives substantial data processing recoveries from the data processing system. NAT Gateway (US$ 0,045/GB processed) attributable to this traffic of S3/DynamoDB, even if this traffic never needs to leave the network of AWS. They want to specifically eliminate these data processing collections from NAT Gateway for the traffic of S3/DynamoDB, without adding Internet-based routeable infrastructure.",
+      "options": [
+        "Replace NAT Gateway by an instance NAT (EC2 Self-managed)",
+        "Create Interface VPC Endpoints (AWS PrivateLink) for the S3 and the DynamoDB",
+        "Create Gateway VPC Endpoints for the Amazon S3 and the Amazon DynamoDB the VPC, and update the route tables of private subnets to route traffic from S3/DynamoDB by these endpoints",
+        "Move instances EC2 for public subnets with public IPs, allowing direct access to S3/DynamoDB no NAT Gateway"
+      ],
+      "explanation": "Right, the Gateways. VPC Endpoints route traffic to S3/DynamoDB directly within the network of the AWS through entries in the route table, completely bypassing the NAT Gateway for this traffic, SEM additional cost by the endpoint itself (different from the Interface Endpoints, which have hourly + GB collection) — directly eliminating data processing collections from NAT Gateway for this traffic.",
+      "hint": "Think of what kind of VPC Endpoint routes traffic to S3 and DynamoDB directly via route table, without additional cost by the endpoint itself.",
+      "optionRationales": [
+        "Right, the Gateways. VPC Endpoints route traffic to S3/DynamoDB directly within the network of the AWS through entries in the route table, completely bypassing the NAT Gateway for this traffic, SEM additional cost by the endpoint itself (different from the Interface Endpoints, which have hourly + GB collection) — directly eliminating data processing collections from NAT Gateway for this traffic.",
+        "Incorrect. Interface Endpoints also avoid router via NAT Gateway/internet, but they have their own collection per hour MAIS collection by GB of data processed by the endpoint — for S3 and DynamoDB specifically, Gateway Endpoints (without additional charge) are the best choice at cost; Interface Endpoints are used for services that do not support Gateway Endpoints.",
+        "Incorrect. An instance NAT may have lower cost base per hour than a NAT Gateway, but still incurs court costs EC2 and data transfer for the traffic of S3/DynamoDB which passes through it — does not eliminate the underlying problem of routing traffic from S3/DynamoDB by an unnecessary intermediary; the Gateway Endpoints remove this traffic from the way of NAT complete.",
+        "Incorrect. Moving instances to public subnets has significant security implications (direct exposure to the internet) and is not aligned with private subnet architecture; it also does not address the objective of cost optimization in a secure way — Gateway Endpoints achieve the cost objective while maintaining private instances."
+      ]
+    },
+    "saa-avc-177": {
+      "text": "A company maintains a highly variable and often unpredictable development/test database—sometimes idle for hours, then with significant peaks of load during test sessions. Aurora fixed size means paying for capacity for long idle periods, but the team also wants the database to scale AUTOMATICAMENTE up quickly during peaks of test activity, without manual intervention, remaining compatible with the features and standard connection drivers of the Aurora MySQL/PostgreSQL.",
+      "options": [
+        "Use an instance Aurora provided with the lowest class of instance available (db.t4g.medium)",
+        "Use Amazon Aurora Serverless v2",
+        "Use Amazon RDS Proxy in front of an instance Aurora provided to manage the pooling of connections during peaks",
+        "Use Amazon DynamoDB in On-Demand mode as a replacement for the relational database during dev/test"
+      ],
+      "explanation": "Correct. Aurora Serverless v2 automatically scales the database capacity (measured in Aurora Capacity Units, ACUs) up and down based on actual load, in fine increments and seconds, charging only for the capacity consumed — ideal for variable/intermitting workloads such as dev/test benches, remaining fully compatible with the engines Aurora MySQL/PostgreSQL, standard connection drivers and features like Read Replicas and Global Database.",
+      "hint": "Think of which variant of Aurora adjusts capacity automatically in fine increments based on actual load, charging only for consumption, without losing compatibility with the relational engine.",
+      "optionRationales": [
+        "Correct. Aurora Serverless v2 automatically scales the database capacity (measured in Aurora Capacity Units, ACUs) up and down based on actual load, in fine increments and seconds, charging only for the capacity consumed — ideal for variable/intermitting workloads such as dev/test benches, remaining fully compatible with the engines Aurora MySQL/PostgreSQL, standard connection drivers and features like Read Replicas and Global Database.",
+        "Incorrect. Even the smallest class of provided instance incurs constant charge per hour regardless of actual use (including long idle periods), and would need to be manually resized or scaled via Read Replicas to deal with peaks — does not provide the automatic and granular behavior of scalding to near zero and rescaling of Serverless v2.",
+        "Incorrect. RDS Proxy manages RELATIONS with the database (pooling, failover treatment), but DO NOT scale to CAPACIDADE (CPU/memory) of the underlying database — would not address the problem of paying for fixed capacity during idle periods nor would it provide automatic capacity scaling during peaks.",
+        "Incorrect. DynamoDB would require abandoning the relational data model (with its associated schema, joints and application code) for a model NoSQL — a significant architectural restructuring, not a cost optimization of the database Aurora EXISTENTE used in dev/test."
+      ]
+    },
+    "saa-avc-178": {
+      "text": "A large company has dozens of accounts AWS (managed via AWS Organizations) with hundreds of bucks S3 The financial team wants visibility, throughout the organization, about the use and trends of storage activity of the S3 — which buckets/accounts are growing faster, which have more data in the S3 Standard that could be candidates for lifecycle transitions, and incomplete multipart uploads consuming storage — to identify storage cost optimization opportunities across the organization without individually consulting each account/bucket.",
+      "options": [
+        "Use AWS Cost and Use Report (CUR) with standard use filters of S3",
+        "Enable Amazon S3 Storage Class Analysis in each individual pocket",
+        "Configure Alarms Amazon CloudWatch in the BucketSizeBytes metric for each bucket",
+        "Enable Amazon S3 Storage Lens with an organization level dashboard"
+      ],
+      "explanation": "Correct. S3 Storage Lens provides visibility throughout the organization about usage metrics and storage activity of S3 (including class storage, growth trends of buckets, incomplete multipart uploads) aggregated between all accounts/buckets/regions of a AWS Organization, with integrated dashboards and recommendations to identify cost optimization opportunities, without need to consult each account individually.",
+      "hint": "Think of what resource the S3 was specifically designed to provide aggregate dashboards of storage usage across a AWS Organization, with multiple accounts and newsletters.",
+      "optionRationales": [
+        "Correct. S3 Storage Lens provides visibility throughout the organization about usage metrics and storage activity of S3 (including class storage, growth trends of buckets, incomplete multipart uploads) aggregated between all accounts/buckets/regions of a AWS Organization, with integrated dashboards and recommendations to identify cost optimization opportunities, without need to consult each account individually.",
+        "Incorrect. Storage Class Analysis provides analysis of access patterns POR BUCKET to guide lifecycle policy decisions of that specific bucket, but does not provide an aggregate view at the ORGANISATION level between dozens of accounts and hundreds of buckets — would require setting up and reviewing each bucket separately, which does not scale to the declared requirement.",
+        "Incorrect. CUR provides detailed data from FATURAMENTO per line that can be filtered/analysed for cost of S3, but does not provide storage usage METRICS (object count, distribution by storage class, incomplete multipart uploads, activity trends) with integrated dashboards that Storage Lens provides — the CUR would require further meaningful analysis (e.g., consultations in the Athena) to derive similar insights.",
+        "Incorrect. The storage metrics of the S3 no CloudWatch provide basic object size/count metrics per bucket, but setting up and reviewing alarms on hundreds of buckets on dozens of accounts is operationally impractical and does not provide organization-level aggregate dashboards, storage class distributions or integrated cost optimization recommendations that Storage Lens offers."
+      ]
+    },
+    "saa-avc-179": {
+      "text": "A media company serves static images and videos directly from a pocket S3 for millions of end-users globally. As traffic grew, the costs of requisitions GET of the S3 and data transfer from S3 for the internet have become a significant part of the monthly bill, with the MESMOS popular assets being sought repeatedly by many users. They want to reduce these costs related to S3 for frequently accessed content, also improving delivery latency for global users.",
+      "options": [
+        "Enable S3 Request Country not pocket",
+        "Enable S3 Transfer Acceleration in Bucket",
+        "Change Bucket Storage Class S3 for S3 Intelligent-Tiering",
+        "Position Amazon CloudFront in front of the pocket S3 as a cache layer, configuring a TTL of cache suitable for static assets"
+      ],
+      "explanation": "Correct. CloudFront cache content storage in edge locations close to users, serving repeated requests of the same popular assets from the cache of CDN instead of looking at S3 at a time — this reduces both the number of requests GET QUANTO the transfer of data from S3 (the transfer of data from S3 for the CloudFront no cost), in addition to reducing latency for global end users via cache in edge.",
+      "hint": "Think about which service acts as a cache layer between end users and the S3, reducing repeated requests to the bucket for the same popular objects and associated output data transfer.",
+      "optionRationales": [
+        "Correct. CloudFront cache content storage in edge locations close to users, serving repeated requests of the same popular assets from the cache of CDN instead of looking at S3 at a time — this reduces both the number of requests GET QUANTO the transfer of data from S3 (the transfer of data from S3 for the CloudFront no cost), in addition to reducing latency for global end users via cache in edge.",
+        "Incorrect. Transfer Acceleration optimizes speed UPLOAD for the S3 via the edge network of the CloudFront for geographically distant customers who send data — does not cache or reduce requests GET repeated/costs of data transfer to the DOWNLOAD of the same popular content by many end users; treats a different problem (upload acceleration, no cache/download cost reduction).",
+        "Incorrect. Intelligent-Tiering optimizes the cost of ARMAZENAMENTO moving objects between access layers based on access patterns, but does not reduce the cost of REQUIREMENTS GET or TRANSFER OF DADOS OUTSIDE for end users of popular and frequently accessed objects — these costs are independent of the storage class.",
+        "Incorrect. The Request Country transfers the costs of data transfer and requests to the SOLICITANTE (who makes the request GET) instead of the owner of the pocket — for a media company serving SEU PROPER content for SEUS FIRST end-users (not third-party accounts), this would mean charging anonymous end-users costs, which is not a viable mechanism for a case of public content delivery use, and does not reduce the cost GERAL to serve repeated requests of the same content."
+      ]
+    },
+    "saa-avc-180": {
+      "text": "A company maintains several environments EC2 development and QA that are used only in commercial hours, Monday to Friday (8h at 19h), by the engineering team. Currently, these environments run 24/7, generating collections of EC2 during nights, weekends and holidays, when no one uses them — representing approximately 75% of the week without active use. The team wants to automatically eliminate this unnecessary expense without daily manual intervention.",
+      "options": [
+        "Migrate these environments to functions AWS Lambda performing on demand",
+        "Purchase Reserved Instances for these instances EC2, guaranteeing a lower hourly rate",
+        "Use AWS Computer Savings Plans to reduce the cost per hour of these instances",
+        "Configure Scheduled Actions from AWS Auto Scaling no Auto Scaling Groups of these environments, defining the desired capacity/min/maximum as 0 outside business hours (e.g. climbing to 0 at 19h on working days and weekends, and returning to normal capacity at 8h on working days)"
+      ],
+      "explanation": "Correct. Scheduled Actions allow you to define recurring capacity changes (based on cron), automatically scaling environments to zero instances (eliminating charges per instance hour) EC2) during ~75% of the week in which they are not used, and automatically climbing again before the start of business hours.",
+      "hint": "Think of what resource the Auto Scaling allows to define, on a recurring schedule, the reduction of capacity to zero instances outside the time of use and the automatic return to normal capacity.",
+      "optionRationales": [
+        "Correct. Scheduled Actions allow you to define recurring capacity changes (based on cron), automatically scaling environments to zero instances (eliminating charges per instance hour) EC2) during ~75% of the week in which they are not used, and automatically climbing again before the start of business hours.",
+        "Incorrect. Savings Plans provide a discount on the computational use per hour EM TROCA of a commitment, but the instances would continue to run (and generating discounts) 24/7 — this reduces the TAXA, but does not eliminate the cost during the ~75% of idle time; climbing to zero eliminates the full cost at these times, which is much more striking for a resource used only 25% of the week.",
+        "Incorrect. Migrate complete development/QA environments based on EC2 (probably application stacks/complete servers) for the execution model based on functions of Lambda would require a complete restructuring of the environment — a much greater effort than setting up scheduled steps for the existing infrastructure.",
+        "Incorrect. Savings Plans, the Reserved Instances provide discount for use CONTINUOUS E COMPROMETIDO (usually more economical for workloads ~24/7) — commit to RIs for necessary instances only 25% of the week (which would need to continue rolling to 'use' the IR, or to become idle but still being charged) does not solve the central problem of paying for unused capacity on nights/ends of the week/ferries."
+      ]
+    },
+    "saa-avc-181": {
+      "text": "A data science team executes instances EC2 for long-term analysis sessions, with large datasets loaded in memory and complex state of application (open processes, caches in memory) that takes more than 30 The team wants to pause these instances (and stop paying for computers) for nights and weekends without use, but to resume may NOT require to reload the dataset/reinitialize the status of the application — it should resume exactly where it stopped, including the content of the application. RAM.",
+      "options": [
+        "Create a snapshot EBS of the root volume before stopping, and restore from the snapshot when resume",
+        "Use a normal stop/start cycle of the EC2 during periods without use",
+        "Use AWS Computer Savings Plans to reduce the cost of keeping the instances running 24/7",
+        "Enable Hibernation (Hibernation) EC2 in the instances (familias of instance supported, with root volume EBS meeting the size requirements) and hibernating during unused periods, rather than stopping them normally"
+      ],
+      "explanation": "Right. Hibernation saves the content of RAM in root volume EBS by hibernating and restoring the RAM exactly when resuming — while hibernated, the instance is in a state of 'stop' collection (without computer charges, only storage) EBS of the root volume, slightly higher to accommodate the RAM), and resume restores the state in exact memory without rebooting, unlike a normal stop/start, which discards the content of the RAM.",
+      "hint": "Think of what resource the EC2 saves memory content RAM on disk when stopping the instance and restoring it exactly when resuming, avoiding reboot of the application.",
+      "optionRationales": [
+        "Right. Hibernation saves the content of RAM in root volume EBS by hibernating and restoring the RAM exactly when resuming — while hibernated, the instance is in a state of 'stop' collection (without computer charges, only storage) EBS of the root volume, slightly higher to accommodate the RAM), and resume restores the state in exact memory without rebooting, unlike a normal stop/start, which discards the content of the RAM.",
+        "Incorrect. A normal stop discards the content of RAM (memory of the instance); when starting again, the SO starts from zero and the application/dataset needs to be reloaded in memory, taking the more than 30 minutes the team wants to avoid — Hibernation specifically preserves the content of RAM through the stop, what a normal stop does not.",
+        "Incorrect. Savings Plans reduce the TAXA per hour for continuous use, but the instance would continue to run (and generate charges, even with discount) during nights/ends of the week without use; the team wants to EVITAR pay for idle periods preserving the state, which Hibernation achieves by not performing any computing while preserving the state of memory in EBS.",
+        "Incorrect. Restore from a snapshot EBS recreates the state of DISCO at the moment of the snapshot, but DO NOT restore the content of RAM/running processes — the OS would still start from scratch and the application would need to restart and reload data in memory, the same limitation of a normal stop."
+      ]
+    }
+  }
+}

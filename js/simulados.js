@@ -14,6 +14,10 @@
 
     const PASS_SCORE = 70;
 
+    function activeExamLocale() {
+        return (window.I18n && window.I18n.locale === 'en') ? 'en' : 'pt-BR';
+    }
+
     let certifications = [];
     let selectedCertId = null;
     let selectedLevel = null;
@@ -240,9 +244,14 @@
     // ============================================
     // Carregamento de certificações
     // ============================================
+    document.addEventListener('cloudpath:localechange', () => {
+        if (!currentSimulado) loadCertifications();
+    });
+
     async function loadCertifications() {
         try {
-            const res = await fetch('/api/simulado/certifications');
+            const locale = activeExamLocale();
+            const res = await fetch(`/api/simulado/certifications?locale=${encodeURIComponent(locale)}`);
             const data = await res.json();
             if (!data.success) throw new Error('Falha ao carregar certificações');
             certifications = data.certifications;
@@ -484,6 +493,7 @@
                     certId: selectedCertId,
                     level: selectedLevel,
                     numQuestions,
+                    locale: activeExamLocale(),
                     mode: startMode || undefined,
                     domain: startMode === 'errors' ? undefined : (focusDomainId || undefined),
                     topic: startMode === 'errors' ? undefined : (focusTopicId || undefined)
@@ -494,6 +504,9 @@
             if (!data.success) throw new Error(data.error || 'Erro ao iniciar simulado');
 
             currentSimulado = data;
+            if (data.localeFallback && activeExamLocale() === 'en') {
+                Utils.showToast('English questions are not available for this level yet. Portuguese content is being used for this session.', 'warning');
+            }
             userAnswers = {};
             questionFeedback = {};
             currentQuestionIndex = 0;

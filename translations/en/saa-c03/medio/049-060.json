@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "049-060",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-049": {
+      "text": "By ransomware protection policy, backups of a company's critical resources must be automatically copied to a safe in OUTRA CONTA and OUTRA REGION, so that the commitment of the production account does not reach the copies.?",
+      "options": [
+        "Replication of volumes via rsync between instances",
+        "AMIs of the bodies maintained in the same region",
+        "Manual snapshots stored in your own production account",
+        "AWS Backup with plans that include copying between regions and between accounts for an isolated vault"
+      ],
+      "explanation": "The AWS Backup supports cross-Region and cross-account copy natively on your plans: copies go to a backup vault in isolated account (with optional vault lock), recommended default against ransomware and account compromise.",
+      "hint": "Backup that survives the kidnapping needs to live in another 'predio' And belong to another 'gift''.",
+      "optionRationales": [
+        "The AWS Backup supports cross-Region and cross-account copy natively on your plans: copies go to a backup vault in isolated account (with optional vault lock), recommended default against ransomware and account compromise.",
+        "Copies on the same account fall along with it: an intruder with access can exclude them — exactly the risk to mitigate.",
+        "Continuous file replication also spreads malicious ransomware encryption — replica is not isolated backup.",
+        "AMIs in the same account and Region do not offer the isolation of account/Region required by the policy."
+      ]
+    },
+    "saa-med-050": {
+      "text": "A company creates snapshots EBS manually when someone remembers, resulting in irregular coverage and old snapshots accumulated forever. Which service automates creation and expiration of snapshots according to defined agendas and retention policies?",
+      "options": [
+        "Auto Scaling Volumes EBS",
+        "CloudWatch Logs with retention of 30 days",
+        "S3 Lifecycle Policies for Volumes EBS",
+        "Amazon Data Lifecycle Manager (DLM), with life cycle policies for snapshots and tags-based AMIs"
+      ],
+      "explanation": "The DLM schedule the periodic creation of snapshots/AMIs by tags and apply automatic retention (holding N copies or X days), eliminating both forgetfulness and accumulation of old copies.",
+      "hint": "Think of the 'data life cycle manager' who creates and retires snapshots in the autopilot.",
+      "optionRationales": [
+        "The DLM schedule the periodic creation of snapshots/AMIs by tags and apply automatic retention (holding N copies or X days), eliminating both forgetfulness and accumulation of old copies.",
+        "Life cycle policies of the S3 act on objects in buckets — do not manage volume snapshots EBS.",
+        "Log retention manages log records — without any relationship to volume snapshots.",
+        "There's no such thing as Auto Scaling of volumes for backup — the scaling serves computational capacity, not backups."
+      ]
+    },
+    "saa-med-051": {
+      "text": "A team suffers downtime for each deployment: the new version replaces the old one in the same instances and, when there is a bug, the rollback is delayed. What deployment strategy eliminates the downtime and makes the rollback almost instantaneous?",
+      "options": [
+        "Deploy only in the early morning",
+        "In-place deployment in all instances simultaneously",
+        "Disable health checks during deployment",
+        "Blue/green deployment: provide the new environment in parallel, redirect traffic by validating it and keep the old one ready for immediate reversal"
+      ],
+      "explanation": "In blue/green, two versions coexist: traffic changes from blue to green only after validation, and any problem reverts with a simple redirection — downtime zero and rollback in seconds.",
+      "hint": "Two colors, two complete environments: traffic only crosses the bridge when the other side is proven to be standing.",
+      "optionRationales": [
+        "In blue/green, two versions coexist: traffic changes from blue to green only after validation, and any problem reverts with a simple redirection — downtime zero and rollback in seconds.",
+        "Replace everything at once in the same environment is precisely the cause of the downtime and slow rollback described.",
+        "Blinding health checks would make the balancer send users to instances in inconsistent state — increasing impact.",
+        "Changing the schedule reduces the problem's audience, but does not eliminate downtime or accelerate the reversal."
+      ]
+    },
+    "saa-med-052": {
+      "text": "An application TCP global (no HTTP) runs in NLBs in two regions. The requirement is automatic failure between regions in seconds, without depending on TTL of DNS of customers, maintaining fixed IP addresses for release in corporate firewalls. Which service meets these requirements?",
+      "options": [
+        "VPC Peering between the two regions",
+        "AWS Global Accelerator, with static anycast IPs and automatic failover based on health checks of regional endpoints",
+        "Route 53 fail with TTL high for stability",
+        "CloudFront with two origins"
+      ],
+      "explanation": "The Global Accelerator delivers two global static IPs and monitors the endpoints: when detecting failure in one Region, diverts traffic to the other in seconds, without relying on caches of DNS of customers.",
+      "hint": "Failed without waiting DNS + Fixed edge IPs = the global accelerator with anycast.",
+      "optionRationales": [
+        "The Global Accelerator delivers two global static IPs and monitors the endpoints: when detecting failure in one Region, diverts traffic to the other in seconds, without relying on caches of DNS of customers.",
+        "Failed via DNS depends on the expiry of the TTL in customer solvers — TTL high would make the switching even slower, and IPs would change.",
+        "The CloudFront attends content HTTP/HTTPS — does not balance applications TCP Arbitrary nor provides static IPs for firewall.",
+        "Peering connects private networks with each other — does not route internet users or performs public traffic failure."
+      ]
+    },
+    "saa-med-053": {
+      "text": "A function Lambda is invoked asynchronously by the S3 some events fail after automatic attempts and are silently discarded, without trace for reprocessing. Which configuration preserves these events with context of error for further analysis.?",
+      "options": [
+        "Increase function memory to prevent any failure",
+        "Configure a fault destination (on-failure destination) — as a row SQS — for asynchronous invocations of the function",
+        "Reduce the number of automatic attempts to zero",
+        "Print the event in the log and consider solved"
+      ],
+      "explanation": "Destinations for asynchronous failures send the original event along with error metadata to SQS/SNS/EventBridge/Lambda after exhausted attempts — nothing gets lost and reprocessing becomes viable.",
+      "hint": "After the last attempt, the event needs a 'direction address' — not a dumpster.",
+      "optionRationales": [
+        "Destinations for asynchronous failures send the original event along with error metadata to SQS/SNS/EventBridge/Lambda after exhausted attempts — nothing gets lost and reprocessing becomes viable.",
+        "More memory does not eliminate logic failures, external dependencies or invalid data — and does not preserve events when they occur.",
+        "Less attempts only accelerates the discard — aggravates the loss rather than solves it.",
+        "Logs help diagnosis, but do not structure reprocessing — the event needs to go to a consumable destination."
+      ]
+    },
+    "saa-med-054": {
+      "text": "One VPC has private sub-networks in three AZs, all routing outbound traffic by a ONE NAT Gateway the AZ-1. During an incident that knocked down the AZ-1, the instances of the other two AZs have also lost access to the internet. What change eliminates this dependence?",
+      "options": [
+        "Replace NAT Gateway by one Internet Gateway in private sub-networks",
+        "Create Two NAT Gateways in the same way AZ-1",
+        "Move all instances to the AZ-1 of the NAT",
+        "Provide one NAT Gateway in each AZ and configure the route table of each private sub-network to use the NAT of the zone itself"
+      ],
+      "explanation": "One NAT by AZ with local routes removes the dependence between zones: the failure of an AZ affects only its resources, preserving the exit of the others — in addition to avoiding traffic costs between AZs.",
+      "hint": "Each area should have its own 'emergency exit' — and use the neighbor's door only when necessary.",
+      "optionRationales": [
+        "One NAT by AZ with local routes removes the dependence between zones: the failure of an AZ affects only its resources, preserving the exit of the others — in addition to avoiding traffic costs between AZs.",
+        "But the route of IGW and public IPs to private fora exposed them to the internet — would change the security model instead of solving redundancy.",
+        "Redundancy within the same zone does not survive the failure of the zone — the problem is the geographical concentration.",
+        "Focusing everything on a single AZ eliminates the high availability of the entire architecture."
+      ]
+    },
+    "saa-med-055": {
+      "text": "An administrator realized that the RDS allows to restore the seat for any moment within the set retention period (for example, go back exactly to 14What is the mechanism of RDS enables this punctual restoration (point-in-time restore))?",
+      "options": [
+        "Manual snapshots created by the administrator",
+        "The Read Asynchronous Replicas",
+        "Automatic backups, which combine daily snapshots with continuous archiving of transaction logs",
+        "The Multi-AZ feature with synchronous replica"
+      ],
+      "explanation": "With automatic backups enabled, or RDS files the log transactions beyond the daily snapshot, allowing you to reconstruct the status of the bank at any point in the hold window (up to 35 days) in a new instance.",
+      "hint": "Daily photo + 'continuous tape' of transactions = ability to rewind for any minute.",
+      "optionRationales": [
+        "With automatic backups enabled, or RDS files the log transactions beyond the daily snapshot, allowing you to reconstruct the status of the bank at any point in the hold window (up to 35 days) in a new instance.",
+        "Manual snapshots restore only the exact moment they were taken — without continuous logs, there is no restoration to an arbitrary point.",
+        "The Multi-AZ replicates the state ATUAL to fail — the replica contains the same data (including errors), no time travel.",
+        "Replicas follow the present of the main with small delay — do not store history for punctual restoration."
+      ]
+    },
+    "saa-med-056": {
+      "text": "An engineering team wants to validate, in a controlled way and before it actually happens, how its application reacts to the loss of instances, network latency peaks and AZ unavailability — injecting these failures into experiments with autostop conditions. AWS supports this practice of chaos engineering?",
+      "options": [
+        "AWS Trusted Advisor",
+        "AWS Fault Injection Service (FIS)",
+        "Amazon CloudWatch Synthetics",
+        "Turn off production servers manually without notice"
+      ],
+      "explanation": "The FIS performs experiments of injection of controlled failures (terminate instances, degrade network, simulate inavailabilities) with guardrails and stop conditions — validating the real resilience before the incidents.",
+      "hint": "Chaos engineering with safety belt: the service that 'injects failures' on purpose and for itself if something comes out of the plan.",
+      "optionRationales": [
+        "The FIS performs experiments of injection of controlled failures (terminate instances, degrade network, simulate inavailabilities) with guardrails and stop conditions — validating the real resilience before the incidents.",
+        "The Trusted Advisor analyzes settings against good practices — does not inject flaws into real environments.",
+        "Synthetics monitors endpoints with canaries simulating users — observes the system, but does not cause failures.",
+        "Chaos without control, guardrails or automatic stop is just a self-inflicted incident — discipline requires controlled experiments."
+      ]
+    },
+    "saa-med-057": {
+      "text": "Messages from a row SQS Standard are delivered 'at least once', and occasionally the same request is processed in duplicate, generating repeated charges to customers. FIFO, which design practice in CONSUMIDOR avoids the effects of duplication?",
+      "options": [
+        "Make the processing effective: verify by a unique identifier if the request has already been processed before performing the effects",
+        "Increase line retention period",
+        "Processing messages twice on purpose to standardize",
+        "Reducing the number of consumers in a single process"
+      ],
+      "explanation": "Idempotence is the design defense against delivery at-last-once: by recording the ID of the processed order (e.g. in a table with conditional writing), repeated reprocessings do not generate duplicate effects.",
+      "hint": "If the same letter can arrive twice, the recipient must acknowledge: 'that I have already answered'.",
+      "optionRationales": [
+        "Idempotence is the design defense against delivery at-last-once: by recording the ID of the processed order (e.g. in a table with conditional writing), repeated reprocessings do not generate duplicate effects.",
+        "Deliberately doubling the effects only exacerbates the problem of repeated collections.",
+        "The retention time defines how long unspent messages remain in the queue — does not affect duplication in delivery.",
+        "Even with a consumer, at-last-once delivery can repeat messages (e.g. failure after processing and before deleting) — idempotent design is still needed."
+      ]
+    },
+    "saa-med-058": {
+      "text": "During peaks, a client application receives throttling errors (HTTP 429/(exceeded limit) API and responds by immediately trying again, in loop, which multiplies the load and prolongs the degradation.?",
+      "options": [
+        "Ignore Errors 429 and follow the flow without the answer",
+        "Immediate and unlimited retentions until successful",
+        "Retentatives with exponential backoff and jitter: expect progressively larger and randomized intervals between attempts",
+        "Open multiple parallel connections to drill the limit"
+      ],
+      "explanation": "exponential backoff reduces pressure on degraded service and jitter prevents thousands of customers from holding back synchronised — the standard recommended by AWS for resilient API consumption.",
+      "hint": "When the service asks for pause, fold back the wait — and draw the attempts with a random seasoning.",
+      "optionRationales": [
+        "exponential backoff reduces pressure on degraded service and jitter prevents thousands of customers from holding back synchronised — the standard recommended by AWS for resilient API consumption.",
+        "It is exactly the antistandard described: the continuous hammer amplifies the overload and delays the recovery (retry storm).",
+        "Ignoring faults silently corrupts application behavior — the goal is to complete operation with responsibility.",
+        "Parallelizing against a service that signals boundary is hostile and tends to higher punishments of throttling."
+      ]
+    },
+    "saa-med-059": {
+      "text": "A Network Load Balancer distributes traffic to targets in two AZs, but the team noticed that each balancer node sends traffic only to targets in its own area; when an AZ has few healthy targets, they have been overloaded. What configuration makes each node distribute for healthy targets of TODAS the zones?",
+      "options": [
+        "Convert to NLB to Gateway Load Balancer",
+        "Add a second balancer to the same VPC",
+        "Remove health checks to include all targets",
+        "Enable cross-zone load balancing non-balancer"
+      ],
+      "explanation": "With cross-zone enabled (standard ALB, optional no NLB), each node distributes for all healthy targets registered in all AZs, equalizing the load regardless of the distribution by zone.",
+      "hint": "The name of the configuration says everything: balance 'crossing the zones', and not just within each.",
+      "optionRationales": [
+        "With cross-zone enabled (standard ALB, optional no NLB), each node distributes for all healthy targets registered in all AZs, equalizing the load regardless of the distribution by zone.",
+        "Another balancer does not change the distribution behavior by area of existing nodes.",
+        "The GWLB is intended for online security applications — is not the solution for distribution between areas of an application.",
+        "Turning off health checks would make traffic reach broken targets — make reliability worse instead of balancing the load."
+      ]
+    },
+    "saa-med-060": {
+      "text": "Hundreds of functions Lambda open and close direct connections with a RDS PostgreSQL to each invocation, exhausting the bank's connection limit at peaks and leaving the failover slow. Which service solves this problem acting as a layer of connection management?",
+      "options": [
+        "Increase bank max_connections indefinitely",
+        "Create a Read Replica to receive write connections",
+        "Amazon RDS Proxy, making pooling and re-use of connections between invocations and accelerating failure",
+        "Change the RDS by local files in /tmp of functions"
+      ],
+      "explanation": "The RDS Proxy maintains a pool of shared connections that functions reuse, avoiding bank exhaustion in serverless loads and reducing the time to fail while preserving connections through transition.",
+      "hint": "Between the serverless swarm and the bank, there is a 'connector' that recycles instead of opening new ones.",
+      "optionRationales": [
+        "The RDS Proxy maintains a pool of shared connections that functions reuse, avoiding bank exhaustion in serverless loads and reducing the time to fail while preserving connections through transition.",
+        "Each connection consumes server memory — raising the limit without control degrades performance and only postpones exhaustion.",
+        "Replicas do not accept written — do not absorb the volume of transactional connections of functions.",
+        "Local ephemeral storage does not replace a shared and lasting relational bank."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dea-c01",
+    "range": "012-019",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dea-avc-012": {
+      "optionReasons": {
+        "dea-avc-012:option:0": "It's the closest because more crawlers would speed up the recording of partitions — but they're still DEPENDENDO to record each partition in the metastore, which is precisely the gargalo with hundreds of thousands of them; to eliminate this dependence is the Partition Projection, which CALCULA Partitions by rules.",
+        "dea-avc-012:option:1": "Increase the partition limit only postpones the problem — planning continues to consult the swollen metastore.",
+        "dea-avc-012:option:2": "",
+        "dea-avc-012:option:3": "Removing partitioning does the Athena scanning everything — worsening the cost and latency of consultations."
+      },
+      "finalJustifications": [
+        "Because Partition Projection calculates partitions from rules (intervals/formats) without consulting them in the metastore — planning accelerates and the MSCK REPAIR no longer required.",
+        "Because running more crawlers calculates partitions from rules without consulting them in the metastore — planning accelerates and the MSCK REPAIR is no longer necessary in Athena.",
+        "Because increasing the partition limit calculates partitions from rules without consulting them in the metastore — planning accelerates and the MSCK REPAIR is no longer necessary in Athena.",
+        "Because removing partitioning calculates partitions from rules without consulting them in the metastore — planning accelerates and the MSCK REPAIR is no longer necessary in Athena."
+      ]
+    },
+    "dea-avc-013": {
+      "optionReasons": {
+        "dea-avc-013:option:0": "",
+        "dea-avc-013:option:1": "VACUUM recovers space/reorder — does not isolate competing loads.",
+        "dea-avc-013:option:2": "It's the closest because separating users gives some organization — but user/password DOES NOT isolate RECURSOS: BI and ETL They keep fighting. CPU/cluster memory; isolating loads with rows, priorities and limits is Workload Management (WLM), with separate rows or Auto WLM.",
+        "dea-avc-013:option:3": "Sort keys accelerate scans per track — do not separate or prioritize BI vs. ETL."
+      },
+      "finalJustifications": [
+        "Because WLM Create separate rows (or Auto) WLM with query priorities) for BI and ETL, with limits and priorities — loads stop competing with cluster resources at peak times.",
+        "Because creating two users creates separate rows for BI and ETL, with limits and priorities — loads stop competing with cluster resources at peak loading times.",
+        "Because VACUUM Diary creates separate rows for BI and ETL, with limits and priorities — loads stop competing with cluster resources at peak loading times.",
+        "Because the spell keys create separate rows for BI and ETL, with limits and priorities — loads stop competing with cluster resources at peak loading times."
+      ]
+    },
+    "dea-avc-014": {
+      "optionReasons": {
+        "dea-avc-014:option:0": "It's the closest because the UNLOAD daily for the S3 also exposes the data to another cluster — but COPIA the data and delivers a portrait DEFASADO (non-live), with export pipeline to be maintained; AO reading VIVO between clusters without moving data is the Redshift Data Sharing.",
+        "dea-avc-014:option:1": "",
+        "dea-avc-014:option:2": "DMS replicates data between banks — copy and maintains pipeline, the opposite of 'no copy''.",
+        "dea-avc-014:option:3": "Snapshot restored weekly is periodic and outdated copy — not live access."
+      },
+      "finalJustifications": [
+        "Because Redshift Data Sharing shares schemas/tables between clusters via datashare: the other unit reads AO data VIVO production warehouse, without copying or mounting export pipeline.",
+        "Because UNLOAD daily shares schemas/tables between clusters: the other unit reads live data from the production warehouse, without copying or mounting export pipeline.",
+        "Because DMS share schemas/tables between clusters: the other unit reads the live data from the production warehouse, without copying or mounting data export pipeline.",
+        "Because the restored snapshot shares schemas/tables between clusters: the other unit reads the live data from the production warehouse, without copying or mounting export pipeline."
+      ]
+    },
+    "dea-avc-015": {
+      "optionReasons": {
+        "dea-avc-015:option:0": "Partition Projection accelerates partitions in S3 — does not connect to an external source such as the RDS.",
+        "dea-avc-015:option:1": "It's the closest because the CTAS combines data in a new table — but it MATERIALIZA (copy) the result, and the requirement is to cross S3 with the RDS in a consultation SEM replicate the bank; consult the external source in query time is the Athena Federated Query, via connector Lambda.",
+        "dea-avc-015:option:2": "",
+        "dea-avc-015:option:3": "Workgroups control costs/consultation limits — do not connect the Athena to PostgreSQL."
+      },
+      "finalJustifications": [
+        "Because Athena Federated Query uses a connector (Lambda) for the RDS PostgreSQL and cross-reference table with data lake in a single query SQL — without replicating the bench to the lake.",
+        "Because CTAS uses a connector for the RDS PostgreSQL and cross-reference table with data lake in a single query SQL — without replicating the bench to the lake of S3.",
+        "Because Partition Projection uses a connector for the RDS PostgreSQL and cross-reference table with data lake in a single query SQL — without replicating the bench to the lake.",
+        "Because the Workgroups use a connector for the RDS PostgreSQL and cross the reference table with data lake in a single query SQL — without replicating the bench to the lake."
+      ]
+    },
+    "dea-avc-016": {
+      "optionReasons": {
+        "dea-avc-016:option:0": "",
+        "dea-avc-016:option:1": "One Zone-IA reduces durability (one AZ) and collects retriival — risky for data that return to hot.",
+        "dea-avc-016:option:2": "It's the closest because lifecycle to Glacier in 30 days also optimizes cost — but it's rule FIXA by age and the Glacier collects RECOVERY with latency: datasets that are consulted again intensely would pay fee and would expect; without fee, without degradation and without manual management is the Intelligent-Tiering.",
+        "dea-avc-016:option:3": "Glacier Deep Archive is archived with hour recovery — unfeasible for unpredictable intense resuscitation."
+      },
+      "finalJustifications": [
+        "Because Intelligent-Tiering moves each object between layers by the actual access pattern, no recovery rate or latency degradation and no manual management — exact for unpredictable access.",
+        "Because the One Zone-IA moves each object between layers by the actual access pattern, without recovery rate or latency degradation and without manual management — exact for unpredictable access.",
+        "Because the Standard with lifecycle for Glacier moves each object by the actual access pattern, without recovery rate or latency degradation and without manual management — exact for unpredictable access.",
+        "Because the Deep Archive Glacier moves each object between layers by the actual access pattern, without recovery rate or latency degradation and without manual management — exact for unpredictable access."
+      ]
+    },
+    "dea-avc-017": {
+      "optionReasons": {
+        "dea-avc-017:option:0": "It's the closest because INSERT INTO EXTERNAL (via Spectrum) also records the Redshift for the S3 — but is limited and less efficient way to mass export; the command NATIVO that writes in parallel, in Parquet partitioned, is the UNLOAD ... FORMAT AS PARQUET PARTITION BY.",
+        "dea-avc-017:option:1": "pg_dump is PostgreSQL tool — not export from Redshift in Parquet partitioned to the S3.",
+        "dea-avc-017:option:2": "COPY CARREGA data PARA o Redshift from S3 — is the inverse direction of export requested.",
+        "dea-avc-017:option:3": ""
+      },
+      "finalJustifications": [
+        "Because UNLOAD ... FORMAT AS PARQUET PARTITION BY writes the results of the parallel consultation in S3, already in Parquet partitioned — ready for consumption by Athena and Spark in the cured layer.",
+        "Because INSERT INTO EXTERNAL write the results of the consultation in parallel in the S3, already in Parquet partitioned — ready for consumption by Athena and Spark in the curated layer of the data lake.",
+        "Because pg_dump writes the result of the parallel query in S3, already in Parquet partitioned — ready for consumption by Athena and Spark in the curated layer of the data lake.",
+        "Because COPY write the results of the consultation in parallel in the S3, already in Parquet partitioned — ready for consumption by Athena and Spark in the curated layer of the data lake."
+      ]
+    },
+    "dea-avc-018": {
+      "optionReasons": {
+        "dea-avc-018:option:0": "Reducing item size saves a little bit of capacity — does not prevent throttling at a peak of 20x.",
+        "dea-avc-018:option:1": "It is the closest because doubling the fixed supply reduces throttling — but for peaks of 20x PREPARABLES still bursts (and pays twice as much); priority is NUNCA throttlear with variable cost, what the On-Demand mode delivers absorbing sudden peaks without provisioning.",
+        "dea-avc-018:option:2": "One GSI adds an index (and more consumption) — does not solve table throttling at peaks.",
+        "dea-avc-018:option:3": ""
+      },
+      "finalJustifications": [
+        "Because On-Demand mode absorbs sudden peaks of 20x without provision or delay of auto scaling: never throttles and collects for real use — exactly the priority of unpredictable promotional dates.",
+        "Because doubling the fixed supply absorbs sudden peaks of 20x without provisioning or delay: never throttles and collects for real use — exactly the priority of unpredictable promotional dates.",
+        "Because reducing the size of items absorbs sudden peaks of 20x without provisioning or delay: never throttles and collects for real use — exactly the priority of unpredictable promotional dates.",
+        "Why add one GSI Absorbs Sudden Peaks 20x without provisioning or delay: never throttles and collects for real use — exactly the priority of unpredictable promotional dates."
+      ]
+    },
+    "dea-avc-019": {
+      "optionReasons": {
+        "dea-avc-019:option:0": "",
+        "dea-avc-019:option:1": "DROP and recreate all patterns is destructive and unnecessary — routine maintenance resolves.",
+        "dea-avc-019:option:2": "It's the closest because rebooting the cluster seems to 'renew' performance — but not RECUPERA the space of the deleted lines does not update statistics: the degradation returns; rearrange/recover space and update the optimizer is VACUUM + ANALYZE.",
+        "dea-avc-019:option:3": "Changing the admin password is access control — nothing to do with performance or space."
+      },
+      "finalJustifications": [
+        "Because VACUUM reorders the lines and recovers the space of the deletes, and the ANALYZE updates optimization statistics — cluster performance and storage return to normal.",
+        "Because DROP and re-creation rearranges the lines and recovers the space of the deleted ones, and updates the optimization statistics — the performance and storage of the cluster return to normal.",
+        "Why rebooting the cluster reorders the lines and recovers the space from the deleted ones, and updates the optimization statistics — the cluster performance and storage return to normal.",
+        "Because changing the admin password rearranges the lines and recovers the space from the deleted ones, and updates the optimization statistics — cluster performance and storage return to normal."
+      ]
+    }
+  }
+}

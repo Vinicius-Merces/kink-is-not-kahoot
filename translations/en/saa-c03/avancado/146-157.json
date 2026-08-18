@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "146-157",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-146": {
+      "text": "A serverless application uses functions AWS Lambda which connect directly to a database Amazon RDS MySQL. During traffic peaks, the number of running environments Lambda competitors increases rapidly, each opening its own connection to the database, quickly exhausting the maximum limit of connections of the instance RDS and causing errors of 'too many connections', even if the actual load of queries in the bank is moderate (connections are open, but often become idle or are used briefly).",
+      "options": [
+        "Do each function Lambda close your connection to the database immediately after each query, instead of reuse connections between invocations",
+        "Implement o Amazon RDS Proxy between functions Lambda and the instance RDS MySQL",
+        "Increase instance max_connections parameter RDS and scale to a larger instance class to support more connections",
+        "Configure Provided Competition no Lambda to limit the number of running environments during peaks"
+      ],
+      "explanation": "Correct. RDS Proxy groups and multiplex connections, allowing many running environments Lambda share a smaller pool of real connections with the database, avoiding the exhaustion of connections during traffic peaks, while the database sees a stable and manageable number of connections, regardless of how many environments Lambda are competing in execution.",
+      "hint": "Think of a managed service positioned between an application and the database, designed specifically to group/multiplex many customer connections into a smaller number of real connections with the bank.",
+      "optionRationales": [
+        "Correct. RDS Proxy groups and multiplex connections, allowing many running environments Lambda share a smaller pool of real connections with the database, avoiding the exhaustion of connections during traffic peaks, while the database sees a stable and manageable number of connections, regardless of how many environments Lambda are competing in execution.",
+        "Incorrect. Increasing max_connections (using a larger instance class with more memory) raises the TETO, but the competition of the Lambda can scale to very high numbers during peaks, potentially still exceeding a much higher limit, and each additional connection consumes memory/resources of the even idle bank — a more expensive and less scalable approach than pooling via RDS Proxy.",
+        "Incorrect. Provided Competition pre-initializes a number DEFINIDO of environments to eliminate cold start, but not LIMITA maximum competition during a peak (the Lambda still can scale beyond the provided value using on-demand environments) — does not directly solve a bank's connection exhaustion problem.",
+        "Incorrect. Although this may reduce the number of connections ABERTAS IN ONE DADO MOMENTO for warm invocations, in fact AUMENTARIA the rate of establishment of NOVAS connections (a relatively expensive operation) along the high volume of invocations during a peak, and does not fundamentally solve the problem of many environments Lambda competitors needing each of a connection simultaneously."
+      ]
+    },
+    "saa-avc-147": {
+      "text": "A big data processing job performed in instances EC2 performs a 'shuffle' phase (similar to Hadoop/Spark shuffle) that records and reads large volumes of TEMPORARY intermediate data on local disk during processing — these temporary data are regulated in each job execution and need not persist beyond the job life cycle, but the shuffle phase is currently limited by I/O using volumes EBS gp3, delaying the completion time of the job.",
+      "options": [
+        "Provide volumes EBS io2 Block Express for the shuffle data directory, maximizing the IOPS",
+        "Use instance types EC2 with NVMe-based Forum Store volumes (e.g. family instances 'd' or 'i' with local NVMe SSDs) for the shuffle temporary data directory",
+        "Increase settings of IOPS and throughput provided by volume EBS gp3 for maximum values",
+        "Use Amazon EFS for the shuffle data directory, mounted in all clusters instances"
+      ],
+      "explanation": "Correct. Volumes Forum Store provide IOPS and very high throughput (often significantly higher than the EBS connected via network), ideal for temporary data ephemeral and critical in performance; as shuffle data do not need to persist beyond the job (are regulated in each execution), the ephemeral nature of the instance store (lost data when stopping/finalizing the instance) is an acceptable trade-off for substantial gain in I/O performance.",
+      "hint": "Think of a type of storage physically local to the instance, with IOPS/very high throughput, but whose data is lost if the instance is stopped or terminated — an acceptable trade-off for manageable data.",
+      "optionRationales": [
+        "Correct. Volumes Forum Store provide IOPS and very high throughput (often significantly higher than the EBS connected via network), ideal for temporary data ephemeral and critical in performance; as shuffle data do not need to persist beyond the job (are regulated in each execution), the ephemeral nature of the instance store (lost data when stopping/finalizing the instance) is an acceptable trade-off for substantial gain in I/O performance.",
+        "Incorrect. Although the Io2 Block Express provides IOPS very high, it is a network-connected storage option, persistent and more expensive; for TEMPORARY data that are regulated in each execution and do not need durability, pay for the guarantees of persistence/durability of the io2 Block Express is an unnecessary cost, when the instance store NVMe (frequently included in the instance price) provides comparable or better gross I/O performance for this specific case.",
+        "Incorrect. EFS is a network file system with generally higher latency characteristics than local NVMe storage for high workloads IOPS, small files or random access typical of shuffle operations; use a shared network file system for temporary ephemeral data and by instance adds network overhead and unnecessary shared resource containment compared to the local instance store.",
+        "Incorrect. IOPS/provided gp3 throughput can help, but maximum gp3 (16.000 IOPS / 1.000 MB/s) is still a network-connected storage limit of EBS; for the performance of I/O absolutely higher for ephemeral data, the local instance store NVMe usually provides greater throughput/minor latency than even a gp3 volume provided to the maximum, without additional storage cost in instance types that include it."
+      ]
+    },
+    "saa-avc-148": {
+      "text": "A company has one Amazon Kinesis Data Stream with multiple consumer applications (e.g. real-time analytics, fraud detection, archiving in S3), each one needing to process all the stream records independently. Using the standard consumer model (shared throughput), each consumer competes for the same throughput of reading of 2 MB/s per shard, and as more consumers were added, each began to present greater reading latency and occasional throttling, since the 2 Shared MB/s need to be divided among all consumers who read the same shard.",
+      "options": [
+        "Register each consumer application using the Enhanced Fan-Out of Kinesis Data Streams",
+        "Change from Kinesis Data Streams for rows Amazon SQS standard, with one row per consumer application",
+        "Increase the number of shards in Kinesis Data Stream to provide more throughput total",
+        "Make every consumer application read a Kinesis Separated Data Stream with a function Lambda replicating original stream records for each specific consumer stream"
+      ],
+      "explanation": "Right. Enhanced Fan-Out provides every registered consumer with their Dedicated Throughput of 2 MB/s POR SHARD (using push via HTTP/2 with SubscribeToShard), eliminating throughput containment among consumers and providing each user with low latency records (~70ms), regardless of how many other consumers are also reading from the stream.",
+      "hint": "Think of a resource of the Kinesis Data Streams that provides each registered consumer application with its own dedicated delivery channel by shard, instead of a shared throughput among all consumers.",
+      "optionRationales": [
+        "Right. Enhanced Fan-Out provides every registered consumer with their Dedicated Throughput of 2 MB/s POR SHARD (using push via HTTP/2 with SubscribeToShard), eliminating throughput containment among consumers and providing each user with low latency records (~70ms), regardless of how many other consumers are also reading from the stream.",
+        "Incorrect. Increasing the number of shards increases the throughput TOTAL of the STREAM (more shards = more total allocations of 2 MB/s), but the readthroughput of 2 MB/s of CADA individual shard AINDA is shared among all consumers who read from it in the standard model — does not give each CONSUMIDOR its own throughput dedicated by shard; only adds more shards to divide among consumers.",
+        "Incorrect. Build a custom replication/fan-out mechanism via Lambda adds operational complexity, additional latency (records need first to be processed by Lambda of replication) and cost, when Enhanced Fan-Out provides native dedicated consumer throughput without replicating data on separate streams.",
+        "Incorrect. SQS, by design, they usually deliver each message to a consumer of a given row (not to multiple independent consumer applications that need VER all records); get 'multiple independent consumers, each selling all records' with SQS would require multiple rows (e.g. via fan-out of SNS), a different architecture from simply registering enhanced fan-out consumers on a stream Kinesis existing."
+      ]
+    },
+    "saa-avc-149": {
+      "text": "A table DynamoDB store user activity data, partitioned by UserId. A marketing campaign causes a sudden and massive increase in read/write traffic to a small number of UserIds 'celebrity' (viral content), far exceeding the throughput per partition that would normally be allocated based on the uniform distribution of the table's total provided capacity. Although the table as a whole have sufficient provided capacity, requests for these specific 'hot' partitions are undergoing throttling.",
+      "options": [
+        "Change the table to use a Local Secondary Index (LSI) to distribute UserId 'hot' data among multiple partitions",
+        "Enable DynamoDB Streams to detect throttling requests and automatically repeat them with exponential backoff via a function Lambda",
+        "Trust in Adaptive Capacity of DynamoDB, which automatically and rapidly increases the throughput capacity allocated to specific high-traffic partitions, relocating unused capacity from the table's total provided capacity to the most demanding partitions",
+        "Increase manually WCU/RCU total provided from table in 10x to ensure that each partition individually has sufficient allocated capacity"
+      ],
+      "explanation": "Correct. Adaptive Capacity isolates and automatically adjusts the ability of 'hot' partitions without manual intervention, mitigating the throttling caused by unequal access patterns; the team should also consider improving the cardinality design of the partition key in the long term, but Adaptive Capacity solves the immediate problem of throttling.",
+      "hint": "Think of an automatic resource of DynamoDB which reacts to unequal access patterns between partitions, relocating capacity dynamically without manual intervention.",
+      "optionRationales": [
+        "Correct. Adaptive Capacity isolates and automatically adjusts the ability of 'hot' partitions without manual intervention, mitigating the throttling caused by unequal access patterns; the team should also consider improving the cardinality design of the partition key in the long term, but Adaptive Capacity solves the immediate problem of throttling.",
+        "Incorrect. DynamoDB divides the provided capacity in a relatively uniform way between the partitions on a total basis; increase the provided capacity TOTAL in 10x would be extremely expensive and AINDA could not be enough for a single 'celebrity' partition dealing with a disproportionate portion of traffic, since the calculated fraction of each partition would still be a fraction of the total — a costly and imprecise way to solve a hot-spot by partition.",
+        "Incorrect. LSIs share the same partition key in the base table; they do not redistribute data/traffic from a single 'hot' partition key between multiple partitions — the problem of hot partition persists independently of defined LSIs.",
+        "Incorrect. Repeating requests with throttling (even with backoff) does not increase the underlying throughput capacity available for the hot partition; it would only delay/send the same excessive demand against the same restricted partition capacity, possibly worsening latency without solving the root throughput restriction."
+      ]
+    },
+    "saa-avc-150": {
+      "text": "A financial trading platform requires a load balancer able to handle millions of requests per second with ultra low and consistent latency (sub-millisecond additional latency), preserve the client's original IP address natively for audit/compliance downstream purposes, and support static IP addresses by AZ (or Elastic IP assignment) to allow allow allow-listing by external counterparts. load balancer should be used?",
+      "options": [
+        "Network Load Balancer (NLB), operating in the Layer 4",
+        "Amazon CloudFront, with the servers of the trading platform as origin",
+        "Classic Load Balancer (CLB)",
+        "Application Load Balancer (ALB), operating in the Layer 7"
+      ],
+      "explanation": "Correct. NLB was designed to deal with millions of requests per second with ultra low and consistent latency, natively preserves the client's home IP address (visible for backend targets without proxy protocol parsing, when targets are properly registered) and supports the assignment of a static IP (or Elastic IP) by sub-network/AZ — meeting all declared requirements for this critical financial latency and throughput workload.",
+      "hint": "Think of what kind of load balancer operates on the transport layer (Cover 4), natively preserving the IP of origin and supporting static IPs by sub-network.",
+      "optionRationales": [
+        "Correct. NLB was designed to deal with millions of requests per second with ultra low and consistent latency, natively preserves the client's home IP address (visible for backend targets without proxy protocol parsing, when targets are properly registered) and supports the assignment of a static IP (or Elastic IP) by sub-network/AZ — meeting all declared requirements for this critical financial latency and throughput workload.",
+        "Incorrect. ALB Provides Advanced Layer Resources 7 (path/host based router, native integration with WAF), but usually has higher latency overhead by requisition than the NLB due to layer processing 7, and does not support static IP/Elastic IP allocation by AZ in the same way as the NLB — for declared ultra-low latency requirements, millions of RPS and static IP, NLB is more suitable.",
+        "Incorrect. CLB is a kind of load balancer legacy, with lower maximum throughput/scaling characteristics and less modern features compared to NLB/ALB; a AWS recommends NLB or ALB for new workloads, and the CLB does not provide the same static IP support or ultra-low ultra-high-scale latency as the NLB.",
+        "Incorrect. CloudFront is a CDN focusing on HTTP/HTTPS, designed for cache and content acceleration; the traffic of a financial trading platform (often custom protocols based on TCP, matching orders in real time) is not suitable for a CDN cached HTTP, and the CloudFront does not provide the same IP preservation characteristics of origin in Layer 4 and static IP by AZ that NLB."
+      ]
+    },
+    "saa-avc-151": {
+      "text": "A company carries out two separate workloads in the EC2: a Charge A is a memory database (style) SAP HANA or based on Redis) which maintains a very large dataset entirely on RAM and performs relatively simple operations on it, demanding a ALTA VCPU memory report. Load B is a batch video transcoding pipeline, strongly limited by CPU, performing intensive computing on relatively small blocks of data, requiring a ALTA VCPU relationship by memory. Currently, both perform in General Purpose instances of the M family, which the team suspects is not ideal at cost for the resource profile of either of the two.",
+      "options": [
+        "Move A Load to Memory Optimized instances (e.g., R or X family, which provide high memory/vCPU ratio) and B Load to Computer Optimized instances (e.g., C family, which provide high vCPU/memory ratio)",
+        "Keep both loads in General Purpose (family M) instances, but increase the size of the instance (scaling vertically) for both",
+        "Move both loads to Accelerated Computing instances (e.g. P or G family) with GPUs to download processing",
+        "Move both loads to Storage Optimized instances (e.g. family I), which provide high performance local NVMe storage for demanding I/O workloads"
+      ],
+      "explanation": "Correct. Align the instance family of each workload with its requirement of dominant recourse (limited by memory vs. limited by CPU) ensures that the resources provided correspond to the actual use, avoiding paying for underutilized vCPUs (Load A in General Purpose) or underutilized memory (Load B in General Purpose)).",
+      "hint": "Think of which families of instance EC2 offer a memory/vCPU ratio above or below the average of the General Purpose family, and how this aligns with the resource gargalo of each workload.",
+      "optionRationales": [
+        "Correct. Align the instance family of each workload with its requirement of dominant recourse (limited by memory vs. limited by CPU) ensures that the resources provided correspond to the actual use, avoiding paying for underutilized vCPUs (Load A in General Purpose) or underutilized memory (Load B in General Purpose)).",
+        "Incorrect. Storage Optimized instances are designed for workloads that need very high local disk I/O and low latency (e.g.: banks) NoSQL, data storage with local storage); none of the loads described are primarily limited by I/O of storage (Load A is limited by memory, Load B by CPU) — this family of instance does not align with the real gargalo of either of the two.",
+        "Incorrect. Simply scale vertically instances General Purpose increases both vCPU and memory proportionally (in the fixed relation of the M family); this does not change the underlying misalignment between the resource profile of each workload (intensive in memory vs. intensive in CPU) and the relationship of the family of instance — it would still result in paying for underutilized resources in one dimension for each load.",
+        "Incorrect. Accelerated Computing instances are designed for workloads that can take advantage of acceleration by GPU/FPGA (e.g. ML training, certain video encodings supported by GPU); however, the scenario does not indicate that neither of the two loads was designed to use acceleration by GPU (a Load A is a memory database; the transcoding of Load B may or may not support encoding by GPU) — introduce instances with GPU without confirmed software support for acceleration adds cost without guaranteed benefit, and does not directly address memory relationship misalignment/CPU declared."
+      ]
+    },
+    "saa-avc-152": {
+      "text": "A company serves a web application through CloudFront, with text-based assets (HTML, CSS, JavaScript, answers from API in JSON) representing a significant portion of the total number of bytes transferred to end users. The source server currently does not compress these responses, and the team wants to reduce the size of the data transferred to end users (improve page loading times, especially in slower connections) without modifying the source server to add compression logic.",
+      "options": [
+        "Configure the source server to compress the responses using Gzip before sending them to CloudFront",
+        "Use Lambda@Edge to compress the bodies of the responses in the viewer response event before returning them to customers",
+        "Enable the automatic compression feature of the CloudFront (Compress Objects Automatically) in relevant behavior caches",
+        "Increase TTL Cache from CloudFront for these objects, reducing the number of times that need to be searched and transferred"
+      ],
+      "explanation": "Correct. CloudFront can automatically compress text-based eligible content (e.g. text/html, text/css, application/javascript, application/json) using Gzip or Brotli (based on the client's Accept-Encoding header) before serving it from the cache/board, reducing the bytes transferred to compatible customers without requiring any change in the source server.",
+      "hint": "Think of a native resource of CloudFront which reduces the text-based content size before delivery without requiring any change in origin.",
+      "optionRationales": [
+        "Correct. CloudFront can automatically compress text-based eligible content (e.g. text/html, text/css, application/javascript, application/json) using Gzip or Brotli (based on the client's Accept-Encoding header) before serving it from the cache/board, reducing the bytes transferred to compatible customers without requiring any change in the source server.",
+        "Incorrect. Although compression on the origin side is also a valid approach, the scenario specifies that the team wants to avoid modifying the source server; automatic compression of the source server; CloudFront achieves the same benefit for the end user (compressed answers) without requiring changes in origin, being the most appropriate option to the declared restriction.",
+        "Incorrect. Increase or TTL reduces the FREQUENCY with which objects are searched/transferred from the origin (less cache masses), but does not reduce the TAMANHO of each individual response given to end users — is a different optimization (reducing the frequency of transfer) of the reduction of the TAMANHO transfer (compression)).",
+        "Incorrect. Although technically possible, implement custom compression logic via Lambda@Edge adds cost/overhead execution of Lambda by operational complexity and requisition, when the native automatic compression feature of the CloudFront already provides this functionality (Gzip/Brotli, sensitive to content-type and Accept-Encoding) without any custom code."
+      ]
+    },
+    "saa-avc-153": {
+      "text": "A company performs analytical consultations in a cluster Amazon Redshift against a large table 'sales_fact' (billions of lines) which is often united (JOIN) to a lower table 'dim_store' by 'store_id', and queries frequently filter/make range scan by 'sale_date'. The query performance is poor — JOINS between sales_fact and dim_store cause significant data movement (redistribution) between computation nodes during execution, and date interval filters run much more data blocks than necessary.",
+      "options": [
+        "Set the DISTSTYLE of 'sales_fact' as KEY in 'store_id' (co-location with 'dim_store', which you can use ALL or also be distributed by the same join key), and define a SORTKEY in 'sale_date' for 'sales_fact'",
+        "Increase the number of cluster nodes (add more computation nodes) to parallelize the operations of JOIN and filter between more knots",
+        "Set the DISTSTYLE as EVEN for both tables, ensuring a perfectly balanced data distribution between all computational nodes",
+        "Create a Global Secondary Index in 'store_id' and 'sale_date' to speed up both the JOIN as the date filter"
+      ],
+      "explanation": "Correct. Distributing both tables by the join key ('store_id') ensures that the corresponding lines are co-located in the same computational node, eliminating the redistribution of data between us during the JOIN; sort by 'sale_date' allows the map areas of Redshift ignore blocks outside the date range consulted, drastically reducing I/O for queries filtered by date.",
+      "hint": "Think of two distinct mechanisms of the Redshift: one that controls where the lines in each table are physically stored between the nodes (for JOINs), and another that controls the physical order of the lines within each node (for interval filters)).",
+      "optionRationales": [
+        "Correct. Distributing both tables by the join key ('store_id') ensures that the corresponding lines are co-located in the same computational node, eliminating the redistribution of data between us during the JOIN; sort by 'sale_date' allows the map areas of Redshift ignore blocks outside the date range consulted, drastically reducing I/O for queries filtered by date.",
+        "Incorrect. The distribution EVEN distributes round-robin lines, regardless of any column value, which is good for general storage balancing, but does NOT co-location matching join keys between tables — JOINs between tables distributed as EVEN in 'store_id' would still require significant redistribution of data between us during execution.",
+        "Incorrect. Global Secondary Index is a concept of DynamoDB, not Redshift; the mechanisms of optimization of performance of the Redshift for these access patterns are DISTKEY/DISTSTYLE (for joint co-location) and SORTKEY (for block removal via zone maps in interval filters), not secondary indexes.",
+        "Incorrect. Add more we increase the overall parallel processing capacity, but if the DISTSTYLE does not co-localize join keys, MAIS We can actually mean MAIS data redistribution traffic between us during the JOIN (more network jumps among more us); this does not solve the fundamental problem of data layout that causes unnecessary block redistribution and scans."
+      ]
+    },
+    "saa-avc-154": {
+      "text": "A database OLTP of critical mission Amazon RDS for Oracle processes a consistently very high volume of transactions (thousands of IOPS supported, 24/7) with strict performance requirements of consistent and predictable I/O and minimum latency variance — even short falls in IOPS available during peak periods cause transaction timeouts at the application level. The team is evaluating storage options EBS for this instance RDS.",
+      "options": [
+        "Use General Purpose Storage SSD (gp3) and provide maximum of IOPS available (16.000)",
+        "Use Storage Provided IOPS SSD (i1 or i2) for the instance RDS, providing IOPS to meet (with margin) the sustained requirement of tens of thousands IOPS",
+        "Use Magnetic (standard) storage for cost saving, since the RDS will automatically store the hot cache data in memory to compensate for the slower disk",
+        "Enable Multi-AZ of RDS to distribute the I/O load between the primary instance and the standby"
+      ],
+      "explanation": "Correct. The Storage Provided IOPS is designed to provide performance of IOPS consistent and predictable, with minimal latency variance, specifically for I/O intensive transactional workloads and latency sensitive, where consistent performance under high sustained load is critical — exactly the requirements of this bench OLTP.",
+      "hint": "Think about what storage class EBS of the RDS is designed specifically to provide IOPS consistent and predictable, with minimum latency variance, for very demanding transactional loads.",
+      "optionRationales": [
+        "Correct. The Storage Provided IOPS is designed to provide performance of IOPS consistent and predictable, with minimal latency variance, specifically for I/O intensive transactional workloads and latency sensitive, where consistent performance under high sustained load is critical — exactly the requirements of this bench OLTP.",
+        "Incorrect. IOPS provided for in gp3 (16.000) can be enough for 'thousands of tens' only at the bottom end, and more importantly, gp3 is designed for a wide range of workloads with 'consistent baseline performance', but usually positioned for transactional loads with requirements MODERADOS Of I/O; for loads OLTP more demanding, sensitive to latency variance, with IOPS very high sustained, the Provisioned IOPS (io1/io2) is the storage class recommended by AWS specifically for consistency under this load.",
+        "Incorrect. Magnetic storage provides IOPS more BAIXAS and less consistent between storage options of RDS, completely inadequate for a workload that requires tens of thousands of IOPS sustained with minimum latency variance; RDS uses a cache buffer, but a high-supported transactional load IOPS still generate substantial disk I/O that magnetic storage cannot support.",
+        "Incorrect. In the Multi-AZ standard of RDS, the standby instance is NOT used to meet reading or writing traffic (it is a synchronous replica only to failover); it does not distribute or increase the I/O capacity available for the primary instance to deal with the volume of transactions — the Multi-AZ addresses availability/durability, not throughput/I/O consistency."
+      ]
+    },
+    "saa-avc-155": {
+      "text": "A company has a function AWS Lambda based on Java (using a large dependency framework, such as Spring Boot) that meets synchronous requests via API Gateway. Cold starts of this function take several seconds (due to initialization of the JVM and the framework), causing unacceptable latency peaks for end users during scale-out events or after periods of inactivity. The team wants to drastically reduce the latency of cold start specifically for this Java function, ideally without paying for Provided Competition to keep constantly 'heated environments'.",
+      "options": [
+        "Enable AWS Lambda SnapStart for Java function",
+        "Rewrite the function in another runtime (e.g., Node.js), which has faster cold startups",
+        "Configure Reserved Competition for the function to ensure available running slots",
+        "Increase the function memory allocation to the maximum, to speed up the initialization time of the JVM"
+      ],
+      "explanation": "Correct. SnapStart pre-initializes the function (executing all booting, including the start of the JVM and the loading of the framework) UMA VEZ when a new version is published, it takes a snapshot of the memory state/disco of the running environment already initialized and stores it in cache; in subsequent cold start, the Lambda resumes from this snapshot in cache instead of running zero booting, reducing cold start latency from seconds to typically sub-second, without the continuous cost of Provided Competition.",
+      "hint": "Think of a resource of the Lambda which takes a snapshot of the running environment already fully initialized and reuses it in subsequent cold start, without continuous cost of pre-heated capacity.",
+      "optionRationales": [
+        "Correct. SnapStart pre-initializes the function (executing all booting, including the start of the JVM and the loading of the framework) UMA VEZ when a new version is published, it takes a snapshot of the memory state/disco of the running environment already initialized and stores it in cache; in subsequent cold start, the Lambda resumes from this snapshot in cache instead of running zero booting, reducing cold start latency from seconds to typically sub-second, without the continuous cost of Provided Competition.",
+        "Incorrect. Increase memory (and CPU (proportional) may speed up the initialisation of the JVM and the loading of classes, but for a heavy application in framework (e.g. Spring Boot) with cold starts of several seconds, this usually brings only marginal improvement — does not fundamentally eliminate the repeated initialization work of the way the snapshot-and-retread approach of SnapStart does.",
+        "Incorrect. Rewriting in another language is a considerable effort (reimplementing business logic, potentially losing access to Java-specific libraries/frameworks on which the team depends) and is not an equivalent solution when the requirement is to reduce cold start 'specifically for this Java function' — SnapStart resolves the Java-specific cold start problem directly, without requiring rewriting.",
+        "Incorrect. Reserved Competition guarantees a RENTAL/TETO of competition for the function (avoiding that it is damaged by other functions, and avoiding that it exceeds a limit), but DO NOT pre-initialize nor 'heat' running environments — does not solve the latency of cold start in any way."
+      ]
+    },
+    "saa-avc-156": {
+      "text": "A database Amazon Aurora MySQL supports both an application OLTP high volume (many small and fast transactional consultations) QUANTO occasional analytical/report consultations that perform whole table aggregations (ex.: SUM/COUNT/AVG in hundreds of millions of lines). These analytical queries currently take a long time because they are processed entirely by the computer layer of the bank instance (single-threaded execution by query, scanning large volumes of data by buffer pool), and during these queries, the CPU of the instance becomes a gargalo, also impacting the responsiveness of the load OLTP.",
+      "options": [
+        "Migrate the analytical load to Amazon Redshift Spectrum, consulting the data of the Aurora directly via federated consultations",
+        "Add a Global Secondary Index covering columns used in analytical aggregations",
+        "Enable Aurora Parallel Query for these analytical consultations in the cluster Aurora MySQL",
+        "Create a read replica and run all the analytical queries against it instead of the primary"
+      ],
+      "explanation": "Correct. Parallel Query pushes filtering and aggregation operations to the distributed storage layer and multi-node Aurora, performing parts of the parallel query on many storage nodes (instead of the single instance computing layer), dramatically accelerating large scans/analytical aggregations and reducing the load of CPU in the computation layer that would otherwise impact the performance of the consultations OLTP competitors.",
+      "hint": "Think of a resource of the Aurora which distributes the scan/aggregation work of a query to the multi-no storage layer, instead of fully processing it in the computer instance.",
+      "optionRationales": [
+        "Correct. Parallel Query pushes filtering and aggregation operations to the distributed storage layer and multi-node Aurora, performing parts of the parallel query on many storage nodes (instead of the single instance computing layer), dramatically accelerating large scans/analytical aggregations and reducing the load of CPU in the computation layer that would otherwise impact the performance of the consultations OLTP competitors.",
+        "Incorrect. Download the analytical queries for a read replica isolates its impact on the load OLTP of the primary, but the analytical consultations themselves AINDA would be slow in replica (even single instance execution, limited by the computation layer, for large aggregations) — isolates the impact, but does not accelerate the analytical queries themselves, as parallelism of the parallel Query layer does.",
+        "Incorrect. Global Secondary Index is a concept of DynamoDB; no Aurora MySQL, the equivalent would be a secondary index, which PODE help certain query patterns, but whole table aggregations over hundreds of millions of lines (SUM/COUNT/AVG without selective filter) often still require scanning most/all lines regardless of indexing — Parallel Query's parallel scan of the storage layer approaches this large scan scenario more directly than indexing.",
+        "Incorrect. Although the Redshift can be a long-term data storage solution, Redshift Spectrum consults data in S3 (not directly in the storage of Aurora), therefore this would require a step of ETL/export to take the data from Aurora to S3 First — a much larger architectural change than enabling a native resource to be Aurora (Parallel Query) designed specifically to speed up large analytical queries against existing data in Aurora, on-site."
+      ]
+    },
+    "saa-avc-157": {
+      "text": "A company has a single connection AWS Direct Connect of 10 Gbps between your data center and the AWS, used for a high throughput data replication workload. Periodically, during intensive replication windows, demand exceeds 10 Gbps available. The team wants to increase the aggregate bandwidth available in MESMA location of Direct Connect, holding a single session BGP and a unique logical interface for configuration and router purposes.",
+      "options": [
+        "Use AWS Site-to-Site VPN as additional connection to add bandwidth over connection Direct Connect existing",
+        "Request AWS the upgrade of the connection door speed Direct Connect existing, without providing additional physical connections",
+        "Provide additional connections to AWS Direct Connect in the same location and group them in a Link Aggregation Group (LAG)",
+        "Provide a second connection Direct Connect independent in another location and set up ECMP (Equal-Cost Multi-Path) between the two connections"
+      ],
+      "explanation": "Right. LAG aggregate multiple physical connections of the Direct Connect (of the same capacity, on the same device/location as the Direct Connect) in a single logical interface, adding the aggregate bandwidth and presenting a single session BGP and customer routing configuration — meeting exactly the operational simplicity requirement with greater throughput.",
+      "hint": "Think of what resource the Direct Connect allows you to combine multiple physical connections in the same location in a single logical interface with a single session BGP.",
+      "optionRationales": [
+        "Right. LAG aggregate multiple physical connections of the Direct Connect (of the same capacity, on the same device/location as the Direct Connect) in a single logical interface, adding the aggregate bandwidth and presenting a single session BGP and customer routing configuration — meeting exactly the operational simplicity requirement with greater throughput.",
+        "Incorrect. ECMP between independent connections can add bandwidth and provide geographic redundancy, but requires managing two sessions BGP and separate routing configurations — more complexity than the 'single logical interface' requirement. To combine NA connections MESMA location in a single interface, LAG is the correct remedy.",
+        "Incorrect. Direct Connect is linked to the physical interconnection established at the partner location/Direct Connect. It is not possible simply to 'increase' the capacity of an existing physical connection via support request — it is necessary to provide a new connection of greater capacity (with exchange/downtime) or add additional connections via LAG.",
+        "Incorrect. Site-to-Site VPN traffics through the public internet and has throughput by tunnel typically limited to about 1,25 Gbps, with latency characteristics distinct from Direct Connect dedicated. It is suitable as backup/failover connectivity, not as a mechanism to linearly add bandwidth to a connection Direct Connect in a single logical interface."
+      ]
+    }
+  }
+}

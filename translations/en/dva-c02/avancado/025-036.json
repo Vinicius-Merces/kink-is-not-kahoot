@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "avancado",
+    "sourcePath": "data/exams/dva-c02/avancado.json",
+    "range": "025-036",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-avc-025": {
+      "text": "A development team is building a collaborative whiteboard application in real time, where multiple users instantly see each other's design actions. Each user's browser needs so much ENVIAR backend drawing events QUANTO RECEBER design events of OUTROS users almost in real time, without the customer making repeated polling at an endpoint HTTP. Backend logic is implemented in functions AWS Lambda.",
+      "options": [
+        "Make each customer polling at an endpoint REST each 500ms using 'setInterval' to check new design events of other users.",
+        "Use broker MQTT of the AWS IoT Core for browser-to-navigator communication, since the Lambda Cannot maintain persistent connections.",
+        "Use one REST API of the Amazon API Gateway with 'Server-Sent Events' (SSE)' enabled in the integration response, allowing the function Lambda transmit events to the customer in continuous flow.",
+        "Use a WebSocket API of the Amazon API Gateway, which maintains a persistent and bidirectional connection between each client and the backend, with routes '$connect', '$disconnect' and custom routes (e.g. 'sendDrawingEvent') that invoke functions Lambda, using the API management '@connections' (PostToConnection) to send messages (push) to specific connected customers."
+      ],
+      "explanation": "Correct. WebSocket APIs provide two-way, persistent and low latency communication between client and backend; backend can use the API '@connections' (PostToConnection) to send (push) messages to specific connected customers, such as transmitting a drawing event to all other connected users — something that API REST/HTTP pattern can't reach (HTTP is request-response, no push initiated by the server).",
+      "hint": "Think of what kind of API of the API Gateway maintains a persistent connection that allows backend to send messages (push) to specific customers without polling.",
+      "optionRationales": [
+        "Correct. WebSocket APIs provide two-way, persistent and low latency communication between client and backend; backend can use the API '@connections' (PostToConnection) to send (push) messages to specific connected customers, such as transmitting a drawing event to all other connected users — something that API REST/HTTP pattern can't reach (HTTP is request-response, no push initiated by the server).",
+        "Incorrect. REST APIs of API Gateway (and integrations) Lambda) do not support Server-Sent Events / replies HTTP long-running streaming in this way — functions Lambda return a single complete answer and finish; continuous streaming in style SSE is not a supported integration standard for REST API + Lambda standard.",
+        "Incorrect. Frequent polling at sub-second intervals generates a massive number of calls from API (proportional to the number of customers × polling frequency), at significant cost and still introducing up to 500ms latency per event — this does not provide the two-way experience 'instant'/almost real-time and is a known anti-standard compared to WebSockets.",
+        "Incorrect. Although the AWS IoT Core SUPORTE MQTT about WebSockets and technically could be reused for pub/sub messages, it is designed for IoT device connectivity (with its own device-based/certified security model) — for real-time bidirectional needs of a web application with backend Lambda, WebSocket APIs of API Gateway are the service AWS designed specifically and directly integrated for this use case."
+      ]
+    },
+    "dva-avc-026": {
+      "text": "A company exposes a API REST way Amazon API Gateway for multiple external partner companies. Each partner receives a unique credentials to call the API. The company wants to apply monthly rate and quota limits DIFERENTES POR PARCEIRO (ex: Partner A: 100 requests/second, 1 million requests/month; Partner B: 10 requests/second, 50.000 requests/month), and identify which partner made each request for billing purposes.",
+      "options": [
+        "Use Amazon Cognito User Pools to create a separate user for each partner, and configure logic from Lambda Different authorizer to apply different rate limits based on group Cognito user.",
+        "Configure rate-based rules (rate-based rules) of AWS WAF on the Web ACL associated with API Gateway, with a different rule for each partner's IP source range.",
+        "Create a deployment of API Separate Gateway (one API distinct) for each partner, each with its own account level throttle settings in 'Account Settings'.",
+        "Create a 'API Key' of API Gateway for each partner, and associate each API Key to a 'Use Plan' that defines the specific throttle (rate, burst) and quota limits (day/week/month requirements) of that partner; customers include your API Key in the 'x' header-api-key' in each request."
+      ],
+      "explanation": "Correct. API Gateway applies the Throttle/Cot limits by Usage Plan, and the value of 'x-api-key' identifies which partner made each request (visible in metrics/logs of CloudWatch by API key) — providing directly differentiated rate limits per partner, quotas and allocation of invoice requests.",
+      "hint": "Think about which combination of credentials and configuration of the API Gateway allows you to set different rate and quota limits per customer, as well as identify who made each request.",
+      "optionRationales": [
+        "Correct. API Gateway applies the Throttle/Cot limits by Usage Plan, and the value of 'x-api-key' identifies which partner made each request (visible in metrics/logs of CloudWatch by API key) — providing directly differentiated rate limits per partner, quotas and allocation of invoice requests.",
+        "Incorrect. Throttle limits in 'Account Settings' apply at the level of CONTA AWS (a standard ceiling between TODAS account/region APIs), not by API or by partner — duplicate complete deployments of API by partner is also operationally expensive (keep N copies of it API) compared to a single API with multiple Use Plans/API Keys.",
+        "Incorrect. Amazon Cognito User Pools deal with AUTENTICATION (identity verification, typically for end users) and do not have a native mechanism to apply throttling/quotas at the level of API GATEWAY per user/group — implement rate-limiting logic DENTRO of a Lambda Authorizer would require custom state management (e.g., requisition count), reimplementing what Usage Plans already offer natively in the layer of API Gateway.",
+        "Incorrect. WAF limit based on IP address DE ORIGEM in a time window, which is unreliable for identifying partners (partners can share IP tracks, use the NAT or have dynamic IPs) and does not provide tracking of COTA MENSAL nor allocation of requests by partner — API Keys + Usage Plans are the mechanism specifically designed for managing API per customer."
+      ]
+    },
+    "dva-avc-027": {
+      "text": "A development team maintains 12 functions AWS Lambda different, all written in Python, which include independently the MESMO large set of third party dependencies (e.g. 'pandas', 'numpy', and a shared internal utility module used for logging/authentication helpers between team services). The implementation package of each function is large and almost identical in its dependencies, and whenever the shared utility module is updated, the team needs to manually update and reimplant the implementation packages of the 12 functions.",
+      "options": [
+        "Pack shared dependencies ('pandas', 'numpy' and the internal utility module) in one or more AWS Lambda Layers, and attach the layer(s) to each of the 12 functions.",
+        "Store shared dependencies and utility module in a file system Amazon EFS, and mount the EFS in each of the 12 functions Lambda in execution time.",
+        "Use AWS CodeArtifact to host shared dependencies as a private PyPI repository, and do each process of deploying functions Lambda run 'pip install' of them at the time of deployment, within the function package.",
+        "Combine 12 functions in UMA ONLY function Lambda with a large internal router 'if/else' based on an event action parameter, so that dependencies are included only once."
+      ],
+      "explanation": "Correct.. Lambda Layers allow common code/dependencies to be packaged separately and shared between multiple functions (up to 5 layer by function), reducing the individual deployment package of each function only to the specific function code; updating the shared utility module requires publishing a new layer VERSATION and updating the function reference, instead of rebuilding/replanting the complete package of each function with built-in dependencies.",
+      "hint": "Think of what resource the Lambda allows you to pack common code/dependencies separately from the function code and share it between various functions, versioning it independently.",
+      "optionRationales": [
+        "Correct.. Lambda Layers allow common code/dependencies to be packaged separately and shared between multiple functions (up to 5 layer by function), reducing the individual deployment package of each function only to the specific function code; updating the shared utility module requires publishing a new layer VERSATION and updating the function reference, instead of rebuilding/replanting the complete package of each function with built-in dependencies.",
+        "Incorrect. 12 different functions in one significantly increases the RAIO OF IMPACTO changes (a bug/deployment problem affects TODOS the 12 use at the same time), complicates the scope of permissions IAM (the single function would require the UNION of the permissions of the 12 Infringing the principle of the lowest privilege), and does not follow the principle of sole responsibility — Lambda Layers solve the problem of duplication of dependencies without mixing unrelated functions.",
+        "Incorrect. Although the Lambda SUPORTE mount file systems EFS (useful for large ML models or shared datasets accessed in runtime), use EFS FOR THE DEPENDENCE OF BIBLIOTECAS PYTHON (which need to be on the Python import path, 'sys.path') is significantly more complex to set up correctly than Lambda Layers (designed specifically for this use case and which natively extend the route of import of runtime), in addition to adding a network dependency VPC/Cold start overhead that Layers don't require.",
+        "Incorrect. That's a valid form of GERENCIAR dependencies versions/origins, but does not solve the declared problem of large/duplicate implementation packages and redundant re-implantations — the package of each function AINDA would include the complete set of dependencies individually (only obtained from CodeArtifact during build); Layers are the mechanism that in fact removes the duplication of the implanted artifact between functions.."
+      ]
+    },
+    "dva-avc-028": {
+      "text": "A function Lambda is invoked in an ASSINCRONA manner (e.g. triggered by event notifications of the S3) to process submitted files. The team needs: (1) when processing TIVER SUCESSO, automatically send the result to a row SQS which will be consumed by a downstream billing service, and (2) when processing FALHAR (after the automatic retentatives of Lambda if they are sold out), automatically send event details with failure to a row SQS separate, for manual investigation — SEM write custom code within the function to treat the routing of both results.",
+      "options": [
+        "Within the function code, involve the processing logic in a try/catch block: in case of success, call 'SendMessage' to the billing row; in the catch, call 'SendMessage' to the research row and restart the error.",
+        "Configure 'Destinations' from AWS Lambda for asynchronous invocation: set the destination 'OnSuccess' as the row SQS of billing, and the destination 'OnFailure' (after the exhaustion of the reductatives) as the row SQS Research.",
+        "Use AWS Step Functions to orchestrate the invocation of Lambda, with a 'Catch' block routing to the research row and a final 'Pass' state routing to the billing row.",
+        "Configure a Dead-Letter Queue (DLQ) in the function pointing to the row SQS Invoicing for Successes, and a Second DLQ pointing to the line of investigation for failures."
+      ],
+      "explanation": "Correct. The 'Destinations' resource of Lambda natively route the invocation result (including the original event and response/error details) to the configured destination (SQS, SNS, EventBridge or other function Lambda) based on the success or failure of the asynchronous invocation, SEM require no code change within the function itself to implement this routing — meeting both requirements directly in a declarative manner via configuration.",
+      "hint": "Think of a native asynchronous invocation configuration of Lambda which route the result (success or failure after retention) to different destinations, without additional code in the function.",
+      "optionRationales": [
+        "Correct. The 'Destinations' resource of Lambda natively route the invocation result (including the original event and response/error details) to the configured destination (SQS, SNS, EventBridge or other function Lambda) based on the success or failure of the asynchronous invocation, SEM require no code change within the function itself to implement this routing — meeting both requirements directly in a declarative manner via configuration.",
+        "Incorrect. A function Lambda only supports UMA Dead-Letter Queue configuration, and DLQs only capture asynchronous invocation events with FALHA (after the exhaustion of the retants) — DLQs do not have the concept of a 'OnSuccess' destination; this configuration is not possible and does not meet the requirement of successful router.",
+        "Incorrect. That's exactly the code approach. CUSTOMIZADO that the team wants EVITAR; moreover, it does not correctly capture the semantics of 'after the exhaustion of the retants' (the function would send to the research line in the PRIMEIRA failure/trying, potentially multiple times along the retentatives, rather than only after the Lambda — Destinations automatically deal with this retaliatory exhaustion timing.",
+        "Incorrect. This would require a complete rewording of the invocation model (of an invocation) Lambda direct asynchronous shot by S3 for an execution of state machine of the Step Functions per file), a much broader change than setting up Destinations in the existing asynchronous invocation — Destinations are the mechanism specifically designed, the smallest change, for this exact requirement."
+      ]
+    },
+    "dva-avc-029": {
+      "text": "A function AWS Lambda processes rows of records Amazon SQS calling 'UpdateItem' in Amazon DynamoDB (Table in provided capacity mode) for each record, within a sequential loop. During traffic peaks, the function occasionally receives 'ProvisionedThroughputExceedException'. The current code captures this exception and tries again IMEDIATAMENTE in a 'while' loop, without any waiting between the attempts — which is aggravating the throttling instead of relieving it.",
+      "options": [
+        "Continuously increase the capacity of written provision (WCU) of the table for a very high, fixed value, sufficient for the worst peak already observed.",
+        "Enable Amazon DynamoDB Accelerator (DAX) in front of the table to absorb writing operations ('UpdateItem') during traffic peaks.",
+        "Maintain the current immediate retention loop, but increase the reserved competition of the function Lambda to process more queue logs SQS in parallel.",
+        "Configure the client AWS SDK with 'retryMode' defined as 'adaptive' (or 'standard') and an appropriate 'maxAttempts', leaving the SDK automatically apply exponential backoff with jitter for retentable errors like 'ProvisionedThroughputExceededException'."
+      ],
+      "explanation": "Correct. The 'standard' and 'adaptive' retentive modes of AWS SDK implement exponential backoff with jitter natively for retentable errors (including throttling of the DynamoDB), space the attempts in a growing and randomized way — this reduces the pressure on the table during peaks, in contrast to the current immediate retentive loop, which generates a 'hand' effect (thundering herd) that worsens throttling..",
+      "hint": "Think about which client configuration of AWS SDK automatically treats retentable throttling errors, spacing new attempts in a growing and randomized way.",
+      "optionRationales": [
+        "Correct. The 'standard' and 'adaptive' retentive modes of AWS SDK implement exponential backoff with jitter natively for retentable errors (including throttling of the DynamoDB), space the attempts in a growing and randomized way — this reduces the pressure on the table during peaks, in contrast to the current immediate retentive loop, which generates a 'hand' effect (thundering herd) that worsens throttling..",
+        "Incorrect. Increasing competition in the function Lambda Makes it MAIS invocations shoot called 'UpdateItem' simultaneously against the MESMA Table, increasing — not reducing — the rate of requisitions that causes throttling; this aggravates the problem instead of solving it.",
+        "Incorrect. DAX is a reading cache (read-through/write-through limited) designed primarily to accelerate operations of LEITURA repeated (GetItem/Query); it does not solve throttling in operations of ESCRITA ('UpdateItem') against the base table, which remain subject to the table's provided capacity limits.",
+        "Incorrect. Providing permanently for the highest peak observed generates high cost and unnecessary during periods of low traffic ( idle capacity); moreover, it does not address the root cause — the absence of a retentive strategy with backoff/jitter in the customer code — and unexpected future peaks could still exceed this high capacity."
+      ]
+    },
+    "dva-avc-030": {
+      "text": "A function AWS Lambda receives a file CSV containing 500 new product records and need to insert each as an item in a table of the Amazon DynamoDB. The current implementation iterates on the 500 records and calls 'PutItem' individually for each within a sequential loop, which makes the function approach your timeout for large files due to the large number of calls from API individual.",
+      "options": [
+        "Use AWS Step Functions with a map state to invoke an execution Lambda separate for each of the 500 records, making a call 'PutItem' by execution.",
+        "Use 'BatchWriteItem' to write up 25 items per call from API, grouping the 500 batch records of 25, and forwarding any 'UnprocessedItems' returned in subsequent calls.",
+        "Add a 'ConditionExpression' to each call 'PutItem' to check if the item already exists before burning it, avoiding duplicates.",
+        "Use 'TransactWriteItems' to insert 500 items, grouping them in a single atomic transaction that ensures that all records are recorded successfully or none is."
+      ],
+      "explanation": "Correct. The 'BatchWriteItem' allows to group up 25 write operations (Put or Delete) in a single call from API, drastically reducing the number of network round-trips compared to 500 individual 'PutItem' calls; unprocessed items (e.g. due to throttling) are returned to 'UnprocessedItems' and should be re-sent, but this still represents a fraction of the original calls.",
+      "hint": "Think of what operation the DynamoDB allows to group several independent writing operations in a single call from API, without demanding atomicity between them.",
+      "optionRationales": [
+        "Correct. The 'BatchWriteItem' allows to group up 25 write operations (Put or Delete) in a single call from API, drastically reducing the number of network round-trips compared to 500 individual 'PutItem' calls; unprocessed items (e.g. due to throttling) are returned to 'UnprocessedItems' and should be re-sent, but this still represents a fraction of the original calls.",
+        "Incorrect. 'TransactWriteItems' supports maximum 100 actions per call (500 items would still require multiple calls) and have greater overhead/cost (consumers twice as many capacity units compared to non-transactional operations); moreover, its semantic 'everything or nothing' is not required here — a failure in a single product record should not reverse the insertion of others 499 independent records, which is exactly the behavior of 'TransactWriteItems'.",
+        "Incorrect. Adding a 'ConditionExpression' does not reduce the number of calls from API (would still be 500 called 'PutItem' sequentially) — this is about a different concern (avoid overwriting existing items), not about the declared problem of the function approaching the timeout due to the volume of individual calls.",
+        "Incorrect. Although technically feasible, this introduces significant overhead orchestration (cost and complexity of 500 state executions, each invoking a function Lambda separate) for a problem that the 'BatchWriteItem' resolves natively, simple and with much less calls from API total, within a single function."
+      ]
+    },
+    "dva-avc-031": {
+      "text": "A mobile application allows users to send profile photos from up to 50 MB. Currently, the upload goes through a API REST of the Amazon API Gateway that invokes a function AWS Lambda, which then saves the file to Amazon S3. Uploads are failing to large files: the API Gateway rejects payload requests above its maximum limit, and function Lambda also faces memory pressure when trying to keep multiple large uploads simultaneously in buffer.",
+      "options": [
+        "Request an increase in the service limit (quota service) to raise the maximum size limit of the payload of the Amazon API Gateway above your default.",
+        "Enable Amazon S3 Transfer Acceleration in the Bucket, keeping current upload flow (customer → API Gateway → Lambda → S3) unchanged.",
+        "Use ephemeral storage '/tmp' of Lambda (configurable until 10 GB) to stream the body of the request 'multipart/form-date' received from API Gateway and record it on disk before sending to S3.",
+        "Doing the function Lambda generate one URL pre-signed (preigned) URL) of the S3 for the operation 'PutObject' and return it to the mobile application, which then uploads the file DIRETAMENTE for the S3 using this URL, without passing through API Gateway or Lambda."
+      ],
+      "explanation": "Right. URL pre-signed grants temporary access and limited scope for the client to upload directly to S3 using their own temporary credentials embedded in the URL; this completely bypasses the payload limits of API Gateway and memory pressure/run time Lambda, since the file bytes never traffic for these services — only the small initial request for OBTER a URL passes through them.",
+      "hint": "Think of a mechanism that allows the client to send the file directly to the storage of objects, without the bytes of the file having to traffic by API or by computer function.",
+      "optionRationales": [
+        "Right. URL pre-signed grants temporary access and limited scope for the client to upload directly to S3 using their own temporary credentials embedded in the URL; this completely bypasses the payload limits of API Gateway and memory pressure/run time Lambda, since the file bytes never traffic for these services — only the small initial request for OBTER a URL passes through them.",
+        "Incorrect. The size limit of requisition/response payload API Gateway (10 MB to REST and HTTP APIs) is a Rigid (hard limit) limit of the platform and NOT PODE to be increased by requesting an increase in service share — there is no such option for this specific limit.",
+        "Incorrect. Lambda had sufficient storage capacity in '/tmp', the request AINDA I'd have to go through API Gateway, which would continue to reject the payload of 50 MB for exceeding its maximum limit of 10 MB — the ephemeral storage of Lambda does not circumvent this previous limit in the integration chain.",
+        "Incorrect. S3 Transfer Acceleration Optimizes VELOCIDADE of transfers to the S3 over geographical distances using the edge network of the CloudFront, but does not alter the path of requisition nor remove the payload limit from API Gateway — uploading would still fail in API Gateway before you even get to the S3."
+      ]
+    },
+    "dva-avc-032": {
+      "text": "An order processing system needs to guarantee two properties: (1) requests from the MESMO customer must be processed at MESMA ORDEM in which they were sent, and (2) if the client application accidentally resends the same request (for example due to network retention after timeout), the duplicate request should NOT be processed again.",
+      "options": [
+        "Use a standard (Standard) row of Amazon SQS and implement, in the function Lambda consumer, a table of DynamoDB to track already processed order IDs (custom deduplication) and a timestamp field to sort messages before processing them.",
+        "Use a standard (Standard) row of Amazon SQS and increase the 'VisibilityTimeout' to a high value, ensuring that each message is fully processed before another can be delivered.",
+        "Use a standard (Standard) topic Amazon SNS with fan-out for multiple rows SQS standard, one per client.",
+        "Use a row of the Amazon SQS of a kind FIFO, defining the 'MessageGroupId' as the client ID (ensure ordering within the group) and the 'MessageDeduplicationId' as the order ID (or enabling content-based deduplication) to avoid duplicate processing within the deduplication window of 5 minutes."
+      ],
+      "explanation": "Right. FIFO of the SQS ensure ordination ESTRITA messages within the same 'MessageGroupId' (here, per client) and provide native deduplication via 'MessageDeduplicationId' (or content) within a window of 5 minutes — meeting both requirements directly without additional custom ordering or deduplication code.",
+      "hint": "Think of what kind of row of Amazon SQS offers, in a native way, guarantees both of group sorting and deduplication of messages.",
+      "optionRationales": [
+        "Right. FIFO of the SQS ensure ordination ESTRITA messages within the same 'MessageGroupId' (here, per client) and provide native deduplication via 'MessageDeduplicationId' (or content) within a window of 5 minutes — meeting both requirements directly without additional custom ordering or deduplication code.",
+        "Incorrect. 'VisibilityTimeout' controls only how long a message is hidden from other consumers AFTER being received (to avoid duplicate concurrent processing of the MESMA message during failures), but does not guarantee ORDEM delivery between different messages does not perform deduplication of orders forwarded by the customer — standard rows are by definition better effort (best-effort) in sorting and can deliver messages in any order and more than once.",
+        "Incorrect. This approach reimplements, with complexity and additional cost, capabilities that a row FIFO it already offers natively; moreover, as a standard row does not guarantee order of ENTREGA nor ENTREGA ONLY, 'ordering before processing' is not reliable when multiple competing invocations of the Lambda may be processing out of order messages in parallel.",
+        "Incorrect. Nor topics SNS standard neither rows SQS standard provide ordering or deduplication guarantees; creating a row per client is also not operationally scalable (the number of customers can grow indefinitely) and would not yet resolve the deduplication of forwarded orders."
+      ]
+    },
+    "dva-avc-033": {
+      "text": "An application receives a request to process a batch of up to 50 images sent by the user (resize, apply watermark and send to Amazon S3). Currently, a single function Lambda itera SEQUENCIALMENTE on all the images of the lot within a single invocation. For large lots, the function approaches its execution time limit, and if the number image 30 failure in processing, all invocation fails without any record of which of the 29 previous images were successfully processed.",
+      "options": [
+        "Increase the timeout of the function Lambda for the maximum permitted (15 minutes) and increase the allocated memory, keeping sequential processing within a single invocation.",
+        "Use AWS Step Functions with a parallel state containing 50 branches (branches) statistically defined in the definition of the state machine, one for each image.",
+        "Send 50 images as individual messages to a row of Amazon SQS and configure the function Lambda to process batches ('batch size') of 50 Invocational messages.",
+        "Use AWS Step Functions with a 'Map' status to iterate over the up array 50 images, invoking a separate execution of the function Lambda for each image (with 'MaxCompetition' configurable), so that each image is processed independently and in parallel, with individual success/failure tracking per item."
+      ],
+      "explanation": "Right. Step Functions iter dynamically on a VARIABLE size array defined in runtime (up to 50, or any other size), processing each item in its own iteration/execution of Lambda (with 'MaxConcurrency' configuration to control parallelism; failures in individual items are isolated and can be treated via 'Catch'/'Retry' by iteration, without affecting the processing of other images — solving both the timeout problem in large batches and the lack of tracking by item.",
+      "hint": "Think of what state of Step Functions it was designed to iterate over a variable size array, processing each item independently and with individual result tracking..",
+      "optionRationales": [
+        "Right. Step Functions iter dynamically on a VARIABLE size array defined in runtime (up to 50, or any other size), processing each item in its own iteration/execution of Lambda (with 'MaxConcurrency' configuration to control parallelism; failures in individual items are isolated and can be treated via 'Catch'/'Retry' by iteration, without affecting the processing of other images — solving both the timeout problem in large batches and the lack of tracking by item.",
+        "Incorrect. Increase timeout to 15 minutes can delay the problem to even larger batches in the future (not scale), and does not resolve the missing track per item — a failure in the image 30 still would make the entire invocation fail, without indicating which of the previous images were successfully processed.",
+        "Incorrect. Although it distributes the work by row, set up a 'batch size' of 50 reintroduces a form of the same problem within CADA invocation (up to 50 items processed in a single execution, with batch failure treatment depending on 'reportBatchItemFailures' to isolate individual items) — the 'Map' status of the Step Functions treats this more directly, with native execution isolation by item.",
+        "Incorrect. The 'Parallel' state requires that the NUMBER and the definition of branches be FIXOS AND STATISTICS at the time of the state machine definition — it cannot iterate over an array of variable size determined in runtime (as 'up to 50 images', which can be any number of 1 a 50); the 'Map' state was designed specifically for this dynamic iteration."
+      ]
+    },
+    "dva-avc-034": {
+      "text": "An e-commerce system stores the stock quantity of each product in an 'stockcount' attribute of an item of the Amazon DynamoDB. Multiple functions Lambda competitors (one per purchase) need to decrease 'stockcount' in 1 every purchase, and the stock NUNCA must become negative, even under high concurrent traffic — two simultaneous requests for the last item in stock must result in only UMA successful purchase.",
+      "options": [
+        "Use 'UpdateItem' with the update expression 'SET stockCount = stockCount - :dec' combined with a 'ConditionExpression' that requires 'stockCount >= :dec', leaving the DynamoDB perform the reading-verification-writing atomically on the server side.",
+        "In function Lambda, make 'GetItem' to read the current value of 'stockCount', check in code if it is greater than zero and, if so, make 'PutItem' by recording 'stockCount' - 1'.",
+        "Configure the reserved competition of the function Lambda processing of purchases for value '1', global serializing all the execution of the function.",
+        "Enable DynamoDB Streams in the table and use a function Lambda powered by the stream to recalculate 'stockcount' asynchronously after each registered purchase."
+      ],
+      "explanation": "Correct. DynamoDB executes the 'ConditionExpression' and the ATOMIC update within a single operation on the server; if two competing invocations try to decrement the last item in stock (stockcount)=1) simultaneously, only UMA you will have your condition satisfied at the time of writing (the other will fail with ConditionalCheckFailedException when trying to decrease a value that would already become 0), eliminating the race condition (race condition) between reading and writing.",
+      "hint": "Think about which combination of update expression and condition expression allows the DynamoDB perform verification and writing as a single atomic operation on the server, avoiding a condition of running between reading and writing.",
+      "optionRationales": [
+        "Correct. DynamoDB executes the 'ConditionExpression' and the ATOMIC update within a single operation on the server; if two competing invocations try to decrement the last item in stock (stockcount)=1) simultaneously, only UMA you will have your condition satisfied at the time of writing (the other will fail with ConditionalCheckFailedException when trying to decrease a value that would already become 0), eliminating the race condition (race condition) between reading and writing.",
+        "Incorrect. This classic pattern of 'read, check in code, then write' is vulnerable to a race condition (race condition): two competing invocations can both run 'GetItem' and read 'stockCount'=1' ANTES that anyone executes 'PutItem', both check 'greater than zero' successfully, and both record 'stockCount'=0' — resulting in two sales for only one unit in stock.",
+        "Incorrect. This approach introduces a possible consistency delay between the time of purchase and the asynchronous recalculation of the stock; during this window, competing purchase requests could still be accepted for an item already exhausted, because the value of 'stockcount' consulted would not yet reflect newly processed purchases.",
+        "Incorrect. Define reserved competition as '1' serialization TODAS purchases of TODOS the products of the catalog (not just those of the disputed item), creating a severe processing gargalo and a growing queue of waiting under normal traffic — a disproportionately restrictive solution to a problem that the condition of atomic updating of the DynamoDB resolves in a localized manner and without impact on general scalability."
+      ]
+    },
+    "dva-avc-035": {
+      "text": "A table of the DynamoDB 'Users' store items with close 30 attributes per user, including profile data, preferences and large blobs JSON An endpoint that displays only one user list (showing only 'username' and 'avatarUrl') currently does 'GetItem' without any attribute restriction, receiving the ITEM COMPLETO — the listing endpoint is slow due to the volume of data transferred and desarialized for each user, even if only two attributes are effectively used..",
+      "options": [
+        "Enable Amazon DynamoDB Accelerator (DAX) in front of the table to cache the complete user items.",
+        "Divide the 'Users' table into two separate tables (one with attributes frequently accessed as 'username'/'avatarUrl', the other with the rest) and use 'Query' with a GSI to combine (do 'join') the data of both tables in reading time.",
+        "Use 'ProjectionExpression' in the call 'GetItem' by specifying only the attributes 'username' and 'avatarUrl', reducing the size of the data returned by the network and the overhead of desiralization in the client for this listing endpoint.",
+        "Use 'Scan' with a 'FilterExpression' that returns only the 'username' attributes where the item matches the list criteria."
+      ],
+      "explanation": "Correct. 'ProjectionExpression' instructs or DynamoDB to return only the attributes specified in the item, significantly reducing the size of the response payload transferred by the network and the desalination work on the application side — improving the perceived latency of the listing endpoint. (Note: the consumption of RCU GetItem is based on size TOTAL of the table item read, regardless of projection; the benefit of 'ProjectionExpression' here is in the reduction of network payload/desserialization, not in the cost of reading.)",
+      "hint": "Think about what parameter of a reading operation DynamoDB allows you to specify exactly which attributes of the item should be returned in the answer.",
+      "optionRationales": [
+        "Correct. 'ProjectionExpression' instructs or DynamoDB to return only the attributes specified in the item, significantly reducing the size of the response payload transferred by the network and the desalination work on the application side — improving the perceived latency of the listing endpoint. (Note: the consumption of RCU GetItem is based on size TOTAL of the table item read, regardless of projection; the benefit of 'ProjectionExpression' here is in the reduction of network payload/desserialization, not in the cost of reading.)",
+        "Incorrect. DynamoDB does not support operations of 'JOIN' between tables — combining data from two tables would require multiple calls from API and combination logic in the application, in addition to a significant migration of the existing data model, to solve something that 'ProjectionExpression' solves with a single additional parameter in the existing call.",
+        "Incorrect. DAX reduces the reading LATENCIA REPETIDAS of the MESMO item (cache hits), but does not reduce the TAMANHO of the returned/deserialized data for each single item — for users first accessed (cache miss) or for a listing with many different users, the complete item would still be returned and deserialized, not addressing the root cause of the problem..",
+        "Incorrect. Scan read to TABELA INTEIRA (consuming reading capacity proportional to TODOS the items in the table) regardless of the filter or projection applied — this is significantly more inefficient than a directed 'GetItem'/'Query', and does not meet the objective of reducing the returned payload per item efficiently.."
+      ]
+    },
+    "dva-avc-036": {
+      "text": "A team is integrating a API REST of the Amazon API Gateway with a function AWS Lambda existing, which is written to receive directly a simplified event object in the format '{ \"userId\": \"...\", \"action\": \"...\" }'. API Gateway is configured with proxy integration Lambda' (Lambda proxy integration), and the function is failing because, instead of the expected simplified object, it receives the standard proxy envelope (containing heads, queryStringParameters, body as string, etc.), with simplified payload nested within event.body as a string JSON.",
+      "options": [
+        "Configure an application/json 'Binary Media Type' in the API Gateway.",
+        "Switch to 'customized integration' Lambda' (Lambda custom integration) with a requisition mapping template (VTL) which extracts 'userId' and 'action' from the body of the request and sends them as the event directly to the Lambda.",
+        "Update function code Lambda to make parse (ex.: 'JSON.parse') of 'event.body', extracting the simplified object '{ userId, action }' from inside it before using it.",
+        "Add one Lambda Authorize in front of the function to transform the body of the requisition before invoking the main function."
+      ],
+      "explanation": "Right. In the proxy integration. Lambda', o API Gateway SEMPRE involves the requisition in a standard envelope (headers, parameters, and the body of the original requisition as string in 'event.body'), regardless of the shape of the body sent by the client; the correct and recommended adjustment is to make the parse of 'event.body' within the function itself, in the function programming language — simpler approach to test and maintain than mapping templates.",
+      "hint": "Think about how proxy integration Lambda of the API Gateway structures the event received by the function, and where within this structure the original body of the customer's request is placed.",
+      "optionRationales": [
+        "Right. In the proxy integration. Lambda', o API Gateway SEMPRE involves the requisition in a standard envelope (headers, parameters, and the body of the original requisition as string in 'event.body'), regardless of the shape of the body sent by the client; the correct and recommended adjustment is to make the parse of 'event.body' within the function itself, in the function programming language — simpler approach to test and maintain than mapping templates.",
+        "Incorrect. Although technically possible, this requires writing and maintaining templates VTL (Velocity Template Language) — a separate template language, with limited debugging and testing — to achieve something that is solved in a simpler and more straightforward way by parseing 'event.body' into the function code itself, in the language that the team already uses; it is an unnecessary operational complexity for this requirement.",
+        "Incorrect. 'Binary Media Types' control how API Gateway treats binary payloads (e.g. images, base encoding64) for non-textual content types — setting this to 'application/json' has no effect on how the proxy integration event envelope is structured when passed to function Lambda, and does not solve the incompatibility of format described.",
+        "Incorrect. Lambda Authorizers are designed to take decisions on AUTHENTICATION/AUTORIZATION (returning a policy) IAM and, optionally, an additional context) — they do not replace or transform the body of the requisition ('event.body') that the main integration function receives; using an autorizer for payload transformation is not a standard supported for that purpose."
+      ]
+    }
+  }
+}

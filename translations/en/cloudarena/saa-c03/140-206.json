@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "140-206",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-140": {
+      "optionReasons": {
+        "saa-ini-140:option:0": "Elastic IP by instance EXPOSES the instances and does not change the route of traffic to S3.",
+        "saa-ini-140:option:1": "NAT the larger the bandwidth, but the cost per GB processed and the route via the internet CONTINUAM.",
+        "saa-ini-140:option:2": "The S3 does not live 'in another VPC' — peering is not the way to regional services of AWS.",
+        "saa-ini-140:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Gateway Endpoint to S3 in the route table keeps traffic within the network of AWS — no NAT, no internet, no cost per hour or per GB.",
+        "Because Gateway Endpoint compresses data before sending it to S3, cutting the volume processed and the cost per GB.",
+        "Because the Gateway Endpoint creates a replica of the bucket inside the VPC, Serving readings without leaving the private network.",
+        "Because the Gateway Endpoint collects 50% less than or NAT Gateway by GB, and the economy pays for the change of architecture."
+      ]
+    },
+    "saa-ini-161": {
+      "optionReasons": {
+        "saa-ini-161:option:0": "The CloudTrail REGISTRA calls from API — does not analyze or detect threats alone.",
+        "saa-ini-161:option:1": "The Config evaluates CONFORMIDADE configuration — does not detect malicious behavior.",
+        "saa-ini-161:option:2": "",
+        "saa-ini-161:option:3": "The Inspector evaluation VULNERABILIDADES Software (CVEs) — does not monitor malicious activity in logs."
+      },
+      "finalJustifications": [
+        "Because GuardDuty is the detection of managed threats: analysis CloudTrail, VPC Flow Logs and DNS logs with ML and thread intel — crypt mining, malicious IPs, anonymous APIs — no agents.",
+        "Because GuardDuty automatically closes the instances committed to mining, containing the incident before the security team response.",
+        "Because GuardDuty requires the agent of the SSM in all monitored instances — it is he who collects the signs of commitment analyzed by the service.",
+        "Because GuardDuty analyzes only the management account of the organization, consolidating the threats of all member accounts via delegation."
+      ]
+    },
+    "saa-ini-165": {
+      "optionReasons": {
+        "saa-ini-165:option:0": "The CloudWatch Logs is the DESTINO where logs are stored — does not capture network traffic alone.",
+        "saa-ini-165:option:1": "X-Ray tracks REQUIREMENTS between microservices — non-IP traffic of network interfaces.",
+        "saa-ini-165:option:2": "The CloudTrail records calls from API — no network connections with IPs, ports and accept/reject.",
+        "saa-ini-165:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the VPC Flow Logs capture interface IP traffic metadata (origin, destination, ports, protocol), ACCEPT/REJECT) — without the payload of the packages.",
+        "Because the VPC Flow Logs record the full contents of packages for forensic analysis, including suspicious payload.",
+        "Because the VPC Flow Logs automatically lock detected suspicious IPs, cutting communication in the interface.",
+        "Because the VPC Flow Logs only monitor traffic that crosses the Internet Gateway, where the external IP would be seen."
+      ]
+    },
+    "saa-ini-170": {
+      "optionReasons": {
+        "saa-ini-170:option:0": "Security Groups filter by port/protocol/origin POR INSTANCE — without filtering by domain or IDS/IPS.",
+        "saa-ini-170:option:1": "",
+        "saa-ini-170:option:2": "NACLs are statesss and limited to simple IP/port rules by sub-network — no intrusion signatures.",
+        "saa-ini-170:option:3": "The WAF ProtectS APPLICATIONS WEB (HTTP in ALB/CloudFront/API Gateway) — does not associate with sub-networks or inspects general network traffic."
+      },
+      "finalJustifications": [
+        "Because Network Firewall is stateful managed network firewall: domain filtering, rules IDS/IPS and own rules, applied centrally to the traffic of VPCs.",
+        "Because Network Firewall runs like an agent within each instance EC2, inspecting traffic before leaving the machine.",
+        "Because Network Firewall is the paid version of NACLs, with more rules per sub-network and status evaluation of active connections.",
+        "Because Network Firewall only filters traffic HTTPS of the VPCs, delegating the other protocols to the NACLs and Security Groups."
+      ]
+    },
+    "saa-ini-173": {
+      "optionReasons": {
+        "saa-ini-173:option:0": "Internet Gateway exposes the VPC on the Internet — exactly what you don't want.",
+        "saa-ini-173:option:1": "",
+        "saa-ini-173:option:2": "The NAT Gateway would solve, but routing the traffic to the INTERNET and at cost — the team discarded this option.",
+        "saa-ini-173:option:3": "There's no such thing as 'VPC Peering with the account of AWS' — the services do not live in VPC Payable."
+      },
+      "finalJustifications": [
+        "Because Interface Endpoints (PrivateLink) create private ENIs at VPC to call the APIs SSM and KMS directly — traffic never leaves the network of AWS.",
+        "Because Interface Endpoints copy the APIs of SSM and KMS within the VPC, responding locally to calls.",
+        "Because Interface Endpoints establish a VPN managed up to each service, with dedicated encrypted tunnels.",
+        "Because Interface Endpoints are free like Gateway Endpoints, and the economy is the reason to use them instead of the NAT."
+      ]
+    },
+    "saa-ini-174": {
+      "optionReasons": {
+        "saa-ini-174:option:0": "The EC2 Connect Forum requires door 22 ABERTA — violates the policy.",
+        "saa-ini-174:option:1": "Direct Connect is corporate physical connectivity — does not eliminate the need for open door to SSH.",
+        "saa-ini-174:option:2": "",
+        "saa-ini-174:option:3": "Bastion host is PROIBIDO by policy — even restricted to corporate IPs, still being door 22 exposed."
+      },
+      "finalJustifications": [
+        "Because Session Manager gives interactive shell via agent SSM SEM open entry doors with recorded audit sessions — meets the entire policy.",
+        "Because Session Manager opens the door 22 only during the active session and the close automatically when closing the access.",
+        "Because Session Manager uses an instance output connection directly to the authorized operator station.",
+        "Because Session Manager works only in instances with public IP, where session log can be routed."
+      ]
+    },
+    "saa-ini-188": {
+      "optionReasons": {
+        "saa-ini-188:option:0": "Making the sub-network public EXPOSUREs instances — exchange of costs for unacceptable risk.",
+        "saa-ini-188:option:1": "NAT the biggest can handle more band, but the TAXA POR Continued processing GB — cost remains.",
+        "saa-ini-188:option:2": "Compression reduces volume, but traffic continues to cross (and pay) the NAT.",
+        "saa-ini-188:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Gateway Endpoint to S3 runs direct traffic through the network of the AWS, outside NAT — the data processing rate of the NAT for this traffic simply disappears.",
+        "Because Gateway Endpoint transfers the processing cost of NAT for the bucket itself S3, diluted in storage rate.",
+        "Because the Gateway Endpoint hides the most read objects in the private subnet, and the hits stop generating traffic charged on NAT.",
+        "Because the Gateway Endpoint gives 50% discount rate on the NAT Gateway for traffic intended for internal services of its own AWS."
+      ]
+    },
+    "saa-ini-206": {
+      "optionReasons": {
+        "saa-ini-206:option:0": "",
+        "saa-ini-206:option:1": "The Security Group new now PERMITE all output by default — not typical lock.",
+        "saa-ini-206:option:2": "There is no restriction of AZ in DynamoDB — the service is REGIONAL.",
+        "saa-ini-206:option:3": "Lack of permission IAM generates AUTHORIZATION error (AccessDenied) — the symptom described is a failure of CONECTIVIDADE (timeout)."
+      },
+      "finalJustifications": [
+        "Because DynamoDB is accessed by public endpoint: private sub-network without NAT or VPC Endpoint has no route to it — the calls give timeout; the solution is the Gateway Endpoint (free of charge).).",
+        "Because DynamoDB needs to be installed inside the VPC application, as a cluster managed with local endpoints by private sub-network.",
+        "Because DynamoDB rejects connections from private IPs for security — only public addresses go through service validation.",
+        "Because DynamoDB requires HTTPS in calls and private sub-networks only speak HTTP — o TLS requires a public certificate issued on the edge."
+      ]
+    }
+  }
+}

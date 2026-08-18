@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "171-178",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-171": {
+      "optionReasons": {
+        "saa-avc-171:option:0": "",
+        "saa-avc-171:option:1": "Reserved Competition controls parallelism — does not reduce repeated invocations or cacheia responses.",
+        "saa-avc-171:option:2": "ElestiCache is the cache layer SEPARADA that the requirement wants to avoid, and still requires to change the function.",
+        "saa-avc-171:option:3": "It is the closest because cache in the context of reused execution of Lambda also keeps results between invocations — but this MODIFICA the logic of the function (the veto requirement) and the cache is by environment (unconsistent, unshared, disappears in the recycle); transparent cache on the front, without touching the code, is the API Gateway."
+      },
+      "finalJustifications": [
+        "Because the cache of API Gateway in the stage serves repeated answers of the same {id} for TTL without invoking the Lambda — less invocations, less latency, no separate cache and no touch on function.",
+        "Because Reserved Competition serves its repeated answers {id} for TTL without invoking the Lambda — less invocations, less latency, no separate cache and no touch on function.",
+        "Because ElastiCache serves the repeated answers of the same {id} for TTL without invoking the Lambda — less invocations, less latency, no separate cache and no touch on function.",
+        "Because the dictionary in memory of Lambda serves the repeated answers of the same {id} for TTL without invoking the Lambda — less invocations, less latency, no separate cache and no touch on function."
+      ]
+    },
+    "saa-avc-172": {
+      "optionReasons": {
+        "saa-avc-172:option:0": "It's the closest because Redis Cluster Mode automatically rebalances us — but changes the MOTOR (Memcached→Redis), rewriting the cache layer; the scenario only wants the client to discover the list of us alone, and Memcached already offers it natively via Auto Discovery in the endpoint configuration.",
+        "saa-avc-172:option:1": "",
+        "saa-avc-172:option:2": "NLB in front of the Memcached knots breaks the customer's hashing distribution — is not the pattern of discovery of us.",
+        "saa-avc-172:option:3": "Lambda + file no S3 is handcrafted pipeline and still requires rebooting the app — Auto Discovery resolves natively."
+      },
+      "finalJustifications": [
+        "Because Auto Discovery by endpoint configuration makes the Memcached client automatically discover changes in the list of us — add/remove no requires reconfiguration or reimplantation of the application.",
+        "Because migrating to Redis Cluster Mode makes the client automatically discover the changes in the list of us — adding/removing no requires reconfiguration or reimplanting the application.",
+        "Because NLB in front of the nodes makes the client automatically discover the changes in the list of us — add/remove no requires reconfiguration or reimplant the application.",
+        "Because the Lambda with config no S3 makes the client automatically discover the changes in the list of us — add/remove no requires reconfiguration or reimplanting the application."
+      ]
+    },
+    "saa-avc-173": {
+      "optionReasons": {
+        "saa-avc-173:option:0": "Reserved Instances Standard lock type/region — the least flexibility of all options.",
+        "saa-avc-173:option:1": "Capacity Reservations guarantee CAPACIDADE, no maximum discount — and 1 year gives lower discount than 3 years.",
+        "saa-avc-173:option:2": "",
+        "saa-avc-173:option:3": "It's the closest because the EC2 Forum Savings Plan also gives discount of 3 years with flexibility — but he TRAVA the family of instance and the region: move from M5 to Graviton in another region, or go to Fargate/Lambda, loses coverage; total flexibility between services/family/regions is the Computer Savings Plan."
+      },
+      "finalJustifications": [
+        "Because the Computer Savings Plan gives the biggest discount of 3 years covering EC2 (any family), Fargate and Lambda in any region — coverage follows workload changes without getting lost.",
+        "Because EC2 Forum Savings Plan gives the biggest discount of 3 years covering EC2 (any family), Fargate and Lambda in any region — coverage follows workload changes without getting lost.",
+        "Because the Reserved Instances Standard give the highest discount of 3 years covering EC2 (any family), Fargate and Lambda in any region — coverage follows changes in workload.",
+        "Because the Capacity Reservations give the biggest discount of 3 years covering EC2 (any family), Fargate and Lambda in any region — coverage follows workload changes without getting lost."
+      ]
+    },
+    "saa-avc-174": {
+      "optionReasons": {
+        "saa-avc-174:option:0": "One Zone-IA reduces durability (one AZ) and collects retriival — risky for regulatory logs of 10 years.",
+        "saa-avc-174:option:1": "It's the closest because the Glacier Instant Retrieval is from the archiving family and reduces cost — but charges more to give access to MILISSEGUNDOS, which is not required here (recovery in 12h is acceptable); for very rare access with this tolerance, the minimum cost is the Glacier Deep Archive.",
+        "saa-avc-174:option:2": "Standard-IA is for occasionally accessed data — far more expensive by GB than the Deep Archive for data almost never read.",
+        "saa-avc-174:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Lifecycle for the Deep Archive Glacier gives the lowest storage cost: the logs almost never read are by 10 years with recovery in up 12h — within the required tolerance.",
+        "Because Lifecycle for the Glacier Instant Retrieval gives the lowest storage cost: the logs almost never read are by 10 years with recovery in up 12h — within the required tolerance.",
+        "Because the transition to the One Zone-IA gives the lowest storage cost: the logs almost never read are by 10 years with recovery in up 12h — within the required tolerance.",
+        "Because the transition to Standard-IA gives the lowest storage cost: the logs almost never read are by 10 years with recovery in up 12h — within the required tolerance."
+      ]
+    },
+    "saa-avc-175": {
+      "optionReasons": {
+        "saa-avc-175:option:0": "",
+        "saa-avc-175:option:1": "SSM Inventory catalog types and software — does not evaluate use or recommend sizing.",
+        "saa-avc-175:option:2": "Cost Explorer with tags show CUSTO per label — does not identify oversupply by use metrics.",
+        "saa-avc-175:option:3": "It's the closest because the Trusted Advisor has the check of underused instances — but it only SINALIZA low usage (and requires Business/Enterprise plan), without recommending the TIPO/TAMANHO correct by ML analysis; rightsizing recommendation with the right target is the Compute Optimizer."
+      },
+      "finalJustifications": [
+        "Because Computer Optimizer analyzes with ML the historical metrics of each instance and points out QUAIS are over-provided and the type/size recommended — without reviewing the CloudWatch instance the instance.",
+        "Because SSM Inventory analyzes with ML the historical metrics of each instance and points out QUAIS are over-provided and the type/size recommended — without reviewing the CloudWatch instance the instance.",
+        "Because Cost Explorer with tags analyzes with ML the historical metrics of each instance and points QUAIS are over-provided and the type/size recommended — without reviewing the CloudWatch instance the instance.",
+        "Because Trusted Advisor analyzes with ML the historical metrics of each instance and points out QUAIS are over-provided and the type/size recommended — without reviewing the CloudWatch instance the instance."
+      ]
+    },
+    "saa-avc-176": {
+      "optionReasons": {
+        "saa-avc-176:option:0": "Change for NAT self-managed body still routes traffic through NAT (now one EC2) — does not eliminate collection or processing.",
+        "saa-avc-176:option:1": "It is the closest because Interface Endpoints (PrivateLink) also keep private traffic within the AWS — but charge per hour and per processed GB; for S3 and DynamoDB, o endpoint GRATUITO which route by the route table is the Gateway Endpoint, which eliminates the rate of NAT no new cost per GB.",
+        "saa-avc-176:option:2": "",
+        "saa-avc-176:option:3": "Moving to public sub-network with public IP adds routeable infrastructure via the internet — the opposite of the requirement."
+      },
+      "finalJustifications": [
+        "Because the Gateway Endpoints to S3 and DynamoDB they route this traffic through the internal network of the AWS via route table, no cost per GB — the processing rate of the NAT no infrastructure can be routed via the internet.",
+        "Because the Interface Endpoints for S3 and DynamoDB they route this traffic through the internal network of the AWS via route table, no cost per GB — the processing rate of the NAT no infrastructure can be routed via the internet.",
+        "Because the NAT instance for S3 and DynamoDB it routes this traffic through the internal network of the AWS via route table, no cost per GB — the processing rate of the NAT no infrastructure can be routed via the internet.",
+        "Why move to public sub-network for S3 and DynamoDB it routes this traffic through the internal network of the AWS via route table, no cost per GB — the processing rate of the NAT no new resources."
+      ]
+    },
+    "saa-avc-177": {
+      "optionReasons": {
+        "saa-avc-177:option:0": "It is the closest because the lower class provided reduces idle cost — but still pays capacity FIXA 24/7 and DO NOT scale automatically for peaks: a t4g.medium saturated in the test session; scale up alone and reduce idleness, keeping the drivers standard, is the Aurora Serverless v2.",
+        "saa-avc-177:option:1": "",
+        "saa-avc-177:option:2": "RDS Proxy Managing Connections — Does Not Scale Bank Computing Capability or Reduces idle cost.",
+        "saa-avc-177:option:3": "DynamoDB It's NoSQL — swap the relational bank for it breaks compatibility with the resources/drivers of the Aurora."
+      },
+      "finalJustifications": [
+        "Because Aurora Serverless v2 scale capacity (ACUs) up in seconds at the test peak and back into idleness — it pays for real use, maintaining the default features and drivers of Aurora.",
+        "Because the smallest class provided scales the capacity up in seconds at the test peak and backs into idleness — it pays for real use, maintaining the standard features and drivers of the Aurora.",
+        "Because RDS Proxy scales the bank's capacity up in seconds at the test peak and backs into idleness — pays for real use, maintaining the standard features and drivers of Aurora.",
+        "Because DynamoDB On-Demand scales capacity up in seconds at the test peak and backs into idleness — pays for real use, maintaining the standard features and drivers of Aurora."
+      ]
+    },
+    "saa-avc-178": {
+      "optionReasons": {
+        "saa-avc-178:option:0": "CUR show CUSTO by type use — does not give the activity/trend metrics of storage per bucket or incomplete multipart.",
+        "saa-avc-178:option:1": "It's the closest because the Storage Class Analysis also points candidates to the lifecycle transition — but acts POR BUCKET, without aggregate organizational vision or metrics of incomplete multipart uploads; visibility of use and trends in all accounts/regions in a panel is the S3 Storage Lens at Organization Level.",
+        "saa-avc-178:option:2": "BucketSizeBytes Bucket Alarm is reactive and punctual — it's not the organization's aggregate optimization analysis.",
+        "saa-avc-178:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Storage Lens with organization dashboard aggregates usage and trends of all the pockets/accounts/regions — growing pockets, Standard data and incomplete multiparts — in one panel.",
+        "Because the Storage Class Analysis by Bucket aggregates usage and trends of all the Buckets/accounts/regions — growing Buckets, Standard Data and incomplete multiparts — in a single panel.",
+        "Because CUR with typical use filters aggregates use and trends of all the pockets/accounts/regions — growing pockets, Standard data and incomplete multiparts — in a single panel.",
+        "Because the BucketSizeBytes alarm aggregates usage and trends of all the buckets/accounts/regions — growing buckets, Standard data and incomplete multiparts — in a single panel."
+      ]
+    }
+  }
+}

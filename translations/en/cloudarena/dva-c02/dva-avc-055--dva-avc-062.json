@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-055..dva-avc-062",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-055": {
+      "optionReasons": {
+        "dva-avc-055:option:0": "It's the closest because moving on MaxKeys seems to be asking for more keys — but the ceiling of ListObjectsV2 is 1.000 by call and MaxKeys is nothing more than that; travel TODOS objects require to page with NextContinuationToken until IsTruncated is fake.",
+        "dva-avc-055:option:1": "",
+        "dva-avc-055:option:2": "Back to ListObjects v1 does not change the limit of 1.000 per page — the pagination problem persists.",
+        "dva-avc-055:option:3": "Prefix helps to segment, but ASSUMIR <1.000 by prefix is fragile — large groups still truncated in 1.000."
+      },
+      "finalJustifications": [
+        "Why check IsTruncated/NextContinuationToken and repeat the ListObjectsV2 by passing the token as ContinuationToken until IsTruncated is fake page for all objects — nothing gets out in the big pocket.",
+        "Why increase MaxKeys beyond 1.000 and check the token by paging until IsTruncated is faked runs all objects — nothing gets out in the big bucket with millions of keys.",
+        "Why use the ListObjects v1 and check the token by paging until IsTruncated is false runs all objects — nothing gets out in the big pocket with millions of keys.",
+        "Why use Prefix and check the token by paging until IsTruncated is faked runs all objects — nothing gets out in the big bucket with millions of keys."
+      ]
+    },
+    "dva-avc-056": {
+      "optionReasons": {
+        "dva-avc-056:option:0": "",
+        "dva-avc-056:option:1": "It's the closest because a Lambda filter between SNS and SQS it would actually deliver only the relevant — but it adds a component to be maintained and cost per invocation; filtering in the FIRST entry, without code, is the filter policy of the SNS by eventType attribute.",
+        "dva-avc-056:option:2": "Redrive policy treats processing failures (DLQ) — does not filter messages by attribute value in delivery.",
+        "dva-avc-056:option:3": "A topic by eventType multiplies topics and complicates the publisher — the filter policy solves with a topic only."
+      },
+      "finalJustifications": [
+        "Because the filter policy in the entry of each row (e.g.: Shipping: OrderCreated/OrderShipped) does the SNS deliver only the corresponding messages — each row receives only what it needs, without filtering into code.",
+        "Because one Lambda filter between SNS and SQS sends only the corresponding messages — each row receives only what it needs, without filtering into the consumer, passing the relevant.",
+        "Because the redrive policy in each row only delivers the corresponding messages — each row only receives what it needs, discarding the non-corresponding eventType in the delivery.",
+        "Because one topic per eventType only delivers the corresponding messages — each row receives only what it needs, with the publisher sending to each relevant topic of the event."
+      ]
+    },
+    "dva-avc-057": {
+      "optionReasons": {
+        "dva-avc-057:option:0": "Update REMOVE in all attributes with condition is gambiarra that 'emptys' the item — is not the direct conditional delete.",
+        "dva-avc-057:option:1": "",
+        "dva-avc-057:option:2": "It's the closest because it tries to check the version around the delete — but DeleteItem followed by GetItem is TARDE: the item has already been deleted, and the subsequent check does not undo anything; the atomic check at the time of exclusion is the ConditionExpression version = :expected in the DeleteItem itself.",
+        "dva-avc-057:option:3": "Recreate the item via Streams after deletion is asynchronous and fragile reaction — does not prevent improper deletion."
+      },
+      "finalJustifications": [
+        "Because the DeleteItem with ConditionExpression 'version = :expected' fails (ConditionalCheckFailedException) if another process has already increased the version — the exclusion does not occur on changes not seen.",
+        "Because the UpdateItem REMOVE with condition failure if another process has already increased the version — exclusion does not occur on changes not seen by the user since reading.",
+        "Because the DeleteItem followed by GetItem fails if another process has already increased the version — exclusion does not occur on changes not seen by the user since reading.",
+        "Why recreate the item via Streams fails if another process has already increased the version — exclusion does not occur on changes not seen by the user since reading."
+      ]
+    },
+    "dva-avc-058": {
+      "optionReasons": {
+        "dva-avc-058:option:0": "It's the closest because it mentions executing-api:Invoke, linked to API — but CORS NO PERMISSION PROBLEM IAM (a Lambda even executes successfully): is the browser requiring cross-source headers; the correction is enable CORS no API Gateway (OPTIONS prefold + Access-Control-Allow-Origin).",
+        "dva-avc-058:option:1": "Place the Lambda the VPC of the CloudFront is not related to CORS — which is browser's origin policy.",
+        "dva-avc-058:option:2": "Hide or Header Origin no CloudFront of SPA does not add headers CORS in the response of the API.",
+        "dva-avc-058:option:3": ""
+      },
+      "finalJustifications": [
+        "Why Enable CORS no API Gateway (OPTIONS responding to pre-light and methods returning Access-Control-Allow-Origin with https://app.example.com) makes the browser release cross-origin calls.",
+        "Because execution rolls with execution-api:Invoke does the OPTIONS answer the prelight and return methods Access-Control-Allow-Origin — the browser releases cross-origin calls.",
+        "Why move to Lambda for the VPC of the CloudFront does the OPTIONS answer the prelight and return methods Access-Control-Allow-Origin — the browser releases cross-origin calls.",
+        "Why cache the header Origin no CloudFront does the OPTIONS answer the prelight and return methods Access-Control-Allow-Origin — the browser releases cross-origin calls."
+      ]
+    },
+    "dva-avc-059": {
+      "optionReasons": {
+        "dva-avc-059:option:0": "",
+        "dva-avc-059:option:1": "EFS mounted saves the files, but the inference library in the default zip still crashes at the limit of 250 MB — and the EFS requires VPC (start).",
+        "dva-avc-059:option:2": "The limit of the zip package is not elevable by quota — the output for large packages is the container image.",
+        "dva-avc-059:option:3": "It's the closest because layers expand packaging — but the decompressed function limit + TODAS the added layers is ~250 MB: five layers of 250 MB do not fit in this total; for 1,8 GB, the way is to pack like IMAGEM OF CONTAINER (until 10 GB) no ECR."
+      },
+      "finalJustifications": [
+        "Because packaging the function as a container image (base of AWS or custom to Runtime API) no ECR accommodates the 1,8 GB of library and models — Lambda supports images from up to 10 GB.",
+        "Why mount the models in EFS and keep the library in the zip accommodates the 1,8 GB Dependencies — or Lambda supports this decompressed volume beyond the zip limit.",
+        "Because requesting an increase in the quota of the package accommodates 1,8 GB of library and models — Lambda supports this decompressed volume beyond the standard zip limit.",
+        "Why divide it into 5 layers of 250 MB accommodates the 1,8 GB of library and models — Lambda supports this total sum of layers beyond the package limit."
+      ]
+    },
+    "dva-avc-060": {
+      "optionReasons": {
+        "dva-avc-060:option:0": "Scan reads the whole table — worse than the current Query, which at least limits the room.",
+        "dva-avc-060:option:1": "Increase Limit reads even more items before filtering — more capacity consumed, no less.",
+        "dva-avc-060:option:2": "It's the closest because moving SenderId to KeyConditionExpression would avoid reading and discard — but SenderId is NOT a key attribute of the table (the SK is Timestamp): you can't use it in the KeyCondition of the base table; expressing 'sala + sender' in the key requires a GSI with spell key composed including SenderId.",
+        "dva-avc-060:option:3": ""
+      },
+      "finalJustifications": [
+        "Because one GSI with PK ChatRoomId and SK composite (SenderId#Timestamp) express 'messages of this sender' in KeyConditionExpression — read only the corresponding ones, without ruling out those of other senders.",
+        "Why move SenderId to the KeyConditionExpression table expresses 'messages of this room of this sender' in the key — read only the corresponding ones, without discarding those of other senders.",
+        "Because the Scan with FilterExpression expresses 'messages of this room of this sender' in the key — read only the corresponding ones, without discarding those of other senders in the query.",
+        "Why increase the limit on Query with filter expressed 'messages of this room of this sender' in the key — read only the corresponding ones, without discarding those of other senders."
+      ]
+    },
+    "dva-avc-061": {
+      "optionReasons": {
+        "dva-avc-061:option:0": "It's the closest because a WebSocket API Separated would also transmit the changes live — but requires implementing and managing WebSocket connections on the outside, just what you want to avoid; as AppSync already uses, GraphQL Subscription manages this natively.",
+        "dva-avc-061:option:1": "",
+        "dva-avc-061:option:2": "Call webhooks HTTP of each customer via Lambda is fragile (clients behind NAT/furniture do not have URL) — is not managed push.",
+        "dva-avc-061:option:3": "Polling each 2s is not push — generates load and latency, the opposite of real time managed."
+      },
+      "finalJustifications": [
+        "Because a subscription type in the AppSync schema (e.g. onTaskUpdated linked to the updateTask mutation) makes AppSync manage WebSocket connections and push the transfer result to subscribers — without custom management.",
+        "Because a WebSocket API separate with AppSync makes the service manage WebSocket connections and push the transfer result to subscribers — without custom connection management.",
+        "Because DynamoDB Streams with webhooks makes AppSync manage WebSocket connections and push the result of the transfer to subscribers — without custom connection management.",
+        "Because the polling every time 2s makes AppSync manage WebSocket connections and push the transfer result to subscribers — without custom management of WebSocket connections."
+      ]
+    },
+    "dva-avc-062": {
+      "optionReasons": {
+        "dva-avc-062:option:0": "Long-lasting keys embedded in the app is exactly what the requirement forbids.",
+        "dva-avc-062:option:1": "Call one Lambda by photo violates the 'without going backend to each upload' — and is not uploading directly to S3.",
+        "dva-avc-062:option:2": "It's the closest because the JWT of the Cognito in fact authenticates the user — but a JWT It's not credential. AWS: o SDK does not sign requests to S3 with it; change the JWT by credentials AWS TEMPORARY (STS) restricted to user prefix is the Cognito Identity Pool.",
+        "dva-avc-062:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Identity Pool accepts the JWT User Pool and Exchange for Credentials AWS temporary (STS) in a roll whose policy restricts the S3 to user-uploads prefix/${cognito-identity.amazonaws.com:sub} — Direct and restricted upload, no long-lasting key.",
+        "Because inserting long-lasting keys changes the JWT by credentials AWS temporary in a roll that restricts the S3 to the user's prefix — direct and restricted upload, without going through backend.",
+        "Why use the JWT as the credentials of the SDK exchange or token for credentials AWS temporary in a roll that restricts the S3 to the user's prefix — direct and restricted upload, no long-term key.",
+        "Why call it a Lambda by photo change the JWT by credentials AWS temporary in a roll that restricts the S3 to the user's prefix — direct and restricted upload, no long-term key."
+      ]
+    }
+  }
+}

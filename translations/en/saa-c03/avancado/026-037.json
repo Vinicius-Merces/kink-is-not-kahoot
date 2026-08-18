@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "026-037",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-026": {
+      "text": "A company is migrating to a microservices architecture in containers, where hundreds of services need to authenticate each other using mTLS (TLS The company does not want to operate its own infrastructure for the construction of a new plant. PKI (root key generation, secure storage, recall lists), but you need to keep complete control over the hierarchy of certificates, which should never be publicly exposed. What service meets this requirement?",
+      "options": [
+        "AWS Certificate Manager Private Certificate Authority (ACM Private CA), by creating a private CA hierarchy to issue short-term certificates for microservices, with integration into ACM for life cycle management.",
+        "Configure your own CA root using OpenSSL in an instance EC2 dedicated, storing CA's private key in a volume EBS encrypted and hand-distributed certificates for each microservice.",
+        "AWS Certificate Manager (ACM) public, requesting public certificates validated by DNS for each of the internal microservices.",
+        "Store a single wildcard certificate in AWS Secrets Manager and share it among all microservices for mTLS authentication."
+      ],
+      "explanation": "The ACM Private CA provides an infrastructure of PKI fully managed for the issuance of private certificates (not publicly reliable), allowing to create root/subordinate CA hierarchies, issue short-term certificates for mTLS between microservices, and integrates to ACM for distribution and renewal, without the company having to operate its own CA infrastructure.",
+      "hint": "Search for managed service from AWS offering a complete private certification authority, without requiring the company to operate its own root key infrastructure.",
+      "optionRationales": [
+        "The ACM Private CA provides an infrastructure of PKI fully managed for the issuance of private certificates (not publicly reliable), allowing to create root/subordinate CA hierarchies, issue short-term certificates for mTLS between microservices, and integrates to ACM for distribution and renewal, without the company having to operate its own CA infrastructure.",
+        "Public certificates of the ACM require publicly resolvable domain validation and are intended for publicly exposed endpoints; issuing hundreds of public certificates for internal communication between microservices is not appropriate, scalable or in line with the requirement that certificates never be publicly exposed.",
+        "This approach requires the company to operate its own infrastructure of PKI, including generation and protection of the root key, issue, distribution and revocation of certificates, going exactly against the requirement not to operate own CA infrastructure.",
+        "The AWS Secrets Manager store secrets, but does not issue certificates or manage a CA hierarchy; moreover, sharing a single wildcard certificate among hundreds of services eliminates the individual identity required by mTLS and creates a single point of failure if compromised."
+      ]
+    },
+    "saa-avc-027": {
+      "text": "An internal platform allows development teams to create their own IAM roles and policies for the microservices that they build (self-service model). The platform team needs to ensure that, regardless of how permissive the policy that a team attaches to a role created by it, this role NUNCA may, for example, access billing data, create new users IAM or access resources from other teams — a maximum limit of permissions that applies to all roles created in this way. IAM meets this requirement?",
+      "options": [
+        "Configure a standardized boundary permissions and require, via policy IAM with condition in iam:CreateRole, that every role created by the teams has this boundary attached; the effective permissions of the roll will be the intersection between its policy and the boundary.",
+        "Create Service Control Policies (SCPs) individual for each development team, restricting the actions that each team can include in its own policies IAM.",
+        "Create a single IAM role shared with AdministratorAccess policy that all development teams assume to implement their microservices.",
+        "Grant Managed Policy AdministratorAccess to all development teams and rely on manual infrastructure code revisions (IaC) before deployment to detect excessive permissions."
+      ],
+      "explanation": "Boundary permissions define the maximum permission limit that a managed identity (role or user) may have; when requiring, by condition in iam:CreateRole, that every role created by teams includes this boundary, ensures that, regardless of the policy annexed by the team, effective permissions never exceed what the boundary allows — exactly the requirement of a ceiling of permissions for creating self-service roles.",
+      "hint": "Think of the mechanism of IAM defining a ceiling of permissions applied to the intersection with the policy attached to identity, allowing secure delegation of the creation of roles.",
+      "optionRationales": [
+        "Boundary permissions define the maximum permission limit that a managed identity (role or user) may have; when requiring, by condition in iam:CreateRole, that every role created by teams includes this boundary, ensures that, regardless of the policy annexed by the team, effective permissions never exceed what the boundary allows — exactly the requirement of a ceiling of permissions for creating self-service roles.",
+        "SCPs are applied at the account level or OR within the AWS Organizations and affect all the main accounts in a homogeneous way; they were not designed to impose, in a differentiated way, a specific permission ceiling for roles created dynamically by different teams within the same account..",
+        "Granting AdministratorAccess violates the principle of lesser privilege from the beginning, and relying on manual code revision is a reactive process and subject to human error, not a technical guarantee that the permission limit will never be exceeded.",
+        "Sharing a single role with AdministratorAccess among all teams eliminates any isolation of permissions between teams, violates the principle of lesser privilege and offers no configurable maximum limit mechanism per role."
+      ]
+    },
+    "saa-avc-028": {
+      "text": "A SaaS company B2B offers a data analysis service that runs behind a Network Load Balancer in your own VPC. She needs to allow hundreds of corporate clients, each with their own VPC (many with blocks CIDR This is the first time that the Commission has been able to take a decision on a proposal from the Commission to the Council (COM(93) 564 final — Doc. VPC internal to customers. Which architecture meets this requirement in a scalable way?",
+      "options": [
+        "Exposing the Network Load Balancer publicly with an Elastic IP and restrict access through a list of allowed IPs (allowlists) in Security Groups.",
+        "Establish VPC Peering between the VPC of SaaS and the VPC of each of the hundreds of customers.",
+        "Connect to VPC of SaaS and the VPCs of all customers to a AWS Transit Gateway shared.",
+        "Create a AWS PrivateLink VPC Endpoint Service pointing to Network Load Balancer existing, and each client creates an Interface VPC Endpoint in your own VPC to connect to the service."
+      ],
+      "explanation": "The AWS PrivateLink allows a service provider to display an application through a VPC Endpoint Service based on a NLB; customers consume the service by creating Interface VPC Endpoints in their own VPCs, without needing to peering, without exposing the VPC the entire provider, without crossing the public internet, and even works with ICDRs superimposed between the VPCs of the customers, because there is no direct network routing between them.",
+      "hint": "Think of the private connectivity mechanism designed specifically for service provider/consumer (SaaS) models, which does not require compatible CIDRs between the networks involved.",
+      "optionRationales": [
+        "The AWS PrivateLink allows a service provider to display an application through a VPC Endpoint Service based on a NLB; customers consume the service by creating Interface VPC Endpoints in their own VPCs, without needing to peering, without exposing the VPC the entire provider, without crossing the public internet, and even works with ICDRs superimposed between the VPCs of the customers, because there is no direct network routing between them.",
+        "VPC Peering requires blocks CIDR not overlapping between connected VPCs (which is not guaranteed among customers), exposes wider network routes than just the specific service, and does not scale well to manage hundreds of individual peering connections.",
+        "The Transit Gateway centralizes the route between multiple VPCs, but also requires CIDRs not overlapping between connected VPCs and creates network connectivity wider than what is needed to only consume a specific service, in addition to requiring customers to share network connectivity with SaaS infrastructure.",
+        "Exposing the NLB publicly causes traffic to cross the public internet, which directly violates the requirement that traffic should never pass through the public internet, in addition to requiring constant maintenance of an IP allow list of hundreds of customers."
+      ]
+    },
+    "saa-avc-029": {
+      "text": "A company operates dozens of VPCs spread across multiple accounts AWS, all connected to one AWS Transit Gateway in a hub-and-spoke topology. The security team needs to centrally and stately (stateful) inspect all the outbound traffic to the internet originating from these VPCs, including intrusion prevention capabilities (IPS) and filtering of malicious domains, before traffic goes out through a NAT Gateway which architecture meets this requirement?",
+      "options": [
+        "Configure Deny Rules Security Groups of each VPC Spoke to block known malicious domains.",
+        "Implant AWS Network Firewall in a VPC Centralized inspection connected to the Transit Gateway, configuring the route tables of the Spoke VPCs to send out traffic through the VPC inspection before reaching the NAT Gateway.",
+        "Implant one NAT Gateway individual VPC spoke and analyze the VPC Flow Logs with Amazon Athena to identify suspicious traffic.",
+        "Linking a Web ACL of the AWS WAF each VPC Spoke to inspect all outbound traffic."
+      ],
+      "explanation": "The AWS Network Firewall offers stateful traffic inspection with rules of intrusion prevention (compatible with Suricata) and domain filtering; by centralizing it in a VPC of connected inspection via Transit Gateway in hub-and-spoke topology, all output traffic of the spoke VPCs can be routed through it before reaching the NAT Gateway, meeting the requirement of centralized inspection with state.",
+      "hint": "Think about the state-of-the-art network firewall service with IPS and domain filtering, which can be centralized in a hub-and-spoke topology based on Transit Gateway.",
+      "optionRationales": [
+        "The AWS Network Firewall offers stateful traffic inspection with rules of intrusion prevention (compatible with Suricata) and domain filtering; by centralizing it in a VPC of connected inspection via Transit Gateway in hub-and-spoke topology, all output traffic of the spoke VPCs can be routed through it before reaching the NAT Gateway, meeting the requirement of centralized inspection with state.",
+        "Security Groups do not support denial rules (only allow) and do not have domain filtering or intrusion prevention capacity; this approach is technically unfeasible for the requirement presented.",
+        "VPC Flow Logs with Athena provide visibility after the fact (forense/analytics), but do not offer real-time inspection with IPS they don't actively block malicious traffic before it goes online..",
+        "The AWS WAF operates in the application layer and can only be associated with specific resources such as CloudFront, ALB, API Gateway or AppSync; it cannot be associated with a VPC to inspect general output traffic at network level."
+      ]
+    },
+    "saa-avc-030": {
+      "text": "A company's security policy completely prohibits the opening of any inbound door Security Groups for administrative access (SSH/RDP), including from bastion hosts, and requires that all commands executed by administrators in instances EC2 are registered and audited. The instances are in private sub-networks, without public IP. TODOS these requirements?",
+      "options": [
+        "Configure a connection AWS Site-to-Site VPN between the corporate network and VPC, and allow SSH directly to the private IPs of the instances through the VPN.",
+        "Use AWS Systems Manager Session Manager, with the SSM Agent installed in the instances and a role IAM with the necessary permissions, allowing shell connections via console/CLI without the need for open entrance doors, and enabling the registration of sessions in the Amazon CloudWatch Logs or Amazon S3.",
+        "Implant a bastion host in a public sub-network with a Security Group allowing SSH (door 22) only from the corporate IP range.",
+        "Use EC2 Connect Forum to establish connections SSH temporary certified via IAM."
+      ],
+      "explanation": "Session Manager establishes connection via output calls (outbound) HTTPS) of the SSM Officer for service Systems Manager (or via VPC Interface Endpoint), completely eliminating the need for open entry doors in Security Groups, Public IPs or bastion hosts, and records all commands and outputs of sessions for full audit.",
+      "hint": "Think of the managed service that establishes administrative sessions using only instance output connections, eliminating the need for input ports and providing native session logs.",
+      "optionRationales": [
+        "Session Manager establishes connection via output calls (outbound) HTTPS) of the SSM Officer for service Systems Manager (or via VPC Interface Endpoint), completely eliminating the need for open entry doors in Security Groups, Public IPs or bastion hosts, and records all commands and outputs of sessions for full audit.",
+        "Even restricted to a corporate IP range, this approach still requires an open entry rule on the door 22, directly violating the policy prohibiting any entry door for administrative access, in addition to adding an additional host to manage and protect.",
+        "Although the VPN provide an encrypted tunnel, it would still be necessary to open the door 22 no Security Groups for the CIDR of VPN, violating the policy of no entry door for administrative access, and this approach does not offer native registration of commands executed in sessions.",
+        "The EC2 Connect Forum still depends on a connection SSH traditional doorway 22, requiring a rule of entry into Security Group releasing this port to the service IP tracks, and does not provide native session command log equivalent to Session Manager."
+      ]
+    },
+    "saa-avc-031": {
+      "text": "An application encrypts data on the client's side using a customer-managed key (CMK) of the AWS KMS in the us-east region-1 before replicating encrypted data to the eu-west region-1, as part of a disaster recovery strategy. The requirement is that, during a complete unavailability of the us-east region-1, the application in the eu-west region-1 can immediately describe the data, without making any call from API for the us-east region-1. What configuration of the KMS meets this requirement?",
+      "options": [
+        "During failure, describe all replicated data using the CMK Of us-east-1 before unavailability and re-encrypt them with a new CMK created in eu-west-1.",
+        "Use AWS managed key standard (aws/s3) in both regions, since keys managed by the AWS are automatically replicated between regions.",
+        "Create a multi-Region key KMS (multi-Region key) with the primary key in us-east-1 and a replica key in me-west-1, sharing the same cryptographic material and related key ID.",
+        "Create a CMK of single region in us-east-1 and use grants from KMS to grant description permissions to principals in the account used by the application in eu-west-1."
+      ],
+      "explanation": "Multi-Region Keys KMS allow to create a primary key in one region and replicas in other regions that share the same cryptographic material; data encrypted with the primary key can be described using the local replica key in eu-west-1, without any call from API for us-east-1, even during a total unavailability of the primary region.",
+      "hint": "Think about the resource of KMS which allows the same key material to exist independently in multiple regions, eliminating the dependence of calls between regions during the description.",
+      "optionRationales": [
+        "Multi-Region Keys KMS allow to create a primary key in one region and replicas in other regions that share the same cryptographic material; data encrypted with the primary key can be described using the local replica key in eu-west-1, without any call from API for us-east-1, even during a total unavailability of the primary region.",
+        "Keys KMS of the unique region exist only in the region where they were created; even with grants granting permissions, the operation kms:Decrypt for this key would still need to be executed against the endpoint of KMS in us-east-1, what would be impossible during a total unavailability of this region.",
+        "AWS managed keys are specific to each region and service account, and are not replicated between regions; each region has its own AWS managed independent key, which does not share cryptographic material with that of another region.",
+        "This approach would require pre-processing and re-encryption of all data in advance (does not meet the scenario of sudden unavailability) and does not resolve the requirement that the description occurs without dependence on the us-east region.-1 at the moment of failure."
+      ]
+    },
+    "saa-avc-032": {
+      "text": "Account A has a snapshot of Amazon EBS Encrypted with a customer-managed key (CMK) of the AWS KMS belonging to Account A. The team needs to share this snapshot with Account B so that it can create volumes EBS and launch instances EC2 from it. What actions are needed for Account B to be able to use this encrypted snapshot successfully?",
+      "options": [
+        "Make the snapshot public so any account AWS can use it, simplifying the sharing process.",
+        "Modify snapshot permissions to share it with Account B, and update the policy CMK from Account A (or add a grant) to allow Account B principals to use the shares kms:CreateGrant, kms:Decrypt and kms:DescribeKey about this key.",
+        "Create an unencrypted copy of the snapshot in Account A before sharing it with Account B, eliminating the dependency of KMS.",
+        "Just modify the snapshot permissions in Account A to share it with Account B ID, without any change in KMS, since snapshot sharing already automatically includes access to the associated encryption key."
+      ],
+      "explanation": "Sharing only the snapshot permission is not enough when it is encrypted with a CMK Customer: Account B also needs permission to use the CMK from Account A to describe the snapshot data, which requires updating the key policy (or creating a grant) by granting the necessary actions of the KMS to the principals of Account B.",
+      "hint": "Remember that sharing an encrypted resource between accounts involves two distinct layers of permission: permission over the resource itself and permission over the key that the cryptographer.",
+      "optionRationales": [
+        "Sharing only the snapshot permission is not enough when it is encrypted with a CMK Customer: Account B also needs permission to use the CMK from Account A to describe the snapshot data, which requires updating the key policy (or creating a grant) by granting the necessary actions of the KMS to the principals of Account B.",
+        "Sharing an encrypted snapshot does not automatically give access to CMK used to encrypt it; without explicit permissions in the key policy (or a grant) to Account B, attempts to copy or use the snapshot will fail due to lack of permission in KMS.",
+        "A AWS does not allow to make public an encrypted snapshot with a CMK of the client — this type of sharing is blocked by design to protect the key material; moreover, making a snapshot public is a bad security practice that exposes the data to any account AWS.",
+        "Creating an unencrypted copy of the snapshot would violate compliance requirements that require rest encryption for the data, being a solution that sacrifices security only to avoid the correct configuration of permissions between accounts in KMS."
+      ]
+    },
+    "saa-avc-033": {
+      "text": "The security team of an organization with 30 accounts AWS needs continuous visibility on which resources — bucks S3, IAM roles, keys to the KMS, functions Lambda and rows SQS — are accessible from outside the organization (external accounts) or publicly, to identify unintentional exposures as soon as possible. The solution should continuously analyze resource-based policies and generate finding automatically. Which service was specifically designed for this purpose?",
+      "options": [
+        "Manually review the policies based on each account's resource every quarter, documenting the findings in an audit report.",
+        "AWS IAM Access Analyzer, with an organization-level-configured analytics that continuously evaluates resource-based policies and generates finding whenever a resource is shared with an entity outside the organization or set of trusted accounts.",
+        "Create custom rules in AWS Configure for each resource type (S3, IAM, KMS, Lambda, SQS) check manually if the resource policies contain the organization's ID.",
+        "AWS Trusted Advisor, enabled in each of 30 accounts, reviewing security checks related to Bucket permissions S3."
+      ],
+      "explanation": "The IAM Access Analyzer uses automated logic reasoning (probable security) to analyze policies based on resource S3, IAM roles, keys to the KMS, functions Lambda, rows SQS and other types of resource, generating continuous finding whenever it detects access granted to entities outside the 'trust zone' (the organisation or account), exactly what the requirement describes.",
+      "hint": "Think of the service of IAM using automated logical policy analysis to continuously identify shared resources with entities outside a defined confidence zone.",
+      "optionRationales": [
+        "The IAM Access Analyzer uses automated logic reasoning (probable security) to analyze policies based on resource S3, IAM roles, keys to the KMS, functions Lambda, rows SQS and other types of resource, generating continuous finding whenever it detects access granted to entities outside the 'trust zone' (the organisation or account), exactly what the requirement describes.",
+        "The Trusted Advisor offers some verifications related to buckets S3 with public access, but does not cover in a comprehensive and continuous way IAM roles, keys to the KMS, functions Lambda and rows SQS regarding external access, it does not offer the same logical analysis of policies on an organizational scale.",
+        "Although technically possible, developing and maintaining custom config rules to replicate this policy analysis for each type of resource would require significant development effort, reimplementing a capacity that IAM Access Analyzer already offers native and managed.",
+        "A quarterly manual review process does not provide continuous visibility and does not scale to 30 accounts with multiple types of resource, leaving a significant window between the creation of an unintentional exposure and its detection."
+      ]
+    },
+    "saa-avc-034": {
+      "text": "A financial institution, under strict regulatory requirements, requires that cryptographic material used to protect customer data be stored in hardware security modules (HSM) validated in FIPS 140-2 Level 3, of exclusive use (single-tenant) of the company, with total administrative control over the HSM — in such a way that not even the AWS have access to the key material or the administrative operations of the device. Which service meets this specific requirement?",
+      "options": [
+        "Amazon S3 with encryption on the server side using keys provided by the client (SSE-C), eliminating the need for a HSM managed by AWS.",
+        "AWS CloudHSM, providing a cluster of dedicated HSMs (single-tenant) within the VPC company, with the company maintaining exclusive administrative control over the cluster.",
+        "AWS KMS with customer-managed keys (Customer Managed Keys), which also use validated HSMs in FIPS 140-2 Level 3 Internally.",
+        "AWS Secrets Manager, configured with additional encryption using a CMK Dedicated KMS."
+      ],
+      "explanation": "The AWS CloudHSM provides fora HSM dedicated and single-tenant validated in FIPS 140-2 Level 3, provided within the VPC the customer; the company has total administrative control over the cluster (including management of users of the HSM), and the AWS has no access to the key material or the administrative credentials of the device, precisely meeting the requirement of exclusivity and total control.",
+      "hint": "The essential difference is between a fully managed cryptography service and multi-tenant versus dedicated hardware of exclusive use, under full customer administrative control.",
+      "optionRationales": [
+        "The AWS CloudHSM provides fora HSM dedicated and single-tenant validated in FIPS 140-2 Level 3, provided within the VPC the customer; the company has total administrative control over the cluster (including management of users of the HSM), and the AWS has no access to the key material or the administrative credentials of the device, precisely meeting the requirement of exclusivity and total control.",
+        "Although the AWS KMS uses validated HSMs in FIPS 140-2 Level 3 internally, this is a multi-tenant managed service operated by the AWS, where the AWS controls the infrastructure of the HSM underlying; the customer does not obtain exclusive administrative control of the hardware device, which does not meet the requirement of total exclusivity.",
+        "The AWS Secrets Manager is a secret storage and rotation service that internally uses the KMS for encryption; it does not provide, by itself, a dedicated hardware security module and exclusive customer use.",
+        "SSE-C requires the customer to manage and provide the encryption keys in each request, transferring all responsibility for safe storage of keys out of the AWS, without providing any infrastructure of HSM validated, which does not meet the requirement of a HSM FIPS 140-2 Level 3 dedicated."
+      ]
+    },
+    "saa-avc-035": {
+      "text": "A company wants to ensure that, regardless of how an administrator initially authenticated, any attempt to delete the bills S3 production or closure of proceedings EC2 tagged Environment=production requires that the current session has been authenticated with multifactor authentication (MFA) — otherwise, the action should be explicitly denied. What approach implements this control?",
+      "options": [
+        "Attaching a policy to administrative roles IAM with a Deny instruction for the actions s3:Delete Bucket and ec2:TerminateInstructions (with tag condition), using BoolIfExists condition of type \"aws:MultiFactorAuthPresent\": \"false\".",
+        "Configure the password policy IAM (IAM password policy) to require all users IAM enable MFA before logging into the console.",
+        "Enable AWS IAM Identity Center with a requirement for MFA for federated login in the access portal of the AWS.",
+        "Enable Amazon S3 Versioning and the protection against closure (Termination Protection) in all instances EC2 Production."
+      ],
+      "explanation": "The global condition aws:MultiFactorAuthPresent allows you to check, at the time of call from API, if the current session has been authenticated with MFA; a Deny instruction with BoolIfExists and this condition defined as false blocks the action specifically when the session does not have MFA, regardless of how the session was originally established, taking into account the verification requirement at the time of the action.",
+      "hint": "Search for the policy condition of the IAM which checks, at the exact moment of the call from API, if the current session has been authenticated with a second factor.",
+      "optionRationales": [
+        "The global condition aws:MultiFactorAuthPresent allows you to check, at the time of call from API, if the current session has been authenticated with MFA; a Deny instruction with BoolIfExists and this condition defined as false blocks the action specifically when the session does not have MFA, regardless of how the session was originally established, taking into account the verification requirement at the time of the action.",
+        "Require MFA in the console login ensures that the initial session is authenticated with MFA, but does not require a specific verification at the time of each call from API sensitive, nor does it apply to programmatic access via long-term access keys, which do not pass through the console login stream.",
+        "Require MFA in the federated login of the IAM Identity Center protects the initial establishment of the session, but does not prevent that session (or other sessions without MFA) perform specific destructive actions such as deleting production bucks or closing instances EC2, because there is no political condition linking the action to the presence of MFA in the sitting.",
+        "Version S3 and closure protection help to mitigate operational errors and allow recovery after accidental exclusions, but do not impose any requirement of MFA at the time of the action do not explicitly deny the operation for sessions without MFA."
+      ]
+    },
+    "saa-avc-036": {
+      "text": "A company hosts a static website in a pocket Amazon S3 fully private (with Block Public Access enabled) and distributes it through the Amazon CloudFront. The safety requirement is that the bucket NUNCA can be accessed directly through your URL of the S3 — even if someone discovers the name of the pocket — and that access is only possible through distribution CloudFront company specific. Which configuration meets this requirement without compromising the Block Public Access of the pocket?",
+      "options": [
+        "Configure Origin Access Control (OAC) in the distribution CloudFront for the S3 origin, and update the bucket policy to allow s3:GetObject only when the request comes from this specific distribution, using a condition with aws:SourceArn by reference to ARN of distribution.",
+        "Making the public newsletter with a policy that allows s3:GetObject for any major, trusting that users will only know the URL of the CloudFront.",
+        "Configure signed URLs no CloudFront, but leave the standard permissions of the bucket S3 unaltered (private, without additional policy for CloudFront).",
+        "Create a Bucket Policy that restricts access based on header HTTP Reference sent by requests originating from the CloudFront."
+      ],
+      "explanation": "A Origin Access Control (OAC) allows the CloudFront sign the requests to the S3 using SigV4; Bucket policy can then restrict s3:GetObject exclusively to requests signed by the distribution CloudFront specific (via aws:SourceArn), keeping Block Public Access enabled and ensuring that only CloudFront, and not the URL direct S3, get access to the objects.",
+      "hint": "Look for the modern mechanism that allows the CloudFront sign your requests to the S3, enabling the policy of the bucket to rely exclusively on this specific distribution.",
+      "optionRationales": [
+        "A Origin Access Control (OAC) allows the CloudFront sign the requests to the S3 using SigV4; Bucket policy can then restrict s3:GetObject exclusively to requests signed by the distribution CloudFront specific (via aws:SourceArn), keeping Block Public Access enabled and ensuring that only CloudFront, and not the URL direct S3, get access to the objects.",
+        "To make the newsletter public allows anyone who discovers the URL direct S3 (not just the URL of the CloudFront) access the objects directly, violating the explicit requirement that the bucket should never be accessible via your URL direct, besides requiring to disable the Block Public Access.",
+        "Without a Bucket Policy that explicitly grants read permission to CloudFront (way OAC or OAI), the private bucket would also deny access to itself CloudFront, resulting in denied access errors for end users and breaking the site.",
+        "Restricting access based on the Referer header is a legacy and easily bypassable technique, as this header can be falsified in direct requests to S3, not offering a security guarantee equivalent to the cryptographic signature of requests provided by Origin Access Control."
+      ]
+    },
+    "saa-avc-037": {
+      "text": "A company needs to establish encrypted connectivity between its data centre on-premises and a VPC the AWS for a new project with a need for moderate band (under 1.25 Gbps). Transit encryption is a mandatory requirement, and the company cannot wait for the typical time of provisioning of a dedicated physical circuit. What solution meets these requirements of term, band and encryption?",
+      "options": [
+        "Configure VPC Peering between the VPC of AWS and one VPC Emulated on-premises using VMware Cloud on AWS.",
+        "Establish a connection AWS Site-to-Site VPN between a customer gateway on-premises and a virtual private gateway (or Transit Gateway) the AWS, using IPsec tunnels on the public internet.",
+        "Provide a connection AWS Direct Connect and set up a VPN IPsec on a Virtual Private Interface (VPN over Direct Connect).",
+        "Provide a connection AWS Direct Connect with MACsec enabled to ensure encryption in the link layer."
+      ],
+      "explanation": "The AWS Site-to-Site VPN can be provided in minutes to hours, without depending on physical circuit installation, provides native IPsec encryption in transit over the public internet, and comfortably meets moderate bandwidth requirements (each tunnel supports up to approximately 1.25 Gbps), becoming the ideal option for fast and encrypted connectivity.",
+      "hint": "Compare the provisioning time of a dedicated physical connection to that of an encrypted tunnel established on the public internet.",
+      "optionRationales": [
+        "The AWS Site-to-Site VPN can be provided in minutes to hours, without depending on physical circuit installation, provides native IPsec encryption in transit over the public internet, and comfortably meets moderate bandwidth requirements (each tunnel supports up to approximately 1.25 Gbps), becoming the ideal option for fast and encrypted connectivity.",
+        "The AWS Direct Connect requires the provision of a physical cross-connect at a partner location, a process that typically takes weeks to months, which does not meet the requirement to establish connectivity in a few days, regardless of the support to encryption via MACsec.",
+        "This approach still depends on the physical provisioning of a connection Direct Connect as a prerequisite, maintaining the same problem from week to month, in addition to adding unnecessary complexity to a need for moderate band and short term.",
+        "VPC Peering connects VPCs inside the AWS (including VMware Cloud on environments AWS Accommodation in the AWS), but it's not the standard mechanism to connect a traditional on-premises data center to AWS, and does not solve the requirement of direct hybrid connectivity with encryption in transit."
+      ]
+    }
+  }
+}

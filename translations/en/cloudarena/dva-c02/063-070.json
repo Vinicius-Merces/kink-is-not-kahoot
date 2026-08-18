@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "063-070",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-063": {
+      "optionReasons": {
+        "dva-avc-063:option:0": "PrivateLink is not used to 'connect' one Lambda outside the VPC to RDS' in this way — does not eliminate the need for VPC for private access to the bank.",
+        "dva-avc-063:option:1": "It's the closest because it takes Lambda of VPC avoids the old cost of ENI by invocation — but connecting to RDS for INTERNET PUBLIC exposes the bank (violation of 'no public access'); the concern is already resolved: from 2019 o Lambda uses shared and preheated ENI (Hyperplane)).",
+        "dva-avc-063:option:2": "",
+        "dva-avc-063:option:3": "Provided Competition helps cold start in general, but it's NOT the 'one form' — the Hyperplane model has already eliminated the delay of ENI by summons."
+      },
+      "finalJustifications": [
+        "Because since 2019 o Lambda uses shared and preheated ENIs (Hyperplane): a ENI is created once by subnet combination/security group and reused — the delay of ENI by invocation practically disappeared.",
+        "Because connecting via the public internet uses shared and preheated ENIs (Hyperplane): a ENI is created once per subnet/SG and reused — the delay of ENI by invocation practically disappeared.",
+        "Because PrivateLink out of the VPC uses shared and preheated ENIs (Hyperplane): a ENI is created once per subnet/SG and reused — the delay of ENI by invocation practically disappeared.",
+        "Because Provided Competition uses shared and preheated ENIs (Hyperplane): a ENI is created once per subnet/SG and reused — the delay of ENI by invocation practically disappeared."
+      ]
+    },
+    "dva-avc-064": {
+      "optionReasons": {
+        "dva-avc-064:option:0": "CopyObject is not the atomic conditional creation of lock — and does not guarantee that only one invocation wins without overwriting.",
+        "dva-avc-064:option:1": "",
+        "dva-avc-064:option:2": "It's the closest because HeadObject→PutObject 'check before writing' — but it's just the VULNERABLE sequence the race: two Lambdas read 404 and both create the lock; create only if it does not exist, atomically, is the PutObject with If-None-Match: * (Conditional Writes of S3).",
+        "dva-avc-064:option:3": "Versioning lets you overwrite creating versions — the second PutObject happens too; check 'version 1' Then it's race, not atomic exclusion."
+      },
+      "finalJustifications": [
+        "Because PutObject with If-None-Match: * only creates the object if the key AINDA no exist: one invocation wins and the others fail with 412 — atomic lock, without the check-then-write race.",
+        "Because CopyObject with If-None-Match only creates the object if the key does not yet exist: one invocation wins and the others fail — atomic lock, without the check-then-write run.",
+        "Because the HeadObject followed by PutObject only creates the object if the key does not yet exist: one invocation wins and the others fail — atomic lock, without the check-then-write run.",
+        "Because Versioning only creates the object if the key does not yet exist: one invocation wins and the others fail — atomic lock, without the check-then-write run, by the version 1."
+      ]
+    },
+    "dva-avc-065": {
+      "optionReasons": {
+        "dva-avc-065:option:0": "",
+        "dva-avc-065:option:1": "It's the closest because it promises the syntax SQL family with traditional customer — but the DynamoDB does not expose driver JDBC/ODBC native to SQL; the way to consult it with syntax SQL-like it's the API ExecuteStatus (PartiQL)).",
+        "dva-avc-065:option:2": "A RDS Date API is for banks Aurora/RDS — does not perform queries against tables of DynamoDB.",
+        "dva-avc-065:option:3": "Export to S3 + Athena is heavy pipeline for quick ad-hoc consultation — PartiQL consults direct table."
+      },
+      "finalJustifications": [
+        "Because ExecuteStagement (PartiQL) rotates instructions SQL-like how SELECT * FROM \"Table\" WHERE ... = ? direct in the table — the family syntax without mounting KeyConditionLow level expression.",
+        "Because the driver JDBC/ODBC Turn instructions SQL-like how SELECT * FROM \"Table\" WHERE ... = ? direct in the table — the family syntax without mounting KeyConditionLow level expression.",
+        "Because the RDS Date API Turn instructions SQL-like how SELECT * FROM \"Table\" WHERE ... = ? direct in the table — the family syntax without mounting KeyConditionLow level expression.",
+        "Because Glue + Athena Turn instructions SQL-like how SELECT * FROM \"Table\" WHERE ... = ? direct in the table — the family syntax without mounting KeyConditionLow level expression."
+      ]
+    },
+    "dva-avc-066": {
+      "optionReasons": {
+        "dva-avc-066:option:0": "SendMessage direct to the row of each service concerned is point-to-point coupling — the opposite of the desired.",
+        "dva-avc-066:option:1": "Step Functions as a central orchestrator connects everything to the state machine — is not published/subscribes uncoupled.",
+        "dva-avc-066:option:2": "",
+        "dva-avc-066:option:3": "It's the closest because topics SNS with rows SQS per team ALSO uncouple consumer producers — but require a topic per service, limited filtering per attribute and do not route with rich patterns or between CONTAS flexible; a custom bus event of EventBridge with rules per team does all this."
+      },
+      "finalJustifications": [
+        "Because a custom bus event from EventBridge receives domain events (PutEvents) and each team creates their own Rules with event patterns — uncoupled, with independent rules and support for events from other accounts.",
+        "Because topics SNS by service receive the domain events and each team enters its row — uncoupled, with independent rules and support for events from other accounts via filters per attribute.",
+        "Because SendMessage directly to the queues receives the domain events and each team consumes its own — uncoupled, with independent rules and support for events from other routing accounts.",
+        "Because Step Functions central receives the domain events and each team defines its branch — disconnected, with independent rules and support for events from other accounts in the orchestration."
+      ]
+    },
+    "dva-avc-067": {
+      "optionReasons": {
+        "dva-avc-067:option:0": "Place the Lambda on a private subnet does not make the API PRIVADA — the endpoint of the API Gateway continues public.",
+        "dva-avc-067:option:1": "It's the closest because it tries to restrict the entrance of the API — but the API Gateway (Edge/Regional) is PUBLIC and does not use Security Group; blocking the internet with SG does not apply to it; make the API reachable only from within the VPC is the type of endpoint PRIVATE + VPC Interface Endpoint (PrivateLink) with resource policy by aws:Source.",
+        "dva-avc-067:option:2": "",
+        "dva-avc-067:option:3": "WAF by IP track filters requests — but the endpoint remains exposed on the internet, it is not actually private."
+      },
+      "finalJustifications": [
+        "Because the REST API Private is only reachable by VPC Interface Endpoint (PrivateLink) to execute-api, and the resource policy with aws:sourceVpce restricts to the endpoint of VPC — inaccessible via the Internet.",
+        "Because the REST API Regional Security Group is only reachable by VPC, and the resource policy with aws:sourceVpce restricts to the endpoint of VPC — inaccessible via the public internet.",
+        "Because the Lambda on private subnet is only reachable by VPC, and the resource policy with aws:sourceVpce restricts to the endpoint of VPC — inaccessible on the public internet, making the API Private.",
+        "Because WAF per IP range is only reachable by VPC, and the resource policy with aws:sourceVpce restricts to the endpoint of VPC — inaccessible on the public internet, making the API Private."
+      ]
+    },
+    "dva-avc-068": {
+      "optionReasons": {
+        "dva-avc-068:option:0": "",
+        "dva-avc-068:option:1": "KEYS_ONLY reduces the TAMANHO payload — but the function continues to be invoked for all records.",
+        "dva-avc-068:option:2": "It is the closest because the 'if' at the beginning of the function actually discards irrelevant records — but ONLY DEPOIS to invoke the function (the waste of invocations continues); evaluate the filter ANTES to invoke is the Filter Criteria in event source mapping.",
+        "dva-avc-068:option:3": "The DynamoDB Stream doesn't have 'FilterExpression' as a Query — event filtering is in the event source mapping."
+      },
+      "finalJustifications": [
+        "Because Filter Criteria in event source mapping home only NewImage.status = 'SHIPPED' and evaluate ANTES to invoke the function — only the relevant records trigger invocation, without waste.",
+        "Why change the view to KEYS_ONLY home only NewImage.status = 'SHIPPED' and evaluates before invoking the function — only relevant records trigger invocation, without waste.",
+        "Because the 'if' in the house function code only NewImage.status = 'SHIPPED' and evaluates before invoking the function — only the relevant records trigger invocation, without waste of resources.",
+        "Because the FilterExpression in Stream only houses NewImage.status = 'SHIPPED' and evaluates before invoking the function — only relevant records trigger invocation, without waste."
+      ]
+    },
+    "dva-avc-069": {
+      "optionReasons": {
+        "dva-avc-069:option:0": "Timeout 1s only does the function fail by time cut — does not control the retentatives or the age of the event.",
+        "dva-avc-069:option:1": "It's the closest because the DLQ captures the discarded event for monitoring — but keeping MaximumRetryAttempts and MaximumEventAge in the patterns lets notification be retained by HORAS before you go to DLQ (useless for something sensitive to minutes); reduce these limits and have OnFailure destination is the direct.",
+        "dva-avc-069:option:2": "Switching to synchronous transfers the retry to the caller — but the shot is from S3 (asynchronous); is not the direct configuration.",
+        "dva-avc-069:option:3": ""
+      },
+      "finalJustifications": [
+        "Why configure MaximumRetryAttempts low (0/1) and MaximumEventAge Low (60(s), for OnFailure/DLQ, quickly discards useless notification and still records the discarded event for monitoring.",
+        "Because the DLQ with MaximumRetryAttempts and MaximumEventAge standard quickly discards useless notification and records the discarded event for monitoring — without waiting for hours of retente.",
+        "Because the timeout of 1s quickly discards useless notification and records the discarded event for monitoring — without waiting for hours of retentive invocations asynchronous.",
+        "Why swapping for syncrona quickly discards useless notification and records the discarded event for monitoring — without waiting for hours of retentive invocations of the S3."
+      ]
+    },
+    "dva-avc-070": {
+      "optionReasons": {
+        "dva-avc-070:option:0": "Migratory to Kinesis changes the service and the semantics in line (visibility timeout), DLQ) — the requirement is to maintain the SQS.",
+        "dva-avc-070:option:1": "Gzip reduces a bit, but reports from several MBs still burst the 256 KB — does not guarantee fit.",
+        "dva-avc-070:option:2": "It's the closest because dividing and retrieving surrounds the limit of 256 KB — but requires logic of fragmentation/grouping and ordering in the consumer (more effort and risk); the least effort, maintaining the semantics of the SQS, is the SQS Extended Client Library, which uploads the payload to S3 and pass the reference.",
+        "dva-avc-070:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the SQS Extended Client Library automatically records large payloads in S3 and send to SQS only the reference, recovered by the consumer — supports megabytes maintaining the semantics of the SQS, with minimal effort.",
+        "Why migrate to the Kinesis record the big payloads in S3 and sends only the reference, recovered by the consumer — supports megabytes maintaining the semantics of the SQS, with minimal effort.",
+        "Why compress with gzip records large payloads in S3 and sends only the reference, recovered by the consumer — supports megabytes maintaining the semantics of the SQS, with minimal effort.",
+        "Because sharing in multiple messages records large payloads in S3 and sends only the reference, recovered by the consumer — supports megabytes maintaining the semantics of the SQS, with minimal effort."
+      ]
+    }
+  }
+}

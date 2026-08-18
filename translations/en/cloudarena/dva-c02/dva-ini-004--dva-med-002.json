@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-ini-004..dva-med-002",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-ini-004": {
+      "optionReasons": {
+        "dva-ini-004:option:0": "Relationship bank is the RDS — o SNS it's messaging.",
+        "dva-ini-004:option:1": "",
+        "dva-ini-004:option:2": "The confusion comes from the almost identical acronym (SNS × DNS) — That's what makes her the closest trap. DNS the AWS is the Route 53; o SNS is pub/sub messaging: distributes Notifications from a topic to multiple subscribers (e-mail, SMS, SQS, Lambda).",
+        "dva-ini-004:option:3": "Storage of objects is the S3 — o SNS does not store data, distributes messages."
+      },
+      "finalJustifications": [
+        "Because SNS is pub/sub: a publisher sends a message to the topic and all subscribers (SQS, Lambda, email, SMS) receive it — the fan-out.",
+        "Because SNS ensures order processing with rows FIFO by default, sequencing notifications between all subscribers.",
+        "Because SNS store messages published by 14 days, allowing new subscribers to reread the history of the topic.",
+        "Because SNS delivery of notifications by e-mail and SMS direct to end-users — integrations with SQS and Lambda require the EventBridge."
+      ]
+    },
+    "dva-ini-011": {
+      "optionReasons": {
+        "dva-ini-011:option:0": "The Direct Connect is dedicated network connectivity — monitors nothing.",
+        "dva-ini-011:option:1": "",
+        "dva-ini-011:option:2": "The AWS Artifact provides compliance reports from the AWS — non-metric collection.",
+        "dva-ini-011:option:3": "The Cognito authentic Application USERS — no metric collection or infrastructure logs."
+      },
+      "finalJustifications": [
+        "Because CloudWatch metric collection, log and event of resources and applications, with alarms and dashboards about these data.",
+        "Because CloudWatch automatically corrects the faults it detects, restarting degraded resources without manual intervention.",
+        "Because CloudWatch audit who called each API of the account, recording the actions of users for security investigation.",
+        "Because CloudWatch monitors exclusively instances EC2 — metrics of other services require agents of third parties."
+      ]
+    },
+    "dva-ini-001": {
+      "optionReasons": {
+        "dva-ini-001:option:0": "",
+        "dva-ini-001:option:1": "The CloudTrail records calls from API for audit — is not the native firing mechanism Lambda to each object created.",
+        "dva-ini-001:option:2": "The Route 53 It's DNS — does not observe cashet events.",
+        "dva-ini-001:option:3": "Manual call to the console is not automation — discards automatic drive requirement."
+      },
+      "finalJustifications": [
+        "Because S3 Event Notification triggers a Lambda automatically in the event s3:ObjectCreated, no polling or intermediate code.",
+        "Because S3 perform the function Lambda inside the pocket itself, processing the object directly at the location where it was recorded.",
+        "Because the notification of the S3 copy the new file to the local storage of Lambda, that processes it without needing to lower it from the pocket.",
+        "Because the event s3:ObjectCreated is optimized for media files, triggering processing as soon as upload completes."
+      ]
+    },
+    "dva-ini-005": {
+      "optionReasons": {
+        "dva-ini-005:option:0": "Keys in the source code leak with repository — the worst anti-standard credentials.",
+        "dva-ini-005:option:1": "Requesting credentials by email is manual, insecure and unheard of.",
+        "dva-ini-005:option:2": "",
+        "dva-ini-005:option:3": "Authentic console password PESSOAS in the browser — applications use programmatic credentials, and the role ones are temporary and automatic."
+      },
+      "finalJustifications": [
+        "Because the role attached via Forum Profile delivers temporary credentials by IMDS, with automatic rotation and no secret stored.",
+        "Because the Forum Profile encrypts the permanent access keys on the instance disk, protecting them from misreading.",
+        "Because the attached roller grants administrative access to the entire account, exempting the configuration of permissions per service.",
+        "Because IMDS block any other form of authentication in the instance, forcing applications to use only the attached roll."
+      ]
+    },
+    "dva-ini-006": {
+      "optionReasons": {
+        "dva-ini-006:option:0": "The KMS management CHAVES, no data: large data are encrypted outside it with data keys (envelope encryption)).",
+        "dva-ini-006:option:1": "",
+        "dva-ini-006:option:2": "Log monitoring is CloudWatch — o KMS is key management.",
+        "dva-ini-006:option:3": "The KMS supplement or IAM (key policies + IAM police) — does not replace it."
+      },
+      "finalJustifications": [
+        "Because KMS creates and protects CMKs and exposes encryption APIs — the encryption and deciphering application calling the service, without ever seeing the master key.",
+        "Because KMS keeps sensitive data encrypted within the keys themselves, serving as a managed secret safe of the application.",
+        "Because KMS rotates the key to each encryption request, preventing old data from being decrypted after a leak.",
+        "Because KMS intercepts recordings in S3 and no DynamoDB and ciphers in transit, without the application having to call API some."
+      ]
+    },
+    "dva-ini-097": {
+      "optionReasons": {
+        "dva-ini-097:option:0": "5xx are ERROS of server and require investigation — are never only informative.",
+        "dva-ini-097:option:1": "Saying that both are the fault of the server mixes classes: 4xx point to the CLIENTE (token, payload, limit), and it is this division that guides the sorting.",
+        "dva-ini-097:option:2": "4xx never mean success — indicate rejected request.",
+        "dva-ini-097:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the status class divides the investigation: 4xx lead to authentication, validation and throttling of the caller; 5xx lead backend — exceptions and timeouts.",
+        "Because the codes 4xx are generated exclusively by WAF By blocking suspicious requests — investigation begins with firewall rules.",
+        "Because the codes 5xx are transient by definition and disappear after automatic customer retry — only 4xx deserve research.",
+        "Because API Gateway converts all backend error into 4xx for the caller, so both classes point to customer problems."
+      ]
+    },
+    "dva-med-001": {
+      "optionReasons": {
+        "dva-med-001:option:0": "It is the closest because it is also a model of invocation of the Lambda with DLQ — But the ASSIGNRONA invocation is for absolved events (S3, SNS), without shard order guarantee; consume Kinesis in lot and in order by shard is the invocation by POLLING via event source mapping.",
+        "dva-med-001:option:1": "",
+        "dva-med-001:option:2": "Manual invocation by the console does not process stream — is unfeasible for continuous flow of records.",
+        "dva-med-001:option:3": "Synchronous invocation via API Gateway is for requests HTTP — do not consume shards from Kinesis in batch."
+      },
+      "finalJustifications": [
+        "Because Lambda consumes or Kinesis by polling (event source mapping), reading batch records by shard in the order in which they arrive — the model that preserves ordination within each shard.",
+        "Because Lambda consumes or Kinesis by asynchronous invocation with DLQ, reading batch records per shard in the order in which they arrive — the model that preserves the ordination within each shard.",
+        "Because Lambda consumes or Kinesis by manually invocation on the console, reading batch records per shard in the order in which they arrive — the model that preserves the ordination within each shard.",
+        "Because Lambda consumes or Kinesis by synchronous invocation API Gateway, reading batch records per shard in the order in which they arrive — the model that preserves ordination within each shard."
+      ]
+    },
+    "dva-med-002": {
+      "optionReasons": {
+        "dva-med-002:option:0": "Increasing capacity only avoids throttling — does not prevent concurrent writing on the same item.",
+        "dva-med-002:option:1": "DynamoDB Streams captures CHANGES after they occur — does not block the concurrent update.",
+        "dva-med-002:option:2": "",
+        "dva-med-002:option:3": "It is the closest because reading before writing seems to ensure that the value has not changed — but between Scan and writing OUTRO process can change the item (the exact condition of running); the atomic check at the time of writing is Conditional Write (ConditionExpression))."
+      },
+      "finalJustifications": [
+        "Because Conditional Write evaluates ConditionExpression atomically in writing: it only records if the item has not changed since reading — the running condition is eliminated without external lock.",
+        "Because the Scan before each writing evaluates the condition atomicly in writing: it only records if the item has not changed since reading — the running condition is eliminated without external lock.",
+        "Because increasing capacity evaluates the condition atomicly in writing: it only records if the item has not changed since reading — the running condition is eliminated without external lock.",
+        "Because DynamoDB Streams evaluates the condition atomicly in writing: only records if the item has not changed since reading — the running condition is eliminated without external lock."
+      ]
+    }
+  }
+}

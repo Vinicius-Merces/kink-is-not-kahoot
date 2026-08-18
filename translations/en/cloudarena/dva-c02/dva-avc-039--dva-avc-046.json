@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-039..dva-avc-046",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-039": {
+      "optionReasons": {
+        "dva-avc-039:option:0": "More memory does not change the payload limit of the asynchronous invocation (256 KB).",
+        "dva-avc-039:option:1": "",
+        "dva-avc-039:option:2": "Gzip reduces a little, but big lots still burst the 256 KB — and adds compression/decompression.",
+        "dva-avc-039:option:3": "It is the closest because the synchronous invocation accepts even 6 MB — but switch to RequestResponse changes the MODELO (the caller starts to wait/manage retentatives) and 6 MB can still be small for larger batches; the pattern that removes the limit is to raise the JSON to S3 and pass only the reference at the event."
+      },
+      "finalJustifications": [
+        "Why send the JSON to S3 and invoke Lambda asynchronous by passing only the reference (bucket/key) keeps the tiny event, and the function lowers the complete document of the S3 when performing — without the limit of 256 KB.",
+        "Because increasing memory keeps the event tiny, and the function lowers the full document of S3 when performing — without the limit of 256 KB of the asynchronous invocation of the Lambda.",
+        "Because compressing with gzip keeps the tiny event, and the function lowers the full document of S3 when performing — without the limit of 256 KB of the asynchronous invocation of the Lambda.",
+        "Because switching to synchronous invocation keeps the tiny event, and the function lowers the full document of S3 when performing — without the limit of 256 KB of asynchronous invocation."
+      ]
+    },
+    "dva-avc-040": {
+      "optionReasons": {
+        "dva-avc-040:option:0": "",
+        "dva-avc-040:option:1": "WAF inspects safety/attack patterns — does not validate mandatory body field scheme JSON.",
+        "dva-avc-040:option:2": "Increasing the timeout does not prevent wasted invocation — the Lambda still spins to reject.",
+        "dva-avc-040:option:3": "It's the closest because a Lambda Wheel Authorizer ANTES of the main function and could inspect the body — but autorizers are for AUTHORIZATION (and the REQUEST authorizer does not always receive the body), and remains an invocation of Lambda pay; reject bad payload without invoking Lambda is the Request Validator with JSON Scheme."
+      },
+      "finalJustifications": [
+        "Because the Request Validator with a Model of JSON Scheme does the API Gateway reject the malformed body with 400 ANTES to invoke the Lambda — requests faded to fail do not consume invocation.",
+        "Because the rule of WAF does the API Gateway reject the malformed body with 400 before invoking the Lambda — the requests faded to fail do not consume invocation of the function.",
+        "Because increasing the timeout does the API Gateway reject the malformed body with 400 before invoking the Lambda — the requests faded to fail do not consume invocation of the function.",
+        "Because Lambda Authorizer does the API Gateway reject the malformed body with 400 before invoking the Lambda main — failed requests do not consummate its invocation."
+      ]
+    },
+    "dva-avc-041": {
+      "optionReasons": {
+        "dva-avc-041:option:0": "It's the closest because GetItem→PutItem seems to check for existence — but there's a window between reading and writing: two competing requests with the same UserId read 'empty' and both record; the atomic verification on the server is ConditionExpression attribute_not_exists in PutItem itself.",
+        "dva-avc-041:option:1": "PITR allows to restore later — no IMPEDE the silent overwriting at the time of competition.",
+        "dva-avc-041:option:2": "UpdateItem without ConditionExpression also overwrites existing attributes — does not prevent collision.",
+        "dva-avc-041:option:3": ""
+      },
+      "finalJustifications": [
+        "Because ConditionExpression attribute_not_exists(UserId) in PutItem makes the call FALHAR (ConditionalCheckFailedException) if the key already exists — the second concurrent user does not overwrite the first.",
+        "Because GetItem before PutItem makes the call fail if the key already exists — the second concurrent user does not overwrite the first, even under simultaneous traffic.",
+        "Because PITR in the table makes the call fail if the key already exists — the second concurrent user does not overwrite the first, even under simultaneous traffic.",
+        "Because the unconditional UpdateItem makes the call fail if the key already exists — the second concurrent user does not overwrite the first, even under simultaneous traffic."
+      ]
+    },
+    "dva-avc-042": {
+      "optionReasons": {
+        "dva-avc-042:option:0": "REST API + WAF adds cost and a layer that the requirement says NOT to need.",
+        "dva-avc-042:option:1": "",
+        "dva-avc-042:option:2": "It's the closest because a Lambda Authorise in REST API ALSO validates the JWT of the Cognito — but adds an invocation of Lambda by request (cost and latency) and REST API is more expensive; the lowest cost/latence without advanced resources is the HTTP API with JWT Authorizer NATIVO.",
+        "dva-avc-042:option:3": "AppSync/GraphQL is another platform (more features and cost) — too much to validate JWT one API REST single."
+      },
+      "finalJustifications": [
+        "Because the HTTP API with JWT native authorizer (configured with issuer and audience of Cognito) validates the token automatically by request, without invoking Lambda — the lower cost and latency for the simple scenario.",
+        "Because the REST API with Lambda Authorizer validates the token of Cognito by request without invoking Lambda extra — the lowest cost and latency for the simple scenario of the mobile application.",
+        "Because the REST API with WAF validates the token of Cognito by automatically requisitioning — the lowest cost and latency for the simple scenario of the mobile application, without advanced resources.",
+        "Because AppSync with Cognito validates the token by automatically requisitioning — the lower cost and latency for the simple scenario of the mobile application, without transformation or API Keys."
+      ]
+    },
+    "dva-avc-043": {
+      "optionReasons": {
+        "dva-avc-043:option:0": "EventBridge has no 'time window of 24h per event's like this — it's not the flow waiting mechanism.",
+        "dva-avc-043:option:1": "It's the closest because the SQS DelaySeconds also postpones processing — but the maximum of DelaySeconds is 15 minutes (900(s), not 24 hours; pause for up 24h natively is the Wait state of Step Functions with TimestampPath/SecondsPath.",
+        "dva-avc-043:option:2": "",
+        "dva-avc-043:option:3": "Thread.sleep from 24h one Lambda pops the timeout of 15 min (and costs the entire execution) — unfeasible."
+      },
+      "finalJustifications": [
+        "Because the Wait state with TimestampPath (creation + 24h) pause execution by up 24 hours without anything rolling, and then transit to check the status of the request and cancel it if not paid.",
+        "Because SQS with DelaySeconds=86400 pause execution by up 24 hours without anything rolling, and then transit to check the status of the request and cancel it if not paid.",
+        "Because EventBridge with window 24h pauses execution by up 24 hours without anything rolling, and then transit to check the status of the request and cancel it if not paid.",
+        "Because the thread.sleep of 24h Lambda pause execution by up 24 hours without anything rolling, and then transit to check the status of the request and cancel it if not paid."
+      ]
+    },
+    "dva-avc-044": {
+      "optionReasons": {
+        "dva-avc-044:option:0": "It's the closest because Streams + Lambda REALMENTE would replicate the changes to Region B — but it is to reimplement in hand the multi-region replication (without multi-master conflict resolution, with code to be maintained and risk of loop); native multi-active replication between regions is the DynamoDB Global Tables.",
+        "dva-avc-044:option:1": "DAX is read cache in a region — does not replicate data or accept written in the second region.",
+        "dva-avc-044:option:2": "Backup/restore periodic gives outdated copies — is not continuous multi-master replication of low latency.",
+        "dva-avc-044:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Global Tables replicate the table between regions in multi-active mode (multi-master): written in any region spread to the other in less than a second, with local reading/writing and resilience to regional failure.",
+        "'Cause Streams with Lambda replicates the table between regions in multi-active mode: written in any region spread to the other in less than a second, with local reading/writing and regional resilience.",
+        "Because DAX in the second region replicates the table between regions in multi-active mode: written in any region spread to the other in less than a second, with local reading/writing.",
+        "Because restored on-demand backups replicate the table between regions in multi-active mode: written in any region spread to the other in less than a second, with local reading/writing."
+      ]
+    },
+    "dva-avc-045": {
+      "optionReasons": {
+        "dva-avc-045:option:0": "Make the provider call lambda:InvokeFunction requires distribution of credentials IAM third party — insecure and unusual for webhook.",
+        "dva-avc-045:option:1": "ALB with target Lambda serves larger cases (rotation, health checks) — overhead for a single webhook.",
+        "dva-avc-045:option:2": "",
+        "dva-avc-045:option:3": "It's the closest because the REST API with proxy Lambda REALMENTE creates the endpoint HTTPS which invokes the function — but brings resources (stages, authorizations, mappings) that the scenario says DO NOT need, with more cost/config; for a single direct endpoint to the function, the Function URL is the minimum sufficient."
+      },
+      "finalJustifications": [
+        "Because the Function URL give an endpoint HTTPS dedicated that invokes the function directly, with the appropriate type of authentication — the minimum sufficient for webhook, without extra resources.",
+        "Because lambda:InvokeFunction gives a direct endpoint that invokes the function with the appropriate authentication type — the minimum sufficient for webhook, without extra resources of API.",
+        "Because ALB with target Lambda give an endpoint HTTPS dedicated that invokes the function directly — the minimum sufficient for the webhook, without extra resources of API Gateway.",
+        "Because the REST API with proxy Lambda give an endpoint HTTPS dedicated that invokes the function directly — the minimum sufficient for webhook, without extra routing resources."
+      ]
+    },
+    "dva-avc-046": {
+      "optionReasons": {
+        "dva-avc-046:option:0": "It's the closest because the more shards increase total capacity — but it doesn't solve the distribution: how the partition key has only 3 values, hash maps to the maximum 3 shards, leaving the others 17 and the 'view' throttled; distribute well requires a key of ALTA CARDINALIDADE (ex: userId).",
+        "dva-avc-046:option:1": "",
+        "dva-avc-046:option:2": "Enhanced fan-out gives throughput dedicated by CONSUMIDOR — does not correct the distribution of ESCRITA between shards.",
+        "dva-avc-046:option:3": "Change for SQS Standard changes architecture (without ordered shards) — is not the partition key setting."
+      },
+      "finalJustifications": [
+        "Because a key of high cardinality like userId spreads the records across all the shards in the hash of Kinesis — the key to 3 values mapped to the maximum 3 shards, causing the hot shard and the throttle.",
+        "Why increase from 10 for 20 shards spreads the records through all the shards in the hash of Kinesis — the key to 3 values mapped to the maximum 3 shards, causing the hot shard and the throttle.",
+        "Because the enhanced fan-out spreads the logs through all the shards in the hash of Kinesis — the key to 3 values mapped to the maximum 3 shards, causing the hot shard and the throttle.",
+        "♪ 'Cause trade for ♪ SQS Standard spreads the records through all the shards in the hash of Kinesis — the key to 3 values mapped to the maximum 3 shards, causing the hot shard and the throttle."
+      ]
+    }
+  }
+}

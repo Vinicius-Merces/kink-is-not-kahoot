@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-med-051..dva-med-058",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-051": {
+      "optionReasons": {
+        "dva-med-051:option:0": "One table per non-scale user (thousands of tables, account limits) — unfeasible.",
+        "dva-med-051:option:1": "It's the closest because you grant access and filter in the 'limit' code each user — but the credentials would have access TOTAL to the table: a bug or direct call exposes items from others; restricting in the permission itself is the condition dynamodb:LeadingKeys linked to the sub of Cognito.",
+        "dva-med-051:option:2": "Encrypting with user password does not control ACESSO per line — and managing key per password is fragile.",
+        "dva-med-051:option:3": ""
+      },
+      "finalJustifications": [
+        "Because politics IAM of the role of Identity Pool dynamodb:LeadingKeys = ${cognito-identity.amazonaws.com:sub} restricts each user to its own items — direct granular access, no intermediate backend.",
+        "Because granting full access and filtering in the code restricts each user to its own items via dynamodb:LeadingKeys connected to the sub of Cognito — direct granular access, no intermediate backend.",
+        "Because a table per user restricts each to its own items via dynamodb:LeadingKeys connected to the sub of Cognito — direct granular access, no intermediate backend in the application.",
+        "Because encrypting with the user password restricts each to its own items via dynamodb:LeadingKeys connected to the sub of Cognito — direct granular access, no intermediate backend."
+      ]
+    },
+    "dva-med-052": {
+      "optionReasons": {
+        "dva-med-052:option:0": "It's the closest because rest cryptography is also cryptography of RDS — but she protects the data in DISCO, NOT CONNECTIONS in transit: no force TLS neither rejects connection without encryption; obliges TLS on the side of the bank is rds.force_sl=1 in the parameter group.",
+        "dva-med-052:option:1": "Public subnet does not do the RDS use HTTPS — bank doesn't speak HTTP; and exposes the RDS unnecessarily.",
+        "dva-med-052:option:2": "Ask 'remember' to use TLS is not technical imposition — a connection without TLS would pass.",
+        "dva-med-052:option:3": ""
+      },
+      "finalJustifications": [
+        "Because rds.force_sl=1 in the parameter group does the RDS REJEITAR connections without TLS, and the customer validates with the CA certificate of AWS — compulsory transit encryption on the side of the bank.",
+        "Because rest cryptography does the RDS reject connections without TLS, and the customer validates with the CA certificate of AWS — compulsory transit encryption on the side of the bank.",
+        "Because the public subnet does the RDS reject connections without TLS, and the customer validates with the CA certificate of AWS — compulsory transit encryption on the side of the database.",
+        "Because asking developers does the RDS reject connections without TLS, and the customer validates with the CA certificate of AWS — compulsory transit encryption on the side of the bank."
+      ]
+    },
+    "dva-med-053": {
+      "optionReasons": {
+        "dva-med-053:option:0": "It is the closest because copying the secret eliminates the call by invocation — but keeping it in environment variable in TEXTO CLARO exposes the credentials and does not accompany rotations; maintaining security by reducing calls is cache in memory with TTL (or a Secrets Lambda Extension).",
+        "dva-med-053:option:1": "Disconnecting rotation weakens security — and it's not what reduces search latency.",
+        "dva-med-053:option:2": "Recording the secret in the source code is design leak — never acceptable.",
+        "dva-med-053:option:3": ""
+      },
+      "finalJustifications": [
+        "Because look for the secret in the initialization (out of the handler) and cache in memory with TTL — or use Secrets Lambda Extension — Reduces calls from API maintaining safety and capturing rotations.",
+        "Because copying the secret to environment variable in clear text reduces calls from API keeping security and capturing rotations — local cache avoids invocation search.",
+        "Because shutting down the secret rotation reduces calls from API maintaining security and capturing rotations — local cache avoids invocation search in function Lambda.",
+        "Because recording the secret in the code reduces calls from API maintaining security and capturing rotations — local cache avoids invocation search in function Lambda."
+      ]
+    },
+    "dva-med-054": {
+      "optionReasons": {
+        "dva-med-054:option:0": "The hierarchy of names does not replicate parameters between regions — it's just logical organization.",
+        "dva-med-054:option:1": "",
+        "dva-med-054:option:2": "It's the closest because organized paths 'help' security — but names hard to guess is security by darkness, not control: any roller with wide permission would still read everything; the real benefit of the hierarchy is granting permission POR CAMINHO in politics IAM.",
+        "dva-med-054:option:3": "Hierarchy does not automatically encrypt — encryption is the SecureString type, regardless of the path."
+      },
+      "finalJustifications": [
+        "Because the hierarchy allows to grant by way: the dev role only arn:...parameter/app/dev/* and does not see the parameters of production — less privilege by environment.",
+        "Because the hierarchy with long names hard to guess allows the dev roll to access only /app/dev/* and not even see production — less privilege by environment via darkness.",
+        "Because the hierarchy replicates the parameters between regions and allows the dev role to access only /app/dev/* without seeing production — less privilege by environment.",
+        "Because the hierarchy automatically encrypts and allows the dev roll to access only /app/dev/* without seeing production — less privilege by environment via encryption."
+      ]
+    },
+    "dva-med-055": {
+      "optionReasons": {
+        "dva-med-055:option:0": "",
+        "dva-med-055:option:1": "It's the closest because execution roll is really an infrastructure roll — but it's NOT the developers: it's used by AGENTE of the ECS to pull the image of ECR and send logs; the role of the Application Code (access S3/DynamoDB) It's the task roll..",
+        "dva-med-055:option:2": "They are not the same role — they have distinct purposes (app code vs. ECS).",
+        "dva-med-055:option:3": "The role task exists in both launch types (EC2 and Fargate) — is not exclusive to EC2."
+      },
+      "finalJustifications": [
+        "Because the role task gives permissions to the application code (ex.: S3/DynamoDB) and the execution roll is used by AGENTE of the ECS to pull the image of ECR and send logs to CloudWatch.",
+        "Because the task roll gives permissions to the application code and the execution roll is that of the developers who deploy, used to pull the image of the ECR and send logs to CloudWatch.",
+        "Because the task roll and the execution roll are the same with different names: both give permission to the code and agent to pull the image of the ECR and send logs to CloudWatch.",
+        "Because the task rolls (just not EC2 launch type) gives permissions to the code and the execution roll is used by the agent of ECS to pull the image of ECR and send logs to CloudWatch."
+      ]
+    },
+    "dva-med-056": {
+      "optionReasons": {
+        "dva-med-056:option:0": "Security Group does not apply to rows SQS (managed service without ENI) — And it doesn't encrypt anything..",
+        "dva-med-056:option:1": "",
+        "dva-med-056:option:2": "Base64 is encryption, not encryption — does not protect data or generate key audit.",
+        "dva-med-056:option:3": "It's the closest because it associates the queue with encryption — but the statement is FALSA: the row FIFO NOT 'standard encryption with customer key'; rest encryption with customer key and audit has just enabled SSE-KMS with a customer managed key in the queue."
+      },
+      "finalJustifications": [
+        "Why Enable SSE-KMS in the row with a customer managed key encrypts the messages at rest under customer key, and the use of the key is recorded in the CloudTrail — meets both requirements.",
+        "Why narrow the line by Security Group encrypts the messages at rest under customer key, and the use of the key is recorded in CloudTrail — meets both safety requirements.",
+        "Because encrypting each message with Base64 protects the messages at rest under customer key, and the use of the key is recorded in CloudTrail — meets both safety requirements.",
+        "Why use a line FIFO encrypts the messages at rest under customer key, and the use of the key is recorded in CloudTrail — meets both policy security requirements."
+      ]
+    },
+    "dva-med-057": {
+      "optionReasons": {
+        "dva-med-057:option:0": "",
+        "dva-med-057:option:1": "It's the closest because politics IAM in account B is half of the answer — but access CROSS-ACCOUNT to S3 requires DUAS tips: without the billet policy of account A authorizing the main account B, the recording is denied even with the IAM correct policy.",
+        "dva-med-057:option:2": "Making the newsletter public exposes the data to anyone — loses control that the A account wants to keep.",
+        "dva-med-057:option:3": "Share account key accesses The dowry's credentials — the opposite of controlled access by role."
+      },
+      "finalJustifications": [
+        "Because cross-account access requires both ends: the A-account pocket policy authorizes the roll of the B-account, and the IAM in account B allows the shares S3 no ARN of the pocket.",
+        "Because only politics IAM in account B enough: without touching the pocket, the roll of account B already records the objects, because the IAM policy allows actions S3 no ARN of the pocket.",
+        "Because making the bucket public during the recordings is enough: with the IAM policy of account B in shares S3, the roll records the objects without the A-account pocket policy.",
+        "Why share A account key accesses enough: with the IAM policy of account B in shares S3, the application saves objects using the credentials of the donate account."
+      ]
+    },
+    "dva-med-058": {
+      "optionReasons": {
+        "dva-med-058:option:0": "The APIs of AWS do not use Basic Auth with console user/password — use SigV4 signature.",
+        "dva-med-058:option:1": "HTTPS protects transport, but does NOT authenticate the caller — the request needs to be signed.",
+        "dva-med-058:option:2": "It's the closest because it involves the Secret Access Key, which is used in authentication — but SENDING it in clear text in a header exposes the credentials and it's not like AWS authentic; the process is SigV4, which DERIVA a signature key and signs the canonical hash of the request, without transmitting the secret.",
+        "dva-med-058:option:3": ""
+      },
+      "finalJustifications": [
+        "Because SigV4 derives a signature key from credentials and signs the canonical hash of the request (method, path, headers, payload) with date/hour — without conveying the secret in clear.",
+        "Because Basic Auth derives a signature key from credentials and signs the canonical hash of requisition (method, path, headers, payload) with date/hour — without transmitting the secret.",
+        "Because HTTPS only derives a signature key from credentials and signs the canonical hash of the request (method, path, headers, payload) with date/hour — without transmitting the secret.",
+        "Because sending the Secret Access Key derives a signature key from credentials and signs the canonical hash of requisition (method, path, headers, payload) with date/hour — without transmitting the secret."
+      ]
+    }
+  }
+}

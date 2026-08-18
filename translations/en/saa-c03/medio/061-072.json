@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "061-072",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-061": {
+      "text": "A bus from Amazon EventBridge route request events for several consumers. After a bug in a consumer has processed events incorrectly for hours, the team wants power REPROCESSAR past events on demand. EventBridge enable it?",
+      "options": [
+        "EventBridge Scheduler with cron expressions",
+        "File events (archive) and use the replay to send them back to the bus when necessary",
+        "Ask the systems of origin to manually resend everything",
+        "Increase the number of bus rules"
+      ],
+      "explanation": "The EventBridge allows you to archive events with configurable retention and play them (replay) to the bus in a selected time window — enabling reprocessing after bug fixes.",
+      "hint": "Save the event movie and be able to play again: file + replay.",
+      "optionRationales": [
+        "The EventBridge allows you to archive events with configurable retention and play them (replay) to the bus in a selected time window — enabling reprocessing after bug fixes.",
+        "Scheduler triggers events at scheduled times — does not store or reproduce historic bus events.",
+        "More rules create more routes for events NOVOS — They don't get back those who've passed.",
+        "Depending on sending back the origins is fragile and not always possible — the filing in the bus eliminates that dependence."
+      ]
+    },
+    "saa-med-062": {
+      "text": "A table of the DynamoDB which records accesses from a site uses as partition key the date of the day (ex: '2026-06-11'). At peak times, requests undergo throttling even with excess capacity in the table. What is the likely cause and recommended correction?",
+      "options": [
+        "The table needs more global secondary indices to increase the throughput",
+        "All the writings of the day fall into the same partition (hot partition); the correction is to use a high cardinality partition key that distributes access evenly",
+        "The DynamoDB does not support writing at peak times",
+        "Failed to enable table versioning"
+      ],
+      "explanation": "Low cardinality keys concentrate traffic in few partitions, bursting the limit per partition even with free aggregate capacity; well distributed keys (e.g. user ID, or shard suffix date) spread the load.",
+      "hint": "If everyone hits the same 'gavette' (the same key value), the drawer heats up — distributes the beats.",
+      "optionRationales": [
+        "Low cardinality keys concentrate traffic in few partitions, bursting the limit per partition even with free aggregate capacity; well distributed keys (e.g. user ID, or shard suffix date) spread the load.",
+        "GSIs serve to consult for alternative attributes — do not increase the hot partition limit of the base table.",
+        "The DynamoDB scale to millions of requests per second — the scenario gargalo is key design, not service.",
+        "No table version in DynamoDB — the concept does not apply to the load distribution problem."
+      ]
+    },
+    "saa-med-063": {
+      "text": "An application needs to consult items from DynamoDB for an attribute that is not the primary key (e.g. search for requests by e-mail of the client), and today makes full scan of the table, becoming slow and expensive. Which feature solves these queries efficiently?",
+      "options": [
+        "Create a Global Secondary Index (GSI) with the email as partition key and consult the index with Query",
+        "Increase reading capacity to speed up Scans",
+        "Enable PITR in the table",
+        "Migrate data to S3 and use object listing"
+      ],
+      "explanation": "The GSI materializes a view of the table with another key, allowing Query directly by the alternative attribute — eliminating the Scan, which reads the entire table to each search.",
+      "hint": "To ask 'for another field' without sweeping everything, create a second 'entry door' indexed in the table.",
+      "optionRationales": [
+        "The GSI materializes a view of the table with another key, allowing Query directly by the alternative attribute — eliminating the Scan, which reads the entire table to each search.",
+        "More ability makes the Scan faster, but continues to read (and charge by) the entire table at each query — structural inefficiency.",
+        "PITR is continuous backup for restoration — does not improve query patterns.",
+        "List of S3 is not an attribute-indexed query mechanism — would swap a Scan for a worse one."
+      ]
+    },
+    "saa-med-064": {
+      "text": "An auction application uses DynamoDB it needs to reduce the latency of intensely repeated readings (high-pittens) of ~5 ms for microseconds. DAX and ElastiCache, why the DAX is the option of least effort in this case?",
+      "options": [
+        "Because DAX is free, unlike ElastiCache",
+        "Because ElastiCache can't store bank items NoSQL",
+        "Because DAX also accelerates consultations of the RDS and Redshift",
+        "Because DAX is compatible with the API of the DynamoDB: simply point the client to the cluster, without rewriting the application cache logic"
+      ],
+      "explanation": "The DAX acts as a transparent write-through/read-through cache with the same API of the DynamoDB; ElastiCache would require manually implementing popular logic, invalidate and check the cache.",
+      "hint": "The accelerator's talking. DynamoDB' natively — generic cache requires you to write the conversation.",
+      "optionRationales": [
+        "The DAX acts as a transparent write-through/read-through cache with the same API of the DynamoDB; ElastiCache would require manually implementing popular logic, invalidate and check the cache.",
+        "The DAX is exclusive to DynamoDB — does not serve other banks.",
+        "ElastiCache stores any serializable data, including items NoSQL — the difference is the integration effort, not the capacity.",
+        "The DAX is charged by cluster knot, like ElastiCache — cost is not the differential."
+      ]
+    },
+    "saa-med-065": {
+      "text": "A cluster Aurora MySQL has a record label and three read replicas. The application sends all queries (read and write) to the record label endpoint cluster, wasting the replicas. What setting automatically distributes the readings between the replicas?",
+      "options": [
+        "Increase the size of the record label",
+        "Direct reading queries to the cluster endpoint reader, which balances the connections between the available replicas",
+        "Configure replicas to accept written",
+        "Create a Network Load Balancer in front of the replicas"
+      ],
+      "explanation": "The Aurora provides an endpoint reader that distributes connections between the cluster replicas automatically — just the application separates the reading traffic for that endpoint.",
+      "hint": "The cluster has two 'telephones': one of the headline (written) and one that plays rolling between the readers.",
+      "optionRationales": [
+        "The Aurora provides an endpoint reader that distributes connections between the cluster replicas automatically — just the application separates the reading traffic for that endpoint.",
+        "Not necessary: the Aurora already offers the reading endpoint with native balancing, without cost and maintenance of NLB.",
+        "Replicas Aurora are only reading — only the promotion in failover changes this role.",
+        "Climbing vertically the label does not use idle replicas — keeps waste and cost."
+      ]
+    },
+    "saa-med-066": {
+      "text": "The cache hit ratio of a distribution of CloudFront is low: the origin is being frequently consulted even for content that rarely changes. The analysis showed that the requests include irrelevant query string parameters (e.g. marketing tracking IDs) that vary at each access. What optimization increases the use of cache?",
+      "options": [
+        "Enable geographical restriction in Edge Locations",
+        "Reduce or TTL to zero and revalidate everything at source",
+        "Adjust the cache policy to exclude irrelevant parameters from the key cache, keeping only those that really change the content",
+        "Remove distribution and serve directly from S3"
+      ],
+      "explanation": "Each combination of key cache values generates a distinct cache input; removing parameters that do not affect the response makes equivalent requests share the same input, raising the hit ratio and relieving the source.",
+      "hint": "If each visit carries a 'different crack' in URL, the cache thinks it's new content — teach it to ignore the badge.",
+      "optionRationales": [
+        "Each combination of key cache values generates a distinct cache input; removing parameters that do not affect the response makes equivalent requests share the same input, raising the hit ratio and relieving the source.",
+        "TTL zero eliminates cache — multiplys the departures to the source, the opposite of the target.",
+        "Open the hand CDN increase global latency and load at origin — does not optimize anything.",
+        "Geo restriction controls QUEM access content — does not influence cache usage."
+      ]
+    },
+    "saa-med-067": {
+      "text": "Consultations of the Amazon Athena about a data lake in S3 are slow and expensive because they sweep terabytes of files CSV the data organization optimizations drastically reduce the volume swept by query.?",
+      "options": [
+        "Increase file size CSV to reduce the number of objects",
+        "Run queries at times of lower traffic",
+        "Move Data Lake to Volumes EBS major",
+        "Share data by date in S3 and convert the files to compressed columning format as Parquet"
+      ],
+      "explanation": "Partitions allow the Athena skip directories out of the filter (partition pruning), and columnary formats like Parquet read only the columns consulted with compression — together, reduce the scan (and the cost per TB swept) in order of magnitude.",
+      "hint": "Two levers: skip whole folders (partitions) and read only the necessary columns (column format).",
+      "optionRationales": [
+        "Partitions allow the Athena skip directories out of the filter (partition pruning), and columnary formats like Parquet read only the columns consulted with compression — together, reduce the scan (and the cost per TB swept) in order of magnitude.",
+        "Consolidating files helps marginally, but the CSV continues to require reading of all columns and periods without partitions.",
+        "The Athena see data in S3 — EBS is not part of this architecture.",
+        "The time does not change the swept data volume — the cost and slowness would remain."
+      ]
+    },
+    "saa-med-068": {
+      "text": "A telemetry platform needs to ingest millions of events per second of IoT devices, preserving order per device and allowing multiple applications to read the MESMO parallel data flow (real-time analytics and archiving). Which service meets these streaming requirements?",
+      "options": [
+        "AWS Step Functions with parallel executions",
+        "Amazon Kinesis Data Streams, with shards that preserve order by partition key and multiple consumers reading the same stream",
+        "Amazon SNS with delivery by e-mail",
+        "Amazon SQS Standard with several consumers"
+      ],
+      "explanation": "The Kinesis Data Streams is the high-throughput streaming service: it orders key records inside the shard and allows several independent consumers to process the same stream — unlike the SQS, where each message is consumed once.",
+      "hint": "Fila delivers and erases; STREAM keeps the flow for several readers rewind — what service is the data river?",
+      "optionRationales": [
+        "The Kinesis Data Streams is the high-throughput streaming service: it orders key records inside the shard and allows several independent consumers to process the same stream — unlike the SQS, where each message is consumed once.",
+        "No. SQS, each message is delivered to a consumer and is removed from the queue — there is no rereading of the flow by multiple applications, nor order guaranteed in the Standard.",
+        "SNS distributes push notifications, without retention for orderly reprocessing of millions of events per second by multiple readers.",
+        "Step Functions orchestrate workflows — is not a high volume streaming intake platform."
+      ]
+    },
+    "saa-med-069": {
+      "text": "A gp3 volume of 500 GB serves a database that has become 10.000 IOPS. The administrator recalled that, in the previous generation (gp2), it would be necessary to increase the volume size to gain IOPS. What has changed in gp3 that avoids this waste?",
+      "options": [
+        "No. gp3, IOPS and throughput are provided independently of volume size",
+        "The gp3 delivery IOPS unlimited for any volume",
+        "The gp3 is only available for bare metal instances",
+        "Gp3 requires migration to Forum Store first"
+      ],
+      "explanation": "The gp3 uncouples capacity performance: it is possible to provide up to 16.000 IOPS and 1.000 MB/s without increasing volume — in gp2, performance scaled with size, forcing purchase of unnecessary space.",
+      "hint": "The great evolution of gp3: buy performance and space on separate shelves.",
+      "optionRationales": [
+        "The gp3 uncouples capacity performance: it is possible to provide up to 16.000 IOPS and 1.000 MB/s without increasing volume — in gp2, performance scaled with size, forcing purchase of unnecessary space.",
+        "The gp3 has a roof of 16.000 IOPS by volume — above that, the io2 family is the way.",
+        "There is no intermediate step: gp2 volumes can be modified to gp3 directly, including online.",
+        "The gp3 works with virtually all types of instance EC2 based on Nitro and Xen — no bare metal restriction."
+      ]
+    },
+    "saa-med-070": {
+      "text": "A scientific simulation cluster uses MPI with intensive communication between dozens of instances EC2, and the traditional network became gargalo: the precise application of inter-us communication latency close to that of a cluster HPC local, with bypass of the operating system. AWS meets this requirement?",
+      "options": [
+        "Elastic Fabric Adapter (EFA), combined with cluster placement group",
+        "AWS VPN between the instances",
+        "Elastic IP in each cluster node",
+        "CloudFront in front of the cluster"
+      ],
+      "explanation": "The EFA is the network interface for HPC allowing kernel bypass (OS-bypass) for communication MPI of very low latency; together with the cluster placement group, approaches the performance of interconnections HPC dedicated.",
+      "hint": "To MPI 'speak directly to the board' without going through the operating system, AWS created a special mesh adapter.",
+      "optionRationales": [
+        "The EFA is the network interface for HPC allowing kernel bypass (OS-bypass) for communication MPI of very low latency; together with the cluster placement group, approaches the performance of interconnections HPC dedicated.",
+        "static public IPs do not alter the latency of internal communication between instances.",
+        "VPN adds cryptography and overhead — would increase latency instead of reducing it.",
+        "CDN serves end-user content — irrelevant for communication MPI between computational nodes."
+      ]
+    },
+    "saa-med-071": {
+      "text": "A corporate partner requires that the API the company is exposed with fixed IP addresses for release on its firewall, and the protocol is TCP pure with millions of simultaneous connections and minimum latency. Which balancer meets these two native requirements?",
+      "options": [
+        "Route 53 with fixed A records for the instances",
+        "Network Load Balancer, operating in the layer 4 with very high performance and offers a static IP (or Elastic IP) by Availability Zone",
+        "Classic Load Balancer",
+        "Application Load Balancer with routing rules on the way"
+      ],
+      "explanation": "The NLB combines the two requirements: extreme throughput with ultra low latency in TCP/UDP and static IP addresses by AZ — something that ALB does not offer (variable IPs behind DNS).",
+      "hint": "Fixed IP by zone + layer 4 + million connections: the signature of which family member ELB?",
+      "optionRationales": [
+        "The NLB combines the two requirements: extreme throughput with ultra low latency in TCP/UDP and static IP addresses by AZ — something that ALB does not offer (variable IPs behind DNS).",
+        "The ALB works in the layer 7 (HTTP) and does not provide native static IPs — your IPs change over time.",
+        "The CLB is the legacy generation, without static IPs and with lower performance — not recommended for new architectures.",
+        "Aim DNS direct to instances eliminates managed balancing and health checks from ELB — does not replace a layer balancer 4."
+      ]
+    },
+    "saa-med-072": {
+      "text": "A function Lambda consume a row SQS High volume processing UMA Invocation message, resulting in millions of invocations and high cost. Messages are small and can be processed in group. What adjustment improves throughput and reduces cost?",
+      "options": [
+        "Change row SQS by direct synchronous calls",
+        "Create a separate row for each message",
+        "Increase the batch size of event source mapping to process batches of invocation messages",
+        "Minimize function memory"
+      ],
+      "explanation": "The event source mapping of SQS allows you to deliver up to thousands of messages (and batching windows) by invocation: less invocations, better use of each execution and lower cost per processed message.",
+      "hint": "If each 'travel' of the function costs, take more passengers per trip.",
+      "optionRationales": [
+        "The event source mapping of SQS allows you to deliver up to thousands of messages (and batching windows) by invocation: less invocations, better use of each execution and lower cost per processed message.",
+        "Less memory means less CPU and longer executions — may even increase the total cost and does not reduce the number of summonses.",
+        "Connecting systems synchronously eliminates buffer and resilience, without solving the granularity of processing.",
+        "Multiplying rows multiplying complexity without grouping processing — aggravates problem."
+      ]
+    }
+  }
+}

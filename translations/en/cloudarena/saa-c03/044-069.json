@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "044-069",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-044": {
+      "optionReasons": {
+        "saa-med-044:option:0": "Change for SNS changes the model to unrowed pub/sub — does not resolve duplicity and still loses the processing buffer.",
+        "saa-med-044:option:1": "Deleted before processing means losing the video if the consumer fails in the middle — the evaporate queue delivery guarantee.",
+        "saa-med-044:option:2": "It's the closest because it moves exactly in the right parameter — only in the wrong direction: decreasing visibility timeout would make messages reappear yet MAIS early, multiplying the duplicates; the value needs to exceed the maximum processing time.",
+        "saa-med-044:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the visibility timeout is greater than the processing (ex.: 12 min) keeps the message invisible while the video is processed — no other consumer receives it in parallel.",
+        "Because the biggest visibility timeout instructs the queue to delete the message by itself at the end of the deadline, exempting consumer confirmation.",
+        "Because the biggest visibility timeout reserves the original consumer for the message, and the queue redirects the others to new videos.",
+        "Because the highest visibility timeout activates the deduplication of the Standard row, which discards copies generated during processing."
+      ]
+    },
+    "saa-med-050": {
+      "optionReasons": {
+        "saa-med-050:option:0": "There's no such thing as 'Auto Scaling Volumes EBS' for snapshots — the Auto Scaling manages for instance fleets, not backups.",
+        "saa-med-050:option:1": "CloudWatch Logs retain LOGS Applications — does not create or exhale volume snapshots.",
+        "saa-med-050:option:2": "It is the closest because the concept is identical — life-cycle policies with transition and expiration — but the service is another: S3 Lifecycle acts on OBJETOS in pocket; snapshots EBS scheduled by tags and expired by retention are the Data Lifecycle Manager.",
+        "saa-med-050:option:3": ""
+      },
+      "finalJustifications": [
+        "Because DLM apply life cycle policies to snapshots and tags AMIs: create in the set schedule and expire those that pass from retention — complete automation.",
+        "Because DLM compresses old snapshots instead of excluding them, keeping the full coverage at a decreasing cost per month.",
+        "Because DLM converts expired snapshots into objects of the S3 Glacier, preserving the history outside the quota of EBS Account.",
+        "Because DLM requires the administrator's approval before each expiration, ensuring that no useful backup is lost."
+      ]
+    },
+    "saa-med-053": {
+      "optionReasons": {
+        "saa-med-053:option:0": "More memory reduces some errors, but does not eliminate flaws — and events that fail will continue to be discarded without trace.",
+        "saa-med-053:option:1": "",
+        "saa-med-053:option:2": "It's the closest because it's also a real configuration of asynchronous invocations — but zeroing attempts only makes events fail MAIS fast, still discarded; the requirement is to preserve them, paper from the failure destination (e.g.: row) SQS) with the context of the error.",
+        "saa-med-053:option:3": "Print in the log does not preserve the event recessably — turn loose text into CloudWatch, without a row or structured context."
+      },
+      "finalJustifications": [
+        "Because on-failure destination sends the full event — with payload and error context — to a row SQS after exhausting the attempts: nothing is lost and the reprocessing becomes trivial.",
+        "Because the on-failure destination repeats the invocation of the function in a secondary region, where the code bug does not usually reproduce.",
+        "Because the destination on-failure reverses the original upload no S3 when the function fails, keeping the pocket and processing synchronized.",
+        "Because on-failure destination promotes the event for synchronous invocation, in which failures return directly to the original caller of S3."
+      ]
+    },
+    "saa-med-054": {
+      "optionReasons": {
+        "saa-med-054:option:0": "Internet Gateway in private sub-network the public make — changes the security design instead of solving the dependence.",
+        "saa-med-054:option:1": "It's the closest because it adds redundancy of NAT for real — but in the wrong dimension: two NATs in MESMA AZ-1 fall together with the zone; dependence only dies with one NAT by AZ and each subnet routing to the one of the zone itself.",
+        "saa-med-054:option:2": "Focus everything on AZ-1 transforms the VPC a single point of failure — the antithesis of multi-AZ resilience.",
+        "saa-med-054:option:3": ""
+      },
+      "finalJustifications": [
+        "Because one NAT Gateway by AZ, with each subnet roaming to the NAT local, eliminates cross-dependence: the fall of an area affects only its sub-networks.",
+        "Because the three of us NAT Gateways form an active-active cluster with shared IP, and traffic migrates alone in the fall of any area.",
+        "Because NAT by AZ triples the available output band of the VPC, and it is the capacity clearance that keeps the areas healthy in the air.",
+        "Because NAT by AZ synchronizes the active connections between the zones, allowing the failure of sessions without noticeable fall."
+      ]
+    },
+    "saa-med-056": {
+      "optionReasons": {
+        "saa-med-056:option:0": "The Trusted Advisor recommends cost and safety optimizations — does not inject any failure.",
+        "saa-med-056:option:1": "",
+        "saa-med-056:option:2": "It is the closest because Synthetics also 'tests' the application continuously — but with canaries that SIMULAM users to detect unavailability; it does not INJETA actual failures such as loss of instance or latency: controlled chaos experiments are the Fault Injection Service.",
+        "saa-med-056:option:3": "Unannounced production is uncontrolled chaos: no stop conditions, no experiment — just a self-inflicted incident."
+      },
+      "finalJustifications": [
+        "Because FIS injects controlled real failures — finish instances, add latency, unavailability AZ — in experiments with automatic safety stop conditions.",
+        "Because FIS simulates faults in a mirrored environment of production, validating the reaction without touching the real resources of the application.",
+        "Because FIS monitors the chaos experiments performed by the team and recommends resilience corrections based on the results obtained.",
+        "Because FIS calendar random chaos windows without warning the team, measuring the genuine reaction of the operation to truly real incidents."
+      ]
+    },
+    "saa-med-057": {
+      "optionReasons": {
+        "saa-med-057:option:0": "",
+        "saa-med-057:option:1": "Retention period defines how long the message stays in the queue — does not prevent duplicate deliveries.",
+        "saa-med-057:option:2": "Processing twice as purposely multiplies exactly the effect you want to avoid — repeated collections have become rule.",
+        "saa-med-057:option:3": "It is the closest because a single consumer actually reduces the duplication windows — but does not eliminate them (the Standard row can duplicate the ENTREGA even with a consumer) and destroys scalability; the correct design is identical by unique identifier."
+      },
+      "finalJustifications": [
+        "Because Idempotence attacks the effect: before charging, the consumer checks by the unique identifier if the request has already been processed — the duplicate arrives, but does not charge twice.",
+        "Because Idempotence instructs the queue itself to compare the hash of each message and discard copies before delivery to the consumer.",
+        "Because the same request is grouped together in a single consolidated delivery, processed at once by the designated consumer.",
+        "Because the Idempotence automatically stifles the second charge when detecting the repeated identifier at the end of batch processing."
+      ]
+    },
+    "saa-med-061": {
+      "optionReasons": {
+        "saa-med-061:option:0": "It's the closest because Scheduler also shoots events in EventBridge — But it creates events NOVOS in cron calendars; does not store or forward past bus events, which is the role of the archive with replay.",
+        "saa-med-061:option:1": "",
+        "saa-med-061:option:2": "Depending on manual resend of origins does not scale and is not always possible — many systems do not keep what they have issued.",
+        "saa-med-061:option:3": "More rules route future events to more destinations — do not bring back any past events."
+      },
+      "finalJustifications": [
+        "Because the archive records the events that pass through the bus and the replay sends them on demand to the chosen period — the reprocessing becomes a console operation.",
+        "Because the archive exports events to S3 in real time, and the replay reimports them by API Intake lot of the bus.",
+        "Because the archive keeps consumers in the mirror during retention, reapplying events when detecting state divergence.",
+        "Because the replay re-executes the rules of the bus over the logs of CloudTrail, reconstructing the original events of the requests."
+      ]
+    },
+    "saa-med-069": {
+      "optionReasons": {
+        "saa-med-069:option:0": "",
+        "saa-med-069:option:1": "It's the closest because it points in the right direction — the gp3 actually released the IOPS size — but exaggerated: there are limits (up to 16.000 IOPS by volume gp3); what has changed is that now IOPS and throughput are PROVISIONAL regardless of size, not infinite.",
+        "saa-med-069:option:2": "The gp3 is available for instances EC2 in general — no bar metal restriction.",
+        "saa-med-069:option:3": "Forum Store is another type of storage (eminent and local) — it is not prerequisite for anything in EBS."
+      },
+      "finalJustifications": [
+        "Because in gp3 as IOPS and throughput are provideable dimensions apart: the 10.000 IOPS can be configured in the same 500 GB, without inflating the volume as in gp2.",
+        "Because the gp3 inherits the accumulated burst credits from the gp2, and it is they who sustain the 10.000 IOPS without increasing the size.",
+        "Because gp3 uses the RAM host as a writing cache, delivering IOPS in addition to the physical disk for volumes of any size.",
+        "Because gp3 partitions the volume into internal shards of 100 GB, and each shard adds its share of IOPS Total available."
+      ]
+    }
+  }
+}

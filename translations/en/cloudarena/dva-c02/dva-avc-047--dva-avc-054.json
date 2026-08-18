@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-047..dva-avc-054",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-047": {
+      "optionReasons": {
+        "dva-avc-047:option:0": "GSI in the separate Orders + Query table in Customers are still two queries — not one.",
+        "dva-avc-047:option:1": "It's the closest because two tables with two Query solves the functional problem — but they are DOIS round-trips and combination in the code, exactly what you want to avoid; recovering profile and orders in a ONLY Query is the single-table design (even PK, items differentiated by spell key)).",
+        "dva-avc-047:option:2": "OrderIds array in item + BatchGetItem is a second call — not the only Query requested.",
+        "dva-avc-047:option:3": ""
+      },
+      "finalJustifications": [
+        "Because in single-table design PK CustomerId groups the item PROFILE and items ORDER#: a single Query by CustomerId (without SK restriction or with Begins_with) brings the profile and all requests on a call.",
+        "Because two tables with two Querys group the profile and the requests: a single Query by CustomerId (without SK restriction or with Begins_with) brings the profile and all the requests in a call.",
+        "Because GSI in the Order table groups the profile and the requests: a single Query by CustomerId (without SK restriction or with begins_with) brings the profile and all requests in a call.",
+        "Because the OrderIds array in the Customer item groups the profile and the requests: a single Query by CustomerId (without SK restriction or with Begins_with) brings the profile and all requests in a call."
+      ]
+    },
+    "dva-avc-048": {
+      "optionReasons": {
+        "dva-avc-048:option:0": "",
+        "dva-avc-048:option:1": "It is the closest because it associates transaction with item return — but TransactWriteItems DOES NOT return the updated item; the parameter that returns the full post-update item in the MESMA UpdateItem response is ReturnValues: 'ALL_NEW'.",
+        "dva-avc-048:option:2": "DAX is read cache — reading it after update is still a second operation, and can serve outdated data.",
+        "dva-avc-048:option:3": "ConsistingRead on the next GetItem keeps the DOIS round-trips — does not delete the second call."
+      },
+      "finalJustifications": [
+        "Because ReturnValues: 'ALL_NEW' in UpdateItem returns the full item as is AFTER the update, in the same answer — removes the separate GetItem and the second round-trip.",
+        "Because TransactWriteItems returns the full item as it gets after the update, in the same answer — removes the separate GetItem and the second round-trip of the operation.",
+        "Why read from DAX after the update returns the full item as it becomes after the update, in the same answer — removes the separate GetItitem and the second round-trip.",
+        "Because ConsistentRead: True on GetItem returns the full item as it gets after the update, in the same answer — removes the separate GetItem and the second round-trip."
+      ]
+    },
+    "dva-avc-049": {
+      "optionReasons": {
+        "dva-avc-049:option:0": "",
+        "dva-avc-049:option:1": "It's the closest because moving on the timeout seems to give 'more chance' to process — but the message is malformed and failed SEMPRE, regardless of time; removing it from the path after N flaws is the redive policy with DLQ and maxReceiveCount.",
+        "dva-avc-049:option:2": "Manually excluding each error is human operation and not scale — the DLQ automate this.",
+        "dva-avc-049:option:3": "VisibilityTimeout 0 redelivers the poisonous message AINDA faster — aggravates loop."
+      },
+      "finalJustifications": [
+        "Because the policy redirects with DLQ and maxReceiveCount=3 moves the poisonous message to the DLQ after 3 failings, taking it out of the original row — competition is released and valid messages flow.",
+        "Because increasing the timeout moves the poisonous message to the DLQ after 3 faults, removing it from the original row — competition is released and valid messages flow without stopping.",
+        "Because manually excluding moves the poisonous message to the DLQ after 3 faults, removing it from the original row — competition is released and valid messages flow without stopping.",
+        "Because VisibilityTimeout 0 moves the poisonous message to the DLQ after 3 faults, removing it from the original row — competition is released and valid messages flow without stopping."
+      ]
+    },
+    "dva-avc-050": {
+      "optionReasons": {
+        "dva-avc-050:option:0": "Environment variable does not persist between environments/invocations — is not a reliable record of idempotence.",
+        "dva-avc-050:option:1": "",
+        "dva-avc-050:option:2": "It's the closest because Reserved Competition 1 avoids SIMULTANEOUS executions — but the problem is RETENTATIVA in time (reshipment after timeout), non-competition: a second sequential invocation with the same key would still charge again; ensuring idempotence is registering the idempotencyKey with PutItem conditional.",
+        "dva-avc-050:option:3": "The Lambda DO NOT deduct repeated invocations natively by requestId — the premise is false."
+      },
+      "finalJustifications": [
+        "Because a conditional PutItem (attribute_not_exists(idempotencyKey)) records the key before charging: if it already exists, the function skips the charge and returns the result saved — the client is not charged twice.",
+        "Because saving the idempotencyKey in environment variable records the key before charging: if it already exists, the function skips the charge and returns the result saved — the customer is not charged twice.",
+        "Because Reserved Competition 1 record the idempotencyKey before charging: if already exists, the function skips the charge and returns the result saved — the customer is not charged twice.",
+        "Because the native deduplication of Lambda record the idempotencyKey before charging: if already exists, the function skips the charge and returns the result saved — the customer is not charged twice."
+      ]
+    },
+    "dva-avc-051": {
+      "optionReasons": {
+        "dva-avc-051:option:0": "Step Functions Wait covers the one-time wait, but is not the native scheduler for simple recurrence — and keeps executions alive.",
+        "dva-avc-051:option:1": "It's the closest because the Rules of EventBridge with cron cover well the RECORRENTE — but cron for a ONE execution on a specific date/hour is forced (the rule would be active and firing); a native mechanism that makes the DOIS cases (only via at() and recurrent via cron/rate) is the EventBridge Scheduler.",
+        "dva-avc-051:option:2": "DynamoDB + scan every minute is the additional infrastructure that the requirement wants to avoid.",
+        "dva-avc-051:option:3": ""
+      },
+      "finalJustifications": [
+        "Because EventBridge Scheduler supports single (at() timing on a date/hour) and recurring (chron/rate) calling for Lambda direct — a single native mechanism for both cases, without extra infrastructure.",
+        "Because the Rules of EventBridge support single schedule (at() on a date/hour) and recurring (chron/rate) invoking the Lambda direct — a single native mechanism for both cases, without extra infrastructure.",
+        "Because Step Functions Wait supports single schedule (at() on a date/hour) and recurring (chron/rate) invoking the Lambda direct — a single native mechanism for both cases, without extra infrastructure.",
+        "Because DynamoDB with scan supports unique scheduling (at() on a date/hour) and recurring (chron/rate) invoking the Lambda direct — a single native mechanism for both cases, without extra infrastructure."
+      ]
+    },
+    "dva-avc-052": {
+      "optionReasons": {
+        "dva-avc-052:option:0": "GSU with Timestamp as PK would mix users and not consult efficiently per user — wrong design.",
+        "dva-avc-052:option:1": "",
+        "dva-avc-052:option:2": "It's the closest because investing in the code would also leave the recent ones first — but with Limit:20 in order CRESCENTE o DynamoDB bring the 20 more ANTIGAS, and then invert does not correct (recent ones are missing); take the 20 most recent is Query with ScanIndexForward:false and Limit:20.",
+        "dva-avc-052:option:3": "Scan reads the entire table and orders in the app — expensive and unnecessary having the key spell Timestamp."
+      },
+      "finalJustifications": [
+        "Because Query with UserId = :uid, ScanIndexForward:false (decrease order of spell key) and Limit:20 bring the 20 notifications MAIS RECENTES direct user index — without scanning or reordering in the app.",
+        "Because GSI with Timestamp as PK brings the 20 most recent notifications of the direct user of the index — without scanning or reordering in the application, using the descending order of the key.",
+        "Because Query Standard with Limit:20 and inversion in the code brings the 20 most recent notifications of the index's direct user — without scanning or depending on the growing initial order.",
+        "Because the Scan with FilterExpression brings the 20 most recent notifications of the direct user of the index — without scanning or reordering in the application, using the descending order of the key."
+      ]
+    },
+    "dva-avc-053": {
+      "optionReasons": {
+        "dva-avc-053:option:0": "Increasing the timeout makes every call wait AINDA more by error — aggravates the backlog.",
+        "dva-avc-053:option:1": "",
+        "dva-avc-053:option:2": "It is the closest because retry with backoff is the right technique for TRANSITOR errors — but here the API is in OUTAGE prolonged: redirecting retrentatives to a fallen service only accumulates wait and cost; stop calling downstream failure and fail fast is the circuit breaker standard.",
+        "dva-avc-053:option:3": "Reserved Competition 0 for TUDO until manually solved — loses processing and requires intervention."
+      },
+      "finalJustifications": [
+        "Because the breaker circuit tracks recent failures in a shared store and, after the limit, ABRE the circuit: the calls return immediate failure without hitting the API fall, periodically testing recovery.",
+        "Because increasing the timeout tracks recent failures and, after the limit, opens the circuit: the calls immediately fail back without hitting the API fall, periodically testing recovery.",
+        "Because the backoff retry tracks recent failures and, after the limit, opens the circuit: the calls immediately fail back without hitting the API fall, periodically testing recovery.",
+        "Because Reserved Competition 0 tracks recent failures and, after the limit, opens the circuit: calls return immediate failure without hitting the API fall, periodically testing recovery."
+      ]
+    },
+    "dva-avc-054": {
+      "optionReasons": {
+        "dva-avc-054:option:0": "/tmp is ephemeral and by environment — another invocation in different environment does not see the cart.",
+        "dva-avc-054:option:1": "Global variables live only in the current hot environment — they are not shared between different environments.",
+        "dva-avc-054:option:2": "",
+        "dva-avc-054:option:3": "It's the closest because sticky sessions was the solution in the world EC2/ALB — but the API Gateway/Lambda DO NOT have run environment stickiness; the serverless output is EXTERNALIZAR the session in a shared store (ElastiCache)/DynamoDB) indexed by a session ID."
+      },
+      "finalJustifications": [
+        "Why store the session in a shared external store (ElasiCache)/DynamoDB) indexed by a session ID (cookie)/JWT) allows any environment Lambda read/write the same cart — without relying on stickiness.",
+        "Because the /tmp function saves the session in a shared way, indexed by a session ID, allowing any environment Lambda read/write the same cart — without relying on stickiness.",
+        "Because global variables with more memory keep the session in a shared way, indexed by a session ID, allowing any environment to read/write the same cart — no stickiness.",
+        "Because the sticky sessions don't API Gateway save the session in a shared way, indexed by a session ID, allowing any environment Lambda read/write the same cart."
+      ]
+    }
+  }
+}

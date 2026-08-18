@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "119-189",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-119": {
+      "optionReasons": {
+        "saa-ini-119:option:0": "It's reversed and wrong: the standby won't accept NENHUMA application connection — neither writing nor reading.",
+        "saa-ini-119:option:1": "Standby exists DESDE the creation of Multi-AZ — not born after exclusion of the main.",
+        "saa-ini-119:option:2": "The Multi-AZ CRIA yes a synchronous standby — it's not just 'more frequent backups''.",
+        "saa-ini-119:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Multi-AZ standby is used exclusively to fail: does not accept reading connections — downloading readings is role of the Read Replicas.",
+        "Because the booth is completely shut down until the moment of the failover, when it is started with the last snapshot of the main.",
+        "Because the standby only accepts readings of the internal tools of AWS, that use it for backups without impacting the main.",
+        "Because the standby is in another geographical region, and latency between regions makes quick reading queries unfeasible."
+      ]
+    },
+    "saa-ini-120": {
+      "optionReasons": {
+        "saa-ini-120:option:0": "",
+        "saa-ini-120:option:1": "Less AZs reduces RESILENCE — does not accelerate detection of a patient.",
+        "saa-ini-120:option:2": "AUMENTAR timeout makes detection more LENTA — every attempt waits more to fail.",
+        "saa-ini-120:option:3": "Cross-zone is about distribution between AZs — not about detection speed."
+      },
+      "finalJustifications": [
+        "Because the detection time . . interval × unhealthy threshold: reduce the interval and the number of failures required removes the sick instance from the rotation faster.",
+        "Because reducing the interval does the ALB restart the sick instance before removing it, shortening the degradation window.",
+        "Because the unhealthy threshold controls the number of substitute instances launched when a health checks fail.",
+        "Because the most frequent health check increases the timeout of actual requests, giving time for the instance to recover."
+      ]
+    },
+    "saa-ini-128": {
+      "optionReasons": {
+        "saa-ini-128:option:0": "",
+        "saa-ini-128:option:1": "Mount all manually in EC2 it's just the job the team wants to avoid..",
+        "saa-ini-128:option:2": "The CloudFormation automates, but requires ESCREVER the template of each resource — no minimal configuration.",
+        "saa-ini-128:option:3": "The Lambda does not host 'an entire web application in a function' in this model — and does not involve ELB/ASG of EC2."
+      },
+      "finalJustifications": [
+        "Because Elastic Beanstalk provision ELB, Auto Scaling and health checks automatically from the code — the lowest configuration experience for this scenario.",
+        "Because Beanstalk dispenses instances EC2, running the code in edge locations with balance embedded on the edge.",
+        "Because Beanstalk generates the template CloudFormation that the team should review and edit before each environment deployment.",
+        "Because Beanstalk is the only way to use Auto Scaling no cost — the service rate already includes group management."
+      ]
+    },
+    "saa-ini-133": {
+      "optionReasons": {
+        "saa-ini-133:option:0": "False: o NLB was designed EXATAMENTE for millions of connections per second.",
+        "saa-ini-133:option:1": "",
+        "saa-ini-133:option:2": "It's not aesthetic: ALB It's a layer 7 no native static IP; NLB It's a layer 4 with static IP by AZ.",
+        "saa-ini-133:option:3": "The route HTTP of the ALB ADICIONA processing — does not reduce latency of TCP pure; and the ALB no static IP."
+      },
+      "finalJustifications": [
+        "Because NLB operates in the layer 4, Holds millions of connections TCP/s with ultra low latency and provides static IP (or Elastic IP) by AZ — the three trading requirements.",
+        "Because NLB inspects the content HTTP of trading messages faster than the ALB, deciding the route in the layer 7 with less overhead.",
+        "Because NLB caches the answers of the connections TCP repeated, returning quotes without consulting the source servers.",
+        "Because NLB wheel embedded in the instance EC2, eliminating a network jump — the origin of ultra-low latency measured in trading."
+      ]
+    },
+    "saa-ini-146": {
+      "optionReasons": {
+        "saa-ini-146:option:0": "Change target value continues REATIVO — only changes the trigger; degradation at the beginning of the peak persists.",
+        "saa-ini-146:option:1": "Scheduled scaling anticipates, but it's MANUAL and fixed — if the pattern changes, someone needs to reschedule the times (the requirement requires automatic adaptation).",
+        "saa-ini-146:option:2": "",
+        "saa-ini-146:option:3": "Simple scaling is also reactive and even more rudimentary — acts after the alarm shoot."
+      },
+      "finalJustifications": [
+        "Because the predictive scaling learns the historical pattern with ML and provides ANTES of the peaks of 9h/20h, realigning the forecasts alone if the pattern changes.",
+        "Because predictive scaling always keeps twice the average capacity of the day, absorbing any peak without prediction.",
+        "Because the predictive scaling eliminates the need for health checks: the forecast replaces the reactive detection of failures.",
+        "Because the predictive scaling schedule the automatic deployers off the peaks, avoiding degradation at the beginning of the morning."
+      ]
+    },
+    "saa-ini-151": {
+      "optionReasons": {
+        "saa-ini-151:option:0": "Record A pointing to 'the current IP' breaks when the IP of ALB change — it's exactly the problem.",
+        "saa-ini-151:option:1": "",
+        "saa-ini-151:option:2": "The ALB DO NOT support Elastic IP directly on the interface — your address is dynamic by design.",
+        "saa-ini-151:option:3": "The Classic Load Balancer also does not provide static IP — and is legacy generation."
+      },
+      "finalJustifications": [
+        "Because NLB provides static AZ IP with Elastic IP support — customers register fixed IPs on the firewall at once.",
+        "Because NLB hides client IPs behind a dynamic proxy, exempting fixed firewall rules.",
+        "Because NLB automatically records your IPs in the external client firewall via API Integration.",
+        "Because NLB uses the same global IP in all regions of AWS, the unique address that customers register."
+      ]
+    },
+    "saa-ini-166": {
+      "optionReasons": {
+        "saa-ini-166:option:0": "The KMS management CHAVES Cryptography — no certificate issued SSL/TLS public.",
+        "saa-ini-166:option:1": "",
+        "saa-ini-166:option:2": "The Secrets Manager guard and rotate SEGREDOS — does not issue or renew publicly trusted certificates.",
+        "saa-ini-166:option:3": "Manual upload no IAM it is the legacy that you want to avoid: annual manual renewal, without automatic integration."
+      },
+      "finalJustifications": [
+        "Because ACM issues free public certificates, automatically renews and integrates natively to ALB and CloudFront — zero manual management.",
+        "Because ACM installs certificates in the operating system of the instances, renewing the trust store at each expiration.",
+        "Because ACM issue long-term certificates that do not expire, eliminating the concept of periodic renewal itself.",
+        "Because ACM is mandatory to enable HTTPS in any service of the AWS — without him, the ALB refuse to listener 443."
+      ]
+    },
+    "saa-ini-189": {
+      "optionReasons": {
+        "saa-ini-189:option:0": "Increasing MINIMUM guarantees more connected bodies — AUMENTA the cost instead of reducing.",
+        "saa-ini-189:option:1": "",
+        "saa-ini-189:option:2": "Target tracking reaction to CPU — an idle but connected environment has CPU low and still needs a floor of instances; do not turn off by agenda.",
+        "saa-ini-189:option:3": "Reserved Instances they give off, but the machines would continue to be charged 24/7."
+      },
+      "finalJustifications": [
+        "Because scheduled scaling changes the desired capacity per calendar: 0 at 19h, restored before 8h on working days — automatic shutdown and return.",
+        "Because the scheduled scaling hibernates the instances preserving the RAM, restoring the environment exactly as it was at 8h.",
+        "Because scheduled scaling transfers the environment to instances Spot out of the file, paying the minimum night rate.",
+        "Because scheduled scaling is the only policy of Auto Scaling without additional cost, ideal for development environments."
+      ]
+    }
+  }
+}

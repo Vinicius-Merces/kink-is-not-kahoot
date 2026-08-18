@@ -124,3 +124,23 @@ document.addEventListener('DOMContentLoaded', () => {
     syncViewportState();
     window.addEventListener('resize', syncViewportState);
 });
+
+/**
+ * Internationalization bootstrap for internal pages.
+ *
+ * The landing already bootstraps i18n through branding.js. Internal pages all
+ * share nav-menu.js, making this the stable second entry point without adding
+ * one script tag to every HTML page. The guards also make it safe on pages that
+ * happen to load both entry points.
+ */
+(function bootstrapInternalI18n(global) {
+    'use strict';
+    if (global.I18n || document.querySelector('script[data-cloudpath-i18n]')) return;
+
+    const script = document.createElement('script');
+    script.src = new URL('js/i18n.js', document.baseURI).href;
+    script.dataset.cloudpathI18n = 'true';
+    script.async = true;
+    script.onerror = () => console.warn('[i18n] runtime unavailable; keeping pt-BR content');
+    document.head.appendChild(script);
+})(window);

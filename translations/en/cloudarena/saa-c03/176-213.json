@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "176-213",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-176": {
+      "optionReasons": {
+        "saa-ini-176:option:0": "The Secrets Manager invalid MFA — codes MFA are of single use and do not store.",
+        "saa-ini-176:option:1": "",
+        "saa-ini-176:option:2": "Security Groups filter network TRAFFIC — they don't know if the session has MFA.",
+        "saa-ini-176:option:3": "MFA only in the login does not prevent the use of key accesses/sessions without MFA in destructive actions — the requirement is to condition permission."
+      },
+      "finalJustifications": [
+        "Because the condition aws:MultiFactorAuthPresent in the policy checks if the session has been authenticated with MFA — no MFA, the destructive action is denied even with permission.",
+        "Because the condition requires a second full login to each destructive action, renewing the session before releasing the operation.",
+        "Because the condition sends a code MFA by email before executing the action, confirming the user's intention at the time.",
+        "Because the condition aws:MultiFactorAuthPresent only works for root user — users IAM inherit the MFA of the entire account."
+      ]
+    },
+    "saa-ini-177": {
+      "optionReasons": {
+        "saa-ini-177:option:0": "Create User IAM per client of the non-scale app and mix account identity with end-user identity.",
+        "saa-ini-177:option:1": "The Identity Center It's for the Force of TRABALHO corporate — not for application customers with social login.",
+        "saa-ini-177:option:2": "Directory Service is AD managed for corporate environments — does not issue JWT for mobile apps.",
+        "saa-ini-177:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Cognito User Pools is a managed directory of end users: registration, social login and issuance of JWT (ID/access/refresh) to authorize API.",
+        "Because Cognito User Pools manages roles IAM of each app user, mapping each social login to an account identity.",
+        "Because Cognito User Pools hosts the API protected application, validating tokens without any additional gateway.",
+        "Because Cognito User Pools replaces the application backend by running the profile logic within the directory itself."
+      ]
+    },
+    "saa-ini-202": {
+      "optionReasons": {
+        "saa-ini-202:option:0": "Individual user policies have seen a maintenance nightmare as the team grows — changes require user editing.",
+        "saa-ini-202:option:1": "User COMPARTILHADO destroys traceability and violates basic practices — credentials never shared.",
+        "saa-ini-202:option:2": "Access keys are for PROGRAM ACCESS — do not organize console permissions per function.",
+        "saa-ini-202:option:3": ""
+      },
+      "finalJustifications": [
+        "Because IAM Groups by function concentrate policies: users inherit group permissions, and changing someone's function is just moving them from group.",
+        "Because IAM Groups allow shared login: members use group credentials, reducing passwords to manage.",
+        "Because IAM Groups apply MFA automatic to all members, elevating security without setting user per user.",
+        "Because IAM Groups give volume licensing discount, making scale permissions cheaper for the company."
+      ]
+    },
+    "saa-ini-203": {
+      "optionReasons": {
+        "saa-ini-203:option:0": "",
+        "saa-ini-203:option:1": "Environment variables are still static credentials in the instance — leaking into dumps, logs and snapshots.",
+        "saa-ini-203:option:2": "IP policy is fragile (IPs change, NAT) and not authenticating the INSTANCE — is not the recommended mechanism.",
+        "saa-ini-203:option:3": "Even in Secrets Manager, are still key accesses of LONGO PRAZO of a user IAM — the roll eliminates the need for them."
+      },
+      "finalJustifications": [
+        "Because the IAM Role via Forum Profile Delivery TEMPORARY credentials automatically rotated by IMDS — nothing static to leak or rotate by hand.",
+        "Because the Forum Profile encrypts key accesses inside the instance, protecting them even if the disk is copied.",
+        "Because the role transforms the instance into a user IAM complete, with own password rotated by AWS each session.",
+        "Because IMDS block any external access to the pocket S3, restricting calls to its bodies VPC."
+      ]
+    },
+    "saa-ini-205": {
+      "optionReasons": {
+        "saa-ini-205:option:0": "It's wrong at the core: politics IAM DO NOT limit the root — there is no way to restrict it.",
+        "saa-ini-205:option:1": "Any administrator IAM can create users — not exclusive root.",
+        "saa-ini-205:option:2": "The CloudTrail REGISTRA root actions normally — audit is not the problem.",
+        "saa-ini-205:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the root has unrestricted access and executes actions that no policy IAM blocking (closing account, billing, restoring admins) — compromising it is losing the entire account.",
+        "Because root is the only user authorized to open support tickets at AWS, the recovery channel in serious account incidents.",
+        "Because the root doesn't appear in the logs of CloudTrail, and the MFA is the only compensatory control available for his administrative actions.",
+        "Because MFA in the root releases greater service limits to the account, the requirement of AWS for critical and regulated production environments."
+      ]
+    },
+    "saa-ini-208": {
+      "optionReasons": {
+        "saa-ini-208:option:0": "Passwords IAM can be redefined normally — no need to exclude the user.",
+        "saa-ini-208:option:1": "The 'I forgot my password' on the login page is valid for the account ROOT (e-mail account) — users IAM have no email redefining flow.",
+        "saa-ini-208:option:2": "The support of AWS no password management IAM of customers — management is internal to the account.",
+        "saa-ini-208:option:3": ""
+      },
+      "finalJustifications": [
+        "Because who has iam:UpdateLoginProfile IAM) — or root — can redefine the password of any user IAM Account.",
+        "Because only the user himself can change the password, authenticating himself via CLI with still valid key accesses.",
+        "Because the password is retrieved by describing the local credentials file with the account key.",
+        "Because IAM send a new password by SMS to the registered phone of the user in the creation of the account."
+      ]
+    },
+    "saa-ini-210": {
+      "optionReasons": {
+        "saa-ini-210:option:0": "Both are for consoles, CLI and SDK — the access channel is not the criterion.",
+        "saa-ini-210:option:1": "There is no 'priority' like this: evaluation combines policies (an explicit Deny in any one win)).",
+        "saa-ini-210:option:2": "",
+        "saa-ini-210:option:3": "Resource-based policies exist in several services (S3, SQS, SNS, KMS, Lambda...) — are not exclusive to S3."
+      },
+      "finalJustifications": [
+        "Because identity-based is attached to IDENTIDADE (what she can do) and resource-based to RECURSO (who can access it) — the difference is the attachment point, and the second enables cross-account access.",
+        "Because the resource-based policy also encrypts the resource in addition to controlling access — attaching it to the active bucket SSE by default on all stored objects.",
+        "Because identity-based policies can only grant Allow, and resource-based policies exist precisely for cases requiring explicit Deny over the protected resource.",
+        "Because resource-based policies are managed by AWS and automatically updated, while identity-based are the client's full responsibility."
+      ]
+    },
+    "saa-ini-213": {
+      "optionReasons": {
+        "saa-ini-213:option:0": "MFA NOT enabled by default — needs to be configured by user.",
+        "saa-ini-213:option:1": "The Cognito authentic users FINAIS of applications — not console AWS users IAM.",
+        "saa-ini-213:option:2": "",
+        "saa-ini-213:option:3": "The Identity Center supports MFA, But it's NOT the only way — the IAM has MFA native per user."
+      },
+      "finalJustifications": [
+        "Because IAM MFA combines a virtual device (authenticator app), physical token or key FIDO2 to the user: password + code are now required in the login.",
+        "Because IAM MFA send a code by e-mail to each login attempt, validating access by the user's corporate box.",
+        "Because IAM MFA works only with token hardware sold by AWS, paired to the user at the time of purchase.",
+        "Because IAM MFA dispenses the password, using only the device's rotary code as unique access credentials."
+      ]
+    }
+  }
+}

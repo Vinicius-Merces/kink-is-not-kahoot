@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "133-144",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-133": {
+      "text": "An e-commerce application uses a table Amazon DynamoDB to store the product catalog. During promotional events, the product details page (which does a GetIt item operation in the table for each viewing) receives millions of requests per minute for the MESMOS popular items (the 'promoting items'). Even with the On-Demand (without throttling) mode table, the team wants to reduce the reading latency of these popular items to the range of MICROSSEGUNDOS, without modifying the table scheme DynamoDB. What solution meets this requirement?",
+      "options": [
+        "Increase the table's provided reading capacity DynamoDB for a very high value during promotional events.",
+        "Migrate the catalogue of products from DynamoDB for the Amazon S3, serving product details as files JSON static.",
+        "Add a Global Secondary Index (GSI) in the table for the most popular items.",
+        "Add a cluster of Amazon DynamoDB Accelerator (DAX) in front of the table, and direct the GetItItem operations from the application to the endpoint of the DAX."
+      ],
+      "explanation": "Correct. DynamoDB Accelerator (DAX) is a fully managed memory cache, compatible with the API of the DynamoDB, placed in front of the table. For popular items (read repeatedly), the DAX reduces reading latency from milliseconds to MICROSSEGUNDOS, without requiring QUALQUER change in table scheme or writing logic — only the application starts calling the endpoint of the DAX for readings.",
+      "hint": "Think of which service acts as a fully managed memory cache, specifically positioned in front of tables of DynamoDB, without requiring changes in the table scheme.",
+      "optionRationales": [
+        "Correct. DynamoDB Accelerator (DAX) is a fully managed memory cache, compatible with the API of the DynamoDB, placed in front of the table. For popular items (read repeatedly), the DAX reduces reading latency from milliseconds to MICROSSEGUNDOS, without requiring QUALQUER change in table scheme or writing logic — only the application starts calling the endpoint of the DAX for readings.",
+        "Incorrect. The table is already in On-Demand mode (without throttling) and the stated problem is the LATENCIA of readings, not capacity/throttling — increasing provided capacity does not reduce the latency of individual readings to the level of microseconds that the DAX provides through cache in memory.",
+        "Incorrect. GSI provides a standard of ACESSO alternative (a different partition/order key) for queries — it does not reduce the latency of GetItItem operations to the MESMOS items already indexed by the primary key, nor does it provide cache in memory.",
+        "Incorrect as a better approach. S3 (combined with CloudFront) can serve static content with low latency, migrate the entire catalog to files JSON static is a much more invasive architectural change than adding the DAX, solving the latency requirement in microseconds MANTENDO the table DynamoDB and its existing data model."
+      ]
+    },
+    "saa-med-134": {
+      "text": "A scientific research company processes large volumes of genomic data using a batch pipeline that is extremely intensive in CPU (complex mathematical calculations), but uses relatively little memory RAM The team wants to choose the family of instances. EC2 that MAXIMIZA the processing performance per dollar spent on this type of workload. Which family of instances is the most appropriate?",
+      "options": [
+        "Courts of the 'T' family (Burstable, e.g. T4g, T3) — with CPU for occasional peaks.",
+        "Family 'I' instances (Storage Optimized, e.g.: I3, I4i) — optimized for high IOPS Local storage NVMe.",
+        "Family instances 'R' (Memory Optimized, e.g. R6g, R5) — optimized for high memory/vCPU ratio.",
+        "Family instances 'C' (Compute Optimized, e.g. C7g, C6i) — optimized for high vCPU/memory ratio, ideal for intensive processing in CPU."
+      ],
+      "explanation": "Correct. The instances of the C family (Compute Optimized) offer the highest proportion of processing power (vCPU) per memory unit between families of general purpose/computation, being the recommended choice for workloads CPU-bond as scientific batch processing, media coding and modeling — maximizing processing performance per dollar for this load profile.",
+      "hint": "Think of which family of instances EC2 is optimized specifically for a high proportion of processing power (vCPU) in relation to memory, ideal for workloads with intensive use of the CPU.",
+      "optionRationales": [
+        "Correct. The instances of the C family (Compute Optimized) offer the highest proportion of processing power (vCPU) per memory unit between families of general purpose/computation, being the recommended choice for workloads CPU-bond as scientific batch processing, media coding and modeling — maximizing processing performance per dollar for this load profile.",
+        "Incorrect. The instances of the R family are optimized for workloads that require GRANDE QUANTIDADE MEMORANDUM CPU (e.g. in-memory databases, large-scale cache) — paying for that extra memory would be waste for a load described as intensive in CPU but with low use of RAM.",
+        "Incorrect. Family I instances are optimized for workloads with high demand for local storage I/O (e.g. databases) NoSQL High transaction) — the scenario explicitly describes BAIXO use of disk I/O, so paying for the high performance local NVMe storage of these instances would not bring proportional benefit to the cost.",
+        "Incorrect. The T family instances use a model of 'credits' CPU' designed for workloads with peaks of CPU OCASIONAIS and low average use — for a workload CONSISTENTEMENTE intensive CPU (as continuous batch processing), credits would run out quickly, leading to degraded performance (baseline) or additional costs."
+      ]
+    },
+    "saa-med-135": {
+      "text": "A media company allows partner photographers, located in various countries, to upload high-resolution image files (various GB each) directly to a newsletter Amazon S3 in the us-east region-1. Photographers located in geographically distant regions (e.g., Australia, India) report very slow and unstable uploads compared to photographers in EUA. The team wants to speed up these uploads for remote users, without requiring photographers to use VPN or change your internet connection. S3 solve this problem?",
+      "options": [
+        "Reduce image resolution before uploading, decreasing the size of transferred files.",
+        "Configure the S3 Multipart Upload, dividing each file into smaller parts sent in parallel.",
+        "Create replicas of the bucket in multiple regions using Replica Between Regions (CRR) and instruct each photographer to upload to the nearest region's pocket.",
+        "Enable S3 Transfer Acceleration in the pocket, and instruct photographers to use the acceleration endpoint (`s3-accelerate.amazonaws.com`) for uploads."
+      ],
+      "explanation": "Correct. S3 Transfer Acceleration takes advantage of the global network of edge locations of the CloudFront: the upload of the photographer is routed to edge location MAIS NEXT Geographically, and from there follows by an optimized route of the network AWS up to the bucket — significantly reducing latency and variability of long-distance uploads, without requiring VPN or changes in the user's internet connection.",
+      "hint": "Think of what resource the S3 uses the global edge network of AWS to accelerate transfers, routing the upload through the edge location closest to the sender to the destination pocket.",
+      "optionRationales": [
+        "Correct. S3 Transfer Acceleration takes advantage of the global network of edge locations of the CloudFront: the upload of the photographer is routed to edge location MAIS NEXT Geographically, and from there follows by an optimized route of the network AWS up to the bucket — significantly reducing latency and variability of long-distance uploads, without requiring VPN or changes in the user's internet connection.",
+        "Incorrect as a better approach. CRR replicates objects already ARMAZENADOS from one bucket to another — does not accelerate the UPLOAD initial in itself, and would require photographers to know which regional bucket to send to (additional complexity), in addition to generating multiple copies to manage, when the Transfer Acceleration resolves the acceleration by maintaining a single bucket.",
+        "Incorrect as a complete solution to the problem described. The Multipart Upload improves the RESILENCE and parallelism of the upload of large files (allowing you to resume parts that fail), but does not solve the LATENCE OF REDE long distance between photographer and us-east region-1 — the Transfer Acceleration specifically addresses this geographic problem, and can even be combined with multipart uploading..",
+        "Incorrect. Reducing image resolution compromises QUALIDADE of the product (high resolution images are a business requirement, according to the scenario) and does not solve the underlying problem of latency/network instability for long-distance uploads — would only reduce the volume of data, without addressing the root cause."
+      ]
+    },
+    "saa-med-136": {
+      "text": "An application of reports carries out heavy analytical consultations (aggregations in large volumes of historical data) against a database Amazon RDS for PostgreSQL that also attends the transactions of the main application in real time. The team noted that, during the generation of monthly reports, these heavy queries compete for resources with the transactions of the main application, causing perceptible slowness for end users. The team wants to separate the load of reports from the transactional load, keeping the data of reports reasonably updated (up to a few seconds of lag is acceptable), with the least effort of implementation.?",
+      "options": [
+        "Export data to files CSV daily and run reports queries about these files using local tools.",
+        "Enable Multi-AZ in instance RDS and direct the reports queries to the standby instance.",
+        "Create a Read Replica Amazon RDS and direct the queries of the application of reports to the replication endpoint, keeping the transactions of the main application in the primary instance.",
+        "Increase instance type RDS primary for a class with much more vCPUs and memory, keeping all queries in the same instance."
+      ],
+      "explanation": "Correct. A Read Replica of RDS receives data from the primary instance through asynchronous replication (typically with lag of seconds), creating a copy read only SEPARADA. Directing the heavy queries of reports for this replica isolates its use of resources from the primary instance, eliminating competition with the transactions of the main application — with data lag compatible with the requirement ('a few seconds' is acceptable) and low implementation effort.",
+      "hint": "Think about creating a read-only copy of the database, updated asynchronously, and directing the report queries to it.",
+      "optionRationales": [
+        "Correct. A Read Replica of RDS receives data from the primary instance through asynchronous replication (typically with lag of seconds), creating a copy read only SEPARADA. Directing the heavy queries of reports for this replica isolates its use of resources from the primary instance, eliminating competition with the transactions of the main application — with data lag compatible with the requirement ('a few seconds' is acceptable) and low implementation effort.",
+        "Incorrect as a better approach. Although increasing the instance may delay the problem, the consultations of reports and transactions would continue COMPETINDO for MESMOS resources of MESMA instance — only with a larger margin before saturation; a Read Replica physically separates these loads, solving the root cause of containment.",
+        "Incorrect. STANDBY Multi-AZ is not available for queries — it exists exclusively for failover and is kept synchronized via physical replication at storage level, without serving read traffic. For additional reading queries, you need to create a Read Replica (which is a distinct feature of Multi-AZ standby).",
+        "Incorrect considering the update requirement. Daily exports would result in data from reports with up to 24 HORAS of lag, far beyond the 'a few seconds' specified as acceptable — in addition to adding a manual/operational export process and analysis outside the managed infrastructure."
+      ]
+    },
+    "saa-med-137": {
+      "text": "Courts EC2 in a private sub-network of a VPC need to make a large volume of reading and writing operations in buckets Amazon S3 (e.g.: log file processing). Currently, this traffic passes through a NAT Gateway to achieve the S3 through the public internet, generating significant costs of data processing NAT Gateway and adding latency. The team wants to reduce both the cost and latency of this traffic between the VPC and the S3, without exposing the instances to the internet. Which solution meets this requirement?",
+      "options": [
+        "Assign public IP addresses to instances EC2 and attach one Internet Gateway to the sub-network, allowing direct access to S3 on the Internet.",
+        "Create a Gateway VPC Endpoint for the Amazon S3 and associate it with the route tables of the private sub-networks, allowing the traffic to S3 go directly through the network of AWS.",
+        "Increase capacity (and associated cost) of NAT Gateway, configuring multiples NAT Gateways to distribute the traffic load to the S3.",
+        "Enable S3 Transfer Acceleration in the destination pocket to speed up traffic originating from VPC."
+      ],
+      "explanation": "Right, a Gateway. VPC Endpoint for the S3 adds a route in the route tables of the sub-network that directs traffic to S3 directly through the private network of AWS, without passing through NAT Gateway or on the Internet. ELIMINA the data processing costs of the NAT Gateway for that traffic, and REDUZ the latency, keeping the instances in private sub-networks without exposure to the internet — and the Gateway Endpoint to S3 has no hourly cost or by processed GB.",
+      "hint": "Think of what kind of VPC Endpoint allows traffic to S3 remain within the network of the AWS, without passing through NAT Gateway or on the public Internet.",
+      "optionRationales": [
+        "Right, a Gateway. VPC Endpoint for the S3 adds a route in the route tables of the sub-network that directs traffic to S3 directly through the private network of AWS, without passing through NAT Gateway or on the Internet. ELIMINA the data processing costs of the NAT Gateway for that traffic, and REDUZ the latency, keeping the instances in private sub-networks without exposure to the internet — and the Gateway Endpoint to S3 has no hourly cost or by processed GB.",
+        "Incorrect as best approach. Add more NAT Gateways may distribute the load, but DO NOT reduce (actually, maintain or increase) the data processing costs charged by NAT Gateway for this traffic — the Gateway VPC Endpoint S3 eliminates these costs completely for traffic directed to S3, being the most economical solution.",
+        "Incorrect. Return to public sub-network (with Internet Gateway and public IPs) exposes the instances DIRETAMENTE to the internet, violating the requirement that they should not be exposed — in addition to involving traffic going out to the public internet, instead of remaining in the network of AWS.",
+        "Incorrect. S3 Transfer Acceleration was designed to accelerate uploads of CLIENTES GEOGRAFICAMENTE DISTANTES way edge locations — it does not solve the data processing cost of NAT Gateway nor is it the appropriate mechanism for traffic ORIGINADO DENTRO THE PROPERTY AWS (of a VPC for the S3 in the same region), for which the VPC Endpoint is the direct solution."
+      ]
+    },
+    "saa-med-138": {
+      "text": "A database Amazon RDS for SQL Server supports a financial application with seasonal peaks of transactions that require high I/O performance (read/write operations per second). Currently, the volume uses the type of gp2 storage (General Purpose) SSD), and the team realized that, during peaks, the performance of IOPS is limited by volume size (gp2 binds IOPS to the size in GB), causing high latency in transactions. The team wants to increase the performance of IOPS consistently, SEM need to artificially increase volume size just to gain more IOPS, and at the lowest possible additional cost. What change in volume type EBS meets this requirement?",
+      "options": [
+        "Migrate the database to use instance storage (instance store) instead of EBS, to eliminate the limitation of IOPS by size.",
+        "Migrate the volume to the sc1 type (Cold HDD), which offers higher storage capacity at lower cost per GB.",
+        "Migrate volume to gp3 type (General Purpose) SSD), which allows you to configure IOPS and throughput independently of volume size, at a cost generally less than increasing the size of gp2.",
+        "Increase the size of the current gp2 volume to double, even without additional disk space, just to get more IOPS."
+      ],
+      "explanation": "Correct. Gp3 uncouples IOPS and throughput of TAMANHO volume: it is possible to provide up to 16.000 IOPS and greater throughput regardless of how many GB the volume has, configuring exactly the performance needed for peaks — without the need (and cost) to oversize the volume in GB just to get more IOPS, as with gp2.",
+      "hint": "Think about what kind of volume SSD general use allows to configure the performance of IOPS and throughput form INDEPENDENTE volume size.",
+      "optionRationales": [
+        "Correct. Gp3 uncouples IOPS and throughput of TAMANHO volume: it is possible to provide up to 16.000 IOPS and greater throughput regardless of how many GB the volume has, configuring exactly the performance needed for peaks — without the need (and cost) to oversize the volume in GB just to get more IOPS, as with gp2.",
+        "Incorrect. Volumes sc1 (Cold) HDD) are optimized for THROUGHPUT in sequential access loads, and POUCO common, with IOPS very low — are inadequate for a transactional database load that requires high IOPS for random and frequent reading/writing operations.",
+        "Incorrect considering the requirement. Although increasing the size of gp2 really increases the IOPS baseline (proportional to size), the scenario explicitly asks for EVITAR artificially increase size — paying for unused space just to get performance when gp3 offers IOPS configurable independently and generally cheaper.",
+        "Incorrect and risky. The storage of instance (institution store) is EFEMERO — the data are lost if the instance is stopped, closed or replaced — which is inappropriate and dangerous for the persistent data of a financial database of RDS (which, in any case, does not offer this storage option for the database engine)."
+      ]
+    },
+    "saa-med-139": {
+      "text": "An IoT application receives sensor readings from thousands of devices, at a rate of thousands of records per second. Multiple downstream systems need to process these readings in a way INDEPENDENTE: one system calculates real-time averages, another files raw data in S3, and a third one detects anomalies. REPROCESSAR the same data (e.g. if a new anomaly detection algorithm is implemented, it should be able to read the records of the last 24 What intake service meets these requirements of very high throughput, multiple independent consumers and reprocessing (replay))?",
+      "options": [
+        "Use Amazon Kinesis Data Streams, with each downstream system implemented as an independent consumer who reads the stream logs, taking advantage of the configurable retention period to allow reprocessing.",
+        "Use a single row Amazon SQS Standard, of which the three systems downstream consume messages.",
+        "Write each sensor reading directly into a table Amazon DynamoDB, and the three downstream systems do polling (periodic consultation) in the table in search of new items.",
+        "Use Amazon SNS to publish each sensor reading, with the three systems registered as subscribers."
+      ],
+      "explanation": "Correct. Kinesis Data Streams was designed for very high data throughput in real time, RETENDO records for a configurable period (from 24 hours to 365 multiple days). CONSUMIDORES INDEPENDENTES can read the MESMO stream each in its own position (each keeps its own checkpoint), and it is possible REPROCESSAR (replay) data retained from any point within the retention period — taking into account all the requirements of the scenario.",
+      "hint": "Think about which streaming service retains records for a configurable period, allowing multiple consumers to read (and reread) the same data flow independently.",
+      "optionRationales": [
+        "Correct. Kinesis Data Streams was designed for very high data throughput in real time, RETENDO records for a configurable period (from 24 hours to 365 multiple days). CONSUMIDORES INDEPENDENTES can read the MESMO stream each in its own position (each keeps its own checkpoint), and it is possible REPROCESSAR (replay) data retained from any point within the retention period — taking into account all the requirements of the scenario.",
+        "Incorrect. SQS, each message is delivered (and removed from the queue) by ONE consumer — it is not possible for THREE independent systems to process the MESMA This model is fundamentally different from streaming with multiple consumers and replay required by the scenario..",
+        "Incorrect considering the reprocessing requirement. Although the pattern SNS fan-out allows multiple subscribers to receive each message independently, or SNS DO NOT RELATE messages after delivery — there is no way a system 'report' messages from the latest 24 hours after they have already been delivered, what the Kinesis Data Streams allows through its configurable retention.",
+        "Incorrect as best approach. Polling in a table to detect 'new items' in high volume is inefficient and costly, requiring custom logic of tracking what has already been processed by each system — the Kinesis Data Streams already natively provides multiple consumer model with independent checkpoints and configurable retention, much more efficiently for this volume of intake."
+      ]
+    },
+    "saa-med-140": {
+      "text": "A team migrated a video processing application to use Amazon EFS as shared storage between various instances EC2. The application performs peaks of intensive processing (reading and writing hundreds of MB/s) for several hours every day, followed by long periods of low activity. With the file system in the standard throughput mode ('Bursting'), the team noticed that during prolonged peaks, the available throughput is below the required, as the file system exhausts its accumulated 'burst credits' during low activity periods. The team wants to ensure a consistent throughput level during peaks, regardless of the size of the file system or accumulated credits. EFS solve this problem?",
+      "options": [
+        "Migrate the file system to the 'Max I/O' performance mode, which increases the total throughput available.",
+        "Migrate data from EFS for volumes Amazon EBS Provisioned IOPS (i2) attached to each instance EC2.",
+        "Change file system throughput mode EFS for 'Provisioned Throughput', defining a sufficient level of performance for peaks, regardless of file system size.",
+        "Reduce file system size EFS, excluding old data, so that burst credits last longer."
+      ],
+      "explanation": "Right. The 'Bursting' mode links the available throughput to TAMANHO of the file system and accumulated credits — prolonged peaks can exhaust these credits. The 'Provisioned Throughput' mode allows specifying a throughput level FIXO (in MiB/s) regardless of size or credit, ensuring consistent performance during peaks. (Alternatively, the Elastic Throughput mode automatically adjusts the throughput to actual demand, without credit management.)",
+      "hint": "Think about which way of throughput of EFS allows you to specify (or automatically adjust) a fixed performance level, disconnected from file system size and burst credits.",
+      "optionRationales": [
+        "Right. The 'Bursting' mode links the available throughput to TAMANHO of the file system and accumulated credits — prolonged peaks can exhaust these credits. The 'Provisioned Throughput' mode allows specifying a throughput level FIXO (in MiB/s) regardless of size or credit, ensuring consistent performance during peaks. (Alternatively, the Elastic Throughput mode automatically adjusts the throughput to actual demand, without credit management.)",
+        "Incorrect. PERFORMANCE 'Max I/O' optimizes for a very high number of operations per second in exchange for latency per operation slightly larger (useful for highly parallel loads) — it does not solve the limitation of THROUGHPUT by burst credits, which is controlled by the MODO OF THROUGHPUT (Bursting vs. Provided/Elastic), a distinct configuration.",
+        "In the Bursting mode, the throughput baseline is PROPORCIONAL the size of the file system — REDUZIR the size actually DIMINUIRIA the available throughput baseline and accumulated credits, worsening the problem, not solving it.",
+        "Incorrect volume EBS (including io2) are attached to UMA instance (or, at most, instances in the same AZ with Multi-Attach) — migrate to EBS would abandon the original requirement of ARMAZENAMENTO COMPARTILHADO among multiple instances EC2 which motivated the use of EFS, a disproportionate architectural change to the problem of throughput, which the Provided/Elastic Throughput itself EFS solves directly."
+      ]
+    },
+    "saa-med-141": {
+      "text": "An application allows users to upload video files from up to 5 GB for a bucket Amazon S3. The team noticed that, in unstable internet connections, uploads large files frequently FALHAM in the middle of the process, and the user needs to restart the upload of the file INTEIRO of zero, which is frustrating and slow. The team wants large file uploads to be more resilient to connection failures, allowing you to resume only the parts that failed, and ideally with higher speed through parallel sending of parts. S3 meets this requirement?",
+      "options": [
+        "Orient users to compress video files before uploading to reduce total size transferred.",
+        "Use Multipart Upload from S3, dividing each large file into parts (e.g.: 50-100 MB), sent in parallel — if a part fails, only ELA needs to be sent, not the entire file.",
+        "Configure the S3 Transfer Acceleration to accelerate uploads of large files through edge locations.",
+        "Enable Bucket Version S3, so that each upload attempt creates a new version of the object."
+      ],
+      "explanation": "The Multipart Upload of S3 divides a large object into PARTES INDEPENDENTES, which can be sent to MS PARALELO (improving speed) and, in case of connection failure during the sending of a specific part, only ESSA PARTE needs to be sent back — without the need to restart the upload of the entire file from zero, meeting exactly the requirement of resilience and performance described.",
+      "hint": "Think of what resource the S3 allows to divide a single large object into several smaller parts, sent (and, if necessary, sent back) independently and in parallel.",
+      "optionRationales": [
+        "The Multipart Upload of S3 divides a large object into PARTES INDEPENDENTES, which can be sent to MS PARALELO (improving speed) and, in case of connection failure during the sending of a specific part, only ESSA PARTE needs to be sent back — without the need to restart the upload of the entire file from zero, meeting exactly the requirement of resilience and performance described.",
+        "Incorrect. Versioning controls as MULTIPLE versions COMPLETAS of an object are stored after successful uploads — it has no relation to the RESILENCE of PROCESSO uploading a single large file into unstable connections, nor does it allow you to resume parts that failed during the transfer.",
+        "Incorrect as the main solution for this scenario. Transfer Acceleration improves the VELOCIDADE of long distance uploads roaming the edge network of the AWS, but does not directly solve the problem of RETOMAR only parts that have failed in unstable connections — this granular recovery behavior is provided by Multipart Upload (which can also be combined with Transfer Acceleration).",
+        "Incorrect. Compressing files can reduce the TAMANHO total, but does not solve the fundamental problem of large uploads completely fail in unstable connections — even a still large compressed file would suffer from the same problem; Multipart Upload resolves this regardless of file size."
+      ]
+    },
+    "saa-med-142": {
+      "text": "A function AWS Lambda implements an endpoint of API critical, invoked through the Amazon API Gateway, with response latency requirement below 100ms (p99). The team noted that, after periods of low activity, the first requests received presented latency of 1-2 seconds (a 'cold start') — the time needed for the Lambda initialize a new execution environment before processing the request — violating the latency requirement for these users. ELIMINAR the cold start latency for this endpoint, maintaining serverless architecture. Lambda solve this problem?",
+      "options": [
+        "Configure 'Provisioned Competition' to function Lambda, defining the number of running environments that should remain PRE-INICIALIZADOS and ready to respond to requests immediately.",
+        "Migrate function Lambda to be executed in an instance EC2 dedicated, eliminating the serverless model.",
+        "Increase the amount of memory allocated to the function Lambda for the maximum permitted value (10.240 MB).",
+        "Configure the API Gateway to cache the endpoint responses by 5 minutes."
+      ],
+      "explanation": "Correct. 'Provisioned Competition' maintains a set number of running environments of Lambda now INICIALIZADOS (code loaded, runtime ready) and available to respond to requests IMEDIATAMENTE, eliminating cold start latency for these invocations — meeting the latency requirement below 100ms even after periods of inactivity, maintaining serverless architecture.",
+      "hint": "Think about which configuration of the Lambda maintains a number of PRE run environments-INICIALIZADOS and ready to respond immediately, eliminating initialization on demand.",
+      "optionRationales": [
+        "Correct. 'Provisioned Competition' maintains a set number of running environments of Lambda now INICIALIZADOS (code loaded, runtime ready) and available to respond to requests IMEDIATAMENTE, eliminating cold start latency for these invocations — meeting the latency requirement below 100ms even after periods of inactivity, maintaining serverless architecture.",
+        "Incorrect as main solution. More memory increases proportionally to CPU allocated, which can reduce the TEMPO start-up (cold start) and run-time, but NOT ELIMINA the cold start — the first request after inactivity would still go through the process of initializing the environment, only faster; Provided Competition completely eliminates this waiting for covered invocations..",
+        "Incorrect considering that the endpoint is described as 'critical' with expected dynamic logic. API Gateway is suitable for answers that can be REUTILIZADAS between requests (e.g., idempotent GETs with the same parameters) — does not solve the cold start for requests that actually need to invoke the function (cache miss, or when the answer cannot be cached by varying per user/requirement).",
+        "Incorrect considering the explicit requirement to maintain serverless architecture. EC2 always active does not have 'cold start' in the same direction, this migration abandons the serverless model (with its benefits of automatic scalability and lack of server management) — the Provided Competition solves the problem DENTRO model Lambda."
+      ]
+    },
+    "saa-med-143": {
+      "text": "One API public, exposed via Amazon API Gateway with a function integration Lambda, provides the list of product categories in a catalogue — an operation GET returning the MESMO result for all users and changes only a few times a day. This route receives a very high volume of requests, and the team wants to reduce the number of invocations from Lambda (and the associated cost) for this specific route, serving identical responses from a cache, without implementing a separate cache layer (e.g. ElastiCache). Which resource meets this requirement with the least additional complexity?",
+      "options": [
+        "Implement a cluster Amazon ElestiCache and modify function code Lambda to check the cache before processing each request.",
+        "Enable cache of Amazon API Gateway to the stage of the API, configuring a TTL appropriate (e.g. a few hours) specifically for the category listing route.",
+        "Configure Reserved Competition in function Lambda to limit the number of simultaneous executions of this route.",
+        "Increase function timeout Lambda for 15 minutes (maximum allowed), for it to process more requests by invocation."
+      ],
+      "explanation": "Correct. API Gateway stores specific endpoint responses by one TTL configurable (to 1 time by default, configurable up to 3600s, or more with limit setting). For a route whose result rarely changes, enabling the cache causes repeated requests to be met DIRETAMENTE for API Gateway, without invoking the Lambda — reducing the number of invocations and the cost, with the least additional complexity (own native resource API Gateway, no extra components).",
+      "hint": "Think of what resource, native to the service that receives requests from API, can cache specific endpoint responses by a TTL configurable.",
+      "optionRationales": [
+        "Correct. API Gateway stores specific endpoint responses by one TTL configurable (to 1 time by default, configurable up to 3600s, or more with limit setting). For a route whose result rarely changes, enabling the cache causes repeated requests to be met DIRETAMENTE for API Gateway, without invoking the Lambda — reducing the number of invocations and the cost, with the least additional complexity (own native resource API Gateway, no extra components).",
+        "Incorrect. Reserved Competition defines a LIMITE Maximum of simultaneous executions (and GARANTE this ability to function) — it does not reduce the NUMBER TOTAL from invocations to repeated content; in fact, if the limit is too low, it could cause THROTTLING of legitimate requests during peaks.",
+        "Incorrect as a solution of less complexity. Although ElastiCache is a valid cache solution in general, it requires providing and managing a cluster ADICIONAL and modify function code — cache NATIVO of the API Gateway solves the same problem for this specific route without any extra infrastructure component, meeting the requirement of lower complexity.",
+        "Incorrect. Timeout defines how long UMA Invocation may last before it is closed — it does not group or reduce the NUMBER of Invocations for separate requests (even if they return the same result), and has no relation to caching of answers."
+      ]
+    },
+    "saa-med-144": {
+      "text": "A table of the Amazon DynamoDB store requests for an e-commerce application, using the command_status field (with values like 'PENDING', 'SHIPPED', 'DELIVERED') as CHAVE The team realized that, as the vast majority of requests are in status 'DELIVERED' at a given moment, almost all readings and writings are directed to the MESMA internal partition associated with this value, causing throttling in this partition even with sufficient aggregate provided capacity in the table. What change in partition key design solves this 'hot partition' problem'?",
+      "options": [
+        "Use the 'order_id' (a unique and high-cardinity identifier generated for each request) as a partition key, and move 'order_status' to a Global Secondary Index (GSI) if it is necessary to consult requests for status.",
+        "Divide the table into three separate tables, one for each order_status value' ('PENDING', 'SHIPPED', 'DELIVERED').",
+        "Increase the table's read and write capability to a much higher value, keeping 'order_status' as partition key.",
+        "Enable DynamoDB Accelerator (DAX) in front of the table, keeping 'order_status' as partition key."
+      ],
+      "explanation": "Correct. DynamoDB distributes items between internal partitions based on HASH of the partition key. Use 'order_status' (low possible values, and most items concentrated on 'DELIVERED') as partition key concentrates most traffic on few partitions — a 'hot partition'. Use 'order_id' (high cardinality, a single value per item) distributes items UNIFORMEMENTE between partitions, eliminating the hot spot. If status consultations are still necessary, a GSI with 'order_status' as the index partition key can meet them, without affecting the distribution of the base table.",
+      "hint": "Think about choosing an attribute (or combination of attributes) with ALTA CARDINALIDADE — many different values, evenly distributed between items — as partition key, instead of an attribute with few possible values.",
+      "optionRationales": [
+        "Correct. DynamoDB distributes items between internal partitions based on HASH of the partition key. Use 'order_status' (low possible values, and most items concentrated on 'DELIVERED') as partition key concentrates most traffic on few partitions — a 'hot partition'. Use 'order_id' (high cardinality, a single value per item) distributes items UNIFORMEMENTE between partitions, eliminating the hot spot. If status consultations are still necessary, a GSI with 'order_status' as the index partition key can meet them, without affecting the distribution of the base table.",
+        "Incorrect. Throttling in the scenario occurs in UMA PARTICIPATION (associated with 'DELIVERED'), not in capacity AGREGADA each internal partition has its own throughput limits; increasing the total capacity of the table does not redistribute the traffic between partitions, so the partition 'DELIVERED' would still be a hot spot.",
+        "Incorrect. DAX speed up LEITURAS through cache in memory, but the scenario describes throttling both in readings QUANTO in ESCRITAS — o DAX does not store in caches written, so the problem of hot partition for writing on items with status 'DELIVERED' The root cause is the DESIGN DA CHAVE PARTICIPATION, not the absence of cache.",
+        "Incorrect as a better approach. Although this may redistribute ALGUMA load between tables, the table 'DELIVERED' (which concentrates most of the requests) would still have all your items in a structure with low key distribution — in addition, moving a request between status would require moving the item between TABELAS DIFERENTES (a complex operation), and consultations covering all requests would require multiple tables to be consulted."
+      ]
+    }
+  }
+}

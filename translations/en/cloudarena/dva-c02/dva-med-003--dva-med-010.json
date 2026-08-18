@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-med-003..dva-med-010",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-003": {
+      "optionReasons": {
+        "dva-med-003:option:0": "It's the closest because the CloudFront also caches answers on the edge — but the question is about the resource NATIVO of the API Gateway, and he TEM configurable own cache by stage; say that only the CloudFront solve ignores the API Gateway Caching.",
+        "dva-med-003:option:1": "ElastiCache is application cache for data — it is not the native response cache of API Gateway.",
+        "dva-med-003:option:2": "X-Ray is distributed tracking — does not cache answers or reduces backend load.",
+        "dva-med-003:option:3": ""
+      },
+      "finalJustifications": [
+        "Because API Gateway Caching, stage-enabled, saves the answers of the chosen endpoints — reduces latency and backend load without external cache service.",
+        "Because CloudFront, enabled by stage, saves the responses of the chosen endpoints — reduces latency and load in the backend without native support of API Gateway.",
+        "Because ElastiCache, which is stage-enabled, keeps the answers of the chosen endpoints — reduces latency and load in the backend manually integrated to API.",
+        "Because the X-Ray, enabled by stage, saves the answers of the chosen endpoints — reduces latency and load in the backend without external cache service."
+      ]
+    },
+    "dva-med-004": {
+      "optionReasons": {
+        "dva-med-004:option:0": "",
+        "dva-med-004:option:1": "SNS is not pub/sub-notification — is not group-ordered row or exactly-once.",
+        "dva-med-004:option:2": "Kinesis Data Firehose delivers streams to destinations like S3 — is not message queue with MessageGroupId.",
+        "dva-med-004:option:3": "It's the closest because the Standard line also processes messages in parallel — but it's at-last-once and SEM sorting: can duplicate and deliver out of order; order by MessageGroupId and without duplication requires queue SQS FIFO."
+      },
+      "finalJustifications": [
+        "Because the line SQS FIFO processing in parallel between groups, but keeps order within each MessageGroupId and deduplicates — exactly order per group without duplication.",
+        "Because the line SQS Standard processes in parallel between groups, but keeps order within each MessageGroupId and deduplicates — exactly order per group without duplication.",
+        "Because SNS Topic processes in parallel between groups, but keeps order within each MessageGroupId and deduplicates — exactly order per group without duplication of messages.",
+        "Because Kinesis Data Firehose processes in parallel between groups, but keeps order within each MessageGroupId and deduplicates — exactly order per group without duplication."
+      ]
+    },
+    "dva-med-005": {
+      "optionReasons": {
+        "dva-med-005:option:0": "Saving token in cookies without HttpOnly is security failure — it's not even token validation.",
+        "dva-med-005:option:1": "",
+        "dva-med-005:option:2": "Unvalidated trust lets the application accept forged or expired tokens — not validation.",
+        "dva-med-005:option:3": "It's the closest because decode the token and look at the JSON seems 'valid' — but Base64 is just coding: a JSON well-formed does NOT prove authenticity or validity; validating really is conferring the ASSINATURA with public keys (JWKS) and the claims (exp, iss, aud))."
+      },
+      "finalJustifications": [
+        "Because validating means checking token signature with public keys (JWKS) of User Pool and check the claims (exp, iss, aud) — this is the only way to guarantee authenticity and validity.",
+        "Because validating means saving the token in a cookie without HttpOnly and checking the claims (exp, iss, aud) — this is the only way to guarantee the authenticity and validity of the JWT received.",
+        "Because validating means trusting the already validated token in the login and checking the claims (exp, iss, aud) — only thus is the authenticity and validity of the JWT received from the customer.",
+        "Because validating means decoding the token in Base64 and checking the claims (exp, iss, aud) — this is the only way to guarantee the authenticity and validity of the JWT received from the customer."
+      ]
+    },
+    "dva-med-006": {
+      "optionReasons": {
+        "dva-med-006:option:0": "It's the closest because it touches the real dilemma (Lambda in VPC achieve public service) — but the statement is FALSA: one Lambda in VPC ACCOMMODATION of services AWS way NAT Gateway (Internet access) or VPC Endpoint; no impossibility.",
+        "dva-med-006:option:1": "Security Group without exit route does not give access to DynamoDB public — missing route (NAT or end point).",
+        "dva-med-006:option:2": "",
+        "dva-med-006:option:3": "Lambda outside the VPC achieves the DynamoDB, but PERDE private access to RDS the VPC — Don't answer both of them."
+      },
+      "finalJustifications": [
+        "Because the Lambda in private sub-networks achieves the RDS the VPC and with NAT Gateway (or one VPC Endpoint for the DynamoDB), also reaches the API public DynamoDB — both accesses at the same time.",
+        "Because the Lambda outside the VPC achieves the RDS the VPC and with NAT Gateway or VPC Endpoint, get to API public DynamoDB — the two accesses at the same time, without impossibility.",
+        "Because the Lambda only with Security Group achieves the RDS the VPC and with NAT Gateway or VPC Endpoint, get to API public DynamoDB — both accesses at the same time.",
+        "Because the Lambda in public sub-networks achieves the RDS the VPC and, without NAT nor endpoint, reach the API public DynamoDB — the two accesses at the same time, without extra configuration."
+      ]
+    },
+    "dva-med-007": {
+      "optionReasons": {
+        "dva-med-007:option:0": "Fixed variables in the code save the password in text in the source — without encryption or rotation.",
+        "dva-med-007:option:1": "File versioned in Git exposes password in repository history — worst practice yet.",
+        "dva-med-007:option:2": "",
+        "dva-med-007:option:3": "It's the closest because the Parameter Store Standard also keeps the connection string securely (SecureString) — but it DOES NOT have native password auto rotation; rotating without changing the code, in a managed way, is the Secrets Manager with Lambda Rotational."
+      },
+      "finalJustifications": [
+        "Because Secrets Manager saves encrypted connection string and rotates the password automatically via Lambda — the application searches for the secret in runtime, without changing the code in rotation.",
+        "Because the fixed environment variable saves the encrypted connection string and rotates the password automatically — the application searches for the secret in runtime, without changing the code in rotation.",
+        "Because the file in Git saves the encrypted connection string and rotates the password automatically — the application searches for the secret in runtime, without changing the code in rotation.",
+        "Because Parameter Store Standard saves encrypted connection string and rotates the password automatically — the application searches for the secret in runtime, without changing the code in rotation."
+      ]
+    },
+    "dva-med-008": {
+      "optionReasons": {
+        "dva-med-008:option:0": "",
+        "dva-med-008:option:1": "It's the closest because Rolling also updates the application with some availability — but 100% of the batch at once drops all the capacity together (unavailability) and the rollback requires new deployment; separate environment with exchange of URL and immediate rollback is Blue/Green.",
+        "dva-med-008:option:2": "Recreate the zero environment causes total unavailability during recreation — the opposite of minimum downtime.",
+        "dva-med-008:option:3": "All at once updates everything simultaneously — downtime and no fast rollback."
+      },
+      "finalJustifications": [
+        "Because Blue/Green climbs the new version in a separate environment and turns traffic by switching URL/CNAME — minimal downtime and immediate rollback back to the old environment.",
+        "Because Rolling with 100% the new version of the batch goes up in a separate environment and turns the traffic by swapping URL/CNAME — minimal downtime and immediate rollback back to the old.",
+        "Because re-creating the environment goes up the new version in a separate environment and turns the traffic by exchanging URL/CNAME — minimal downtime and immediate rollback back to the old environment.",
+        "Because All at once climbs the new version in a separate environment and turns traffic by swapping URL/CNAME — minimal downtime and immediate rollback back to the old environment."
+      ]
+    },
+    "dva-med-009": {
+      "optionReasons": {
+        "dva-med-009:option:0": "Direct Connect is dedicated network connectivity — nothing to do with compiling code.",
+        "dva-med-009:option:1": "",
+        "dva-med-009:option:2": "CloudFront It's CDN content delivery — does not compile or test code.",
+        "dva-med-009:option:3": "It's the closest because CodeCommit is part of the same IC/CD pipeline — but it's the Source Code Repository (Git), not the service that COMPILA, test and generate artifacts; the build stage is the AWS CodeBuild."
+      },
+      "finalJustifications": [
+        "Because CodeBuild compiles the source code, runs the tests and generates the artifacts (packages or images) — the build stage of the CI/CD pipeline, integrated into the CodePipeline.",
+        "Because CodeCommit compiles the source code, runs the tests and generates the artifacts (packages or images) — the build stage of the CI/CD pipeline, integrated into the CodePipeline.",
+        "Because Direct Connect compiles the source code, runs the tests and generates the artifacts (packages or images) — the build stage of the CI/CD pipeline, integrated into the CodePipeline.",
+        "Because CloudFront compiles the source code, runs the tests and generates the artifacts (packages or images) — the build stage of the CI/CD pipeline, integrated into the CodePipeline."
+      ]
+    },
+    "dva-med-010": {
+      "optionReasons": {
+        "dva-med-010:option:0": "It's the closest because compiling is part of the flow of SAM — but 'only compiles without creating resources' is incomplete: o sam Deployed EMPACOTA the template, climbs the artifacts and creates/updates the stack of the CloudFormation with defined resources.",
+        "dva-med-010:option:1": "Performing local tests is the sam local — not sam Deployed.",
+        "dva-med-010:option:2": "Removing resources is the sam delete — or deploy CRIA/update, do not remove.",
+        "dva-med-010:option:3": ""
+      },
+      "finalJustifications": [
+        "Because sam deploy package template SAM, uploads artifacts and creates/updates a stack of CloudFormation with defined resources — publishing serverless application.",
+        "Because sam deploy only compiles the code without creating resources, packing the template SAM — without climbing artifacts or touching the stack of CloudFormation.",
+        "Because sam deploy performs unit tests locally, packing the template SAM — without raising artifacts or creating resources in CloudFormation.",
+        "Because sam deploy removes all application resources by packing the template SAM — undoing the stack of CloudFormation instead of creating it or updating it."
+      ]
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-015..dva-avc-022",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-015": {
+      "optionReasons": {
+        "dva-avc-015:option:0": "An UpdateItem only plays ONE item — does not create the request in another item/table in the same operation.",
+        "dva-avc-015:option:1": "BatchWriteItem is not atomic nor supports ConditionExpression by item — it can record one and fail the other.",
+        "dva-avc-015:option:2": "",
+        "dva-avc-015:option:3": "It's the closest because two UpdateItems with ConditionExpression and a manual rollback TENTAM all-or-nothing — but it is not atomic: if the app falls between the first writing and the DeleteItem of compensation, the state becomes inconsistent; real atomity between two items is the TransactWriteItems."
+      },
+      "finalJustifications": [
+        "Because TransactWriteItems makes stock update (ConditionExpression stock >= quantity) and order put in a single atomic request — both have success or none, even in different tables.",
+        "Because an UpdateItem with nested map makes the stock decrease and the Put of the request in a single atomic operation — both have success or none, even in different items.",
+        "Because BatchWriteItem makes the Stock Update and the Order Put in a single atomic request — both have success or none, even in different tables, with condition per item.",
+        "Because two UpdateItems with manual rollbacks make the stock decrease and the Put of the request atomicly — both have success or none, with the DeleteItem undoing in failure."
+      ]
+    },
+    "dva-avc-016": {
+      "optionReasons": {
+        "dva-avc-016:option:0": "DAX is read cache — not serialized written or prevent lost update.",
+        "dva-avc-016:option:1": "",
+        "dva-avc-016:option:2": "It's the closest because reading with ConsistentRead before writing seems to prevent conflict — but there's a window between GetItem and UpdateItem (TOCTOU): another user can write at this interval; detect the conflict in MOMENTO of writing is the optimistic localking with ConditionExpression in the version.",
+        "dva-avc-016:option:3": "Throttling by WCU low is random and loses legitimate writing — not competition control."
+      },
+      "finalJustifications": [
+        "Because the optimal localization reads the version when loading and, when saving, the UpdateItem with ConditionExpression 'version = :expected' fails if someone has already changed the document — the app detects the conflict and asks to reload.",
+        "Because GetItem with ConsistentRead before UpdateItem reads the version when loading and fails if someone has already changed the document — the app detects the conflict and asks to reload, without separate lock.",
+        "Because DAX write-through reads the version when loading and fails if someone has already changed the document — the app detects the conflict and asks to reload, serializing the competing writings.",
+        "Because the WCU down with throttling reads the version when loading and fails if someone has already changed the document — the app detects the conflict and asks to reload, letting only one writing pass."
+      ]
+    },
+    "dva-avc-017": {
+      "optionReasons": {
+        "dva-avc-017:option:0": "DLQ capture failed invocations — does not prevent the explosion of connections or the latency of establishing them.",
+        "dva-avc-017:option:1": "More memory gives more CPU, but the problem is the pool recreated by invocation — not the speed of connecting.",
+        "dva-avc-017:option:2": "It is the closest because increasing max_connections accepts more connections in fact — but treats the SINTOMA: the root is to create a pool NOVO to each invocation (inside the handler); moving the creation out of the handler (global scope) re-uses the pool in the hot environment, solving connections and latency.",
+        "dva-avc-017:option:3": ""
+      },
+      "finalJustifications": [
+        "Why move pool creation out of the handler (module scope) creates it UMA and re-use between hot invocations — connections stop exploding and latency falls.",
+        "Because the DLQ for fault connections creates the pool once per environment and reuses it between hot invocations — the connections stop exploding and the latency of establishing them falls.",
+        "Because increasing the memory to the maximum creates the pool once per environment and reuses it between hot invocations — connections stop exploding and the latency of establishing them falls.",
+        "Why increase the max_connections of RDS creates the pool once per environment and reuses it between hot invocations — the connections stop exploding and the latency of establishing them falls."
+      ]
+    },
+    "dva-avc-018": {
+      "optionReasons": {
+        "dva-avc-018:option:0": "There is no 'cachear query strings to return arrays' — the multiValue field already resolves.",
+        "dva-avc-018:option:1": "It's the closest because it brings together in CSV would circumvent the loss of values — but changes the CONTRATO of API (the client already sends repeated 'tag' and fragile parsing force; reading repeated values is native via event.multiValueQueryStringParameters.tag, which returns the full array.",
+        "dva-avc-018:option:2": "",
+        "dva-avc-018:option:3": "Switching to custom integration with mapping template is unnecessary complexity — the proxy already exposes the multiValue."
+      },
+      "finalJustifications": [
+        "Because event.multiValueQueryStringParameters.tag returns the array with all values of the repeated parameter (['emergency','invoicing','clientA']) — without changing the contract of API integration.",
+        "Why ask CSV the client returns the array with all values of the repeated parameter — the function divides the string and recovers the three tags without changing the proxy integration.",
+        "Because cache request strings returns the array with all values of the repeated parameter (['emergency','invoicing','clientA']) — without changing the contract API integration.",
+        "Because the custom integration with mapping template returns the array with all values of the repeated parameter — joining the tags with delimiter without changing the contract of API."
+      ]
+    },
+    "dva-avc-019": {
+      "optionReasons": {
+        "dva-avc-019:option:0": "Authorizers TOKEN also cache — the premise that 'they can't support cache' is false.",
+        "dva-avc-019:option:1": "Authorizer cache applies to REST APIs — migrate to HTTP API is not the cause or the solution.",
+        "dva-avc-019:option:2": "",
+        "dva-avc-019:option:3": "It's the closest because the logic of de facto repeal is the author's responsibility — but the Lambda Deny returns correctly when invoked; the problem is NOT code bug nor 'list in the Policy Condition': it is the CACHE of the author serving the old policy by TTL; reduce authorizerResultTtlInSeconds (or 0) resolve."
+      },
+      "finalJustifications": [
+        "Because it's the expected behavior of the cache: the API Gateway keeps the author's policy by 300s with key in identity source; reduce the authorizerResultTtlInSeconds (or 0 to turn it off) accelerates the revocation.",
+        "Because being the authorizer REQUEST instead of TOKEN, the cache saves the policy by 300s; migrate to TOKEN turn off the cache and force each request to invoke the authorizer, accelerating the revocation.",
+        "Because the cache only goes to HTTP APIs: o API Gateway keeps politics by 300s in REST API, and migrate to HTTP API removes cache, causing revocation to have immediate effect.",
+        "Because it is code bug: the author must check a revocation list in the Returned Policy Condition to force immediate reassessment, bypassing the cache of 300s of API Gateway."
+      ]
+    },
+    "dva-avc-020": {
+      "optionReasons": {
+        "dva-avc-020:option:0": "",
+        "dva-avc-020:option:1": "It's the closest because Transfer Acceleration accelerates transfers with the S3 — but it DOES NOT 'retake the last byte' in a PutObject; the interruption still restarts the upload; sending in independent parts, sending only to the one that failed, is the Multipart Upload (or the managed utility of the SDK).",
+        "dva-avc-020:option:2": "Reduce the size to <100 MB pushes the problem to the user — is not the appropriate treatment for 5 GB.",
+        "dva-avc-020:option:3": "Versioning saves versions of objects COMPLETOS — does not resume a partial upload from where it stopped."
+      },
+      "finalJustifications": [
+        "Because Multipart Upload divides the object into separate (and parallel) sent parts: if one fails, only it is sent back, not 5 GB integers — reliable upload in unstable connections.",
+        "Because the Transfer Acceleration divides the object into separate parts: if one fails, only it is sent back, not 5 GB integers — reliable upload in unstable connections.",
+        "Why reduce to <100 MB divides the object into separate sent parts: if one fails, only it is forwarded, not 5 GB integers — reliable upload in unstable connections.",
+        "Because Versioning divides the object into separate parts: if one fails, only it is sent back, not 5 GB integers — reliable upload in unstable network connections."
+      ]
+    },
+    "dva-avc-021": {
+      "optionReasons": {
+        "dva-avc-021:option:0": "",
+        "dva-avc-021:option:1": "It's the closest because it looks like a single efficient call — but Query operates on UMA partition key at a time (with spell key condition), does not accept a LISTA of different keys via IN; recover many items by primary key in a call is the BatchGetItem (up to 100 items).",
+        "dva-avc-021:option:2": "Scan reads the whole table and filters after — expensive and slow, the opposite of reducing round-trips.",
+        "dva-avc-021:option:3": "DAX reduces reading latency, but keeps 80 GetItem sequential keeps the 80 round-trips — does not solve the pattern."
+      },
+      "finalJustifications": [
+        "Because BatchGetItem recovers the 80 items by the primary keys in a single call (up to 100 items/16 MB) — eliminates 80 sequential round-trips and cut the total latency.",
+        "Because Query with the IN on the keys gets the 80 items by the primary keys in a single call — eliminates the 80 sequential round-trips and cut the total latency of the pattern.",
+        "Because the scan with IN on the list recovers the 80 items by the primary keys in a single call — eliminates the 80 sequential round-trips and cut the total latency of the reading pattern.",
+        "Because DAX with the 80 GetItItem recovers items by primary keys in a single call — eliminates the 80 sequential round-trips and cut the total latency of the reading pattern."
+      ]
+    },
+    "dva-avc-022": {
+      "optionReasons": {
+        "dva-avc-022:option:0": "",
+        "dva-avc-022:option:1": "It's the closest because the dual-write in the handler REALMENTE updates the index and publishes it in SNS — But that's exactly what the requirement wants. EVITAR: logic of double writing spread across each path, prone to inconsistency if an operation fails; reacting to changes without touching the writing code is the DynamoDB Streams Lambda.",
+        "dva-avc-022:option:2": "EventBridge Pipes does not operate 'about calls from API way CloudTrail date events' like this — is not the mechanism for capturing table changes.",
+        "dva-avc-022:option:3": "Scan each 5 min comparing snapshot is expensive, late and fragile — no reaction to change events."
+      },
+      "finalJustifications": [
+        "Why enable the DynamoDB Streams (NEW_AND_OLD_IMAGES) with a Lambda how trigger reacts to each creation/update/delete — updates the index and publishes it in SNS in the price change, without touching the writing code.",
+        "Because the dual-write does not handler reacts to each creation/update/delete — updates the index and publishes no SNS in the price change, without touching the writing code of the Products table.",
+        "Because EventBridge Pipes over CloudTrail reacts to each creation/update/delete — updates the index and publishes no SNS in the price change, without touching the writing code of the table.",
+        "Because the scheduled rule with Scan reacts to each creation/update/delete — updates the index and publishes it in SNS in the price change, without touching the writing code of the Products table."
+      ]
+    }
+  }
+}

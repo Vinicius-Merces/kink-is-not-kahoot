@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "145-156",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-145": {
+      "text": "A research team needs to perform a highly parallel fluid dynamics simulation, distributed between 20 cases EC2, in which each instance exchanges large volumes of intermediate data with TODAS the other instances continuously during the calculation (all-to-all intensive communication). ENTRE the instances is the main limiting factor of the total simulation time. The team wants to minimize this inter-instance network latency. EC2 meets this requirement?",
+      "options": [
+        "Launch the 20 cases EC2 within a Cluster Placement Group, using instance types that support this configuration.",
+        "Use a Spread Placement Group, which distributes each instance into distinct underlying hardware.",
+        "Distribute 20 instances between as many Availability Zones as possible, to maximize resilience.",
+        "Use a 'Partition Placement Group', dividing the instances into distinct logical partitions."
+      ],
+      "explanation": "Correct. A Cluster Placement Group groups the physically close instances within a single AZ (even rack/subsisting network infrastructure), providing the widest possible network bandwidth between them and the MENOR latency — ideal for workloads HPC strongly coupled with intensive 'all-to-all' communication, such as the simulation described.",
+      "hint": "Think about which physical positioning strategy groups the instances as close as possible to each other (even rack/network infrastructure), minimizing the latency of communication between them.",
+      "optionRationales": [
+        "Correct. A Cluster Placement Group groups the physically close instances within a single AZ (even rack/subsisting network infrastructure), providing the widest possible network bandwidth between them and the MENOR latency — ideal for workloads HPC strongly coupled with intensive 'all-to-all' communication, such as the simulation described.",
+        "Incorrect for this specific requirement. Distribute instances between multiple AZs AUMENTA the network latency between them (communication between AZs has latency greater than within the same AZ/rack) — the opposite of the objective of the AZ/rack system, which is to MINIMIZAR the inter-instance communication latency for this strongly coupled workload.",
+        "Incorrect. A Spread Placement Group distributes instances in hardware DIFERENTE (reducing the risk of correlated failures affecting multiple instances) — this RESILENCE objective is to OPOSTO of the physical proximity objective to minimize latency that the scenario requires; a Cluster Placement Group is the appropriate for low latency.",
+        "Incorrect. The 'Partition Placement Group' is aimed at large-scale distributed applications (ex.: HDFS, Cassandra) that need to isolate faults between hardware partitions — does not optimize for the MENOR possible latency between TODAS the instances, which is what the Cluster Placement Group offers for loads HPC strongly coupled."
+      ]
+    },
+    "saa-med-146": {
+      "text": "A financial analysis application loads a large set of data (various GB) entirely in memory RAM of cases EC2 to perform complex calculations in real time about these data (e.g., risk simulations that repeatedly access the entire data structure in memory). CPU is moderate, but the amount of RAM available is the limiting factor: with the current family of instances (general purpose), the team needs to use multiple instances only to accommodate the data set in memory, fragmenting the processing. EC2 is more suitable for this use case, allowing consolidation of processing in less instances?",
+      "options": [
+        "Fora of the 'T' family (Burstable) with the maximum credit of CPU accumulated.",
+        "'R' family instances (Memory Optimized, e.g.: R6g, R7i) — offer high memory/vCPU ratio, suitable for loads that maintain large data sets in RAM.",
+        "'I' family instances (Storage Optimized) — offer high-performance local NVMe storage.",
+        "'C' family instances (Compute Optimized) — offer the highest proportion of vCPU by instance."
+      ],
+      "explanation": "Correct. The instances of the R family (Memory Optimized) are designed for workloads that process large data sets IN MEMORY — offering a proportion of RAM by vCPU significantly higher than general purpose instances. This allows to accommodate the data set of several GB in MENOS instances, consolidating the processing, with the moderate use of CPU being sufficient for the calculations.",
+      "hint": "Think of which family of instances EC2 offers the highest amount of memory RAM by vCPU, focused on workloads that keep large data sets in memory.",
+      "optionRationales": [
+        "Correct. The instances of the R family (Memory Optimized) are designed for workloads that process large data sets IN MEMORY — offering a proportion of RAM by vCPU significantly higher than general purpose instances. This allows to accommodate the data set of several GB in MENOS instances, consolidating the processing, with the moderate use of CPU being sufficient for the calculations.",
+        "Incorrect. C instances prioritize PODER OF PROCESSAMENTO (vCPU) in relation to memory — exactly the opposite of what is needed here, where the limiting factor is the amount of RAM available to accommodate the data set, not the processing power (which the scenario describes as 'moderate').",
+        "Incorrect. T instances (Burstable) are focused on loads with peaks OCASIONAIS of CPU and low average use, with relatively limited amounts of memory compared to optimized families — credit from CPU do not resolve a limitation of CAPACIDADE MEMORY RAM, which is the limiting factor described.",
+        "Incorrect. I instances are optimized for high IOPS of ARMAZENAMENTO LOCAL (discs), not for large memory capacity RAM — the scenario describes data maintained in the RAM (not on local disk), therefore the storage optimization of these instances does not meet the main requirement."
+      ]
+    },
+    "saa-med-147": {
+      "text": "A serverless application uses functions AWS Lambda connecting to a database Amazon RDS for PostgreSQL. During traffic peaks, the number of concurrent executions of Lambda reaches thousands, and CADA execution opens its own connection to the database — quickly exhausting the maximum limit of simultaneous connections of the instance RDS (e.g.: 'too many connections'), even if each individual connection is used for a short time. The team wants to allow the functions Lambda continue to scale for thousands of competing executions, without exhausting the database connections, and without reducing competition from Lambda. Which solution solves this problem?",
+      "options": [
+        "Configure 'Reserved Competition' in the functions Lambda to limit the maximum number of simultaneous executions to the limit of connections of the RDS.",
+        "Configure each function Lambda to explicitly close your connection to the database at the end of each execution.",
+        "Implant Amazon RDS Proxy in front of the instance RDS, and configure the functions Lambda to connect to the endpoint of RDS Proxy instead of directly to the database.",
+        "Increase instance type RDS for a higher class, which supports a higher number of simultaneous connections."
+      ],
+      "explanation": "Correct. RDS Proxy manages one POOL of persistent and established connections with the RDS, and MULTIPLEXA thousands of 'light' connections from executions Lambda on this reduced pool of real connections to the database — allowing the Lambda scale for thousands of competing executions without exhausting the limit of connections of RDS, without the need to reduce competition in functions.",
+      "hint": "Think of a service that maintains a pool of persistent connections with the database and allows many 'light' connections to Lambda share this pool.",
+      "optionRationales": [
+        "Correct. RDS Proxy manages one POOL of persistent and established connections with the RDS, and MULTIPLEXA thousands of 'light' connections from executions Lambda on this reduced pool of real connections to the database — allowing the Lambda scale for thousands of competing executions without exhausting the limit of connections of RDS, without the need to reduce competition in functions.",
+        "Incorrect considering the requirement. Lambda the number of connections of the RDS RESOLVERIA the exhaustion, but at the expense of THROTTLING execution Lambda during peaks — the scenario explicitly calls for NOT to reduce competition from Lambda, what the RDS Proxy lets you avoid.",
+        "Incorrect as a scalable solution. Although larger instances support more connections, this limit is still FINITO — during sufficiently large peaks (thousands of executions) Lambda), the limit could be reached again, requiring repeated cost increases; RDS Proxy solves the problem in an uncoupled way of instance size.",
+        "Incorrect as a complete solution. Even closing connections at the end of each execution, during a PICO with thousands of executions CONCORRENTES, each one would open their own connection SIMULTANEAMENTE — the limit of connections of the instance RDS would be reached by the concurrent volume, regardless of how quickly each individual connection is closed after."
+      ]
+    },
+    "saa-med-148": {
+      "text": "A web application needs a cache in memory to store fragments of pages HTML rendered, reducing the backend load. The requirements are: (1) the cache load can grow rapidly, and the team wants power ADICIONAR And REMOVER cache cluster nodes easily to scale horizontally according to demand; (2) cache data are purely transitory — losing the cache (e.g. rebooting a node) is acceptable as the data can be regenerated from the backend.; (3) the team wants to enjoy multiple cores of CPU in each node to process many cache operations simultaneously. Amazon ElastiCache is more suitable for these requirements?",
+      "options": [
+        "Amazon DynamoDB Accelerator (DAX) independently configured, without a table DynamoDB associated.",
+        "Amazon RDS for PostgreSQL with an optimized table to store cache fragments in memory.",
+        "Amazon ElastiCache for Redis with Enabled Cluster Mode and multiple shard reading replicas, with enabled (snapshots).",
+        "Amazon ElastiCache for Memcached — multi-threaded (take advantage of multiple cores), with simple horizontal scaling (add/remove knots) and no need for persistence or replication for purely transient data."
+      ],
+      "explanation": "Right. Memcached is multi-threaded, taking advantage of NUCLEAR MULTIPLES from CPU per node to process simultaneous operations — suitable for the requirement (3). Your Simple Model of PARTICIONAMENTO allows to add or remove knots to scale horizontally with ease — requirement (1). And, by not offering persistence/replication (each node is independent, data lost in case of node failure are acceptable here), is a simpler choice and aligned to the requirement (2) of purely transient and regenerable data.",
+      "hint": "Think of which ElastiCache engine is multi-threaded (use multiple cores per node) and was designed as a simple and easily scalable horizontal cache without persistence or replication features.",
+      "optionRationales": [
+        "Right. Memcached is multi-threaded, taking advantage of NUCLEAR MULTIPLES from CPU per node to process simultaneous operations — suitable for the requirement (3). Your Simple Model of PARTICIONAMENTO allows to add or remove knots to scale horizontally with ease — requirement (1). And, by not offering persistence/replication (each node is independent, data lost in case of node failure are acceptable here), is a simpler choice and aligned to the requirement (2) of purely transient and regenerable data.",
+        "Incorrect as best fit for this specific scenario. Redis is single-threaded POR NO (each shard uses mainly a core for operations), not taking advantage of multiple cores per node as Memcached does — in addition, configure persistence and replicas adds complexity and cost to data that the scenario describes as purely transient and regenerable, features that make Memcached simpler and more appropriate.",
+        "Incorrect. RDS is a database RELACIONAL PERSISTENTE on disk, not a cache in memory — using it to store cache fragments would introduce much greater latency than a cache in dedicated memory, besides consuming the main database capacity for a function that is, by definition, transient.",
+        "Incorrect. DAX is a cache that operates ESPECIFICAMENTE in front of a table of DynamoDB (by checking the results of the operations of the API of the DynamoDB) — it doesn't work as an independent general purpose cache for fragments of HTML without a table DynamoDB underlying."
+      ]
+    },
+    "saa-med-149": {
+      "text": "A cluster Amazon Aurora for MySQL attends to a news application. During events of great impact, the traffic of LEITURA (users accessing articles) can increase in 10x for a few hours, while traffic from ESCRITA (publication of new articles by publishers) remains relatively constant. Currently, the cluster has 2 fixed reading replicas, which get overloaded during these peaks, but would be a waste of capacity (and cost) outside these periods. The team wants the number of reading replicas to be AJUSTE AUTOMATICAMENTE based on the reading demand, without manual intervention. Aurora meets this requirement?",
+      "options": [
+        "Configure the Aurora Auto Scaling for reading replicas, defining a policy based on a metric (e.g., mean use of the CPU of replicas) and a minimum/maximum number of replicas.",
+        "Manually increase the number of reading replicas to the maximum value (15) permanently, ensuring sufficient capacity at any time.",
+        "Migrate the cluster to use only the write instance, removing read replicas and directing all traffic (reading and writing) to it.",
+        "Configure the Amazon ElestiCache in front of the cluster Aurora to absorb all additional reading load during peaks."
+      ],
+      "explanation": "Correct. Aurora Auto Scaling for reading replicas it monitors a defined metric (e.g., average CPUtilization between replicas) and adds or removes replicas AUTOMATICAMENTE within the set minimum/maximum limits — during reading peaks, new replicas are added to absorb the load; outside the peaks, excess replicas are removed, avoiding waste of capacity, without manual intervention.",
+      "hint": "Think of what resource the Aurora adds and removes read replicas automatically, based on usage metrics, within team-configured limits.",
+      "optionRationales": [
+        "Correct. Aurora Auto Scaling for reading replicas it monitors a defined metric (e.g., average CPUtilization between replicas) and adds or removes replicas AUTOMATICAMENTE within the set minimum/maximum limits — during reading peaks, new replicas are added to absorb the load; outside the peaks, excess replicas are removed, avoiding waste of capacity, without manual intervention.",
+        "Incorrect. Maintaining the MAXIMUM number of replicas permanently guarantees capacity for peaks, but generates cost CONSTANTE equivalent to the peak even during long periods of normal traffic — exactly the 'capacity and cost waste outside those periods' that the scenario seeks to avoid; Auto Scaling adjust the quantity DINAMICAMENTE.",
+        "Incorrect as a complete solution to the requirement. Although a cache may reduce part of the reading load (for repeated/capable queries), the scenario specifically asks that the NUMBER OF REPLIES OF LEITURA of the Aurora automatically adjusts to demand — a cache does not replace this native replica scaling mechanism and does not answer articles NOVOS/not yet cached.",
+        "Incorrect. Delete the concentration reading replicas TODO traffic (including the increase of 10x in readings) in the ONLY instance writer, overloading it even more than the current scenario with 2 replicas — the opposite of the objective of absorbing reading peaks."
+      ]
+    },
+    "saa-med-150": {
+      "text": "A company has a data center on-premises that needs to connect to its VPC the AWS for a hybrid application that transfers large volumes of data daily (e.g. data warehouse synchronization) and requires LATENCY BAIXA And CONSISTENTE for a trading application that partially rotates on-premises and partially on-premises AWS. The current connection via Site-to-Site VPN the public internet has variable latency and throughput limited by the available internet band, impacting the performance of both loads. The team wants a dedicated network connection, with consistent throughput and predictable latency, between the data center and the AWS. What solution meets this requirement?",
+      "options": [
+        "Migrate the entire trading application to the AWS, eliminating the need for hybrid connectivity.",
+        "Configure the AWS Global Accelerator to optimize the network route between the data center and the VPC.",
+        "Establish a connection AWS Direct Connect between the data centre and the AWS, with dedicated bandwidth appropriate for data volume.",
+        "Increase the number of tunnels in AWS Site-to-Site VPN to distribute the traffic load between them."
+      ],
+      "explanation": "Correct. AWS Direct Connect establishes a connection of REDE DEDICADA And PRIVADA between the customer's data center and the AWS, completely off the public internet. This provides THROUGHPUT consistent (sized by the bandwidth of the contracted connection) and PREVIOUS LATENCIA — taking into account both the need to transfer large volumes of data and the low and consistent latency requirement for the trading application.",
+      "hint": "Think about which service establishes a dedicated and private network connection (outside the public internet) between the customer's facilities and the AWS, with consistent throughput and latency.",
+      "optionRationales": [
+        "Correct. AWS Direct Connect establishes a connection of REDE DEDICADA And PRIVADA between the customer's data center and the AWS, completely off the public internet. This provides THROUGHPUT consistent (sized by the bandwidth of the contracted connection) and PREVIOUS LATENCIA — taking into account both the need to transfer large volumes of data and the low and consistent latency requirement for the trading application.",
+        "Incorrect. Multiple tunnels VPN they still trade for INTERNET PUBLIC — variable latency and throughput limited by the available internet band remain as fundamental factors, regardless of how many tunnels are used; the problem is the nature of the connection (public internet), not just the number of tunnels.",
+        "Incorrect as best approach to the declared requirement. The scenario describes an application that rotates PARCIALMENTE on-premises for unspecified reasons (possibly regulatory or physical equipment) — migrating everything is a much broader and disruptive change than establishing a dedicated network connection (Direct Connect), which solves the latency/throughput problem while maintaining hybrid architecture.",
+        "Incorrect. AWS Global Accelerator optimizes user traffic routing FINAIS (on the Internet) up to application endpoints in the AWS through the global network of AWS — it does not establish a dedicated connection between a DATA CENTER ON-PREMISES and the AWS, which is what Direct Connect provides."
+      ]
+    },
+    "saa-med-151": {
+      "text": "A news site uses the Amazon CloudFront in front of an architecture with two origins: a pocket S3 (for static images and files, in '/static/*' and a Application Load Balancer pointing to application servers (for dynamic/customized content, in '/api/*' and '/'). The team wants static content stored in cache AGRESSIVAMENTE (TTL long, ex.: 1 day) to reduce costs and latency, while dynamic content is NOT stored in cache (each request should reach ALB), always reflecting the latest information. What configuration of the CloudFront meets this requirement within the UMA SINGLE Distribution?",
+      "options": [
+        "Add a header HTTP 'Cache-Control: no-store TODAS the application responses (static and dynamic) generated by backend.",
+        "Define a single TTL average (ex.: 1 hour) for all distribution, balancing the desired aggressive cache for statics with the desired frequent update for dynamic content.",
+        "Configure multiple Behaviors Cache in the same distribution CloudFront: one for the path pattern '/static/*' pointing to the pocket S3 with a cache policy of TTL long, and another (standard, '*') for the ALB with a cache policy that disables cache storage (TTL = 0 or 'CachingDisabled'').",
+        "Create two distributions CloudFront separate — one for the S3 with long cache, another for the ALB no cache — and use Route 53 to route different paths for each distribution."
+      ],
+      "explanation": "Right. CloudFront allow to associate DIFERENTES origins and DIFERENTES caching policies a DIFERENTES Road patterns within the MESMA distribution. Configure '/static/*' with TTL long pointing to the S3 meets the requirement of aggressive cache for static content, while the standard behavior ('*') pointing to the ALB with disabled cache ensures that dynamic content always reaches backend — all in one distribution.",
+      "hint": "Think of setting up multiple 'Cache Behaviors' (caching behaviors) in the distribution, each associated with a path pattern and a different source/caching policy.",
+      "optionRationales": [
+        "Right. CloudFront allow to associate DIFERENTES origins and DIFERENTES caching policies a DIFERENTES Road patterns within the MESMA distribution. Configure '/static/*' with TTL long pointing to the S3 meets the requirement of aggressive cache for static content, while the standard behavior ('*') pointing to the ALB with disabled cache ensures that dynamic content always reaches backend — all in one distribution.",
+        "Incorrect as best approach. Although technically possible, manage DUAS distributions and set up route based route in DNS (o Route 53 does not route by PATH of URL natively) is much more complex than using Cache Behaviors with path patterns DENTRO of a single distribution, which is exactly the resource designed for this scenario.",
+        "Incorrect. TTL single average would be a bad compromise for AMBOS the types of content: the static would be cached by MENOS time that the desired (1 day), and the dynamic would still be CACHEADO by 1 time when the requirement is that NUNCA cached — Cache Behaviors per path pattern allows you to optimize each type of content independently without this commitment.",
+        "Incorrect. Apply 'no-store' to TODAS the responses (including the statics of S3, which normally do not pass through a backend that adds dynamic headers) would prevent cache AGRESSIVO desired for static content — going against part of the requirement; in addition, control this via Cache Behaviors in CloudFront is more direct and does not depend on changing the behavior of each origin."
+      ]
+    },
+    "saa-med-152": {
+      "text": "A company has decided to stay, in instances EC2, a database NoSQL Self-managed (e.g. Cassandra) which requires very high throughput of I/O ALEATORIO in local storage (not in network), with extremely low disk latency, to support millions of read/write operations per second. EC2 is the most suitable for this case of use?",
+      "options": [
+        "‘I' family bodies (Storage Optimized, e.g. I3, I4i, I7ie) — equipped with NVMe storage SSD very high location IOPS and low latency.",
+        "'T' (Burstable) family bodies with EBS Optimized enabled.",
+        "'C' family instances (Compute Optimized) with standard instance store.",
+        "'R' family instances (Memory Optimized) with volumes Amazon EBS gp3 configured with the maximum of IOPS Provisioned."
+      ],
+      "explanation": "Correct. The instances of the family I (Storage Optimized) are equipped with NVMe storage SSD LOCAL (very high performance instance store — designed specifically for databases NoSQL self-managed and other loads requiring millions of random I/O operations per second with minimum latency, directly from the instance hardware (without additional latency of network storage).",
+      "hint": "Think of which family of instances EC2 offers NVMe storage SSD very high location IOPS and low latency, directly connected to the instance hardware.",
+      "optionRationales": [
+        "Correct. The instances of the family I (Storage Optimized) are equipped with NVMe storage SSD LOCAL (very high performance instance store — designed specifically for databases NoSQL self-managed and other loads requiring millions of random I/O operations per second with minimum latency, directly from the instance hardware (without additional latency of network storage).",
+        "Incorrect as better fit. Although the EBS gp3 offers good performance, it is an EM storage REDE — with IOPS the latency of a network volume is inherently higher than that of the NVMe storage LOCAL of the family I instances, which is what the requirement of 'extremely low disk latency' and 'local storage' specifically requires.",
+        "Incorrect. T family instances are turned to loads with peaks OCASIONAIS Use (model of credit CPU) and generally do not offer the sustained performance of I/O required for 'millions of operations per second' continuously — they are not the choice for databases NoSQL High-trading continuous.",
+        "Incorrect. Although some C instances offer instance storage, the C family is optimized for PODER OF PROCESSAMENTO (vCPU), not for CAPACIDADE And DESEMPENHO OF I/O OF ARMAZENAMENTO location that is the central requirement of this scenario — family I is specifically designed and optimized for this storage load profile."
+      ]
+    },
+    "saa-med-153": {
+      "text": "A social network allows users in Brazil, Europe and Asia to read and update their own profiles (name, photo, preferences). Amazon DynamoDB to store the profiles. Users report ALTA LATENCIA when loading and saving your profiles when the table is hosted in a single region (us-east)-1), especially users in Asia. The team wants users in each region to have latency of LEITURA And ESCRITA low in its own profiles, with the data remaining available (possibly consistent) in all regions. DynamoDB meets this requirement?",
+      "options": [
+        "Partitioning the table manually, creating a table DynamoDB separated by region and implementing logic in the application to route each user to the table of their region, without replication between them.",
+        "Configure the table as a DynamoDB Global Table, with replicas in the relevant regions (e.g. sa-east)-1, me-west-1, ap-subtheast-1), and direct each user to the nearest regional replica.",
+        "Create Read Table Replicas DynamoDB in each region, with the us-east region-1 remaining as the only one who accepts writings.",
+        "Add a cluster ElastiCache regional on each continent, in front of the table DynamoDB unique in us-east-1."
+      ],
+      "explanation": "Correct. DynamoDB Global Tables keep replicas TOTALMENTE GERENCIADAS and MULTI-ATIVAS (multi-master) of the same table in multiple regions — each region supports operations of LEITURA And ESCRITA local, with low latency for users of that region. The changes are automatically propagated between the replicas (asynchronous replication, eventual consistency between regions), meeting the requirement of low local latency with global availability of data.",
+      "hint": "Think of what resource the DynamoDB maintains fully managed and synchronized replicas (multi-region, multi-active) of the same table in various regions, allowing reading and local writing in each.",
+      "optionRationales": [
+        "Correct. DynamoDB Global Tables keep replicas TOTALMENTE GERENCIADAS and MULTI-ATIVAS (multi-master) of the same table in multiple regions — each region supports operations of LEITURA And ESCRITA local, with low latency for users of that region. The changes are automatically propagated between the replicas (asynchronous replication, eventual consistency between regions), meeting the requirement of low local latency with global availability of data.",
+        "Incorrect. DynamoDB does not have the concept of regional 'Read Replicas' as the RDS — and even if there was this pattern, ESCRITAS users in Asia would still need to cross the network to us-east-1, keeping the high latency of ESCRITA for these users, what the scenario asks to solve (reading and writing locals)).",
+        "Incorrect for the requirement of ESCRITA. A regional cache could reduce latency of LEITURAS (for data already cached), but ESCRITAS (profile update) would still need to go to the table in us-east-1, maintaining high writing latency for remote users — in addition to introducing cache invalidation complexity between regions.",
+        "Incorrect as best approach. Although it reduces latency locally, tables completely SEPARADAS without replication means that one user's data would NOT be available if it accessed the application from another region (e.g. during a trip) — Global Tables resolves the low local latency and keeps the data synchronized/available globally, without requiring this manual partitioning logic in the application."
+      ]
+    },
+    "saa-med-154": {
+      "text": "A high-frequency trading application runs in instances EC2 and communicates with other services through the network of VPC. The team wants MAXIMIZAR the network performance between instances — specifically, higher network throughput, lower latency and lower 'jitter' (latency variation) — using instance types and optimized network drivers offered by AWS, without changing the architecture of the application. Which resource meets this requirement?",
+      "options": [
+        "Migrate all instances to public sub-networks, eliminating the NAT Gateway of the way of communication.",
+        "Use instance types that support Enhanced Networking with Elastic Network Adapter driver (ENA), ensuring that the driver ENA is installed and enabled in the operating system.",
+        "Increase volume size EBS attached to the instances, since larger volumes have greater width of network band.",
+        "Configure Auto Scaling to add more instances during trading times of higher volume."
+      ],
+      "explanation": "Right. Enhanced Networking, through the driver ENA, offers higher network throughput, lower latency between instances, and lower jitter compared to traditional network virtualization — available in most types of current instances (including C, M, R, among others). ENA does not require changes in the architecture of the application, only the use of compatible AMIs/drivers and types of instance supported.",
+      "hint": "Think about what network driver technology, supported by most current instance types, offers higher throughput and lower latency/jitter than traditional network virtualization.",
+      "optionRationales": [
+        "Right. Enhanced Networking, through the driver ENA, offers higher network throughput, lower latency between instances, and lower jitter compared to traditional network virtualization — available in most types of current instances (including C, M, R, among others). ENA does not require changes in the architecture of the application, only the use of compatible AMIs/drivers and types of instance supported.",
+        "Incorrect. The bandwidth of volumes EBS is related to the performance of ARMAZENAMENTO (between the instance and the EBS), not to the performance of REDE between instances/other services of the VPC — increase volume size EBS does not improve network communication latency or throughput between instances.",
+        "Incorrect. Moving instances to public sub-networks affects how they connect to INTERNET (not requiring NAT Gateway for output traffic), but has no relation to network performance ENTRE INSTITUTIONS within the VPC, which is the focus of the requirement — in addition to introducing safety considerations by publicly exposing fora.",
+        "Incorrect. Adding more instances increases the CAPACIDADE TOTAL processing, but does not improve the characteristics of REDE (throughput, latency, jitter) CADA Individual connection between instances — Enhanced Networking (ENA) acts directly in these characteristics by instance."
+      ]
+    },
+    "saa-med-155": {
+      "text": "A media company needs to migrate a video file from 150 TB of your data center on-premises for the Amazon S3, as part of a single (non-recurring) migration. The internet connection available in the data center has the ability to 100 Mbps. The team estimates that at this speed, the transfer would take more than 130 days — unacceptable time for the project schedule. Increasing the internet band is not feasible in the short term due to contractual and cost restrictions. AWS allows this migration within a much shorter time frame, without depending on the existing internet connection?",
+      "options": [
+        "Enable S3 Transfer Acceleration to accelerate the transfer through the edge locations of AWS.",
+        "Divide the 150 TB in thousands of small files and upload in parallel using multiple simultaneous connections.",
+        "Request one or more devices AWS Snowball Edge: copy the 150 TB local data for devices via local network (LAN), and send them back to AWS, which loads the data directly into S3.",
+        "Use AWS DataSync to synchronize the data center files directly to the S3 through the existing internet connection."
+      ],
+      "explanation": "Correct. AWS Snowball Edge is a high-capacity physical storage device sent to the client: the data is copied locally through the network LAN (much faster than the internet connection of 100 Mbps), and the device is returned to AWS, which ingests the data directly into the S3 through its internal high-speed network — completely avoiding the customer's internet bandwidth limitation and reducing the migration time from months to days.",
+      "hint": "Think of a physical storage device that the AWS send to the customer: the data is copied locally to the device, which is then returned to AWS for data to be loaded directly into the storage infrastructure without using the client's internet.",
+      "optionRationales": [
+        "Correct. AWS Snowball Edge is a high-capacity physical storage device sent to the client: the data is copied locally through the network LAN (much faster than the internet connection of 100 Mbps), and the device is returned to AWS, which ingests the data directly into the S3 through its internal high-speed network — completely avoiding the customer's internet bandwidth limitation and reducing the migration time from months to days.",
+        "Incorrect for this scenario. AWS DataSync optimizes data transfer by REDE (compression, parallelism), but it is still fundamentally LIMITADO by the bandwidth of the internet connection available (100 Mbps) — for 150 TB, even with optimizations, the transfer time would continue to be of the order of weeks to months, not meeting the requirement of much shorter term.",
+        "Incorrect. Transfer Acceleration improves the transfer by routing through the edge network of the AWS, but the GARGALO in this scenario is the band width of the data center (100 Mbps) — no route optimization on the side of the AWS may exceed this band limit at source; only one physical device (Snowball) that avoids the use of this connection solves the time problem.",
+        "Incorrect. Although paralleling uploads can better use the AVAILABLE band, the band TOTAL Connection (100 Mbps) is a physical/contractual limit — multiple simultaneous connections share the same total band, do not multiply it; the total transfer time would remain the same order of magnitude (months), incompatible with the schedule."
+      ]
+    },
+    "saa-med-156": {
+      "text": "An online multiplayer game application uses a Network Load Balancer (NLB) in front of gaming servers in a single region of the AWS, attending players on various continents via connections UDP/TCP. Players in geographically distant regions of the AWS (e.g. parts of Africa and Asia, where the region of application is EUA) they report high and unstable latency, because traffic travels through the public internet until reaching the region. The team wants to reduce latency for these players by routing traffic through the private backbone network of the AWS as soon as possible, keeping the NLB existing as destination, without migrating the application to multiple regions. Which service meets this requirement?",
+      "options": [
+        "Increase the number of listeners configured on the Network Load Balancer to better distribute traffic.",
+        "Configure a distribution Amazon CloudFront in front of the Network Load Balancer, with cache disabled.",
+        "Configure the AWS Global Accelerator, pointing to the Network Load Balancer existing as endpoint, and direct players to anycast static IP addresses provided by Global Accelerator.",
+        "Migrate application to multiple regions of the AWS, one on each continent, with Route 53 latency-based routing."
+      ],
+      "explanation": "Correct. AWS Global Accelerator provides anycast-type STATIC IP addresses, advertised from multiple edge locations of AWS global. The traffic of players enters the network AWS at the edge point MAIS NEXT Geographically and is transported by BACKBONE PRIVADO of AWS (instead of the public internet) until NLB of destination — significantly reducing latency and variability for distant players, SEM demand migration of application to multiple regions.",
+      "hint": "Think about which service provides static Anycast IP addresses, which direct users' traffic to the nearest network entry point AWS, And then they transport it through the private backbone of AWS up to the endpoint of the application.",
+      "optionRationales": [
+        "Correct. AWS Global Accelerator provides anycast-type STATIC IP addresses, advertised from multiple edge locations of AWS global. The traffic of players enters the network AWS at the edge point MAIS NEXT Geographically and is transported by BACKBONE PRIVADO of AWS (instead of the public internet) until NLB of destination — significantly reducing latency and variability for distant players, SEM demand migration of application to multiple regions.",
+        "Incorrect. CloudFront is optimized for traffic HTTP/HTTPS (including websockets in some cases), but the scenario describes game traffic based on UDP/TCP generic, for which CloudFront is not the appropriate service — Global Accelerator operates in the network layer (TCP/UDP) and is the service specifically designed to accelerate this type of traffic to a NLB.",
+        "Incorrect considering the restriction of the scenario. The scenario explicitly asks for a solution SEM migrating the application to multiple regions — the Global Accelerator improves the latency of access to an application in UMA THE ONLY (or few) region to optimize the CAMINHO OF REDE, without requiring such full geographical replication of the application infrastructure.",
+        "Incorrect. The number of listeners from NLB determines in which ports/protocols it accepts traffic — has no relation to the CAMINHO OF REDE traveled by traffic from player to player AWS, which is the cause of high latency for distant players geographically."
+      ]
+    }
+  }
+}

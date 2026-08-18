@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "110-121",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-110": {
+      "text": "A company executes an Oracle on-premises production database and wants to keep a warm-standby copy of that database continuously updated in a RDS for Oracle in us-west-2 (the DR region), with the on-premises bank changes replicated with low latency (minutes), without requiring changes in the application used by the on-premises bank. In case of on-premises disaster, the instance RDS in us-west-2 would be promoted/used as a new primary. Which approach meets this requirement?",
+      "options": [
+        "Make backups RMAN Oracle on-premises bank journals and restore them in the instance RDS for Oracle every few hours.",
+        "Use AWS Conversion Tool Scheme (SCT) to perform a single conversion and migration (one-time) of the schema and data to the RDS for Oracle.",
+        "Configure Oracle Data Guard in 'Maximum Performance' mode to replicate directly to instance RDS for Oracle.",
+        "Use AWS Database Migration Service (DMS) with a replication task configured for 'full load + Change Data Capture (CDC)'."
+      ],
+      "explanation": "The DMS performs an initial full load (full load) of Oracle on-premises for the RDS for Oracle in us-west-2, and then capture and continuously apply the changes (CDC) from the log transaction/network of the home bank, keeping the destination in synchrony almost in real time, without requiring changes in the source application.",
+      "hint": "Think of the service of AWS designed specifically for continuous replication of databases via change capture for a managed destination bank, without changing the source application.",
+      "optionRationales": [
+        "The DMS performs an initial full load (full load) of Oracle on-premises for the RDS for Oracle in us-west-2, and then capture and continuously apply the changes (CDC) from the log transaction/network of the home bank, keeping the destination in synchrony almost in real time, without requiring changes in the source application.",
+        "The SCT is intended primarily for the conversion of SCHEMAS database (especially in heterogeneous migrations) and initial migration; it does not provide continuous replication/CDC to keep the destination synchronized over time.",
+        "The RDS for Oracle is a managed service that DOES NOT provide the direct host level access necessary to configure Oracle Data Guard between an on-premises primary and a standby in RDS; Data Guard is not a supported configuration to replicate to RDS for Oracle from external Oracle banks.",
+        "Regular backup/restoration provides RPO measured in HORAS (the interval between backups), not the replication 'minutes' CDC almost in real time required, in addition to being a manual/roteirized process operationally heavy compared to the CDC managed DMS."
+      ]
+    },
+    "saa-avc-111": {
+      "text": "A company owns newsletters S3 with the same replicated data (via S3 Cross-Region Replication) between us-east-1 and me-west-1, for an active-active application. Currently, the application needs to know which bucket/region to use, and implements its own logic to fail to the bucket of the other region if the primary becomes inaccessible. The company wants a ONLY global endpoint that the application can use for requests to S3, with the AWS automatically routing each request for the bucket replica in the lower latency (or healthy) region, eliminating the need for the application to manage endpoints by region and failover logic.?",
+      "options": [
+        "Create a S3 Multi-Region Access Point covering the us-east-1 and me-west-1.",
+        "Configure the S3 Transfer Acceleration on both bucks so that requests are automatically routed to the nearest bucket.",
+        "Create a distribution of Amazon CloudFront with both bucks S3 configured as an origin group to fail.",
+        "Use latency routing Route 53 with two records pointing to the endpoint S3 regional of each bucket."
+      ],
+      "explanation": "The application uses the endpoint/ARN Multi-Region Access Point unique global for all requests to S3; a AWS automatically route each request (using the network of AWS Global Accelerator) for the lower latency healthy bucket replica, with automatic failover for the other region's bucket if one of them is unavailable — the application no longer needs endpoint logic by region.",
+      "hint": "Think about the resource of S3 designed specifically to provide a single global access point that automatically rotates between replicas of buckets in multiple regions.",
+      "optionRationales": [
+        "The application uses the endpoint/ARN Multi-Region Access Point unique global for all requests to S3; a AWS automatically route each request (using the network of AWS Global Accelerator) for the lower latency healthy bucket replica, with automatic failover for the other region's bucket if one of them is unavailable — the application no longer needs endpoint logic by region.",
+        "The CloudFront with origin groups provides failover for delivery of CONTENT to end users (read access style HTTP GET way CDN), but was not designed to be a transparent endpoint for general operations of the API of the S3 of an APPLICATION (e.g.: PutObject from application servers), as the Multi-Region Access Points are.",
+        "Bucket Points S3 (especially with virtual address-hosted-style and certificates SSL linked to specific Bucket/Regions names) are usually not designed to be accessed interchangeably via a name DNS customized with automatic router the way the Multi-Region Access Points were purposefully built; this would require meaningful custom engineering and would not provide the same automatic failover semantics for calls from API of the S3.",
+        "Transfer Acceleration accelerates transfers PARA A SPECIFIC Bucket Via edge locations of the CloudFront; it does not provide a single endpoint that routes between MULTIPLES buckets in different regions, nor does it provide failover between them."
+      ]
+    },
+    "saa-avc-112": {
+      "text": "A web application statess runs on a Auto Scaling Group using a single type of instance (m5.large) in 2 AZs, totally with On-Demand instances. The company wants to reduce computing costs by incorporating Spot Instances, but is concerned that: (a) capacity Spot for m5.large may not always be available in sufficient quantity in any of the AZs (stopping the ASG (b) an interruption of the Spot affecting many instances of the same type simultaneously could cause a significant decrease in capacity. ASG must be configured to incorporate the economy of Spot Mitigating AMBAS concerns?",
+      "options": [
+        "Use Scheduled Scaling to pre-provide On-Demand capacity during business hours and scale to zero out of time, avoiding Spot completely.",
+        "Migrate fully to Spot Instances with one type of instance, but set up a 'Spot max price' very high, equal to the price On-demand.",
+        "Configure the ASG with a 'mixed instance policy' specifying MULTIPLES compatible types of instance (e.g. m5.large, m5a.large, m4.large, m5.xlarge with weighted capacity) in MULTIPLES capacity pools Spot (combination of type of instance + AZ), together with a base number of instances On-Demand (or percentage On-Demand) for minimum guaranteed capacity.",
+        "Use a single instance Spot, but request capacity Spot in 4 Different AZs simultaneously to increase the chance of availability."
+      ],
+      "explanation": "Diversifying between types of instance and pools reduces the chance of simultaneous unavailability/interruption in all pools at the same time, while the On-Demand base ensures a minimum capacity always available — taking into account both company concerns.",
+      "hint": "Think of the recommendation of the AWS to mitigate both the unavailability of capacity and simultaneous interruptions of the Spot: multi-dimensional diversification (type of instance and AZ), combined with a guaranteed capacity base.",
+      "optionRationales": [
+        "Diversifying between types of instance and pools reduces the chance of simultaneous unavailability/interruption in all pools at the same time, while the On-Demand base ensures a minimum capacity always available — taking into account both company concerns.",
+        "The ASG current operates on only 2 AZs (presumably where there are sub-networks of VPC); adding arbitrarily more AZs may not be feasible, and diversifying only by AZ (not by type of instance) still leaves a risk if that ONLY type of instance suffers from capacity shortage/wide interruption in all AZs simultaneously — diversification by type of instance is the most effective mitigation according to the recommendations of the AWS.",
+        "A higher max price affects only if the request Spot is served at the price Spot current (up to this limit) and the probability of interruption by PRICE, but does not resolve the availability of CAPACIDADE for that single pool type of instance/AZ, no interruptions due to capacity demand by AWS (which may occur irrespective of the price offered).",
+        "This approach avoids the Spot completely (not taking into account the cost reduction objective via Spot) and does not address the underlying issues about capacity diversification Spot; is an orthogonal cost optimization, not related to declared concerns."
+      ]
+    },
+    "saa-avc-113": {
+      "text": "The multi-layer application of a company seems to be healthy according to health checks of infrastructure (status checks of the EC2 and target health of ALB, all green), but users occasionally report that the site's 'checkout' flow (a multi-stage journey involving login, add to cart and finish the purchase) is unavailable by 10-15 minutes before anyone realizes, because none of the existing health checks actually exercise this flow from end to end. The team wants detection PROATIVA and automated this type of problem — regularly simulating the actual journey of the user from outside the infrastructure and alerting in case of failure — to reduce the time to detection.?",
+      "options": [
+        "Create a canary from Amazon CloudWatch Synthetics using a blueprint of the type 'heartbeat'/day that programmably executes the multi-step checkout flow (login, add to cart, finish shopping) on a schedule (e.g. to each 5 minutes) from outside the infrastructure; set up an alarm of the CloudWatch about the canary success rate/duration metrics to alert the team automatically in case of failure or degradation.",
+        "Enable AWS X-Ray in all services involved in the checkout flow to identify root cause after a user reports a problem.",
+        "Increase frequency of status check alarms EC2 no CloudWatch of 5 minutes to 1 minute.",
+        "Configure additional health checks from target group ALB with a more complex verification path that exercises the checkout flow."
+      ],
+      "explanation": "The Canary Islands CloudWatch Synthetics run scripts that simulate real user journeys and multi-stages from outside the infrastructure, on a regular schedule; combined with a CloudWatch on their metrics, provide proactive and automated detection of checkout flow failures before many real users are affected.",
+      "hint": "Think of the service of CloudWatch designed specifically to execute scripts that simulate real user journeys from outside the infrastructure, on a regular schedule.",
+      "optionRationales": [
+        "The Canary Islands CloudWatch Synthetics run scripts that simulate real user journeys and multi-stages from outside the infrastructure, on a regular schedule; combined with a CloudWatch on their metrics, provide proactive and automated detection of checkout flow failures before many real users are affected.",
+        "Health checks ALB are simple periodic requests (HTTP/HTTPS/TCP) for a single path, with limited validation of the expected response; they were not designed to perform multi-stage and stateful user journeys (login → add to cart → purchase) involving multiple requests and session status.",
+        "X-Ray helps in root cause analysis AFTER a problem is detected/reported (reactive), but does not provide proactive and scheduled simulation of the user's journey to detect problems before users report them.",
+        "Status checks of EC2 reflect the health of the instance/hardware, not the functionality of a multi-stage user journey at application level; increasing its frequency would not detect a bug in the checkout flow when the underlying infrastructure is healthy."
+      ]
+    },
+    "saa-avc-114": {
+      "text": "A company executes the Amazon RDS for PostgreSQL in us-east-1 with Multi-AZ enabled (protecting against AZ failures). REGIONAL complete with us-east-1, they create a Cross-Region Read Replica of RDS in us-west-2, knowing that this replica uses asynchronous replication (with some replication lag), RPO In the case of a regional break in us-east-1, what is the correct DR procedure using this replica between regions, and what the team should have in mind?",
+      "options": [
+        "During interruption, PROMOVER manually to Cross-Region Read Replica of us-west-2 to become an instance RDS independent (one-way operation — the replica becomes primary and stops replicating); reconfigure the application (e.g. via updating of DNS/connection string) to point to this newly promoted instance; be aware that, because it is asynchronous replication, some recent transactions still not replicated at the time of interruption may be lost (RPO different from zero); and set up Multi-AZ separately in the instance now promoted in us-west-2 for continuous AZ-level resilience.",
+        "Since the replica is in another region, it is already automatically protected by Multi-AZ and does not require additional configuration after promotion.",
+        "The Cross-Region Read Replica automatically becomes the new primary and starts accepting written as soon as the health checks from Route 53 detect interruption in us-east-1, with zero data loss.",
+        "The application can continue writing on the original endpoint of us-east-1, and the RDS automatically redirect these writings to the instance promoted in us-west-2."
+      ],
+      "explanation": "The promotion of a Cross-Region Read Replica RDS It's an action. MANUAL and unidirectional; since replication is asynchronous, there is no guarantee of zero data loss (RPO > 0); and the promoted instance is a single instance that does not automatically inherit Multi-AZ protection — all this should be explicitly treated by the team as part of the DR procedure..",
+      "hint": "Think of what aspects of a Cross-Region Read Replica RDS are automatic and which require manual action of the operator — promotion, RPO and subsequent multi-AZ protection.",
+      "optionRationales": [
+        "The promotion of a Cross-Region Read Replica RDS It's an action. MANUAL and unidirectional; since replication is asynchronous, there is no guarantee of zero data loss (RPO > 0); and the promoted instance is a single instance that does not automatically inherit Multi-AZ protection — all this should be explicitly treated by the team as part of the DR procedure..",
+        "Cross-Region Read Replica RDS DO NOT automatically promote themselves; promotion is an action MANUAL started by the operator/automation, and since the replication is asynchronous, zero data loss cannot be guaranteed (there is some RPO).",
+        "A Cross-Region Read Replica is a unique instance in the destination region; it does not inherit or automatically gain Multi-AZ protection — Multi-AZ should be explicitly configured in it (before or after promotion) if the continuous resilience at AZ level is desired.",
+        "During a regional interruption, the endpoint/instance of us-east-1 is not available; there is no automatic mechanism for redirecting writings between regions in RDS — the application should be explicitly reconfigured to point to the newly promoted instance endpoint.."
+      ]
+    },
+    "saa-avc-115": {
+      "text": "A service ECS running no launch type EC2 (no Fargate) has its tasks positioned using the positioning strategy FATHER, which the team discovers tends to concentrate ('binpack') the tasks in few container instances within the same AZ, to optimize the use of resources, leaving other AZs underutilized. This concentration means that a failure of AZ could drop a disproportionate number of service tasks. As the team must configure the positioning of tasks to ensure uniform distribution between AZs (and between instances within each AZ), prioritizing availability on bin-packing efficiency.?",
+      "options": [
+        "Configure one CONSTRAINT 'distinctInstitution' type positioning for the service.",
+        "Change the launch type of the service EC2 for Fargate, which automatically distributes the tasks between AZs by default, without configuration.",
+        "Configure Service Positioning Strategy ECS as 'spread', using the 'attribute' field:ecs.availability-zone' as the primary distribution field (optionally combined with a secondary spread in instanceId to also distribute between hosts within each AZ).",
+        "Reduce the desired service count so that bin-packing naturally results in uniform distribution."
+      ],
+      "explanation": "The 'spread' strategy using 'attribute':ecs.availability-zone explicitly distributes the tasks uniformly between AZs (and, with a secondary spread in instanceId, also between instances within each AZ), exchanging some bin-packing efficiency for greater availability.",
+      "hint": "Think about the task positioning strategy of ECS which explicitly prioritizes uniform distribution between an attribute (as Availability Zone), rather than maximizing the use of resources.",
+      "optionRationales": [
+        "The 'spread' strategy using 'attribute':ecs.availability-zone explicitly distributes the tasks uniformly between AZs (and, with a secondary spread in instanceId, also between instances within each AZ), exchanging some bin-packing efficiency for greater availability.",
+        "The constraint 'distinctInstitution' ensures that two tasks of the service do not rotate in the MESMA container instance, but does not specifically balance the distribution of tasks ENTRE ZONAS OF DISPONIBILIDADE; the tasks could still be concentrated in instances of the same AZ if most instances are there..",
+        "Although the standard positioning of the Fargate distributes among the AZs specified in the sub-networks of the service, the scenario specifies that the team uses the launch type EC2 and presumably have reasons (e.g. existing infrastructure, specific types of instance) to remain in EC2; completely changing the launch type is a much larger architectural change than simply changing the Service Positioning STRATEGY EC2 existing.",
+        "Reduce the desired count does not change the ALGORITMO of underlying positioning (binpack); with fewer tasks, the binpack would still tend to concentrate them in the least number of instances/AZs possible, not to distribute them evenly."
+      ]
+    },
+    "saa-avc-116": {
+      "text": "A company runs a multiplayer game backend using protocols UDP customized (no HTTP/HTTPS), with game servers in instances EC2 in 2 Regions (us-east-1 and ap-northeast-1) behind Network Load Balancers in each region. The requirements are: (a) static IP addresses that the game's customers can fix/put on whitelist (no resolution dependent) DNS which could be cached); (b) automatic router of players' traffic to the optimal healthy region (minor latency); and (c) automatic failure for the NLB of the other region if the endpoints of a region become unhealthy. CloudFront does not support traffic UDP arbitrary, which service of AWS meets these requirements?",
+      "options": [
+        "AWS Global Accelerator.",
+        "Amazon Route 53 with latency routing and health checks pointing to the name DNS of each NLB regional.",
+        "AWS Transit Gateway with multicast support configured between the two Regions.",
+        "Amazon CloudFront with two NLBs configured as origin group to fail."
+      ],
+      "explanation": "The Global Accelerator provides 2 static anycast IP addresses that act as a fixed entry point for the application (suitable for fixing/whitelist by the game's customers, supporting both TCP how much UDP), automatically route traffic through the global network of AWS for the group of endpoints (NLB) healthy lower latency based on geographic proximity and health checks, and makes automatic failover to other region's endpoints if NLB primary become unhealthy.",
+      "hint": "Think of the service of AWS that provides static fixed anycast IPs and supports both TCP how much UDP, with automatic routing and failure between regions — other than CloudFront, which is limited to HTTP/HTTPS.",
+      "optionRationales": [
+        "The Global Accelerator provides 2 static anycast IP addresses that act as a fixed entry point for the application (suitable for fixing/whitelist by the game's customers, supporting both TCP how much UDP), automatically route traffic through the global network of AWS for the group of endpoints (NLB) healthy lower latency based on geographic proximity and health checks, and makes automatic failover to other region's endpoints if NLB primary become unhealthy.",
+        "The scenario specifies that the application uses protocols UDP personalized; or CloudFront is designed for content delivery HTTP/HTTPS (and RTMP in some cases legacy) and NOT supports traffic UDP Arbitrary, making it inappropriate here.",
+        "Rotation based on DNS provides IP addresses that can change and are subject to cache/TTL of DNS by customers (play clients who fix/place IPs in whitelist would break if the IPs underlying the name DNS change); does not provide IP addresses anycast FIXOS and statics required for fixing/whitelist on the client's side.",
+        "The multicast of Transit Gateway is to distribute multicast traffic DENTRO/ENTRE Network VPCs for specific multicast applications; is not a global traffic routing/failover solution to direct external player traffic to the optimal regional endpoint with static IPs."
+      ]
+    },
+    "saa-avc-117": {
+      "text": "One VPC has an Interface VPC Endpoint (PrivateLink) for the Amazon S3 (or other supported service) configured with an Elastic Network Interface (ENI) in just UMA AZ (AZ-A), although the sub-networks of application of the VPC Cover 3 Azs (AZ-A, AZ-B and AZ-C). Fora in AZ-B and AZ-C currently route their traffic to this service through the ENI in AZ-A, incurring data transfer charges between AZs and creating a single failure point for PrivateLink connectivity if AZ-A How the Endpoint Interface needs to be reconfigured to solve both problems?",
+      "options": [
+        "Configure a Gateway Load Balancer to distribute traffic to the ENI only from 3 Azs.",
+        "Edit Interface VPC Endpoint to add additional sub-network associations in AZ-B and AZ-C (one ENI by AZ).",
+        "Enable 'Cross-Zone Load Balancing' on Interface VPC Endpoint.",
+        "Create 3 Interface VPC Separate endpoints (one per AZ) for the same service, each in a different sub-network."
+      ],
+      "explanation": "With a ENI present in each AZ, instances in each AZ solve the name DNS from the endpoint to the ENI of SUA AZ (avoiding data transfer charges between AZs for PrivateLink traffic), and endpoint connectivity no longer depends on a single AZ.",
+      "hint": "Think of it as an Interface VPC Endpoint may be present in multiple Availability Zones — which configuration element is added by AZ?",
+      "optionRationales": [
+        "With a ENI present in each AZ, instances in each AZ solve the name DNS from the endpoint to the ENI of SUA AZ (avoiding data transfer charges between AZs for PrivateLink traffic), and endpoint connectivity no longer depends on a single AZ.",
+        "Interface VPC Endpoints support adding multiple sub-network associations (AZ) to a single endpoint (creating a ENI by sub-network/associated AZ); create 3 fully separate endpoint resources is unnecessary, each would have names DNS/separate configurations to manage, and it's not how the Multi-AZ Interface Endpoints were designed to be implemented.",
+        "The Gateway Load Balancer is used to route traffic through third-party virtual applications (e.g. firewalls); is not a mechanism to provide multi-AZ redundancy of the ENIs of an Interface VPC Endpoint, and add one GWLB introduce unnecessary complexity and its own single point of failure.",
+        "Interface VPC Endpoints (PrivateLink) do not have a Cross-Zone Load Balancing configuration; this is a concept of load balancer (ELB) and does not apply to the ENI configuration of a VPC Endpoint. Multi-AZ endpoint resilience is obtained by associating multiple sub-networks, not by a cross-zone alternator."
+      ]
+    },
+    "saa-avc-118": {
+      "text": "One VPC has private sub-networks in 3 Availability Zones (AZs), but all outbound traffic to the internet (e.g. calls to external APIs, patches downloads) is routed through a single NAT Gateway, implanted in the public sub-network of the AZ-A. During a degradation event affecting the AZ-A, for the private sub-networks of the AZ-B and AZ-C — which remain healthy — they completely lose output connectivity, even without any fault in their own resources. What architecture change solves this unique point of failure, keeping the isolation of failures by AZ?",
+      "options": [
+        "Delete private subnets and move all instances to public subnets, assigning an Elastic IP to each instance",
+        "Implant one NAT Gateway in CADA AZ (a public sub-network by AZ) and configure the route table of the private sub-network of each AZ to point 0.0.0.0/0 for the NAT Gateway of SUA AZ PROPERLY",
+        "Keep it NAT Gateway only, but to associate with it an Elastic IP — thus, the AWS automatically replicates the feature to other AZs in case of original AZ failure",
+        "Replace NAT Gateway by an instance NAT (based on EC2) within a Auto Scaling Group covering the 3 Azs"
+      ],
+      "explanation": "Right. NAT Gateway by AZ and routes '0.0.0.0/0' directed to the NAT Gateway local, a failure in AZ-A affects only the output connectivity of the resources QUE I'M ON AZ-A; AZ-B and AZ-C This design also avoids data transfer costs between AZs for the traffic of NAT Gateway, since traffic never crosses the AZ border before arriving at the NAT.",
+      "hint": "Think about how the output routing of each AZ can remain totally independent of the others, without depending on a shared feature located in a single AZ.",
+      "optionRationales": [
+        "Right. NAT Gateway by AZ and routes '0.0.0.0/0' directed to the NAT Gateway local, a failure in AZ-A affects only the output connectivity of the resources QUE I'M ON AZ-A; AZ-B and AZ-C This design also avoids data transfer costs between AZs for the traffic of NAT Gateway, since traffic never crosses the AZ border before arriving at the NAT.",
+        "Incorrect. NAT Gateway is a resource linked to a single sub-network/AZ; AWS does not perform automatic replication or failure of a NAT Gateway if the AZ where he resides fails, the NAT Gateway is unavailable, regardless of the associated Elastic IP, and all private sub-networks that depend on it lose their way to the internet.",
+        "Incorrect. NAT In a single ASG, when replaced, it can be restarted in a different sub-network/AZ, requiring manual or automated updating of the route tables, in addition to having throughput and availability less than a NAT Gateway managed. It is a more complex and operationally heavy alternative than simply implementing a NAT Gateway managed by AZ, which is the standard recommended by AWS.",
+        "Incorrect. Exposing all instances directly to the internet with public IPs is a serious backlash of security (increases drastically the attack surface) and does not solve the architectural problem reported, which is the lack of redundancy of the NAT Gateway by AZ — not the need for direct access to the Internet by the authorities."
+      ]
+    },
+    "saa-avc-119": {
+      "text": "A company establishes a connection AWS Site-to-Site VPN between your data center on-premises and a VPC, as part of a hybrid architecture. AWS automatically provide 2 tunnels VPN, each ending in a distinct endpoint (with different public IPs) for redundancy. However, the customer gateway on-premises device is configured to use only UM of the two tunnels, keeping the second completely idle. What is the risk of this configuration and what action corrects the problem?",
+      "options": [
+        "Replace Site-to-Site VPN by AWS Direct Connect, requiring no redundant tunnels",
+        "This configuration is expected and requires no action — the AWS activates the second tunnel automatically only when the endpoint of the first tunnel enters maintenance, without the need for configuration on the client side",
+        "Configure the custom gateway on-premises to establish AMBOS tunnels (ideally in active-active mode via BGP/ECMP, or at least with automatic failure for the second tunnel); otherwise, maintenance or unavailability at the end point of the tunnel currently in use will cause total loss of connectivity, since the second tunnel — provided precisely for this scenario — is not being used",
+        "Increase rekey intervals IKE/Active tunnel IPsec to reduce connection drop chance"
+      ],
+      "explanation": "Correct. AWS provision 2 tunnels with distinct endpoints specifically for the client to configure redundancy on the on-premises side. If the customer gateway only recognizes/uses a tunnel, the endpoint's unavailability (planned or not) AWS from that tunnel results in complete loss of connectivity VPN, even if the second tunnel is perfectly operational on the side of the AWS.",
+      "hint": "A AWS always delivers two tunnel endpoints for a Site-to-Site connection VPN — think about who is responsible for ensuring that both are effectively used.",
+      "optionRationales": [
+        "Correct. AWS provision 2 tunnels with distinct endpoints specifically for the client to configure redundancy on the on-premises side. If the customer gateway only recognizes/uses a tunnel, the endpoint's unavailability (planned or not) AWS from that tunnel results in complete loss of connectivity VPN, even if the second tunnel is perfectly operational on the side of the AWS.",
+        "Incorrect. AWS manage the failure of SEU side in a transparent way, or CUSTOMER GATEWAY needs to be configured to recognize and use AMBOS tunnel endpoints (each with a distinct public IP on the side) AWS). If the on-premises device only has the configuration of an active tunnel, connectivity will be lost if precisely ESSE endpoint is affected, regardless of the AWS Do your side..",
+        "Incorrect. AWS Direct Connect is a dedicated connectivity option, with longer supply process and generally higher cost, and POSSUI its own resilience model (which typically requires multiple connections/places for redundancy) — it is not correct to say that it 'does not require redundancy'. Moreover, this replacement does not directly solve the immediate problem of underutilization of tunnels VPN already provided.",
+        "Incorrect. Adjusting the rekey intervals is a lower tuning parameter for the stability of AN individual tunnel, but does not solve the fundamental redundancy gap — which is the fact that only one of the two tunnels provided for is in use."
+      ]
+    },
+    "saa-avc-120": {
+      "text": "A team often overwrites or accidentally deletes important objects in a pocket from Amazon S3 (scenario within a single region, without DR cross-region requirement) due to bugs in the application or human error. They want to get back the previous version of an overwritten object, or 'undo' the accidental deletion of an object, SEM depend on a separate backup system, while at the same time need to control the additional storage cost generated by the retention of older versions.",
+      "options": [
+        "Configure Replication Between Regions (CRR) for a bucket in another region",
+        "Enable S3 Object Lock in Compliance mode in the pocket",
+        "Enable Versioning in the Bucket S3: each PUT (overwritten) creates a new version preserving the previous one (recoverable by the ID version), and a DELETE without version ID only adds an 'Exclusion Marker' (the object appears to be excluded, but the previous versions remain and can be restored by removing the marker); combine with a Lifecycle rule to expire versions NO ATUAIS after a period, controlling the cost of storage",
+        "Configure daily jobs from AWS Backup for the Bucket S3 and restore from previous day's backup when accidental deletion occurs"
+      ],
+      "explanation": "Correct. The Version of the S3 maintain a complete history of each object, allowing you to recover any previous version or undo an deletion by removing the deletion marker (delete marker) — exactly the desired 'undo' behavior, without the need for a separate backup system. Lifecycle rules for non-current versions (NoncurrentVersionExpiration) control the growth of storage cost.",
+      "hint": "Think of how each write or delete operation on an object can be treated as a new entry in a history, instead of a definitive replacement.",
+      "optionRationales": [
+        "Correct. The Version of the S3 maintain a complete history of each object, allowing you to recover any previous version or undo an deletion by removing the deletion marker (delete marker) — exactly the desired 'undo' behavior, without the need for a separate backup system. Lifecycle rules for non-current versions (NoncurrentVersionExpiration) control the growth of storage cost.",
+        "Incorrect. Object Lock in Compliance mode prevents QUALQUER exclusion or overwriting of objects (even by root user) until the end of the retention period. Although technically avoids loss, it would also prevent the team from intentionally excluding/overwriting objects when necessary (e.g. legitimate updates), being excessively restrictive for this constantly changing application scenario.",
+        "Incorrect. CRR replica operations of PUT and DELETE for the destination pocket; an overwritten or accidental exclusion at the origin would also be replicated to the destination (by default), therefore the CRR In isolation does not protect against accidental overwriting/exclusions — it is a DR/availability resource between regions, not a ‘undo' mechanism at object level.",
+        "Incorrect. Daily backups allow recovery only to the state of the last backup (up to 24h of granularity/loss), and restoring an entire backup is a much heavier operation and 'everything or nothing' compared to recovery by object and by specific version offered by Version."
+      ]
+    },
+    "saa-avc-121": {
+      "text": "An operating team wants to automatically fix a recurring problem: when using a drive from an instance EC2 specific (customised metric-way monitoring of CloudWatch Agent) exceeds 90%, must be executed automatically and without session SSH or human intervention, a cleaning script (removal of old logs) in the instance itself, triggered automatically by the alarm of the CloudWatch.",
+      "options": [
+        "Configure the alarm CloudWatch to directly invoke an action of 'Reboot' in the instance EC2 when disk usage exceeds 90%",
+        "Configure the alarm CloudWatch to send a notification via SNS for the e-mail of the operations team, instructing them to access the instance via the SSH and execute the cleaning script manually",
+        "Create an Alarm CloudWatch on the disc usage metric, with an alarm action (or the rule of EventBridge) that shoots a runbook from AWS Systems Manager Automation (or a document SSM Run Command) directed to the affected instance; runbook/document executes the cleaning script in the instance via SSM Agent, no need for SSH",
+        "Use AWS Configure to detect when disk usage exceeds 90% and trigger a remedial action that finishes and replaces the instance automatically"
+      ],
+      "explanation": "Correct. Integration CloudWatch Alarm → SSM Automation (or Run Command) allows automated runbooks/scripts execution directly in the instance via SSM Agent, no SSH and without human intervention — exactly the self-healing pattern described.",
+      "hint": "Think of what service the AWS allows to execute commands or runbooks directly within an instance EC2 without need of access SSH, and how it can be triggered by an alarm.",
+      "optionRationales": [
+        "Correct. Integration CloudWatch Alarm → SSM Automation (or Run Command) allows automated runbooks/scripts execution directly in the instance via SSM Agent, no SSH and without human intervention — exactly the self-healing pattern described.",
+        "Incorrect. Restarting the instance does not release the disk space occupied by the old log files (they remain after reboot); this action does not address the root cause (accumulation of logs) and still causes unnecessary unavailability.",
+        "Incorrect. AWS Config assesses CONFIGURATION of resources compliance, is not the appropriate tool for arbitrary custom metrics of disk use of CloudWatch Agent; in addition, complete/replace an autonomous instance (outside a ASG) would destroy your status/identity — a disproportionate remedy for a simple disk cleaning.",
+        "Incorrect. This approach requires intervention HUMANA (access SSH manual and script execution), contrary to the explicit requirement of an automated process without human intervention."
+      ]
+    }
+  }
+}

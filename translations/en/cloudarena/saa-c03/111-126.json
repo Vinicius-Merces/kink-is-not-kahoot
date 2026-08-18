@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "111-126",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-111": {
+      "optionReasons": {
+        "saa-med-111:option:0": "",
+        "saa-med-111:option:1": "It's the closest because you use the right message. (SQS durable) — with UMA rows the two groups of workers COMPETEM by messages: each event is consumed by one process, not by both; independent delivery for both requires fan-out of SNS with one row per process.",
+        "saa-med-111:option:2": "Polling in table of the DynamoDB reinvents row without its warranties — query latency, no visibility or redirect.",
+        "saa-med-111:option:3": "Chaining processes by so-called syncrona creates the coupling that is to be avoided: transcription out of the air would stop the thumbnails."
+      },
+      "finalJustifications": [
+        "Because the fan-out SNS→SQS deliver an event COPY to each row: thumbnails and transcript process independently and sustainably — one out of the air does not affect the other.",
+        "Because the topic SNS holds events published by 14 days and each row reads them at its own pace, ensuring the independence of the processes.",
+        "Because SNS converts the event to the format of each worker before delivery, and it is this translation that isolates the two processes between themselves.",
+        "Because the two rows SQS share the same underlying buffer of the topic SNS, and the SNS coordinate which of the processes reads each message."
+      ]
+    },
+    "saa-med-112": {
+      "optionReasons": {
+        "saa-med-112:option:0": "It's the closest because a Lambda scheduled calling the snapshot APIs FUNCIONA — but it is a code of its own to maintain, without declaratory retention policies or conformity reports; AWS Backup delivers all this managed by tags.",
+        "saa-med-112:option:1": "The DLM copper only EBS (and AMIs) — would leave RDS and EFS in the same decentralized mess as before.",
+        "saa-med-112:option:2": "",
+        "saa-med-112:option:3": "Version S3 protects objects from S3 — copy EBS/RDS/EFS 'for a bucket' is not a managed backup mechanism."
+      },
+      "finalJustifications": [
+        "Because AWS Central backup EBS, RDS and EFS a single plan: declarative scheduling and retention, ready-made labelling and compliance reports.",
+        "Because AWS Backup converts existing team snapshots into a unified format, consolidating legacy automatically.",
+        "Because AWS Backup replicates each backup to a secondary region by default, warranty required by compliance reports.",
+        "Because AWS Backup eliminates backup windows when using continuous replication, and compliance comes from the absence of snapshots."
+      ]
+    },
+    "saa-med-115": {
+      "optionReasons": {
+        "saa-med-115:option:0": "Reboot by CPU high treats software overload — does not detect or resolve host hardware failure.",
+        "saa-med-115:option:1": "It's the closest because a ASG size 1 also recovers the application automatically — but launching an instance NOVA: other ID, other private IP, zero metadata; preserving identity requires the alarm 'recover' action in StatusCheckFailed_System.",
+        "saa-med-115:option:2": "The Trusted Advisor recommend and notify — does not perform any recovery; e-mail to administrator is manual intervention.",
+        "saa-med-115:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the alarm in StatusCheckFailed_System with 'recover' action migrates the instance to healthy hardware preserving ID, IPs, Elastic IP and metadata — without manual intervention.",
+        "Because the recovery action restores the last snapshot of the instance in another AZ, keeping the address through the Elastic IP reset.",
+        "Because the alarm triggers the support of AWS, which changes the faulty hardware of the host and reconnects the same instance in a few minutes.",
+        "Because the action recovers converts the instance into a AMI and automatically restarts, cloning metadata to the new generated ID."
+      ]
+    },
+    "saa-med-116": {
+      "optionReasons": {
+        "saa-med-116:option:0": "Larger instances remain the same point of failure — if the layer falls, static and dynamic fall together.",
+        "saa-med-116:option:1": "It's the closest because caching the ready answers would even reduce the load — but ElastiCache is just behind the application layer: with the unavailable instances, no one is looking for the cache; resilience comes from serving the static on an independent path (S3 + CloudFront).",
+        "saa-med-116:option:2": "",
+        "saa-med-116:option:3": "Volumes EBS extras in the same instances keep the static hostage of the same fleet — nothing changes in failure."
+      },
+      "finalJustifications": [
+        "Because S3 + CloudFront creates a delivery path INDEPENDENTE of fleet EC2: the home page and the static remain in the air even with the degraded application layer.",
+        "Because CloudFront detects the layer drop EC2 and generates dynamic pages on the edge from the static of the S3.",
+        "Because S3 assumes the login requests when the application saturates, authenticating users by active session pocket.",
+        "Because CloudFront prioritizes the traffic of static content over the dynamic, reserving the capacity of the EC2 for the login."
+      ]
+    },
+    "saa-med-117": {
+      "optionReasons": {
+        "saa-med-117:option:0": "A unique sub-network in UMA AZ is the single point of failure by definition — the fall of the zone takes everything.",
+        "saa-med-117:option:1": "",
+        "saa-med-117:option:2": "Public sub-networks for banking and application expose internal layers to the internet — resilience does not justify opening the perimeter.",
+        "saa-med-117:option:3": "It's the closest because it starts right — the multi-AZ web layer — but to half: application and bank in a single AZ continue to fall with it, taking down the entire site behind a ALB healthy; the requirement requires TODAS the layers in at least two AZs."
+      },
+      "finalJustifications": [
+        "Because the standard design is this: each layer with subnets in at least two AZs (public for web/ALB, private for app and bank) — the fall of an area does not drop any layer.",
+        "Because the mirrored subnets maintain synchronous replicas of each instance in the two AZs, and the failure is done by the router of the VPC.",
+        "Because the public sub-network absorbs private layer traffic when an AZ fails, functioning as a contingency route of VPC.",
+        "Because two AZs fold the CIDR available from VPC, and is the extra address space that ensures recovery of layers in failure."
+      ]
+    },
+    "saa-med-121": {
+      "optionReasons": {
+        "saa-med-121:option:0": "CRR for us-east-1 would take data from Brazilian territory — directly violates regulatory requirements.",
+        "saa-med-121:option:1": "Version protects against overwritten in MESMA account — compromised credentials also delete versions; the requirement requires separate copy account.",
+        "saa-med-121:option:2": "It's the closest because the AWS Backup cross-account is a real protection against compromise — but variant CROSS-REGION send copies out of Brazil; residence + separate account if resolved with SRR for another account in sa-east-1.",
+        "saa-med-121:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the SRR replicates objects to a pocket of OUTRA counting keeping everything in sa-east-1: protection against exclusion and compromise without data leaving Brazil.",
+        "Because the SRR keeps the two accounts synchronized in both directions, and any accidental exclusion is undone by the mirror copy.",
+        "Because the SRR encrypts the replica with an exclusive key to the destination account, unreadable to the original compromised credentials.",
+        "Because the SRR freezes replica in mode only permanent reading, immune to any change from the account of origin."
+      ]
+    },
+    "saa-med-124": {
+      "optionReasons": {
+        "saa-med-124:option:0": "EventBridge without orchestrator publishes loose events — still without state, without configurable retry and without flow visibility.",
+        "saa-med-124:option:1": "",
+        "saa-med-124:option:2": "A unique giant function worsens: without resuming by step, the timeout of 15 minutes turn the roof of the entire flow.",
+        "saa-med-124:option:3": "It's the closest because the direct chaining Lambda-for-Lambda in fact executes the flow — but distributes the orchestration by the code of each function: manual recesses, invisible state and no resume; Step Functions deliver this declarative, with Retry/Catch and history by execution."
+      },
+      "finalJustifications": [
+        "Because Step Functions defines the flow as a state machine: Retry and Declarative Catch by step, visible status of each execution and resumed without orchestration code.",
+        "Because Step Functions merges the four Lambdas into a single managed runtime, eliminating latency between the steps of the order.",
+        "Because Step Functions automatically reverses the completed steps when a failure, undoing the inconsistent order at the time.",
+        "Because Step Functions delegate the withdrawals to the internal row of each Lambda, and the state is recorded in the logs of CloudWatch."
+      ]
+    },
+    "saa-med-126": {
+      "optionReasons": {
+        "saa-med-126:option:0": "It is the closest because it would mount a real redundancy with right services — but weighted routing always divides traffic (not only in failure), duplicates distributions and depends on TTL of DNS; the native failover by status codes is the Origin Group in a distribution only.",
+        "saa-med-126:option:1": "A CRR keeps the backup pocket synchronized — but no configuration in CloudFront, no one redirects the requests to him in failure.",
+        "saa-med-126:option:2": "",
+        "saa-med-126:option:3": "TTL longer only prolongs what is already in cache — miss cache during unavailability continues to fail."
+      },
+      "finalJustifications": [
+        "Because Origin Group defines primary and secondary in the same distribution: in configured error codes, the CloudFront resets the request in the backup pocket automatically.",
+        "Because Origin Group synchronizes the two bucks between them, dispensing the CRR and keeping backup identical to the main in real time.",
+        "Because Origin Group divides the requests between the two origins continuously, and healthy absorbs everything in the failure of the other origin.",
+        "Because Origin Group promotes the backup bucket the main one permanently to the first error HTTP detected at primary origin."
+      ]
+    }
+  }
+}

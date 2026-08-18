@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "067-074",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-067": {
+      "optionReasons": {
+        "saa-avc-067:option:0": "SSE-S3 uses keys from AWS shared — no dedicated key by holding or ability to revoke a holding.",
+        "saa-avc-067:option:1": "Partition by table/prefix with only IAM is not CRIPTOGRAPHIC insulation — without dedicated key there is no key revocation.",
+        "saa-avc-067:option:2": "",
+        "saa-avc-067:option:3": "It's the closest because it involves KMS and insulation by the roller of a tenant — but one CMK ONLY shared does not allow cryptographic revocation A hold: disable key affects TODOS, and the data were not encrypted with dedicated key; revocation and dedicated key by the holder require a CMK by holding with envelope encryption."
+      },
+      "finalJustifications": [
+        "Because one CMK dedicated by holder with envelope encryption encrypts the data of each client with its own key — and disable or schedule the exclusion of CMK of a tenant revokes only his access.",
+        "Because one CMK shared with IAM by encrypting the data of each customer with its own key — and disable or schedule the deletion of the CMK of a tenant revokes only his access.",
+        "Because SSE-S3 by holding encrypts the data of each customer with its own key — and disables or schedule the deletion of the key of one holding only revokes its access, without affecting the others.",
+        "Why partition by table and prefix with IAM encrypts the data of each client with its own key — and disables or schedules the deletion of a tenant's key only revokes its access."
+      ]
+    },
+    "saa-avc-068": {
+      "optionReasons": {
+        "saa-avc-068:option:0": "It's the closest because logically separating from the application seems to control the guest — but a role IAM ONLY shared gives unauthenticated MESMAS authenticated permissions: if logic fails, the guest reaches the sensitive resource; least privilege requires separate and restricted role for un authenticated ones.",
+        "saa-avc-068:option:1": "AmazonS3ReadOnlyAccess gives read to TODO o S3 of account — 'only reading' large is not safe for guest.",
+        "saa-avc-068:option:2": "",
+        "saa-avc-068:option:3": "Disabling guest access eliminates the experience of browsing as a guest — what the requirement wants to preserve."
+      },
+      "finalJustifications": [
+        "Because two separate roles in Identity Pool isolate the profiles: the unauthenticated role is at least read/content public, without reaching the resources of the users logged in.",
+        "Because the unique shared role isolates the profiles: the unauthenticated part remains at least read/content public, without reaching the resources of the logged users.",
+        "Because AmazonS3ReadOnlyAccess on the guest role isolates the profiles: unauthenticated access is at least read/content public, without reaching the resources of the logins.",
+        "Why disable guest access isolates the profiles: the unauthenticated role remains at least read/content public, without reaching the resources of the logged users."
+      ]
+    },
+    "saa-avc-069": {
+      "optionReasons": {
+        "saa-avc-069:option:0": "",
+        "saa-avc-069:option:1": "Bucket per account + replication multiplies storage and complexity — is not the centrally ordered delivery.",
+        "saa-avc-069:option:2": "It's the closest because listing account IDs as main FUNCIONA Today — but that's exactly what the requirement wants to avoid: the list breaks down every added/removed account of the organization and becomes a maintenance nightmare; the condition aws:MainOrgID authorizes any account of the organization without listing anyone.",
+        "saa-avc-069:option:3": "SCP restricted ONDE the accounts record — no CONCEDE the cross-account write permission in the central pocket."
+      },
+      "finalJustifications": [
+        "Because the condition aws:MainOrgID in Bucket Policy authorizes any current or future account of the organization to deliver logs — without listing any ID, climbing alone with the organization.",
+        "Because the listing of IDs in the bucket policy authorizes any current or future account of the organization to deliver logs — without enumerating anyone, climbing alone with the organization.",
+        "Because the replication on account in the bucket policy authorizes any current or future account of the organization to deliver logs — without listing any ID, climbing alone with the organization.",
+        "Because the SCP in the bucket policy authorizes any current or future account of the organization to deliver logs — without listing any ID, climbing alone as the organization grows."
+      ]
+    },
+    "saa-avc-070": {
+      "optionReasons": {
+        "saa-avc-070:option:0": "Independent hierarchy on account generates multiple roots — it forces it to distribute several reliable roots, the opposite of the application.",
+        "saa-avc-070:option:1": "",
+        "saa-avc-070:option:2": "Exporting the CA's private key and reimporting it into each account is a risk of safety and unintended practice.",
+        "saa-avc-070:option:3": "It is the closest because 'delegated administrator' sounds like the way to share the service in the organization — but the ACM Private CA does not make the accounts 'inherit a copy of CA' by delegation; the sharing of MESMA Subordinate AC (for everyone chained to the same root) is made by AWS Resource Access Manager."
+      },
+      "finalJustifications": [
+        "Because RAM shares the CA subordinated to the security account with the application accounts: they issue certificates via ACM from this same CA, all chaining to the reliable single root.",
+        "Because the managing director shares the subordinate CA of the security account with the application accounts: they issue certificates from that same CA, all in the single root.",
+        "Because the independent hierarchy shares the subordinate CA of the security account with the application accounts: they issue certificates from that same CA, all in the single root.",
+        "Because exporting CA's key shares CA subordinated to the security account with the application accounts: they issue certificates from that same CA, all in one root."
+      ]
+    },
+    "saa-avc-071": {
+      "optionReasons": {
+        "saa-avc-071:option:0": "GetSessionToken with manual duration per user is not the control of Identity Center — and depends on the user choose, without enforcement.",
+        "saa-avc-071:option:1": "SCP does not 'revocation of part-sessions by time' — policies do not expire active part-sessions for a period of time.",
+        "saa-avc-071:option:2": "It's the closest because setting the maximum session duration is the right mechanism — but UMA unique definition at the account level applies IGUAL to all Permission Sets: no difference 1h for admin and 8h for read-only; duration is configurable by Permission Set, and that is where each value is defined.",
+        "saa-avc-071:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the session duration is configurable by Permission Set: it is defined 1 time in AdministratorAccess (break-glass) and 8 hours at ReadOnlyAccess, exactly the differentiation requested.",
+        "Because the duration of the session at the account level defines 1 time in AdministratorAccess (break-glass) and 8 hours at ReadOnlyAccess, applied independently to each Permission Set.",
+        "Because GetSessionToken defines 1 time in AdministratorAccess (break-glass) and 8 hours at ReadOnlyAccess, applied independently to each Permission Set of Identity Center.",
+        "Because the SCP define 1 time in AdministratorAccess (break-glass) and 8 hours at ReadOnlyAccess, independently revoking the session of each Permission Set when it expires."
+      ]
+    },
+    "saa-avc-072": {
+      "optionReasons": {
+        "saa-avc-072:option:0": "Three separate Transit Gateways break the requirement of 'all share the same TGW' and complicate the VPC Services.",
+        "saa-avc-072:option:1": "It's the closest because Security Groups ALSO bar traffic between CIDRs — but keeping all the annexes in the route table FATHER leaves the ROTAS between prod and non-prod exist: the isolation depends on correcting SG in each VPC (fragile and prone to error); segmenting is in fact with separate route tables in Transit Gateway.",
+        "saa-avc-072:option:2": "",
+        "saa-avc-072:option:3": "NACLs filter packets by sub-network — do not control the route between annexes to the Transit Gateway."
+      },
+      "finalJustifications": [
+        "Because separate route tables in TGW segment by design: production route only for shared production and services, and non-production route only for non-production and services — no route between domains.",
+        "Because Security Groups by VPC segment by design: the production table only route for production and shared services, and the non-production table only for non-production and services — no route between domains.",
+        "Because three separate TGWs segment by design: production route only for production and shared services, and non-production route only for non-production and services — no route between domains.",
+        "Because NACLs in the annexes segment by design: the production table only route for production and shared services, and the non-production table only for non-production and services — no route between domains."
+      ]
+    },
+    "saa-avc-073": {
+      "optionReasons": {
+        "saa-avc-073:option:0": "ElastiCache accelerates reading — does not replicate the bench or fails the primary.",
+        "saa-avc-073:option:1": "",
+        "saa-avc-073:option:2": "Restoring snapshot is manual and slow recovery, with RPO equal to the last backup interval — far from zero.",
+        "saa-avc-073:option:3": "It's the closest because a Read Replica in another AZ also gives redundancy — but the replication is ASSIGNRONA (RPO not zero), promotion is MANUAL (it is not automatic failover) and generates a new endpoint: fails the three requirements; synchronous, automatic and with the same endpoint is Multi-AZ."
+      },
+      "finalJustifications": [
+        "Because RDS Multi-AZ replicates synchronously to a standby in another AZ and automatically fails while maintaining the same endpoint — RPO near zero with the least complexity.",
+        "Because the Read Replica in another AZ replicates synchronously to a standby and automatically fails while maintaining the same endpoint — RPO near zero with the least complexity.",
+        "Because ElastiCache write-through replicates synchronously to a standby on another AZ and automatically fails to maintain the same endpoint — RPO near zero and low complexity.",
+        "Because the snapshot restores replicates synchronously to a standby on another AZ and automatically fails while maintaining the same endpoint — RPO near zero and low complexity."
+      ]
+    },
+    "saa-avc-074": {
+      "optionReasons": {
+        "saa-avc-074:option:0": "Download healthy threshold marks the instance as healthy faster — the opposite of detecting failure.",
+        "saa-avc-074:option:1": "Change the ALB by NLB does not change the fact that ASG ignore the health check of the balancer with type 'EC2'.",
+        "saa-avc-074:option:2": "It's the closest because increasing the grace period moves in the health of the instances — but it's just ADIA the evaluation after launch; does not ASG OLHAR the result of the ALB: with health check type 'EC2', the group only sees OK hardware and never replaces the instance with locked app; it is necessary to change the type to 'ELB'.",
+        "saa-avc-074:option:3": ""
+      },
+      "finalJustifications": [
+        "Why change the health check of ASG of 'EC2' for 'ELB' makes the group consider the result of the ALB: the instance with returning app 500 is marked unhealthy and replaced.",
+        "Because increasing grace period does the ASG consider the outcome of ALB: the instance with returning app 500 is marked unhealthy and replaced after the period.",
+        "Because downloading the healthy threshold does the ASG consider the outcome of ALB: the instance with returning app 500 is marked unhealthy and replaced faster.",
+        "Why change the ALB by NLB does the ASG consider the balancer result: the instance with returning app 500 is marked unhealthy and replaced."
+      ]
+    }
+  }
+}

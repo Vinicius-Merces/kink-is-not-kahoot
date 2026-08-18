@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "225-234",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-225": {
+      "optionReasons": {
+        "saa-med-225:option:0": "",
+        "saa-med-225:option:1": "Timeout major does not change the search pattern — each invocation continues to call the Secrets Manager; only increases the function.",
+        "saa-med-225:option:2": "Environment variable with manual update breaks automatic rotation — old credentials until someone remembers to update.",
+        "saa-med-225:option:3": "It's the closest because hiding out of the handler is real pattern and would solve latency — but the global variable lives until the container dies: a rotation in the middle leaves the Lambda with old password and failed connection; caching library/extension has TTL that recapturing the rotated secret."
+      },
+      "finalJustifications": [
+        "Because caching library/extension hides the secret in memory with TTL: latency and cost fall, and periodic searching captures rotations without intervention.",
+        "Because Extension receives from Secrets Manager a push at each rotation, injecting the new password into the function without any retracement.",
+        "Because the caching library shares the secret between all the executions of the account, and a single search supplies the entire fleet.",
+        "Because Extension moves authentication out of the handler, and runtime itself signs connections to the database."
+      ]
+    },
+    "saa-med-226": {
+      "optionReasons": {
+        "saa-med-226:option:0": "",
+        "saa-med-226:option:1": "SCPs have no 'created by group X user' condition — apply to whole accounts/OUs, and roles do not 'herit group restrictions''.",
+        "saa-med-226:option:2": "Tag in creation does not limit the permissions of the created roll — 'company policy' without technical strength is not ceiling.",
+        "saa-med-226:option:3": "It's the closest because a Deny from SCP in fact would block access — but the SCP reaches OU/account INTEIRA, not 'the roles created by developers': in the same environment it would also knock down legitimate applications; the selective ceiling by delegated roll is the Boundary Permissions required in iam:CreateRole."
+      },
+      "finalJustifications": [
+        "Because Boundary Permissions is the roof of IAM for delegation: the condition in iam:CreateRole forces every role created to load the boundary that denies the production pocket.",
+        "Because the bandary intercepts the calls to the prod-data and redirects them to the test pocket, protecting the data without breaking the code.",
+        "Because the boundary is inherited automatically by all the roles of the account as soon as the administrator creates it, without additional condition.",
+        "Because the boundary replaces the policies of the roles of the developers, who become only the permissions listed in it.."
+      ]
+    },
+    "saa-med-227": {
+      "optionReasons": {
+        "saa-med-227:option:0": "",
+        "saa-med-227:option:1": "Safe protects storage, but access key remains static and long-lasting — exactly what you want to remove.",
+        "saa-med-227:option:2": "It's the closest because it involves STS and TakeReal Roll — But TakeReal Needs a Credentials to Be CHAMADO: private network does not authenticate anyone, and 'reliance by IP of origin' does not replace identity; X certificate exchange.509 by credentials STS is the IAM Roles Anywhere.",
+        "saa-med-227:option:3": "Anonymous identity of Cognito is for public apps with minimal access — inadequate for corporate workloads to publish in SQS."
+      },
+      "finalJustifications": [
+        "Because the Roles Anywhere changes the X certificate.509 of CA reliable by credentials STS temporary — the on-premises application publishes in the SQS no static key accesses.",
+        "'Cause Roles Anywhere installs an agent STS location in the data center, which issues credentials without contact with the cloud of AWS.",
+        "Because Roles Anywhere converts the legacy application into an instance EC2 logical, eligible for Forum Profile and native role.",
+        "Because the Roles Anywhere fed the Active Directory directly into IAM, and each publication in SQS use the Kerberos ticket from the host."
+      ]
+    },
+    "saa-med-228": {
+      "optionReasons": {
+        "saa-med-228:option:0": "",
+        "saa-med-228:option:1": "It's the closest because cost is actually a real criterion between the two — but it's INVERTIDO: o Parameter Store Standard is free and the Secrets Manager collects by secret/month and by calls; no one migrates to him by economy, but by managed rotation.",
+        "saa-med-228:option:2": "There is no relevant difference in latency — and 'multipurpose = slow' is invented reasoning, not characteristic of service.",
+        "saa-med-228:option:3": "False: The SecureString of Parameter Store supports CMK of the customer normally — encryption KMS doesn't differentiate between the two."
+      },
+      "finalJustifications": [
+        "Because the managed rotation is the differential: the Secrets Manager change the password in RDS And update the secret via Lambda managed, without manual intervention.",
+        "Because Secrets Manager synchronizes the new password with the Parameter Store of the other accounts, propagating each rotation by the organization.",
+        "Because Secrets Manager authentic a Lambda direct at the bank by IAM, eliminating the password itself and the need to rotate it.",
+        "Because Secrets Manager version the complete bank password history, allowing to restore old credentials in rollback."
+      ]
+    },
+    "saa-med-229": {
+      "optionReasons": {
+        "saa-med-229:option:0": "",
+        "saa-med-229:option:1": "It's the closest because the tool is SQL injection — but the SQLi match rule inspects SQL in the content, not the NOME of the User-Agent tool: 'sqlmap' in the header is not syntax SQL; blocking a specific string in a header is the string match rule.",
+        "saa-med-229:option:2": "Rate-based rule does not filter by User-Agent in the thread like that — and 1 request/5min would block any IP visitor.",
+        "saa-med-229:option:3": "Core Rule Set protects against generic patterns — does not guarantee blocking by User-Agent 'sqlmap' specifically, which is the request."
+      },
+      "finalJustifications": [
+        "Because the string match rules with 'Contains' in the header User-Agent home any request containing 'sqlmap' and applies Block — exactly the filter requested.",
+        "Because the string match rule consults the list of malicious tools of AWS and blocks the known signatures of sqlmap.",
+        "Because the string rule returns a CAPTCHA to sqlmap, and the automated tool fails the challenge and abandons the attack.",
+        "Because the string match rule rewrites the suspicious User-Agent before ALB, neutralising the injection without discarding the request."
+      ]
+    },
+    "saa-med-230": {
+      "optionReasons": {
+        "saa-med-230:option:0": "S3 is accessed via API public/endpoints — permission does not depend on VPN or Direct Connect between accounts.",
+        "saa-med-230:option:1": "The opposite: roles access resources from one's own account normally — it's the most common case of all.",
+        "saa-med-230:option:2": "It is the closest because it moves on the right concept (type of credentials) — but reverses reality: the S3 accepts temporary roll credentials normally; assumed roles are the recommended access pattern, and the scenario lock comes from the bucket policy, not the type of credentials.",
+        "saa-med-230:option:3": ""
+      },
+      "finalJustifications": [
+        "Because in cross-account access the destination pocket needs to explicitly authorize the roll in the bucket policy — the IAM policy alone is not enough as in the intra-account.",
+        "Because the empty Bucket Policy activates the Block Public Access by default, which treats the assumed role as public access and rejects it..",
+        "Because without a bucket policy, S3 requires ACLs per object, and the bucket objects do not have ACL granting reading to the external role.",
+        "Because the bucket policy is the only place where S3 validates the ExternalId of the role, mandatory in any access between accounts."
+      ]
+    },
+    "saa-med-232": {
+      "optionReasons": {
+        "saa-med-232:option:0": "Multiple consumers in the same row is the normal drawing of SQS — every message goes to a consumer at a time via visibility timeout.",
+        "saa-med-232:option:1": "Failure to order does not create duplicate — out-of-order requests remain separate requests for business.",
+        "saa-med-232:option:2": "It's the closest because visibility timeout short CAUSA real redeliveries — but it's just an aggravating factor: even with perfect timeout, the Standard line is at-last-once by design and can duplicate; the root cause is the delivery semantics, and the robust solution is FIFO or idempotence.",
+        "saa-med-232:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Standard is at-last-once by design — duplicates are expected; FIFO (exactly-once per group) or the consumer's equal power resolves at root.",
+        "Because the Standard line only duplicates messages above 256 KB, and dividing requests into smaller messages eliminates problem.",
+        "Because at-last-once mode is a row configuration, and just switch the attribute to exactly-once in the Standard row itself.",
+        "Because the duplicate delivery comes from the long polling of consumers, and the short polling ensures a single reading per message."
+      ]
+    },
+    "saa-med-234": {
+      "optionReasons": {
+        "saa-med-234:option:0": "",
+        "saa-med-234:option:1": "It's the closest because it correctly describes the behavior FIFO by group — but changing the row type does not ISOLA the poisonous message: it would continue to hold its own group forever; taking the message off the path after N failures is Dead Letter Queue with maxReceiveCount.",
+        "saa-med-234:option:2": "Visibility timeout of 24h only hides the problematic message for longer — it returns and locks the queue again.",
+        "saa-med-234:option:3": "SSE rest cryptograph — no 'integrity validation that discards corrupted message' in the description."
+      },
+      "finalJustifications": [
+        "Because the DLQ with maxReceivecount=3 moves the poison message to quarantine after the third failure — the main row continues to flow and the case is investigated separately.",
+        "Because the DLQ repair corrupted messages using the metadata of SQS and return them to the main row already ready to process.",
+        "Because the DLQ prioritizes valid messages in delivery, lowering those that failed to end the queue every new attempt.",
+        "Because the DLQ notify the producer to forward the original image, replacing the corrupted message with its full version."
+      ]
+    }
+  }
+}

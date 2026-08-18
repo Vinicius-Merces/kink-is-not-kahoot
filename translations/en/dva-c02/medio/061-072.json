@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "medio",
+    "sourcePath": "data/exams/dva-c02/medio.json",
+    "range": "061-072",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-med-061": {
+      "text": "During build no CodeBuild, the team wants to prevent secrets (tokens, passwords) from appearing in LOGS of build, besides looking for them safely. Which combined practices meet this objective.?",
+      "options": [
+        "Record the secrets in the Build Image Dockerfile",
+        "Print the secrets at the beginning of the build for conference",
+        "Disable all logs from CodeBuild",
+        "Injecting secrets via Secrets Manager/Parameter Store in buildspec and avoid commands that echo them (set +x, no echo), relying on partial masking but not exclusively on it"
+      ],
+      "explanation": "Managed injection avoids secrets in the repository, and the discipline of not printing them in commands prevents log leaking — automatic masking helps, but does not cover changes in value.",
+      "hint": "Search the vault in time + never 'ecoar' the value = clean log without losing the visible build.",
+      "optionRationales": [
+        "Managed injection avoids secrets in the repository, and the discipline of not printing them in commands prevents log leaking — automatic masking helps, but does not cover changes in value.",
+        "Echoing secrets in the logs exposes them to all with reading access — contrary to the goal.",
+        "Secrets in Dockerfile stay in the layers of the image — persistent leak.",
+        "Without logs there is no diagnosis of builds — the solution is not to log secrets, not to blind the process."
+      ]
+    },
+    "dva-med-062": {
+      "text": "A frontend application found out that it was sending the ID token from Cognito to authorize calls in a API of third parties, which required access token. What is the correct distinction between these two tokens?",
+      "options": [
+        "The ID token is intended for the customer himself, loading user identity claims; the access token is what authorizes calls to APIs and protected resources (scopes))",
+        "ID token never expires, so it's better for APIs",
+        "The two tokens are interchangeable in any API",
+        "Access token contains the encrypted user password"
+      ],
+      "explanation": "In semantics OIDC/OAuth, identity (ID token) and authorization (access token) have distinct roles: APIs must validate access token with their scopes — using ID token for authorization confuses contracts.",
+      "hint": "One says 'who I am' (for the app); the other says 'what I can access' (for the API).",
+      "optionRationales": [
+        "In semantics OIDC/OAuth, identity (ID token) and authorization (access token) have distinct roles: APIs must validate access token with their scopes — using ID token for authorization confuses contracts.",
+        "They have different audiences and purposes — well-configured APIs reject the wrong token.",
+        "Both expire (typically in 1 time) — expiration does not differentiate your roles.",
+        "No token carries the password — they carry signed claims about identity and scopes."
+      ]
+    },
+    "dva-med-063": {
+      "text": "A function Lambda store sensitive values in environmental variables. On the protection of these variables, what statement is correct and what reinforcement is possible?",
+      "options": [
+        "The variables are encrypted at rest by KMS by default, and it is possible to use a custom managed key and cryptographic helpers in transit to protect them also from those who have read access to the configuration",
+        "The Lambda does not support any encryption of variables",
+        "Just name the variable with a prefix SECRET_ for the Lambda protect her",
+        "Environment variables are public to any user of the AWS"
+      ],
+      "explanation": "The Lambda cipher env vars at rest with managed key (or CMK (b) for really sensitive values, additional client-side encryption (encryption helpers) or use of Secrets Manager protects against reading in the configuration.",
+      "hint": "Encrypted at rest by default — and for critical content, the key is yours or the value lives in the safe.",
+      "optionRationales": [
+        "The Lambda cipher env vars at rest with managed key (or CMK (b) for really sensitive values, additional client-side encryption (encryption helpers) or use of Secrets Manager protects against reading in the configuration.",
+        "They are visible only to those who have read permission in the function configuration — and encrypted at rest.",
+        "Rest cryptography is standard — with backup options via CMK and helpers.",
+        "The variable name does not activate any protection — the mechanisms are KMS and external safes."
+      ]
+    },
+    "dva-med-064": {
+      "text": "A team configures the CodeDeploy to implement a new version of function Lambda with the 'Canary10Percent5Minutes' configuration. What happens exactly during this deployment?",
+      "options": [
+        "10% the traffic of the alias changes to the new version; after 5 minutes without alarms fired, the 90% remaining are promoted at once",
+        "Traffic Grows 10% each 5 minutes to 100%",
+        "10 cases EC2 are updated each time 5 minutes",
+        "The new version runs in parallel by 5 minutes without receiving real traffic"
+      ],
+      "explanation": "Canary's settings CodeDeploy for Lambda move an initial fraction of traffic through the observation period and, if the alarms of the CloudWatch become healthy, complete the promotion — otherwise, auto rollback occurs.",
+      "hint": "Canary = two steps (test stage + promotion); Linear = equal steps ladder.",
+      "optionRationales": [
+        "Canary's settings CodeDeploy for Lambda move an initial fraction of traffic through the observation period and, if the alarms of the CloudWatch become healthy, complete the promotion — otherwise, auto rollback occurs.",
+        "Deployment of Lambda does not involve instances EC2 — the displacement is of traffic between versions via alias.",
+        "The Canary uses traffic REAL production in the configured fraction — not a test without users.",
+        "Growth in regular steps is the mode LINEAR — the canary has only two steps: the initial fraction and the total promotion."
+      ]
+    },
+    "dva-med-065": {
+      "text": "No. CodeDeploy for EC2, what is the difference between in-place and blue/green deployment types?",
+      "options": [
+        "In-place does not allow life cycle hooks",
+        "In-place updates the application in MESMAS instances (stopping and reconnecting the service in them); blue/green provides a set NOVO of instances and redirects the traffic from the balancer to it",
+        "Blue/green only works for functions Lambda",
+        "In-place creates new instances and blue/green reuses old ones"
+      ],
+      "explanation": "In the in-place, each existing instance is updated on the spot (with partial unavailability); in the blue/green, the replacement fleet receives the new version and the switched traffic — with fast rollback repointing to the old fleet.",
+      "hint": "Reform the building with the residents inside × build the new building next door and change everyone.",
+      "optionRationales": [
+        "In the in-place, each existing instance is updated on the spot (with partial unavailability); in the blue/green, the replacement fleet receives the new version and the switched traffic — with fast rollback repointing to the old fleet.",
+        "It is reversed: the re-use of the instances is the in-place; the blue/green provides the parallel fleet.",
+        "The blue/green CodeDeploy copper EC2, ECS and Lambda — each platform with its switching mechanism.",
+        "Appspect hooks (BeforeInstall, ApplicationStart etc.) work in both types."
+      ]
+    },
+    "dva-med-066": {
+      "text": "In a deployment of the CodeDeploy in EC2, the team wants to perform automated smoke tests DEPOIS that the new version started running, making the deploy fail (and reverse) if the tests do not pass. In which app spec life cycle hook these tests should be executed?",
+      "options": [
+        "BeforeInstall, before copying the files",
+        "DownloadBundle, while downloading the package",
+        "ApplicationStop, when stopping the previous version",
+        "ValidateService, the final hook that confirms the health of the implanted service"
+      ],
+      "explanation": "ValidateService runs after the application starts and is the intended point for functional validations: scripts with output code other than zero fail the deployment, triggering the configured rollback.",
+      "hint": "The last gate of the cycle: 'validate the service' that has just gone up — failed, reversed.",
+      "optionRationales": [
+        "ValidateService runs after the application starts and is the intended point for functional validations: scripts with output code other than zero fail the deployment, triggering the configured rollback.",
+        "In BeforeInstall the new version did not even reach the instances — there is nothing to test for the new service.",
+        "This event is reserved for the agent to download the artifact — does not execute user scripts.",
+        "ApplicationStop closes version ANTIGA at the beginning of the flow — long before there is something new to validate."
+      ]
+    },
+    "dva-med-067": {
+      "text": "A template of the CloudFormation has grown beyond the limit of size and mix networks, bench and application, making it difficult to maintain. CloudFormation allows you to divide it into reusable components orchestrated by a parent template?",
+      "options": [
+        "Compact the template in ZIP to fit the limit",
+        "Create all resources manually on the console",
+        "Nested stacks: the parent template instance stacks daughters (AWS::CloudFormation::Stack) for each component",
+        "Convert the entire template to Bash"
+      ],
+      "explanation": "Stacks nest modularize the infrastructure: each part lives in its template (reusable and testable) and the father coordinates the parameters and dependencies between them.",
+      "hint": "A father template that mounts the puzzle by calling stacks 'daughters' — nests.",
+      "optionRationales": [
+        "Stacks nest modularize the infrastructure: each part lives in its template (reusable and testable) and the father coordinates the parameters and dependencies between them.",
+        "The CloudFormation does not accept zipped templates as limit solution — modularization is the way.",
+        "Imperative Scripts Lose Declarative Status, Rollback, and Life Cycle Management.",
+        "Abandoning IAC eliminates reproducibility and versioning — retrogression, non-solution."
+      ]
+    },
+    "dva-med-068": {
+      "text": "A single template of the CloudFormation should serve dev and production: small instances in dev, large in production, without doubling the template. Which sections of the template implement this parameterization?",
+      "options": [
+        "Outputs and Metadata",
+        "Settings to receive environment in stack creation and mappings (with FindInMap) to solve values by environment",
+        "Copy template and edit values in each copy",
+        "Environment Tags in Resources"
+      ],
+      "explanation": "Parameters make the template configurable by stack, and Mappings centralize tables of values (e.g. type of instance by environment) resolved with Fn::FindInMap — a template, N environments.",
+      "hint": "Ask the environment at the input (Parameters) and see the 'Size Table' (Mappings) for each.",
+      "optionRationales": [
+        "Parameters make the template configurable by stack, and Mappings centralize tables of values (e.g. type of instance by environment) resolved with Fn::FindInMap — a template, N environments.",
+        "Outputs expose values DEPOIS of creation and Metadata describes the template — neither of the two parameters resources by environment.",
+        "Copying diverges over time — the goal is precisely to avoid duplication.",
+        "Tags categorize created resources — do not change the values used in creation."
+      ]
+    },
+    "dva-med-069": {
+      "text": "In a template of the CloudFormation, what is the difference between the intrinsic functions !Ref and !GetAtt when referring to a resource as an instance EC2?",
+      "options": [
+        "!GetAtt creates the resource and !Ref or delete",
+        "!Ref only works with parameters, never with resources",
+        "!Ref returns the resource standard identifier (e.g. instance ID); !GetAtt accesses specific attributes (e.g. PrivateIp, PublicDns))",
+        "They are identical and interchangeable"
+      ],
+      "explanation": "Each type of resource defines what the Ref returns (usually the ID/name) and what attributes the GetAtt exposes — knowing the double is essential to connect resources in the template.",
+      "hint": "One returns the 'baptism name' of the resource; the other opens the tab and reads the requested attribute.",
+      "optionRationales": [
+        "Each type of resource defines what the Ref returns (usually the ID/name) and what attributes the GetAtt exposes — knowing the double is essential to connect resources in the template.",
+        "None of the functions creates or excludes resources — both only LEEM declared resource values.",
+        "Returning Different Things — Using One Instead Generates Wrong Values or Template Error.",
+        "Ref works with parameters and features — with features, returns the default identifier."
+      ]
+    },
+    "dva-med-070": {
+      "text": "The network stack of a company creates the VPC and sub-networks; the application stack, maintained by another team, needs to reference the IDs of these sub-networks without manually copying values. CloudFormation shares values between independent stacks?",
+      "options": [
+        "Unify everything into a single giant stack mandatory",
+        "Paste fixed subnet IDs into the application template",
+        "Give identical names to the two stacks",
+        "Export outputs in network stack and Fn::ImportValue in application stack"
+      ],
+      "explanation": "Exports publish uniquely named values in the Region and ImportValue consumes them in other stacks — including creating protection: the export stack cannot exclude values in use.",
+      "hint": "One stack 'exports' the value with label; the other 'imports' by label — with anti-removal lock in use.",
+      "optionRationales": [
+        "Exports publish uniquely named values in the Region and ImportValue consumes them in other stacks — including creating protection: the export stack cannot exclude values in use.",
+        "Cracked values break when the network is recreated and diverge between environments — the dynamic link eliminates this.",
+        "Stack names do not share values — the bridge is the Export/ImportValue pair.",
+        "Funding different team stacks couple life cycles — cross-stack reference keeps the separation with integration."
+      ]
+    },
+    "dva-med-071": {
+      "text": "A template of the CloudFormation it needs to execute a logic that the CloudFormation does not support natively during the deployment (e.g. register the stack on an internal system and return a value to the template). CloudFormation with its own code?",
+      "options": [
+        "The CloudFormation cannot be extended",
+        "Special comments no YAML played in runtime",
+        "Edit resources by hand after stack goes up",
+        "Custom resources based on Lambda, that receive Create/Update/Delete stack events and respond successfully/fail and data"
+      ],
+      "explanation": "The custom resource delegates to a function Lambda the logic outside the native vocabulary: the CloudFormation calls it in the life cycle and awaits the signed response — integrating any system to the declarative deployee.",
+      "hint": "When the declarative vocabulary ends, a Lambda 'customised' enters the stack cycle as a custom resource.",
+      "optionRationales": [
+        "The custom resource delegates to a function Lambda the logic outside the native vocabulary: the CloudFormation calls it in the life cycle and awaits the signed response — integrating any system to the declarative deployee.",
+        "Comments are ignored by processing — do not perform logic.",
+        "Manual post-editing creates drift and loses automation — the correct extension lives within the stack cycle.",
+        "Custom resources (and the CloudFormation Registry) exist exactly to extend the service."
+      ]
+    },
+    "dva-med-072": {
+      "text": "Every template of the AWS SAM starts with the line 'Transform': AWS::Serverless-2016-10-31'. What is the function of this declaration??",
+      "options": [
+        "Instruct or CloudFormation expanding the abbreviated types of the SAM (ex: AWS::Serverless::Function) our resources CloudFormation corresponding complete during processing",
+        "Block manual changes to created resources",
+        "Enable free tier for stack features",
+        "Convert template from YAML for JSON"
+      ],
+      "explanation": "Transform applies the macro of SAM: each dry serverless resource becomes the detailed set of native resources (function, roles, permissions), API) — synthetic sugar processed by the standard engine.",
+      "hint": "It is the 'macro translator': the serverless shortcut enters, the CloudFormation complete exit.",
+      "optionRationales": [
+        "Transform applies the macro of SAM: each dry serverless resource becomes the detailed set of native resources (function, roles, permissions), API) — synthetic sugar processed by the standard engine.",
+        "The file format independent of Transform — both formats are always accepted.",
+        "Cobrance is not affected by template statements — Transform is syntax expansion.",
+        "Protections against change come from stack policies/permissions — not Transform."
+      ]
+    }
+  }
+}

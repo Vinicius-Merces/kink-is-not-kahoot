@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "103-110",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-103": {
+      "optionReasons": {
+        "dva-avc-103:option:0": "",
+        "dva-avc-103:option:1": "The WAF ATP protects login endpoints by attack patterns — is not the detection of native blank credentials of Cognito with MFA adaptive.",
+        "dva-avc-103:option:2": "It's the closest because a Pre Authentication calling a API of empty passwords would solve functionally — but it is CONSTRUIR the logic of detection (code, integration, latency) that the requirement wants to avoid; detection of compromised credentials + MFA adaptive ready are the Advanced Security Features of Cognito.",
+        "dva-avc-103:option:3": "MFA REQUIRED for all add friction to all logins — is not detection based on risk or empty credentials."
+      },
+      "finalJustifications": [
+        "Because the Advanced Security Features of Cognito bring detection of compromised credentials and adaptive authentication (Block or MFA by risk) ready — block or challenge the login without custom development.",
+        "Because WAF ATP brings detection of compromised credentials and ready adaptive authentication — blocks or challenges the login without custom development, associated with Hosted UI Cognito.",
+        "Because Pre Authentication with API of third parties brings detection of compromised credentials and ready adaptive authentication — blocks or challenges the login without custom development.",
+        "Because MFA REQUIRED for all brings detection of compromised credentials and ready adaptive authentication — blocks or challenges the user-friendly login without development."
+      ]
+    },
+    "dva-avc-104": {
+      "optionReasons": {
+        "dva-avc-104:option:0": "",
+        "dva-avc-104:option:1": "AWSPREVIOUS is the version ANTIGA retired after rotation — not the new one on test.",
+        "dva-avc-104:option:2": "It's the closest because the AWSCURRENT is central to the process — but it is the value ATIVO that the application already recovers by default, NOT the new one in test; the new version created and validated during rotation, before becoming active, is the AWSPENDING.",
+        "dva-avc-104:option:3": "'AWSROTATING' does not exist in the framework of Secrets Manager — label invented."
+      },
+      "finalJustifications": [
+        "Because the AWSPENDING is the new version created in rotation: the Secret test validates it and only in the FinishSecret it turns AWSCURRENT (GetSecretValue standard), while the old AWSCURRENT turn AWSPREVIOUS.",
+        "Because the AWSPREVIOUS is the new version created in rotation: the Secret test validates it and only in the FinishSecret it turns AWSCURRENT (GetSecretValue standard), while the old AWSCURRENT is retired.",
+        "Because the AWSCURRENT is the new version created in rotation: the Secret test validates it and only in the FinishSecret it remains as standard of the GetSecretValue, while the old value turns AWSPREVIOUS.",
+        "Because the AWSROTATING is the new version created in rotation: the Secret test validates it and only in the FinishSecret it turns AWSCURRENT (GetSecretValue standard), while the old AWSCURRENT turn AWSPREVIOUS."
+      ]
+    },
+    "dva-avc-105": {
+      "optionReasons": {
+        "dva-avc-105:option:0": "GrantTokens are for permission by grant — not a AAD validating the orderId in Decrypt.",
+        "dva-avc-105:option:1": "",
+        "dva-avc-105:option:2": "One CMK by orderId explodes the number of keys and is not the integrity check per call requested.",
+        "dva-avc-105:option:3": "It is the closest because inserting the orderId in the clear text and then checking it also detects the disfellowshipment — but in the CAMADA OF APPLICATION: the KMS no FALHA in Decrypt with wrong orderId, and the orderId does not appear by call in CloudTrail; mooring to KMS (AAD) with audit is the encryption context."
+      },
+      "finalJustifications": [
+        "Because the context encryption {\"orderId\":...} turns AAD no KMS: o Decrypt FALHA if you don't hit exactly the encryption one, and the KMS records the context in clear text in CloudTrail per call — the two requirements.",
+        "Because GrantTokens with orderId turns AAD no KMS: Decrypt fails if you don't hit the encryption one, and the KMS record the orderId in clear text in CloudTrail per call — the two requirements.",
+        "Because the CMK by orderId turns AAD no KMS: Decrypt fails if you don't hit the encryption one, and the KMS record the orderId in clear text in CloudTrail by call — the two integrity requirements.",
+        "Because the orderId in the clear text turns AAD no KMS: Decrypt fails if you don't hit the encryption one, and the KMS record the orderId in clear text in CloudTrail per call — the two requirements."
+      ]
+    },
+    "dva-avc-106": {
+      "optionReasons": {
+        "dva-avc-106:option:0": "AuthType NONE does not require identity — restrict by VPC endpoint alone does not authenticate the call.",
+        "dva-avc-106:option:1": "It's the closest because AuthType NONE with a secret in the header 'block' anonymous — but NONE Leaves the Function URL PUBLIC and the shared secret is fragile (vacation, without rotation); authenticate with identity AWS It's AuthType AWS_IAM, demanding SigV4 and permission lambda:InvokeFunctionUrl.",
+        "dva-avc-106:option:2": "",
+        "dva-avc-106:option:3": "AWS_IAM already authenticated by SigV4 — a Lambda Authorizer on top is redundant for Function URL."
+      },
+      "finalJustifications": [
+        "Because AuthType AWS_IAM requires that each request be signed with SigV4 and that the calling roller has lambda:InvokeFunctionUrl — Anonymous or invalid calls are rejected.",
+        "Because AuthType NONE with secret header requires that each request be signed with SigV4 and that the roll has lambda:InvokeFunctionUrl — Anonymous or invalid calls are rejected.",
+        "Because AuthType NONE with VPC endpoint requires that each request be signed with SigV4 and that the roll has lambda:InvokeFunctionUrl — Anonymous or invalid calls are rejected.",
+        "Because AuthType AWS_IAM with Lambda Authorizer requires that each request be signed with SigV4 and that the roll has lambda:InvokeFunctionUrl — Anonymous or invalid calls are rejected."
+      ]
+    },
+    "dva-avc-107": {
+      "optionReasons": {
+        "dva-avc-107:option:0": "SCP denying everything except by calling is operationally unfeasible — and does not distinguish session with MFA.",
+        "dva-avc-107:option:1": "Console session does not define MFAPresent:true 'always' — only if the MFA was actually used; trusting it is incorrect.",
+        "dva-avc-107:option:2": "",
+        "dva-avc-107:option:3": "It's the closest one because it rings MFA registered to MultiFactorAuthPresent — but the statement is FALSA: have a device MFA REGISTRADO does not define aws:MultiFactorAuthPresent:true in actions; the key is only true when the CREDENCIAIS OF THE SESSION were obtained COM MFA; the control is the conditional Deny in that key."
+      },
+      "finalJustifications": [
+        "Because policy with Deny in destructive actions and Condition BoolIfExists aws:MultiFactorAuthPresent=false only releases them when the session was obtained COM MFA — reading from day to day follows without MFA.",
+        "Because the SCP with Deny in the destructive actions and Condition aws:MultiFactorAuthPresent=false only releases them when the session was obtained with MFA — reading from day to day follows without MFA, with the exception of call.",
+        "Because Identity Center with MFA e Condition aws:MultiFactorAuthPresent=false only releases destructive actions when the session was obtained with MFA — reading from day to day follows without MFA.",
+        "Because MFA registered and Condition aws:MultiFactorAuthPresent=false only release destructive actions when the session was obtained with MFA — reading from day to day follows without MFA."
+      ]
+    },
+    "dva-avc-108": {
+      "optionReasons": {
+        "dva-avc-108:option:0": "",
+        "dva-avc-108:option:1": "DEVICE_KEY is the device tracking — is not the parameter required by secret client app.",
+        "dva-avc-108:option:2": "REFRESH_TOKEN renews tokens without re-authenticating — not missing in USER_PASSWORD_AUTH with secret.",
+        "dva-avc-108:option:3": "It's the closest because the secret client is the value involved — but the secret is not sent LITERAL in AuthParameters: send the SECRET_HASH, one HMAC-SHA256 of username + client id + secret client; or Cognito check that the app has the secret without receiving the raw secret."
+      },
+      "finalJustifications": [
+        "Because the confidential client app (with secret) requires the SECRET_HASH in each call of auth: one HMAC-SHA256 username + client id + secret client who proves the possession of the secret without sending it raw.",
+        "Because the confidential client app requires the DEVICE_KEY in each auth call: a value derived from the username + client id + secret client that proves the possession of the secret without sending it raw.",
+        "Because the confidential client app requires the REFRESH_TOKEN in each auth call: a value derived from the username + client id + secret client that proves the possession of the secret without sending it raw.",
+        "Because the confidential client app requires the CLIENT_SECRET literal in each call of auth: sent directly to AuthParameters, proves the possession of the secret to Cognito no USER_PASSWORD_AUTH."
+      ]
+    },
+    "dva-avc-109": {
+      "optionReasons": {
+        "dva-avc-109:option:0": "Imported self-signed certificate is not reliable by browsers nor automatically renews.",
+        "dva-avc-109:option:1": "E-mail validation works, but does not automatically renew with the same ease of validation by DNS way Route 53.",
+        "dva-avc-109:option:2": "",
+        "dva-avc-109:option:3": "It's the closest because the 'us-east' requirement-1' It's true — but for endpoints EDGE-OPTIMIZED (which they use CloudFront); in an endpoint REGIONAL, or certificate ACM should be in MESMA REGION OF API, validated by DNS to renew alone."
+      },
+      "finalJustifications": [
+        "Because the public certificate of ACM the MESMA regional endpoint region, validated by DNS (CNAME no Route 53), renews itself — associated with Custom Domain of API Gateway and the alias on Route 53.",
+        "Because the self-signed certificate imported into the same region of the Regional Endpoint, validated by DNS, renews itself — associated with Custom Domain of API Gateway and the alias on Route 53.",
+        "Because the certificate of the ACM validated by e-mail in the same region of the regional endpoint renews itself — associated with the Custom Domain of API Gateway and the alias on Route 53 domain.",
+        "Because the certificate of the ACM in us-east-1, validated by DNS, renews itself — associated with the Custom Domain of the Regional Endpoint of API Gateway and the alias on Route 53 domain."
+      ]
+    },
+    "dva-avc-110": {
+      "optionReasons": {
+        "dva-avc-110:option:0": "Replicate for a second bucket duplicates data and cost — does not change the property of objects in the original bucket.",
+        "dva-avc-110:option:1": "",
+        "dva-avc-110:option:2": "Taking a role in Account B to read is to bypass the symptom — it doesn't make the Account The automatic owner of objects.",
+        "dva-avc-110:option:3": "It's the closest because the header x-amz-acl: bucket-owner-full-control REALMENTE gives access to the owner — but depends on Account B LEMBRAR to include it in CADA PutObject (failure to forget) and is still based on ACL; eliminate the property complication from time to time is the 'Bucket owner reinforced' (Object Ownership), which shuts down ACLs."
+      },
+      "finalJustifications": [
+        "Because the Bucket owner reinforced shuts down the ACLs: every recorded object (by whoever has s3:PutObject) becomes the automatic property of Account A, and access is governed only by IAM/Bucket policy.",
+        "Because the S3 Replication turns off the ACLs: every recorded object becomes the automatic property of Account A in the replica pocket, and access is governed only by IAM/Bucket policy.",
+        "Because assuming role in Account B disconnects the ACLs: every recorded object becomes the automatic property of Account A, and access is governed only by IAM/A Account policy.",
+        "Because the header bucket-owner-full-control in each PutObject turns off the ACLs: every recorded object becomes the automatic property of Account A, and access is governed only by IAM/Bucket policy."
+      ]
+    }
+  }
+}

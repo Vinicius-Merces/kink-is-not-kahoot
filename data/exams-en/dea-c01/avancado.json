@@ -1,0 +1,581 @@
+{
+  "certCode": "DEA-C01",
+  "certName": "AWS Certified Data Engineer - Associate",
+  "level": "avancado",
+  "domains": [
+    {
+      "id": "data-ingestion-transformation",
+      "name": "Data Ingestion and Transformation",
+      "weight": 0.34
+    },
+    {
+      "id": "data-store-management",
+      "name": "Data Store Management",
+      "weight": 0.26
+    },
+    {
+      "id": "data-operations-support",
+      "name": "Data Operations and Support",
+      "weight": 0.22
+    },
+    {
+      "id": "data-security-governance",
+      "name": "Data Security and Governance",
+      "weight": 0.18
+    }
+  ],
+  "questions": [
+    {
+      "id": "dea-avc-001",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming"
+      ],
+      "text": "Five applications consume the same Kinesis Data Stream in shared mode and compete for 2 MB/s reading by shard, elevating the delivery latency. The requirement is throughput reading DEDICADO per consumer and latency ~70 ms, without increasing shards. Which resource answers?",
+      "options": [
+        "Reduce batch size",
+        "Enhanced Fan-Out: every registered consumer receives 2 MB/s dedicated by shard with push delivery via HTTP/2",
+        "Long polling in consumers",
+        "Increase stream retention"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorrect: minor batch increases overhead and does not create dedicated throughput. B) Correct: the EFO creates a dedicated way of 2 MB/s per shard for CADA registered consumer, with push on ~70 ms — eliminates competition without reharding. SQS. D) Incorrect: retention affects replay, no reading flow."
+    },
+    {
+      "id": "dea-avc-002",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming"
+      ],
+      "text": "A stream provided has 10 Shards, but A Shard receives 80% The current key score is the store code, and the matrix store dominates the events. DUAS actions correct hot shard? (Select DUAS alternatives)",
+      "options": [
+        "Increase retention to 7 days",
+        "Reduce the total number of shards",
+        "Apply random jumping/suffix to the key of the dominant store, spreading your events between shards",
+        "Change the partition key to one of the following: ALTA cardinality and uniform distribution (e.g. event/client ID))",
+        "Migratory to SQS FIFO"
+      ],
+      "correct": [
+        2,
+        3
+      ],
+      "explanation": "A) Incorrect: retention does not change the writing distribution. B) Incorrect: less shards concentrate AINDA plus traffic. C) Correct: when business key needs to be maintained, the jumping (shop#1..N) divides the traffic of the hot key, reaggregating it into consumption. D) Correct: High cardinality key distributes the hash evenly between shards — structural correction. E) Incorrect: exchange of technology does not solve the key design and loses the stream characteristics."
+    },
+    {
+      "id": "dea-avc-003",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming",
+        "datalake-s3"
+      ],
+      "text": "A Firehose delivers to S3 with buffer 1 MB/60s, generating tens of thousands of tiny files per day and degrading the Athena. Consumption tolerates delay of up to 10 minutes. Which setting directly improves the layout of the files?",
+      "options": [
+        "Decrease buffer to 1 second",
+        "Enable Bucket Version",
+        "Increase Firehose buffer (ex.: 128 MB/up 900 s), producing larger and fewer files",
+        "Change destination to DynamoDB"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: aggravates the problem of small files. B) Incorrect: versioning does not change the size of the files. C) Correct: larger buffers add more records per object — files in the hundreds of MB house are the target for efficient analytical reading; the extra delay fits in with SLA of 10 min. D) Incorrect: DynamoDB is not an analytical destination of the case."
+    },
+    {
+      "id": "dea-avc-004",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "glue-etl"
+      ],
+      "text": "A Spark job from AWS Glue failure with OutOfMemory errors when processing a dataset with transformations that embaralate (shuffle) many data. What setting of THEIR Glue attacks the problem without rewriting the job?",
+      "options": [
+        "Convert job to Python shell",
+        "Disable Job Bookmarks",
+        "Switch the worker type to one with greater memory (e.g.: G).1X → G.2X) and adjust the number of workers",
+        "Reduce the number of workers to save"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: Python shell is single-node for light scripts, not Spark distributed. B) Incorrect: bookmarks control incrementality, not memory. C) Correct: the workers types of Glue define memory/CPU per executor — G.2X folds G's memory.1X; more memory by worker and appropriate parallelism solve OOM D) Incorrect: fewer workers concentrate more data per executor — worse OOM."
+    },
+    {
+      "id": "dea-avc-005",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "de-fundamentals",
+        "datalake-s3"
+      ],
+      "text": "A date lake in Parquet in S3 now needs UPDATEs and DELETES at line level (corrections and LGPD), transactions ACID and time travel, keeping consultations via Athena and Spark. What modern approach attends?",
+      "options": [
+        "Migrate all or lake to RDS",
+        "Use only versioning of S3 as 'transaction''",
+        "Manually rewrite the affected Parquet files to each fix",
+        "Adopt an open table format like Apache Iceberg on the S3, which supports ACID, upserts/deletes and time travel in integrated engines"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: move the entire lake to OLTP reverses the architecture. B) Incorrect: versioning of objects does not give semantics of transaction at line level. C) Incorrect: rewritten manual of Parquet is fragile, expensive and without atomicity. D) Correct: table formats like Iceberg add transactional layer to the lake: MERGE/DELETE, snapshots, time travel and schema evolution — supported by Athena, Glue, EMR/Spark."
+    },
+    {
+      "id": "dea-avc-006",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "emr"
+      ],
+      "text": "A cluster EMR process night lots with flexible time. The team wants to drastically cut the cost of computing accepting occasional interruptions, SEM risk the data from HDFS nor the stability of the cluster. DUAS Do practices implement this? (Select DUAS alternatives)",
+      "options": [
+        "Disable replication of the HDFS",
+        "Transient clusters with data on S3 (EMRFS), closed at the end of work",
+        "Spot in TODOS the nodes, including the primary",
+        "Permanent cluster with double core knots",
+        "Courts Spot in the knot TASK (not stored HDFS), keeping primary and core in On-Demand"
+      ],
+      "correct": [
+        1,
+        4
+      ],
+      "explanation": "(a) Incorrect: reduce replication of HDFS exchange cost for loss risk. EMRFS, the cluster becomes disposable — only the job window is paid. C) Incorrect: losing the primary drops the cluster; core in Spot risks blocks of HDFS. D) Incorrect: doubling core increases cost. Spot is recovered, the YARN Reexecutes the tasks; primary/core protected guarantee HDFS and coordination."
+    },
+    {
+      "id": "dea-avc-007",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "batch-ingestion",
+        "dataops"
+      ],
+      "text": "Continuous replication (CDC) of the DMS for the S3 is critical, and the business requires rapid detection when the latency of the replication goes beyond 5 minutes. How to monitor correctly?",
+      "options": [
+        "Alarms of the CloudWatch on latency metrics of the task of DMS (CDCLatencySource/CDCLatencyTarget)",
+        "Manually check the count of lines once a day",
+        "Read the destination Bucket logs",
+        "Enable Trusted Advisor"
+      ],
+      "correct": 0,
+      "explanation": "(a) Correct: or DMS publish latency metrics of origin and destination per task — alarms > 300Incorrect: daily check discovers the delay hours later.: Trusted Advisor makes general recommendations, does not monitor tasks of DMS."
+    },
+    {
+      "id": "dea-avc-008",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming"
+      ],
+      "text": "When deciding between Amazon Kinesis Data Streams Amazon MSK for a new streaming platform, which DOIS criteria correctly point to the MSK? (Select DUAS alternatives)",
+      "options": [
+        "Latency must be less than 1 ms",
+        "Need for compatibility with the Kafka ecosystem (Kafka Connect, existing customers and tools)",
+        "Coverage exclusively for use without infrastructure provided",
+        "Fine broker/topic configuration requirements (topic retention, partitioning and Kafka parameters)",
+        "Desire for minimal management and more direct serverless integration with Firehose/Lambda"
+      ],
+      "correct": [
+        1,
+        3
+      ],
+      "explanation": "A) Incorrect: neither guarantee sub-millisecond. B) Correct: who already has code, connectors and operation Kafka migrates to MSK (c) Incorrect: MSK stock brokers (even Serverless has its own model); 'only by use' better describes Kinesis D) Correct: or MSK exposes the real Kafka — fine control of topics and broker parameters. E) Incorrect: this criterion points to the KINESIS (more managed/serverless and native integrations)."
+    },
+    {
+      "id": "dea-avc-009",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "datalake-s3",
+        "glue-etl"
+      ],
+      "text": "A lake receives micro-archives continuously in the raw layer. The team wants to keep the layer CURADA with Parquet files from ~256 MB, partitioned, without stopping the intake. What architecture standard solves?",
+      "options": [
+        "Enable Transfer Acceleration",
+        "Periodical job of COMPACTION (Glue/Spark or OPTIMIZE in Iceberg tables) rewriting the micro-archives of the window in large files in the cured layer",
+        "Block intake until large files accumulate",
+        "Increase storage class for Glacier"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorrect: upload acceleration does not rearrange files. B) Correct: the raw→curated pattern with scheduled compaction preserves continuous intake and efficient reading delivery; in Iceberg, the OPTIMIZE/rewrite does this in a managed way. C) Incorrect: stopping the intake creates delay and coupling. D) Incorrect: Glacier is archiving — worsening the query."
+    },
+    {
+      "id": "dea-avc-010",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "emr"
+      ],
+      "text": "In a Spark job at EMR, o JOIN between a table fact of 2 TB and a dimension of 40 MB is causing massive shuffle. What classic technique eliminates shuffle from this JOIN?",
+      "options": [
+        "Change the shape of the suit to CSV",
+        "Increase the number of partitions of the fact",
+        "Broadcast join: send the small size to all the executors, making the local joint (the Spark automatically does below the threshold, or via explicit hint/broadcast)",
+        "Breaking the size into a thousand partitions"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: CSV B) Incorrect: more partitions do not prevent the redistribution of the common joint. C) Correct: with the dimension in broadcast, each executor makes the joint locally against his slice of the fact — zero shuffle of the large table. D) Incorrect: slice 40 MB in a thousand partitions only creates overhead."
+    },
+    {
+      "id": "dea-avc-011",
+      "domain": "data-ingestion-transformation",
+      "topics": [
+        "streaming",
+        "dataops"
+      ],
+      "text": "A function Lambda consume one Kinesis Stream via event source mapping. A 'poisonous' record makes the batch fail and shard processing TRAVA in infinite retreats, delaying everything. What configurations of the event source mapping unlocked the pipeline safely.?",
+      "options": [
+        "Reduce the parallelism to 1",
+        "Increase function timeout",
+        "Delete and recreate the stream",
+        "Configure maximumRetryAttempts, bisectBatchOnFunctionError (divide batch to isolate bad record) and a fault destination (on-failure) for discarded records"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: less parallelism only leaves the delay worse. B) Incorrect: more timeout does not solve a record that always fails. C) Incorrect: recreate the stream loses data and does not prevent recurrence. D) Correct: limit retries + bisect isolates the poisonous record, and the fate of failure (SQS/SNS) preserves discarded for analysis — the shard returns to flow."
+    },
+    {
+      "id": "dea-avc-012",
+      "domain": "data-store-management",
+      "topics": [
+        "athena"
+      ],
+      "text": "A table of the Athena has partitions per year/month/day and the metastore accumulated hundreds of thousands of partitions — the planning of the consultations was slow and the MSCK REPAIR which resource eliminates the dependency of registering each partition in the catalog?",
+      "options": [
+        "Roll more crawlers in parallel",
+        "Increase partition limit",
+        "Partition Projection: o Athena CALCULA partitions from configured rules (intervals/formats), without consulting them in the metastore",
+        "Remove partitioning"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: crawlers continue to feed a giant metastore. B) Incorrect: the gargal is the enumeration, not the limit. C) Correct: with projection, the partitions have seen configuration function (e.g.: dates of 2020-01-01 until NOW) — instantaneous planning and end of MSCK/crawler for new partitions. D) Incorrect: without partitions, each query scans everything."
+    },
+    {
+      "id": "dea-avc-013",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift"
+      ],
+      "text": "The IB team (short consultations) and the IB team ETL (heavy loads) share a cluster Redshift provided and dispute resources in the loading hours. Redshift isolates these loads with priorities and limits?",
+      "options": [
+        "Workload Management (WLM), with separate rows (or Auto) WLM with query priorities) for BI and ETL",
+        "VACUUM daily",
+        "Create two users with different passwords",
+        "Sort keys in all tables"
+      ],
+      "correct": 0,
+      "explanation": "(a) Correct: or WLM sets rows with memory/competition (or Auto priorities) WLM), ensuring that the ETL do not suffocate the BI (and QMR to kill queries out of the pattern).: VACUUM is table maintenance. C) Incorrect: different users do not isolate resources. D) Incorrect: sort keys optimize I/O, do not arbitrate competition between loads.."
+    },
+    {
+      "id": "dea-avc-014",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift"
+      ],
+      "text": "The analytics area needs to provide AO data VIVO production warehouse for another cluster Redshift of another business unit, SEM copy data or mount export pipelines. Which resource serves?",
+      "options": [
+        "UNLOAD daily for the S3",
+        "Redshift Data Sharing: share schemas/tables between clusters (datashare), with live reading and no data movement",
+        "DMS among clusters",
+        "Snapshot restored weekly"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorrect: UNLOAD creates outdated copies and pipeline to maintain. B) Correct: the data sharing exposes objects from a producer cluster to consumers (same account, cross-account or cross-region) with transactionally consistent reading and zero copy. C) Incorrect: DMS between warehouses is gambiarra face. D) Incorrect: weekly snapshots give old data and recurring work."
+    },
+    {
+      "id": "dea-avc-015",
+      "domain": "data-store-management",
+      "topics": [
+        "athena"
+      ],
+      "text": "Analysts need to cross, in UMA consultation SQL, data from data lake in S3 with a reference table that lives in a RDS PostgreSQL, without replicating the bench to the lake. Athena Allow it.?",
+      "options": [
+        "Partition Projection",
+        "CTAS",
+        "Athena Federated Query, using a connector (Lambda) for the external source",
+        "Workgroups"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: projection resolves partition enumeration. B) Incorrect: CTAS materializes results, does not connect external sources. C) Correct: Federated Query uses connectors based on Lambda to consult external sources (RDS, DynamoDB, Redshift, etc.) and do JOIN with the lake tables in the same consultation. D) Incorrect: workgroups govern use/cost."
+    },
+    {
+      "id": "dea-avc-016",
+      "domain": "data-store-management",
+      "topics": [
+        "datalake-s3"
+      ],
+      "text": "A data lake has IMPRESSIBLE access patterns: some datasets stay stationary for months and are consulted again intensively. SEM risk of recovery rates or latency degradation, and without manually managing transitions. S3 answer?",
+      "options": [
+        "S3 Intelligent-Tiering, which moves objects automatically between layers according to the access pattern",
+        "S3 One Zone-IA",
+        "S3 Standard with fixed lifecycle for Glacier in 30 days",
+        "S3 Deep Archive Glacier"
+      ],
+      "correct": 0,
+      "explanation": "A) Correct: Intelligent-Tiering monitors access by object and automatically transitions (frequency-infrequently) without recovery rates in the default layers — made for unpredictable patterns. B) Incorrect: One Zone-IA reduces resilience and collects recovery. C) Incorrect: fixed lifecycle errs when the default is unpredictable (dataset 'cold' can return tomorrow). D) Incorrect: Deep Archive has recovery of hours — unfeasible for sudden return of access."
+    },
+    {
+      "id": "dea-avc-017",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift",
+        "datalake-s3"
+      ],
+      "text": "The team wants to export the result of queries from Redshift for the curated layer of data lake, in Parquet partitioned, for consumption by Athena What native command does this in parallel and efficient way?",
+      "options": [
+        "INSERT INTO EXTERNAL",
+        "pg_dump",
+        "COPY",
+        "UNLOAD ... FORMAT AS PARQUET PARTITION BY, WRITING IN Parallel IN THE S3"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: writing on external tables exists (Spectrum), but the canonical mass export command is the UNLOAD. B) Incorrect: pg_dump does not apply to Redshift to export analytical data to lake. C) Incorrect: COPY It's the way. INVERSO (S3 → Redshift). D) Correct: or UNLOAD record the direct result in S3 in Parquet, with partitioning and parallelism by the slices — the warehouse bridge→lake."
+    },
+    {
+      "id": "dea-avc-018",
+      "domain": "data-store-management",
+      "topics": [
+        "nosql-stores"
+      ],
+      "text": "A table DynamoDB of events has traffic 20x higher on unpredictable promotional dates, suffering throttling in the mode provided even with auto scaling (The priority is to: NUNCA Throttlear, accepting variable cost. Which configuration meets?",
+      "options": [
+        "Reduce item size",
+        "Folding the fixed provisioning",
+        "Add one GSI",
+        "Capacity mode ON-DEMAND, absorbing sudden peaks without provisioning"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: smaller items help, but do not eliminate the supply gap. B) Incorrect: dimension to 20x normal waste the whole year — and the next peak can be 30(x.C) Incorrect: GSI creates more consumption, no more table capacity. D) Correct: on-demand specifies by request and accommodates instant peaks (including 2x the previous peak immediately) — the trade-off is higher unit cost, accepted by the requirement."
+    },
+    {
+      "id": "dea-avc-019",
+      "domain": "data-store-management",
+      "topics": [
+        "redshift"
+      ],
+      "text": "After weeks of intense loads and exclusions, the consultations of a cluster Redshift provided degraded and storage was not released. Which maintenance operations recover performance and space?",
+      "options": [
+        "VACUUM (rearrange/recover space of leased lines) and ANALYZE (update optimization statistics)",
+        "DROP and re-creation of all schemes",
+        "Restart cluster",
+        "Change admin password"
+      ],
+      "correct": 0,
+      "explanation": "A) Correction: VACUUM reorder as the key spell and remove lines marked as deleted; ANALYZE updates the statistics that the planner uses — the classic maintenance double (in large part automatic today, but charged in proof). B) Incorrect: recreate everything is destructive and unnecessary. C) Incorrect: restart does not reorganize data. D) Incorrect: password has no relation to performance."
+    },
+    {
+      "id": "dea-avc-020",
+      "domain": "data-operations-support",
+      "topics": [
+        "orchestration"
+      ],
+      "text": "A pipeline needs reprocessing 300 historical daily partitions performing the MESMO Job Glue for each partition, with controlled parallelism (max. 10 and tolerance to faults per item. Step Functions implements it elegantly?",
+      "options": [
+        "The state MAP (or Distributed Map for large scale), iterating on the list of partitions with MaxCompetition=10 and Retry/Catch by iteration",
+        "300 Manually chained task states",
+        "A single execution with timeout of 1 year",
+        "A Wait of 24 hours"
+      ],
+      "correct": 0,
+      "explanation": "A) Correct: the Map runs the same sub-machine for each item in the list with limited competition; the Distributed Map scales to millions of items (e.g. objects of the S3) with fault control per item. B) Incorrect: 300 fixed states are impossible to maintain. C) Incorrect: timeout does not create controlled parallelism. D) Incorrect: Wait does not iterate anything."
+    },
+    {
+      "id": "dea-avc-021",
+      "domain": "data-operations-support",
+      "topics": [
+        "dataops",
+        "de-fundamentals"
+      ],
+      "text": "A load job is sometimes re-executed after partial failures and started generating REGISTROS DUPLICADOS in the destination. Which principle of pipeline design prevents this and how to apply it?",
+      "options": [
+        "Accept duplicates and treat them on dashboard",
+        "Run jobs only once a week",
+        "Idepower: re-executions produce the same final state — e.g. overwrite the entire target partition (INSERT OVERWRITE), use MERGE/upsert by key, or deduplication keys",
+        "Deactivate retries in everything"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: push the problem to consumption corrupt metrics and confidence. B) Incorrect: lower frequency does not prevent duplication in re-runs. C) Correct: Idepotent pipeline can be re-executed safely — partition overwrite, MERGE by natural key or dedup by event ID are the standards. D) Incorrect: without hindrances, any transitory failure becomes a manual incident."
+    },
+    {
+      "id": "dea-avc-022",
+      "domain": "data-operations-support",
+      "topics": [
+        "athena",
+        "dataops"
+      ],
+      "text": "Dashboards shoot at MESMA consultation Athena dozens of times an hour about data that only changes 1x per day, paying full scanning in each execution. Athena Cut this waste without changing the query?",
+      "options": [
+        "Switch to SELECT *",
+        "Enable Query Result Reuse at an appropriate maximum age, serving the cache result",
+        "Partition projection",
+        "Increase the workgroup"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorrect: SELECT * Scan MAIS. B) Correct: the result reuse returns the recent result of MESMA consultation without rescanning (you define the maximum acceptable age, ex.: 60 min) — zero scanning cost in repetitions. C) Incorrect: projection optimizes partition enumeration, not repeated queries. D) Incorrect: 'increase workgroup' does not exist as capacity."
+    },
+    {
+      "id": "dea-avc-023",
+      "domain": "data-operations-support",
+      "topics": [
+        "dataops"
+      ],
+      "text": "The team wants a unique alert of 'degraded pipeline' that only shoots when (job failure of Glue) And (firehose delivery delay) occur together, avoiding the noise of isolated alarms. CloudWatch implements this logic?",
+      "options": [
+        "Two alarms separated by email",
+        "Logs Insights scheduled",
+        "Composite Alarm, combining son alarms with logical operators (AND/OR) and a single action",
+        "A colorful dashboard"
+      ],
+      "correct": 2,
+      "explanation": "A) Incorrect: two isolated alarms are exactly the noise to avoid. B) Incorrect: log scheduled queries do not replace alarm algebra. C) Correct: the alarm composite evaluates a logical expression on other alarms and only triggers action (SNS/on-call) when the combination is true — reduction of drawing noise. D) Incorrect: dashboard does not notify alone."
+    },
+    {
+      "id": "dea-avc-024",
+      "domain": "data-operations-support",
+      "topics": [
+        "orchestration",
+        "dataops"
+      ],
+      "text": "After a bug fixed in the transformation job, it is necessary to REPROCESSAR 90 days of historical data (backfill) without interrupting the daily routine processing. DUAS practices structure this backfill safely? (Select DUAS alternatives)",
+      "options": [
+        "Run the backfill as a flow SEPARADO and parameterized by date range (ex.: Step Functions Partition map), isolated from the daily pipeline",
+        "Pause the daily pipeline by 90 days",
+        "Make the backfill partition manually by partition on the console",
+        "Delete the lake date and start again",
+        "Ensure that the job is matchable by partition (overwrite/merge), so that reruns do not duplicate data"
+      ],
+      "correct": [
+        0,
+        4
+      ],
+      "explanation": "A) Correct: parametrically and parallelized backfill coexists with the diary and is retreadable. B) Incorrect: stop operation because of history is unacceptable. C) Incorrect: 90 manual days = guaranteed human error. D) Incorrect: destroying the lake is disproportionate. E) Correct: partition-based idempotence is what makes reprocessing safe (without duplicates in already corrected windows)."
+    },
+    {
+      "id": "dea-avc-025",
+      "domain": "data-operations-support",
+      "topics": [
+        "glue-etl",
+        "dataops"
+      ],
+      "text": "A job Glue with 20 workers finish, but the metrics show 1 Executor working for hours while the others are idle at the end. What is the classic diagnosis and direction of correction?",
+      "options": [
+        "Lack of space in S3",
+        "DATA SKEW: a key/partition concentrates the data; correct with re-partitioning, key jumping or separate treatment of the dominant key",
+        "The bucket is in another region",
+        "The bookmarks are activated"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorrect: S3 not 'fill'. B) Correct: the symptom 'an executor works, the rest waits' is key data asymmetry (skew) — redistribute (repartition), salt the hot key or process it separately balances the load. C) Incorrect: cross-region adds uniform latency, not skew. D) Incorrect: bookmarks limit the ESCOPO of the data, do not create imbalance between executors."
+    },
+    {
+      "id": "dea-avc-026",
+      "domain": "data-operations-support",
+      "topics": [
+        "dataops",
+        "datalake-s3"
+      ],
+      "text": "The team needs VISIBILIDADE of lineage: given a wrong dashboard, find out which tables, jobs and sources the data came from. Glue/Athena, which mechanisms contribute to this traceability?",
+      "options": [
+        "Trust in the memory of the team",
+        "A chat channel to ask who moved",
+        "Only frequent backups",
+        "Central catalogue (Glue Data Catalog) as a real source of tables + job tracking/executions (Glue/Step Functions) + Raw→curated→serving layer convention with standardized nomenclature"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: institutional memory is not lineage. B) Incorrect: 'ask in chat' does not scale or audit. C) Incorrect: backup preserves data, does not explain origin. D) Correct: without a single lineage tool, traceability arises from the discipline: single catalog, auditable job executions and well-separated layers — drawing charged as good practice."
+    },
+    {
+      "id": "dea-avc-027",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "Regional managers should consult the MESMA date lake sales table selling SOMENTE the lines of the region itself (e.g. region = 'sul'), via Athena, without doubling data. What resource implements this security at the level of LINHA?",
+      "options": [
+        "WHERE oral combination",
+        "One copy of the table by region",
+        "Bucket policy by region prefix",
+        "Data filters (row-level security) AWS Lake Training Associated with Principals"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: verbal convention is not control. B) Incorrect: copies multiply cost and governance. C) Incorrect: bucket policy filters objects/prefixes — would only work if the data were physically separated and does not protect at the logical level of the table. D) Correct: the Lake Formation data filters define line expressions (and permitted columns) by main — the Athena apply the filter automatically, without copies."
+    },
+    {
+      "id": "dea-avc-028",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security",
+        "datalake-s3"
+      ],
+      "text": "A data lake pocket encrypted with SSE-KMS (CMK own) needs to be read by an account AWS The objects were authorized via bucket policy, but the partner receives AccessDenied. What is the likely cause of the missing correction?",
+      "options": [
+        "A KEY POLICY of CMK does not grant kms:Decrypt account/partner roll — allowing the bucket is not enough when the objects are SSE-KMS",
+        "SSE-KMS does not support cross-account access",
+        "Bucket needs to be public",
+        "Partner needs a user IAM in the owner account"
+      ],
+      "correct": 0,
+      "explanation": "A) Correct: SSE-KMS, read the object requires permission in OBJETO and CHAVE — the key policy (and the partner's role policy) need to allow kms:Decrypt; forget the key is the cause nº 1 AccessDenied cross-account. B) Incorrect: supports, as long as the key policy authorizes. C) Incorrect: public never. D) Incorrect: cross-account works with roles/policies, without creating users in the dowry account."
+    },
+    {
+      "id": "dea-avc-029",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security",
+        "redshift"
+      ],
+      "text": "No. Amazon Redshift, the support team needs to consult the customer table by seeing the CPF MASCARADO (ex.: ***.***.***-12), while the risk team sees the full value — in MESMA table, no duplication. What native resource attends?",
+      "options": [
+        "Encrypt the column and distribute the key to the risk team",
+        "Dynamic Data Masking (role/user masking policies))",
+        "Remove the column from the warehouse",
+        "Export two versions of the table"
+      ],
+      "correct": 1,
+      "explanation": "A) Incorrect: manual management of keys per team is fragile and out of control SQL. B) Correct: or DDM of the Redshift apply masking policies in consultation time according to identity — total, partial or by function, without copies. C) Incorrect: remove column breaks case of use of risk team. D) Incorrect: two versions = drawingchronization and double governance."
+    },
+    {
+      "id": "dea-avc-030",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "Audit requires registration QUEM read QUAIS OBJETOS of the loop of the data lake (GetObject operations), not only the administrative actions. What configuration provides this trail?",
+      "options": [
+        "AWS Configure",
+        "GuardDuty",
+        "CloudTrail standard (management events) already covers",
+        "Enable DATA EVENTS of the S3 no CloudTrail (or S3 server access logs) for the bucket, recording operations at object level"
+      ],
+      "correct": 3,
+      "explanation": "A) Incorrect: Config tracks configuration, not object readings. B) Incorrect: GuardDuty detects threats, is not full path access. C) Incorrect: the default trail records events of GERENCIAMENTO (create bucket, change policy), not every GetObject. D) Correct: date events of CloudTrail capture operations at object level (GetObject/PutObject) with identity — attention to cost per volume; server access logs are the rawest and cheapest alternative."
+    },
+    {
+      "id": "dea-avc-031",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "A pipeline (Glue + Step Functions + S3 + KMS) running in private sub-networks and the security policy PROHIBITS any traffic over the Internet, including for the APIs of the AWS. Which ones DUAS Do settings keep the pipeline running on this regime? (Select DUAS alternatives)",
+      "options": [
+        "Internet Gateway dedicated to the pipeline",
+        "Gateway VPC Endpoint for the S3 on the road tables of private sub-networks",
+        "Interface VPC PrivateLink (Endpoints) for API used (Glue, Step Functions, KMS, CloudWatch)",
+        "NAT Gateway with Elastic IP",
+        "Bastion host with proxy"
+      ],
+      "correct": [
+        1,
+        2
+      ],
+      "explanation": "A) Incorrect: IGW B) Correct: the Gateway Endpoint of the S3 route the access to the pocket through the network of the AWS, C) Correct: the other services expose Interface Endpoints — Private ENIs in sub-networks to call APIs via PrivateLink. D) Incorrect: NAT It's just gone. PARA A INTERNET — (e) Incorrect: proxy via bastion continues to cross the internet and adds fragile point."
+    },
+    {
+      "id": "dea-avc-032",
+      "domain": "data-security-governance",
+      "topics": [
+        "data-security"
+      ],
+      "text": "An organization with multiple accounts wants a date lake with CATALOGUE CENTRAL in a data account, allowing consumer accounts to discover and consult tables according to permissions, without copying metadata manually.?",
+      "options": [
+        "Grant Cross-Account permissions from Lake Formation (via AWS RAM) on banks/tables, and consumer accounts create RESOURCE LINKS locations pointing to the central catalog",
+        "Replicate crawlers in each consumer accounta",
+        "Give access to the administrator Glue all accounts",
+        "Export catalog to CSV monthly for each account"
+      ],
+      "correct": 0,
+      "explanation": "A) Correct: the hub-and-spoke standard of the LF — the central account grants (sharing via RAM) and each consumer creates local links resource to consult via Athena/Redshift Spectrum with its own identities, all governed and auditable. B) Incorrect: replicated crawlers generate divergent catalogs. C) Incorrect: admin for all destroys the least privilege. D) Incorrect: manual export is dead catalog."
+    }
+  ],
+  "_translation": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "sourcePath": "data/exams/dea-c01/avancado.json",
+    "status": "ready",
+    "buildMode": "staged-overlays"
+  }
+}

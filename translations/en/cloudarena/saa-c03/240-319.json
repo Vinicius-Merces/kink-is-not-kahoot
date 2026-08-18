@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "240-319",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-240": {
+      "optionReasons": {
+        "saa-med-240:option:0": "",
+        "saa-med-240:option:1": "Health check aggressive detects MAIS QUICK, but ongoing connections continue to be cut in removal.",
+        "saa-med-240:option:2": "Stickiness holds sessions to instances — does not protect connections during deregistration.",
+        "saa-med-240:option:3": "Lifecycle hook + Lambda the term of the instance — the native mechanism of the ALB to drain connections is the deregistration delay."
+      },
+      "finalJustifications": [
+        "Because Deregistration Delay stops sending new requests to the removal instance and lets the ongoing ones complete — the 502/503 Cut-off connections disappear.",
+        "Because Deregistration Delay automatically forwards the requests that failed during removal, masking the 502 of customers.",
+        "Because the Deregistration Delay keeps the instance in the pool until the traffic zeros by 10 minutes without ever cutting any of the users' connection.",
+        "Because Deregistration Delay transfers open connections to another group instance, completing requests in new destination."
+      ]
+    },
+    "saa-med-241": {
+      "optionReasons": {
+        "saa-med-241:option:0": "In UPDATE_ROLLBACK_FAILED the stack does not accept new updates — applying new template is blocked.",
+        "saa-med-241:option:1": "Delete the stack drops TODA the production infrastructure — panic, not recovery.",
+        "saa-med-241:option:2": "",
+        "saa-med-241:option:3": "Drift Detection only DIAGNOSTICA differences — did not unlock the failed rollback state."
+      },
+      "finalJustifications": [
+        "Because the Continue Update Rollback (with skip of the blocked resources, e.g. deleted from the outside) allows the CloudFormation complete the rollback and return to the last stable state.",
+        "Because the Continue Update Rollback replicates the update that failed with high permissions, completing the change instead of undoing it.",
+        "Because Continue Update Rollback recreates externally deleted features, restoring the state that the template declared last.",
+        "Because Continue Update Rollback converts the stack to drift mode, accepting the differences as her new reference state."
+      ]
+    },
+    "saa-med-247": {
+      "optionReasons": {
+        "saa-med-247:option:0": "Security Groups traffic filters — do not route customers to specific instances.",
+        "saa-med-247:option:1": "Cookies AWSALB are from **ALB** (layer 7/HTTP) — o NLB do not see cookies in TCP/UDP.",
+        "saa-med-247:option:2": "ElastiCache keeps the status of the implementation session — the NLB does not consult cache to route.",
+        "saa-med-247:option:3": ""
+      },
+      "finalJustifications": [
+        "Because NLB offers stickiness by IP DE ORIGEM (source IP affinity: connections of the same IP always go to the same target during the period — no cookies, layer 4 pure.",
+        "Because NLB inject a header TCP owner with the destination instance ID, which the client returns to each new session connection.",
+        "Because NLB use the address MAC client for affinity mapping, a more stable identifier than the IP of origin.",
+        "Because NLB delegate affinity to Route 53 automatically, which always responds with the same target for each source solver."
+      ]
+    },
+    "saa-med-250": {
+      "optionReasons": {
+        "saa-med-250:option:0": "The cross-zone is already SEMPRE active ALB — is not the missing configuration; and the imbalance is by CARGA of the requests, not by AZ.",
+        "saa-med-250:option:1": "Stickiness with TTL of 1s is gambiarra — round robin continues to ignore the actual load of each target.",
+        "saa-med-250:option:2": "More instances dilute the load, but the routing continues blind: heavy demands continue to accumulate.",
+        "saa-med-250:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Left Outstanding Requests route every new request for target with MENOS Current requirements — considers actual load, unlike sequential round robin.",
+        "Because LOR measures the CPU and the memory of each instance before routing, choosing the target by telemetry of the CloudWatch in real time.",
+        "Because LOR divides the large requests between multiple instances, parallelizing the processing of the heavy loads of the group.",
+        "Because LOR is mandatory in target groups with instances of mixed sizes — the ALB the activator alone when detecting heterogeneity."
+      ]
+    },
+    "saa-med-256": {
+      "optionReasons": {
+        "saa-med-256:option:0": "The CLB in mode TCP technically makes passthrough, but it's Generation LEGADA — is not the recommendation for new architecture.",
+        "saa-med-256:option:1": "Target group type IP changes the REGISTRO of targets — or ALB Keeps ending HTTP/TLS in the layer 7.",
+        "saa-med-256:option:2": "The GWLB insert APPLIANCES on the way (GENEVE) — is not an application balancer.",
+        "saa-med-256:option:3": ""
+      },
+      "finalJustifications": [
+        "Because NLB (layer 4) Do it. TCP passthrough without inspecting content: the TLS ends in the backend, the overhead of the balancer falls and the latency of the big binaries improves.",
+        "Because NLB compresses the PDFs and images before delivering them, reducing the bytes that cross the balancer by request.",
+        "Because NLB cache the most requested binary files in the memory of nodes, serving the heavy endpoints without touching the backend.",
+        "Because NLB divides large files into parallel connections, adding the multiple stream band TCP for each download."
+      ]
+    },
+    "saa-med-150": {
+      "optionReasons": {
+        "saa-med-150:option:0": "Migrating entire trading is rewriting the company's strategy — does not solve the hybrid connectivity requested.",
+        "saa-med-150:option:1": "The Global Accelerator optimizes traffic from Internet USERS to AWS — is not dedicated datacenter link-AWS.",
+        "saa-med-150:option:2": "",
+        "saa-med-150:option:3": "More tunnels VPN The band's gone, but they're still in the game. INTERNET public — variable latency remains."
+      },
+      "finalJustifications": [
+        "Because Direct Connect is dedicated and private physical connection datacenter-AWS: throughput consistent with the contracted band and predictable latency — attends daily volume and trading.",
+        "Because Direct Connect encrypts the traffic by default in the physical layer, dispensing the VPN and the IPsec overhead of the current connection.",
+        "Because Direct Connect uses the public internet with traffic priority guaranteed by the operators partners of the AWS on the contracted route.",
+        "Because Direct Connect is provided in minutes by the console, replacing the VPN without physical work or contract with telecom operator."
+      ]
+    },
+    "saa-med-274": {
+      "optionReasons": {
+        "saa-med-274:option:0": "There is no discount of 40% Overhead' — 1 Gbps Direct Connect delivery close to this with TCP well configured.",
+        "saa-med-274:option:1": "Jumbo Frames reduce overhead of HEAD (~less%) — do not beat the math of BDP with 150more than RTT.",
+        "saa-med-274:option:2": "",
+        "saa-med-274:option:3": "'Direct Connect Boost' does not exist."
+      },
+      "finalJustifications": [
+        "Because the throughput TCP is limited by bandwidth-delay product: with RTT high and standard window, each stream saturates far below the link — the fix is window TCP higher (window scaling) and/or multiple parallel flows.",
+        "Because BDP defines the maximum loss of packages tolerated by the dedicated link: above it the TCP reduces the window by half, and it is this cut that limits the 600 Mbps observed.",
+        "Because RTT of 150ms viola o SLA of the Direct Connect, and the reduced throughput is the expected contract degradation up to AWS reroute the circuit to a shorter path.",
+        "Because parallel flows divide the latency of 150ms between themselves, and each additional connection proportionally reduces the RTT actual perceived by data transfer."
+      ]
+    },
+    "saa-med-319": {
+      "optionReasons": {
+        "saa-med-319:option:0": "The Outposts leads to AWS to the datacenter DO CLIENTE — not to mobile operator network.",
+        "saa-med-319:option:1": "",
+        "saa-med-319:option:2": "It seems plausible because the CloudFront also approximates the AWS of the end user via points of presence — same edge idea. But he does CACHE of content; does not run start servers. Computer running within the network 5G operator is the AWS Wavelength.",
+        "saa-med-319:option:3": "Local Zones stay in urban centers — but out of the network 5G operator; the jump to the internet continues."
+      },
+      "finalJustifications": [
+        "Because Wavelength implants computer AWS DENTRO Network 5Operators' G: player's traffic does not even go to the internet — latency of a millisecond digit.",
+        "Because Wavelength prioritizes the game packages in the core of the network 5G, buying dedicated track of QoS from partner operator.",
+        "Because Wavelength distributes the game server among the players' phones, eliminating the central server completely.",
+        "Because Wavelengh is an antenna 5G dedicated to the AWS for games, installed in the operator's towers with exclusive backkhaul."
+      ]
+    }
+  }
+}

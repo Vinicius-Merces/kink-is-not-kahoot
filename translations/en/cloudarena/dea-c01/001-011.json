@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dea-c01",
+    "range": "001-011",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dea-avc-001": {
+      "optionReasons": {
+        "dea-avc-001:option:0": "It's the closest because reducing the batch size adjusts the reading in fact — but the five consumers continue DIVIDINDO the 2 MB/s of each shard: competition and latency remain; dedicated rate per consumer with ~70 ms is the Enhanced Fan-Out.",
+        "dea-avc-001:option:1": "",
+        "dea-avc-001:option:2": "Long polling is the concept of SQS — o Kinesis Data Streams doesn't have that way; it doesn't give throughput dedicated by consumers.",
+        "dea-avc-001:option:3": "Increase retention saves data for longer — does not change the reading rate shared by shard."
+      },
+      "finalJustifications": [
+        "Because Enhanced Fan-Out records every consumer with 2 MB/s dedicated by shard via push HTTP/2 (~70 ms) — the five stop competing without needing to increase the number of shards.",
+        "Because reducing batch size records each consumer with 2 MB/s dedicated by shard via push HTTP/2 (~70 ms) — the five stop competing without needing to increase the number of shards.",
+        "Because long polling records every consumer with 2 MB/s dedicated by shard via push HTTP/2 (~70 ms) — the five stop competing without needing to increase the number of shards.",
+        "Because increasing retention records each consumer with 2 MB/s dedicated by shard via push HTTP/2 (~70 ms) — the five stop competing without needing to increase the number of shards."
+      ]
+    },
+    "dea-avc-003": {
+      "optionReasons": {
+        "dea-avc-003:option:0": "It's the closest because it moves on BUFFER, which is exactly the right parameter — but in the direction ERRADA: decrease to 1 second generates files AINDA MENORES and more numerous, worsening small files; how consumption tolerates 10 min, AUMENTAR the buffer produces large and fewer files.",
+        "dea-avc-003:option:1": "Bucket version saves versions of objects — does not change the size/quantity of the files delivered.",
+        "dea-avc-003:option:2": "",
+        "dea-avc-003:option:3": "Change destination to DynamoDB changes the entire pipeline — it is not file layout adjustment in S3."
+      },
+      "finalJustifications": [
+        "Why increase Firehose buffer (128 MB/up 900 s) groups more events per file: less files and larger in S3, within the 10 min tolerated — or Athena back to perform.",
+        "Why reduce the buffer to 1 second group more events per file: less files and larger in S3, within the 10 min tolerated — or Athena back to perform in the consultations.",
+        "Because activating versioning groups more events per file: less files and larger in S3, within the 10 min tolerated — or Athena back to perform in the data lake consultations.",
+        "Because changing the destination to DynamoDB group more events per file: less files and larger in S3, within the 10 min tolerated — or Athena back to perform in the consultations."
+      ]
+    },
+    "dea-avc-004": {
+      "optionReasons": {
+        "dea-avc-004:option:0": "Python shell does not spin Spark distributed — is not fit for a Spark job with heavy shuffle.",
+        "dea-avc-004:option:1": "Disable Job Bookmarks changes incremental — has no relation to shuffle memory.",
+        "dea-avc-004:option:2": "",
+        "dea-avc-004:option:3": "It's the closest because moving on to the number of workers is the right tuning axis — but REDUZIR workers concentrate even more data per executor and AGRAVA o OutOfMemory; attack OOM without rewriting the job is using worker type of MAIOR memory (G.1X→G.2X) and adjust the quantity."
+      },
+      "finalJustifications": [
+        "Why switch to a worker type of greater memory (G.1X→G.2X) and adjust the number of workers gives more RAM per executor — heavy shuffle fits into memory and OutOfMemory disappears, without rewriting the job.",
+        "Because converting to Python shell gives more RAM by executor — the heavy shuffle fits into memory and the OutOfMemory disappears, without rewriting the Spark job of Glue.",
+        "Because turning off the Job Bookmarks gives you more RAM by executor — the heavy shuffle fits into memory and the OutOfMemory disappears, without rewriting the Spark job of Glue.",
+        "Because reducing the number of workers gives more RAM by executor — the heavy shuffle fits into memory and the OutOfMemory disappears, without rewriting the Spark job of Glue."
+      ]
+    },
+    "dea-avc-005": {
+      "optionReasons": {
+        "dea-avc-005:option:0": "Migrate all or lake to RDS abandons the data lake in Parquet no S3 — reengineering, not the evolution requested.",
+        "dea-avc-005:option:1": "It's the closest because the versioning of S3 it keeps versions and seems to give 'historic/transaction' — but it operates by OBJETO, no ACID, no UPDATE/DELETE at the level of LINHA nor table time travel; ACID, upserts/deletes and time travel on the S3 are an open format like Apache Iceberg.",
+        "dea-avc-005:option:2": "Rewrite Parquet by hand each correction is manual, without ACID nor time travel — the problem Iceberg solves.",
+        "dea-avc-005:option:3": ""
+      },
+      "finalJustifications": [
+        "Because an open table format like Apache Iceberg on the S3 Bring it in. ACID, upserts/deletes at line level and time travel — keeping queries via Athena and Spark, without leaving the date lake.",
+        "Because the versioning of S3 Bring it in. ACID, upserts/deletes at line level and time travel — keeping queries via Athena and Spark, without leaving the lake in Parquet.",
+        "Why migrate to the RDS Bring it in. ACID, upserts/deletes at line level and time travel — keeping queries via Athena and Spark, without leaving the lake date in Parquet in S3.",
+        "Because rewriting the Parquet by hand brings ACID, upserts/deletes at line level and time travel — keeping queries via Athena and Spark, without leaving the lake date in Parquet in S3."
+      ]
+    },
+    "dea-avc-007": {
+      "optionReasons": {
+        "dea-avc-007:option:0": "",
+        "dea-avc-007:option:1": "Checking for line counts once a day is slow and indirect — does not quickly detect latency passing from 5 min.",
+        "dea-avc-007:option:2": "It's the closest because reading the destination bucket also gives clues to CDC — but requires manual inspection and does not expose the replication LATENCIA directly or early warning; the DMS publish latency metrics (CDCLatencySource/Target) in CloudWatch, on which an alarm triggers as it passes from 5 min.",
+        "dea-avc-007:option:3": "Trusted Advisor gives recommendations for good practice — does not monitor the latency of a task of DMS."
+      },
+      "finalJustifications": [
+        "Because the CDCLatencySource/CDCLatencyTarget metrics of the task of DMS exposes the replication latency in the CloudWatch: an alarm shoots as soon as it goes from 5 minutes — automatic and fast detection.",
+        "Because checking the line count exposes the replication latency in CloudWatch: an alarm shoots as soon as it goes from 5 minutes — automatic and fast detection of the task of DMS.",
+        "Because reading the destination logs exposes the replication latency in CloudWatch: an alarm shoots as soon as it goes from 5 minutes — automatic and fast detection of the task of DMS.",
+        "Why activate the Trusted Advisor exposes the replication latency in the CloudWatch: an alarm shoots as soon as it goes from 5 minutes — automatic and fast detection of the task of DMS."
+      ]
+    },
+    "dea-avc-009": {
+      "optionReasons": {
+        "dea-avc-009:option:0": "Transfer Acceleration Accelerate uploads — does not change size or consolidate micro-archives.",
+        "dea-avc-009:option:1": "",
+        "dea-avc-009:option:2": "It's the closest because accumulating files until they actually get big would solve the micro-archives — but PARANDO the intake, which the veto requirement (cannot stop); compacting in the background the micro-archives of the window in the cured layer, without interrupting the raw, is the periodic compaction job.",
+        "dea-avc-009:option:3": "Glacier is cold filing class — does not compact files or serves hot analytical consultation."
+      },
+      "finalJustifications": [
+        "Because a regular compaction job (Glue/Spark or OPTIMIZE in Iceberg) rewrites the micro-archives of the window in Parquet de ~256 MB partitioned into the cured layer — without stopping the raw intake.",
+        "Because the Transfer Acceleration rewrites the micro-archives of the window in Parquet de ~256 MB partitioned into the cured layer — without stopping the intake in the raw data lake.",
+        "Because blocking the intake rewrites the window micro-archives in Parquet de ~256 MB partitioned into the cured layer — without stopping the intake in the raw data lake.",
+        "Because moving to Glacier rewrites the window micro-archives in Parquet de ~256 MB partitioned into the cured layer — without stopping the intake in the raw data lake."
+      ]
+    },
+    "dea-avc-010": {
+      "optionReasons": {
+        "dea-avc-010:option:0": "Change the suit to CSV worse reading and compression — doesn't eliminate join shuffle.",
+        "dea-avc-010:option:1": "It's the closest because moving on the fact partitions is plausible shuffle tuning — but increasing the fact partitions DOES NOT eliminate the redistribution of the JOIN: the two sides still embaralm by key; with a dimension of only 40 MB, the classic is the BROADCAST join, sending the dimension to all the executors for local join.",
+        "dea-avc-010:option:2": "",
+        "dea-avc-010:option:3": "Breaking the size into a thousand partitions spreads the 40 MB unnecessarily — increases overhead, does not eliminate shuffle."
+      },
+      "finalJustifications": [
+        "Because the broadcast join sends the dimension of 40 MB to all executors and makes the local joint, without redistributing the 2 TB of the fact — Spark does this below the threshold or via explicit hint.",
+        "Because increasing the partitions of the fact sends the dimension of 40 MB to all executors and makes the local joint, without redistributing the 2 TB of fact — via explicit broadcast hint.",
+        "Why change the suit to CSV send to the size of 40 MB to all executors and makes the local joint, without redistributing the 2 TB of fact — Spark's explicit broadcast hint.",
+        "Because dividing the dimension into a thousand partitions sends the dimension of 40 MB to all executors and makes the local joint, without redistributing the 2 TB of fact — via explicit broadcast hint."
+      ]
+    },
+    "dea-avc-011": {
+      "optionReasons": {
+        "dea-avc-011:option:0": "It's the closest because it reduces the parallelism to 1 stirs in event source mapping — but DOES NOT unlock the poisonous record: the shard remains trapped reprocessing the bad lot in loop; unlocking safely requires limiting delays, DIVIDIR the batch to isolate the record (bisectBatchOnFunctionError) and send the discarded to a failure destination.",
+        "dea-avc-011:option:1": "Increasing the timeout gives more time to failure — the poisonous batch continues to fail and stop the shard.",
+        "dea-avc-011:option:2": "Delete and recreate the stream loses data and does not resolve the cause — bad record would re-lock.",
+        "dea-avc-011:option:3": ""
+      },
+      "finalJustifications": [
+        "Because maximumRetryAttempts limits loop, bisectBatchOnFunctionError divides the batch to isolate the bad record and the on-failure destination captures the discarded ones — the shard unlocked without losing the rest.",
+        "Why reduce the parallelism to 1 limits loop, divides the batch to isolate the bad record and captures the discarded ones in a failure destination — the shard unlocked without losing the rest of the batch.",
+        "Because increasing the timeout limits the loop, divides the batch to isolate the bad record and captures the discarded ones in a fail destination — the shard unlocked without losing the rest of the batch.",
+        "Because re-creating the stream limits the loop, divides the batch to isolate the bad record, and captures the discarded ones in a failed destination — the shard unlocked without losing the rest of the batch."
+      ]
+    }
+  }
+}

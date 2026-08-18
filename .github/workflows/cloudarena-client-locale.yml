@@ -1,0 +1,42 @@
+name: Aplicar locale no cliente CloudArena
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/apply_cloudarena_client_locale.py'
+      - 'js/cloudarena.js'
+      - '.github/workflows/cloudarena-client-locale.yml'
+  workflow_dispatch: {}
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Aplicar locale na requisição Arena
+        run: python3 scripts/apply_cloudarena_client_locale.py
+      - name: Validar sintaxe
+        run: node --check js/cloudarena.js
+      - name: Versionar cliente validado
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add js/cloudarena.js
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): send locale with CloudArena requests'
+          git push origin "HEAD:${HEAD_BRANCH}"

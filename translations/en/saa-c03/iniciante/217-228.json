@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "217-228",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-217": {
+      "text": "A company created an instance EC2 in a public sub-network with a public IP. Even so, the instance is not accessible via the internet SSH. Which security configuration may be blocking access?",
+      "options": [
+        "The Internet Gateway of VPC needs to be configured to allow SSH — o IGW has a list of permitted protocols that should include the door 22",
+        "A NACL Subnet is blocking traffic at the door 22 — NACLs have priority over Security Groups and block by default",
+        "The instance EC2 does not have an associated Elastic IP — without Elastic IP, the public IP is temporary and changes at each reboot, making connections impossible SSH stable",
+        "The Security Group of the instance does not have an entry rule (inbound) allowing the door 22 (SSH) of correct origin — Security Groups block all entry traffic by default, and without an explicit rule for door 22, o SSH It's blocked."
+      ],
+      "explanation": "Even in a public sub-network with public IP, the Security Group acts as virtual firewall of the instance. By default, no incoming traffic is allowed. An explicit rule must be created: port 22 (TCP), source 0.0.0.0/0 (or a specific IP for greater security). Without this rule, attempts to SSH result in connection timeout.",
+      "hint": "A public IP instance may still be inaccessible if which security control does not have an explicit rule allowing the desired door?",
+      "optionRationales": [
+        "Even in a public sub-network with public IP, the Security Group acts as virtual firewall of the instance. By default, no incoming traffic is allowed. An explicit rule must be created: port 22 (TCP), source 0.0.0.0/0 (or a specific IP for greater security). Without this rule, attempts to SSH result in connection timeout.",
+        "Partially possible, but not the most likely cause described. NACLs standard PERMITEM all traffic (Allow All rule)., Security Groups have priority in the sense of being evaluated first in the instance — but in practice, both SG and NACL the most common cause of SSH not functioning in new instance is the absence of rule in Security Group.",
+        "Incorrect. Internet Gateway does not have a user-configurable protocol list — it is simply a router gateway that routes traffic between the VPC and the Internet. The door access control is done by Security Groups and NACLs, not for IGW.",
+        "Incorrect as a cause of the blockage. The instance has a public IP (according to the statement), even temporary. Changing IP at each reboot would make it difficult to configure DNS But it wouldn't stop SSH while the IP is active. The problem of 'not accessible by the internet' points to security control (SG), not to IP instability."
+      ]
+    },
+    "saa-ini-218": {
+      "text": "A company uses Amazon GuardDuty for threat protection. A beginner security analyst wants to understand what GuardDuty monitor. What a combination of data sources is GuardDuty analyze by default to detect threats?",
+      "options": [
+        "GuardDuty analyzes only the logs of AWS CloudTrail — calls from API are sufficient to detect all threats without need for network monitoring or DNS",
+        "GuardDuty by default analyzes the logs of AWS CloudTrail (calls from API), VPC Flow Logs (network traffic) DNS — using ML and threat intelligence to detect suspicious behaviors such as recognition, credentials commitment and communication with malicious IPs",
+        "GuardDuty analyzes the content of objects S3, traffic HTTP in ALBs, and you wanted to RDS — focusing on sensitive data detection and application layer attacks",
+        "GuardDuty needs manual configuration by the administrator to specify which logs should be analyzed — without configuration, does not analyze any data source"
+      ],
+      "explanation": "Correct. GuardDuty enables and automatically analyzes three data sources without the customer having to configure them or pay separately for the logs: (1) CloudTrail Events — to detect suspicious API use; (2) VPC Flow Logs — to detect suspicious network communication; (3) DNS Logs — to detect malicious domains. CloudTrail or VPC Flow Logs separately for the GuardDuty work.",
+      "hint": "What three types of logs do GuardDuty automatically analyzes when enabled — no additional source configuration required?",
+      "optionRationales": [
+        "Correct. GuardDuty enables and automatically analyzes three data sources without the customer having to configure them or pay separately for the logs: (1) CloudTrail Events — to detect suspicious API use; (2) VPC Flow Logs — to detect suspicious network communication; (3) DNS Logs — to detect malicious domains. CloudTrail or VPC Flow Logs separately for the GuardDuty work.",
+        "Incorrect. CloudTrail be one of the sources, monitor only calls from API would leave important blind spots — e.g. cryptocurrency mining identified by suspicious network traffic (VPC Flow Logs) or communication with command and control servers via DNS (DNS Logs). GuardDuty uses the three sources for comprehensive coverage.",
+        "Incorrect. GuardDuty does not analyze object content S3 (that's function of the Macie), no traffic HTTP in the application layer (that would be WAF). The GuardDuty focus on infrastructure behavior (calls for API, network flow, DNS) to detect impairment.",
+        "Incorrect. GuardDuty is enabled, it begins to analyze the three main data sources (CloudTrail, VPC Flow Logs, DNS) automatically, without the need for manual configuration of the sources. The client only needs to enable the GuardDuty — the data sources are automatically connected."
+      ]
+    },
+    "saa-ini-219": {
+      "text": "A company wants to understand the difference between Authentication and Authorization in the context of IAM of AWS. What statement correctly describes the distinction between the two concepts?",
+      "options": [
+        "Authentication refers to the process of creating users IAM; Authorisation refers to the process of creating police IAM — both are necessary for a user to access the AWS",
+        "Authentication and Authorization are synonyms in IAM of AWS — both terms describe the process of verifying whether a user has permission to perform an action",
+        "Authentication is check QUEM you are (validate identity via credentials: password + MFA, access keys); Authorization is to check O QUE you can do (assess police IAM to determine whether the requested action is allowed)",
+        "Authorization is to verify the user's identity; Authentication is to verify if the user has permission — the Authorization happens before the Authentication in the flow IAM"
+      ],
+      "explanation": "Authentication answers the question 'Who are you?' — the IAM check the identity via credentials (password, access keys, tokens). Authorization answers the question 'What can you do?' — after confirming the identity, the IAM evaluates all applicable policies to decide whether the requested action is allowed or denied.",
+      "hint": "Remember the order: first check QUEM is making the request (which of the two processes?), then check the QUE can do (which of the two processes?).",
+      "optionRationales": [
+        "Authentication answers the question 'Who are you?' — the IAM check the identity via credentials (password, access keys, tokens). Authorization answers the question 'What can you do?' — after confirming the identity, the IAM evaluates all applicable policies to decide whether the requested action is allowed or denied.",
+        "Incorrect. They are distinct and sequential concepts: first the authentic system (check who you are), then authorize (check what you can do). A user may be authenticated but not authorized for a specific action — will receive an AccessDenied (403) after successful authentication.",
+        "Incorrect — concepts are reversed. Authentication = verify identity. Authorization = verify permissions. Order is also wrong: always authenticate first (who you are), then authorize (what you can do)).",
+        "Incorrect. Authentication and Authorization do not describe CREATION of resources IAM — they describe verification processes in access time. They are safety concepts that apply to each call from API performed by the user."
+      ]
+    },
+    "saa-ini-220": {
+      "text": "A company has customer data in a database RDS which need to be encrypted by compliance requirement (LGPD). The database was created without encryption. What is the process to enable encryption in a database RDS existing?",
+      "options": [
+        "Access bank settings RDS not console AWS and enable the 'Encryption' option — the encryption will be applied during the next maintenance window without downtime",
+        "Use AWS Database Migration Service (DMS) to migrate data to a new bank RDS Cryptographed — or DMS does migration without downtime and ensures that all data is encrypted in the destination",
+        "Enable encryption at the application level (application-level encryption) before storing data in the database — this is equivalent to native encryption of RDS for the purposes of compliance",
+        "Cannot enable encryption directly in a bank RDS existing without encryption — it is necessary to create a snapshot of the database, create an encrypted copy of that snapshot, and restore a new database from the encrypted copy"
+      ],
+      "explanation": "Correct. RDS is an unchangeable configuration after creation — cannot be enabled in an existing instance directly. The correct process is: (1) create snapshot of the current bank, (2) copy snapshot with enabled encryption (selecting a key KMS), (3) restore a new bank from encrypted copy, (4) This limitation is documented by AWS.",
+      "hint": "Cryptography at rest of RDS is unchangeable after creation. What two-step process (snapshot + ?) is needed to have a database RDS Encrypted from a non-encrypted?",
+      "optionRationales": [
+        "Correct. RDS is an unchangeable configuration after creation — cannot be enabled in an existing instance directly. The correct process is: (1) create snapshot of the current bank, (2) copy snapshot with enabled encryption (selecting a key KMS), (3) restore a new bank from encrypted copy, (4) This limitation is documented by AWS.",
+        "Incorrect. There is no option to enable encryption in a bank RDS existing via console or maintenance window. Encryption is defined at the time of CREATION and cannot be changed later — the process of creating snapshot + encrypted copy is the only way.",
+        "Partially valid as a technical alternative, but is not 'equivalent' to native cryptography of RDS for all purposes. Encryption at application level encrypts DADOS but does not protect automated backups, transaction logs, and replicas that the RDS management — which would also be encrypted by native encryption. The snapshot + encrypted copy + restoration process is the complete solution.",
+        "Correct in concept (create a new encrypted database and migrate data) but incorrect in implementation. DMS is a continuous migration tool — it would work, but it is more complex and unnecessary for this case. Creating snapshot + encrypted copy + restoration is simpler and more direct to migrate to RDS encrypted."
+      ]
+    },
+    "saa-ini-221": {
+      "text": "A company wants to understand what the AWS CloudTrail. IT manager asks, 'How do we know who deleted a bucket? S3 last week?' Which service would provide that information?",
+      "options": [
+        "Amazon CloudWatch Logs — records all events of the bucket S3, including exclusions, when the S3 Logging is enabled in the pocket",
+        "AWS Config — maintains a configuration history of all resources, allowing you to see who created and deleted resources over time",
+        "Amazon Inspector — performs account security assessments and detects when resources are deleted without authorization",
+        "AWS CloudTrail — records all calls from API made on account AWS, including who called, when, where (IP), what action was executed, and in what recourse — is the audit log that allows you to determine who deleted the bucket S3 and when"
+      ],
+      "explanation": "Correct. CloudTrail records management events such as DeleteBucket, including: user/role who made the call (userIdentity), timestamp, IP of origin, region, and status of the request. It is the audit service of 'who did what and when' in AWS. By default, management events are retained by 90 days at CloudTrail event history.",
+      "hint": "What service AWS records all calls from API (including who called, when, and from where), being the account's 'audit log'?",
+      "optionRationales": [
+        "Correct. CloudTrail records management events such as DeleteBucket, including: user/role who made the call (userIdentity), timestamp, IP of origin, region, and status of the request. It is the audit service of 'who did what and when' in AWS. By default, management events are retained by 90 days at CloudTrail event history.",
+        "Partially correct on the S3 Server Access Logging record ticket access events, but the S3 Server Access Logging Goes to Another Bucket S3 (no CloudWatch), and is separated from CloudTrail. For the question 'who deleted the bucket', the CloudTrail Management Events is the correct record — because the exclusion of BUCKET in itself is a call from API Management.",
+        "Incorrect. Amazon Inspector evaluates vulnerabilities in instances EC2, containers and functions Lambda — is not a log audit of shares and calls from API. Doesn't record who deleted a bucket S3.",
+        "Partially correct about tracking resource configuration changes, but AWS Config tracks changes in ESTADO of resources (e.g., 'this bucket existed and now does not exist'), not necessarily QUEM did the action via what call API. For the audit of 'who did the action', CloudTrail is the correct answer."
+      ]
+    },
+    "saa-ini-222": {
+      "text": "A company is developing an application that needs to share a key to API with third parties so that they can use their services. The security team wants to store this key securely and controlledly, with audit capability of each access. AWS is more suitable to store and manage this key API?",
+      "options": [
+        "AWS Systems Manager Parameter Store Of a kind used in the manufacture of goods of heading 8402 Parameter Store stores configuration parameters accessible by applications via AWS SDK",
+        "AWS Key Management Service (KMS) — store the key API directly in KMS as key material",
+        "AWS Secrets Manager — store secrets (keys of API, passwords, tokens) encrypted, controls access via IAM Police, records every access to CloudTrail for audit, and supports automatic secret rotation",
+        "Amazon S3 with Server-Side Encryption — store the key API in a file in a pocket S3 encrypted with KMS, with the bucket policy controlling access to the file"
+      ],
+      "explanation": "Correct. Secrets Manager is designed exactly to store secrets (API keys, credentials, tokens) with: encryption via KMS, granular access control via IAM, Audit via CloudTrail of each access to the secret, and automatic rotation option. It is the recommended managed solution for secret management.",
+      "hint": "What service AWS it was created specifically to store secrets (passwords, keys of API, tokens) securely, with automatic rotation support and audit?",
+      "optionRationales": [
+        "Correct. Secrets Manager is designed exactly to store secrets (API keys, credentials, tokens) with: encryption via KMS, granular access control via IAM, Audit via CloudTrail of each access to the secret, and automatic rotation option. It is the recommended managed solution for secret management.",
+        "Works for encrypted storage, but S3 has not been designed for secret management — has no native concept of 'secret with rotation', has no specific APIs to recover and verify the validity of secrets, and auditing each access requires more configuration than the Secrets Manager. Secrets Manager is the specific solution for this use case.",
+        "Partially correct — Parameter Store SecureString (not simple String) stores encrypted parameters and is an alternative to Secrets Manager to store secrets. However, for keys of API with audit and automatic rotation requirements, Secrets Manager has richer functionalities (native rotation, audit of access to secrecy via CloudTrail specific). Parameter Store SecureString is more basic.",
+        "Incorrect. KMS management CHAVES OF CRIPTOGRAFIA (to encrypt and decrypt data) — is not a safe to store secrets as key API. The KMS is often used for CRIPTOGRAFAR secrets stored in Secrets Manager, but the two have different functions."
+      ]
+    },
+    "saa-ini-223": {
+      "text": "One company found out that a former employee still has credentials IAM active and could access the account AWS After his resignation, what are the steps? IMEDIATOS which the administrator must take to revoke access to that user?",
+      "options": [
+        "Change user password IAM for an unknown password — this prevents access to the console, and key accesses are automatically disabled when the password is changed",
+        "Disable or delete Access Keys from user IAM And disable the console password (or delete the user) immediately — active credentials (both access keys and console password) must be revoked to remove all access paths",
+        "Just remove the user IAM of groups IAM — without being part of groups, the user loses the inherited policies and can no longer perform actions in the account",
+        "Create a SCP no Organizations which blocks the user by name — SCPs may deny users access IAM specific by ARN"
+      ],
+      "explanation": "Correct. To completely revoke the access of a former employee, it is necessary to eliminate TODOS the access paths: (1) Disable/delete Access Keys (programming access), (2) Disable/delete console password (web access). Ideally, delete user IAM also check if the user has roles that he or she can assume or active sessions.",
+      "hint": "There are two types of credentials IAM which allow access to the AWS — console password and program key accesses. What happens if only one of them is disabled?",
+      "optionRationales": [
+        "Correct. To completely revoke the access of a former employee, it is necessary to eliminate TODOS the access paths: (1) Disable/delete Access Keys (programming access), (2) Disable/delete console password (web access). Ideally, delete user IAM also check if the user has roles that he or she can assume or active sessions.",
+        "Incomplete and potentially dangerous. Removing from groups removes inherited permissions from groups, MAS the user may still have policies IAM attached directly, and their credentials (keys access and password) would still be valid — someone with these credentials could try to invoke APIs. Disabling/deleteing credentials is the essential step.",
+        "Incorrect. Changing the password prevents access to CONSOLE, But the Access Keys are INDEPENDENTES A former employee with key accesses could still use the CLI/SDK to access the account even with the modified console password. Both credentials need to be revoked..",
+        "Incorrect. SCPs apply to entire accounts/OUs within an Organization — not to users IAM individual ARN user. The revocation of a user's access IAM specific should be done via IAM (Disable credentials, remove police, or delete user)."
+      ]
+    },
+    "saa-ini-224": {
+      "text": "A company uses Amazon VPC and wants to control network traffic between their internal sub-networks. Security Groups, which network control mechanism operates at the sub-network level (not the instance))?",
+      "options": [
+        "Network Access Control Lists (NACLs) — apply entry and exit rules at the sub-network level, evaluating each (stateless) package in the numerical order of the rules, before traffic reaches the instances",
+        "VPC Endpoints — control which sub-networks can access services AWS specific, blocking traffic for unauthorized services",
+        "Route Tables — route tables control traffic between sub-networks, allowing or blocking communication based on configured destinations",
+        "Internet Gateway — filter the internet input traffic before it reaches the subnets, operating as a perimeter firewall of VPC"
+      ],
+      "explanation": "Correct.. NACLs are firewalls at the sub-network level, complementing the Security Groups (level of instance). NACLs are statesss (each direction evaluated independently), evaluate rules in numerical order (first correspondence wins), and apply to any traffic that enters or exits the sub-network.",
+      "hint": "What network traffic control mechanism operates at the sub-network level (non-instance) and is statesss — different from Security Groups?",
+      "optionRationales": [
+        "Correct.. NACLs are firewalls at the sub-network level, complementing the Security Groups (level of instance). NACLs are statesss (each direction evaluated independently), evaluate rules in numerical order (first correspondence wins), and apply to any traffic that enters or exits the sub-network.",
+        "Incorrect. Route Tables ROTEIAM traffic (determine where packages go) — do not block or allow traffic based on port/protocol rules like a firewall. Route Tables can redirect traffic to a Internet Gateway, NAT Gateway, VPN, etc., but they are not a safety control mechanism like NACLs.",
+        "Incorrect. VPC Endpoints create private connections between the VPC and services AWS specific (as S3, DynamoDB) without going through the internet — they are not a firewall mechanism to control traffic between sub-networks. VPC Endpoints is managed by endpoint policies, not by port/protocol rules.",
+        "Incorrect. Internet Gateway is a routing component that connects the VPC to the internet — does not filter traffic with port/protocol rules. There is no user-configurable access control list. Traffic control is done by Security Groups and NACLs."
+      ]
+    },
+    "saa-ini-225": {
+      "text": "A company wants to use the AWS Configure to monitor if Security Groups The account has the door 22 (SSH) open to the world (0.0.0.0/0). What is the purpose of AWS Configure in this context?",
+      "options": [
+        "The AWS Config continuously evaluates resource settings AWS against defined rules (such as 'restricted-ssh') and reports which resources are in compliance or not — is a control DETECTIVO which identifies incorrect settings, not a preventive control that blocks the action",
+        "The AWS Config performs daily a sweep of all the Security Groups and send a weekly security report by e-mail to compliance team",
+        "The AWS Config proactively blocks any attempt to create Security Groups with door 22 open for 0.0.0.0/0 — is a preventive control that prevents incorrect settings",
+        "The AWS Config is the tool for CRIAR the rules of Security Group — works as a centralized firewall rule editor for the entire account"
+      ],
+      "explanation": "Correct. AWS Configur continuously monitors and evaluates resource settings. The restricted-ssh managed rule detects Security Groups with door 22 open for 0.0.0.0/0 and mark as 'NON_COMPLIANT'. It is a detective control — reports the problem but does not prevent the configuration from occurring. It can be complemented with automatic remediation to fix automatically.",
+      "hint": "The AWS Is config a detective or preventive control? It blocks actions or just checks and reports the status of settings?",
+      "optionRationales": [
+        "Correct. AWS Configur continuously monitors and evaluates resource settings. The restricted-ssh managed rule detects Security Groups with door 22 open for 0.0.0.0/0 and mark as 'NON_COMPLIANT'. It is a detective control — reports the problem but does not prevent the configuration from occurring. It can be complemented with automatic remediation to fix automatically.",
+        "Incorrect. AWS Config is a control DETECTIVO — detects and reports configurations after they occur. It does not block real-time actions. To proactively block (preventive control), they would be necessary SCPs (no Organizations) or permissions IAM which deny the creation of Security Groups with specific rules.",
+        "Incorrect about the interval. AWS Config evaluates resources CONTINUAMENTE, not only daily — it is triggered by change-triggered configuration changes or periodically. Reports are not sent automatically by email — the results are visible on the console, integible with Security Hub, and notifications can be configured via SNS/EventBridge.",
+        "Incorrect. AWS Configure MONITORA existing resource settings — is not a tool to create or modify Security Groups. To create/modify Security Groups, use console EC2, CLI or SDK. config only checks if existing settings are in accordance with the rules defined."
+      ]
+    },
+    "saa-ini-226": {
+      "text": "A company uses Amazon IAM and want to understand the concept of 'less privilege'. What better statement describes this principle in the context of the IAM?",
+      "options": [
+        "Allowing access only to resources that have the tag 'Environment: Production' — production resources with more privilege are limited to those who have the correct tag",
+        "Ensuring that all users have the same permissions to facilitate management — uniform permissions is the implementation of the lowest privilege",
+        "Revoking all user permissions at the end of each day and requiring new requests daily — this ensures that no access is maintained beyond what is necessary for each session",
+        "Grant each user, role or service only the minimum permissions necessary to perform their specific tasks — without extra permissions 'to facilitate in the future' — limiting the impact if credentials are compromised"
+      ],
+      "explanation": "Right. The principle of the smallest privilege means giving exactly what is needed and nothing else. If a developer needs to just list objects from a specific bucket, give permission to S3 Full Access would be a violation of this principle. This limits the 'blast radius' (potential damage) if credentials are compromised — the attacker would have access only to the minimum.",
+      "hint": "The principle of the lowest privilege is over QUANTIDADE permissions — which means 'minimum required' in the context of user functions and tasks?",
+      "optionRationales": [
+        "Right. The principle of the smallest privilege means giving exactly what is needed and nothing else. If a developer needs to just list objects from a specific bucket, give permission to S3 Full Access would be a violation of this principle. This limits the 'blast radius' (potential damage) if credentials are compromised — the attacker would have access only to the minimum.",
+        "Incorrect. Matching permissions from all users to the highest common denominator would result in excessive permissions for most — the opposite of the lowest privilege. Each function should have only what it needs for its specific task.",
+        "Incorrect. Less privilege is not about which resources can be accessed by tag — it's about limiting actions and RECURSOS to the minimum necessary for each specific identity. Tags can be used as PARTE implementation of less privilege, but do not define the principle.",
+        "Incorrect. Less privilege does not mean to revoke and re-grant daily — it means to set the minimum scope of permissions that the user needs for his or her function. Repealing daily would be operationally unfeasible without adding significant security."
+      ]
+    },
+    "saa-ini-227": {
+      "text": "A company uses Amazon S3 and wants to ensure that only its internal organization can access the objects of a pocket, but that users within the organization can access without having to authenticate themselves individually in the S3. Which feature allows you to control your ticket access based on the origin of the corporate network?",
+      "options": [
+        "Enable S3 Static Website Hosting — serving as a static site, the S3 controls access based on the domain of origin of the requests (CORS)",
+        "S3 Access Points with VPC configuration — creates a ticket access point that accepts only requests from within a VPC specific, without need to modify the main policy pocket",
+        "S3 Signed URLs with validity of 8 hours distributed to employees at the beginning of the file — employees use these URLs to access objects without needing credentials IAM",
+        "Bucket Policy with condition aws:Source Vpc or aws:SourceIp — by restricting access to the pocket only from a VPC specific aws:SourceVpc) or corporate IP range (aws:SourceIp), only internal network requests are allowed"
+      ],
+      "explanation": "Right. Bucket Policies may include conditions based on the source network. Using aws:SourceVpc, only requests that go through a VPC specific (or VPC Endpoint) are allowed. Using aws:SourceIp, only IPs in the specified range can access. This restricts network-based access without requiring each internal user to have credentials IAM individual for S3.",
+      "hint": "Which condition key in a Bucket Policy can restrict access to the Bucket only for requests originating from a VPC specific or IP range?",
+      "optionRationales": [
+        "Right. Bucket Policies may include conditions based on the source network. Using aws:SourceVpc, only requests that go through a VPC specific (or VPC Endpoint) are allowed. Using aws:SourceIp, only IPs in the specified range can access. This restricts network-based access without requiring each internal user to have credentials IAM individual for S3.",
+        "Partially correct as an alternative to uncredited access, but inappropriate for the case described. Generating and distributing Presigned URLs to all employees daily is operationally complex. In addition, Presigned URLs grant access to a SPECIFIC object for a limited time — not suitable for general access to a newsletter by the organization.",
+        "Correct as functionality, but is not the most direct example for the beginner. S3 Access Points with VPC configuration is a valid and more modern approach, but the statement asks for the simplest way to restrict network access. aws:SourceVpc/SourceIp is the most directly taught approach at the beginner level.",
+        "Incorrect. Static Website Hosting transforms the S3 on static web server and the features are accessible by URL public website. CORS controls domain access in browser requests — it's not a network security control like aws:SourceVpc. Not the solution to restrict access to the corporate network."
+      ]
+    },
+    "saa-ini-228": {
+      "text": "A company has a web application in EC2 and wants to ensure that, if one instance fails, another is automatically initiated to maintain capacity. AWS creates and manages instances automatically EC2 to keep a desired number of instances running?",
+      "options": [
+        "Amazon CloudWatch Alarms — creates alarms that notify when an instance fails and automatically initiate new instances in response to the alarm",
+        "Amazon EC2 Spot Instances — when an instance Spot is closed by AWS, a new instance Spot is automatically launched to replace it without user intervention",
+        "AWS Elastic Beanstalk — Automatically manage the infrastructure EC2, replacing failed instances without additional configuration",
+        "Amazon EC2 Auto Scaling — monitors the status of the instances and, when an instance is marked as unhealthy or closed, automatically replaces a new instance from a Launch Template, maintaining the desired number (desired capacity))"
+      ],
+      "explanation": "Correct. EC2 Auto Scaling it is the service that maintains the desired capacity. If an instance fails in health checks, the Auto Scaling the brand as unhealthy, closes and launches a new one to replace. The Launch Template (or Launch Configuration) defines the features of the new instance. (AMI, type, SG, etc.).",
+      "hint": "What is the service of AWS is specifically designed for 'auto scaling' — maintain a desired number of instances EC2 running, replacing instances automatically fail?",
+      "optionRationales": [
+        "Correct. EC2 Auto Scaling it is the service that maintains the desired capacity. If an instance fails in health checks, the Auto Scaling the brand as unhealthy, closes and launches a new one to replace. The Launch Template (or Launch Configuration) defines the features of the new instance. (AMI, type, SG, etc.).",
+        "Incorrect. CloudWatch Alarms detect metrics out of the ordinary and can trigger actions (via SNS, Lambda, or Auto Scaling police), but in themselves do not create or replace instances. CloudWatch is the source of the data that the Auto Scaling uses for decisions of staggering, but the Auto Scaling is who manages the instances.",
+        "Partially correct for environments Elastic Beanstalk, use Auto Scaling Internally., Elastic Beanstalk is a complete deployment platform (PaaS) — is not the answer to 'which service does self-recovery of instances'. To understand the fundamental service of automatic recovery of instances, Auto Scaling is the direct answer.",
+        "Incorrect. Spot Instances are types of instances with lower price that can be closed by AWS when capacity is required — are not automatically replaced by default. To have automatic replacement of Spot Instances, it is still necessary to use one Auto Scaling Group with the configuration of Spot. The replacement mechanism is the Auto Scaling, not an intrinsic characteristic of Spot Instances."
+      ]
+    }
+  }
+}

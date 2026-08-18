@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "135-142",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-135": {
+      "optionReasons": {
+        "dva-avc-135:option:0": "Layer shares CODE between functions — does not share pool of connections between different running environments.",
+        "dva-avc-135:option:1": "More memory accelerates creation a little — but continues to recreate client/connection to each invocation; does not eliminate overhead.",
+        "dva-avc-135:option:2": "It's the closest because Provided Competition re-enables hot environments — but if the customer is created DENTRO of the handler, he is recreated at every invocation MESMO in provided environment; it does not 'cache the client of SDK'; the real change is to instigate the customer in the global scope, outside the handler.",
+        "dva-avc-135:option:3": ""
+      },
+      "finalJustifications": [
+        "Because moving DynamoDBClient to the global scope (out of the handler) creates it once per environment in INIT, and the customer with the pool TCP (keep-alive) is reused in warm startups — without re-creating client/connection to each invocation.",
+        "Why use a Layer for the SDK creates the customer once per environment and reuses it in the warm starters with the pool TCP (keep-alive) — without re-creating client/connection to each function invocation.",
+        "Because increasing memory creates the client once per environment and reuses it in the warm start with the pool TCP (keep-alive) — without re-creating client/connection to each function invocation.",
+        "Because Provided Competition creates the customer once per environment and reuses it in the warm startups with the pool TCP (keep-alive) — without re-creating client/connection to each function invocation."
+      ]
+    },
+    "dva-avc-136": {
+      "optionReasons": {
+        "dva-avc-136:option:0": "",
+        "dva-avc-136:option:1": "It's the closest because ElastiCache cache-aside REALMENTE reduces latency and reading load — but requires code IMPLEMENTAR the default (check cache, popular in miss, invalidate/TTL): custom cache logic, which the requirement wants to avoid; write-through drop-in cache with API of the DynamoDB is the DAX.",
+        "dva-avc-136:option:2": "Streams + Lambda + global variable is manual cache and by environment — inconsistent and with its own invalidation logic.",
+        "dva-avc-136:option:3": "Increase RCU and use strong consistent reading doesn't give microseconds or 'automatic cache in the storage layer' — false premise."
+      },
+      "finalJustifications": [
+        "Because DAX it's cache in write-through memory of DynamoDB: the customer DAX is drop-in from API (GetIt/Query), serves hot items in microseconds and reduces the load in the table — without custom invalidation logic.",
+        "Because ElastiCache cache-aside is cache in write-through memory of DynamoDB: the client is drop-in from API, serves hot items in microseconds and reduces the load in the table — without custom invalidation logic.",
+        "'Cause Streams with Lambda it's cache in write-through memory of DynamoDB: the client is drop-in from API, serves hot items in microseconds and reduces the load in the table — without custom invalidation logic.",
+        "Why increase RCU with consistent reading is cache in write-through memory of DynamoDB: the client is drop-in from API, serves hot items in microseconds and reduces the load in the table — without custom logic."
+      ]
+    },
+    "dva-avc-137": {
+      "optionReasons": {
+        "dva-avc-137:option:0": "It's the closest because CodeArtifact even accelerates resolution via upstream cache — but still BAIXA and resettle the dependencies to each build; avoid lowering what hasn't changed is PERSISTIR the node_modules between builds with the cache CodeBuild (LOCAL or S3).",
+        "dva-avc-137:option:1": "",
+        "dva-avc-137:option:2": "Compute larger accelerates download with more band/CPU — but still reinstall everything at each build; do not re-use the node_modules.",
+        "dva-avc-137:option:3": "Splitting into parallel projects reorganizes the phases — does not avoid lowering the unaltered dependencies in each build."
+      },
+      "finalJustifications": [
+        "Why set the cache of CodeBuild (LOCAL_CUSTOM_CACHE or S3) with the cache node_modules: paths persists dependencies between builds — if the package-lock hasn't changed, the npm install is restored/pulled, cutting time.",
+        "Because pointing the npm install to the CodeArtifact persists the dependencies between builds — if the package-lock hasn't changed, the npm install is restored/pulled, cutting the build time from 8 minutes.",
+        "Because increasing the computeType persists the dependencies between builds — if the package-lock hasn't changed, the npm install is restored/pulled, cutting build time with more CPU and band.",
+        "Because dividing into parallel projects persists dependencies between builds — if the package-lock hasn't changed, the npm install is restored/pulled, cutting the total pipeline time."
+      ]
+    },
+    "dva-avc-138": {
+      "optionReasons": {
+        "dva-avc-138:option:0": "BeforeInstall Wheel ANTES of the new version exist/receive traffic — too early to validate the new version in production.",
+        "dva-avc-138:option:1": "It's the closest because an error alarm actually fires rollback — but it reacts to passive METRICS, does not perform a VALIDATION ATIVA (invoke the new version with synthetic event and check the answer); rotate this validation after traffic and before 100% is the hook AfterAllowTraffic.",
+        "dva-avc-138:option:2": "",
+        "dva-avc-138:option:3": "DeadLetterConfig captures failed invocations — but the CodeDeploy do not consult the SQS' to decide rollback; the decision comes from the status of hook."
+      },
+      "finalJustifications": [
+        "Because the hook AfterAllowTraffic invokes a Lambda validation after traffic starts to go to the new version; she calls PutLifecycleEventHookExecutionStatus with Failed if the test fails — and the CodeDeploy makes automatic rollback.",
+        "Because the alarm in Errors invokes one Lambda validation after traffic starts to go to the new version; it reports failed if the test fails — and the CodeDeploy makes automatic rollback before the 100%.",
+        "Because the Hook BeforeInstall invokes a Lambda validation after traffic starts to go to the new version; it reports failed if the test fails — and the CodeDeploy makes automatic rollback before the 100%.",
+        "Because DeadLetterConfig invokes a Lambda validation after traffic starts to go to the new version; it reports failed if the test fails — and the CodeDeploy makes automatic rollback before the 100%."
+      ]
+    },
+    "dva-avc-139": {
+      "optionReasons": {
+        "dva-avc-139:option:0": "It's the closest because taking the buildspec values for the project seems to solve — but environment variables of PLAINTEXT in the project they are VISIBLE in the configuration/console and are not the appropriate safe; the correct is to save in the Secrets Manager/Parameter Store and refer via env.secrets-manager, with the role of CodeBuild Searching for not build.",
+        "dva-avc-139:option:1": "User CodePipeline pass parameters in JSON — is not the safe mechanism for secrets, and would be exposed in the configuration.",
+        "dva-avc-139:option:2": "",
+        "dva-avc-139:option:3": "Version ciphertext in buildspec and decipher with KMS in the build still leaves the ciphertext in the repository and depends on code — worse practice than reference the secret."
+      },
+      "finalJustifications": [
+        "Because keeping the values in Secrets Manager/Parameter Store and refer them to env.secrets-manager (for ARN) makes the roll of CodeBuild search for them in build — values never appear in builtspect version or in the clear text console.",
+        "Because putting the variables in complaintxt in the project and referring them makes the role of CodeBuild search for them in build — values never appear in builtspect version or in the clear text console.",
+        "Why go through UserParameters from CodePipeline and referring them makes the role of CodeBuild search for them in build — values never appear in builtspect version or in the clear text console.",
+        "Why version the ciphertext and decipher with KMS in the build makes the roll of CodeBuild recover them in build — values never appear in builtspect version or in the clear text console."
+      ]
+    },
+    "dva-avc-140": {
+      "optionReasons": {
+        "dva-avc-140:option:0": "",
+        "dva-avc-140:option:1": "CodeCommit legacy Trigger by SNS is not the mechanism of origin of the CodePipeline — the modern approach is the EventBridge.",
+        "dva-avc-140:option:2": "One Lambda in loop calling GetBranch each 10s is artisanal and fragile polling — the EventBridge already delivers the event natively.",
+        "dva-avc-140:option:3": "It's the closest because reducing the polling interval would shorten the delay — but it's still POLLING (periodic check), with residual delay and cost; start almost instantly after push is detection by EventBridge, firing the pipeline at CodeCommit's state-change event."
+      },
+      "finalJustifications": [
+        "Because the detection by EventBridge fire the pipeline at the 'CodeCommit Repository State Change' event of the push in the branch — the pipeline starts almost instantly, without the delay of the polling.",
+        "Because CodeCommit's legacy trigger by SNS fire the pipeline at the push event in the branch — the pipeline starts almost instantly, without the delay of the periodic polling.",
+        "Because the Lambda in loop calling GetBranch fires the pipeline when detecting push in the branch — the pipeline starts almost instantly, without the delay of polling the CodePipeline.",
+        "Because reducing the pollingInterval triggers the pipeline right after the push in the branch — the pipeline starts almost instantly, without the greater delay of the standard polling of the CodePipeline."
+      ]
+    },
+    "dva-avc-141": {
+      "optionReasons": {
+        "dva-avc-141:option:0": "AdministratorAccess is not a requirement of CDK — he uses the necessary permissions; and is not the missing step before the first deployment.",
+        "dva-avc-141:option:1": "It's the closest because it quotes synth/deployment from CDK — But the statement is FALSA: o cdk deploy CRIA new stacks (not only updates), and you don't have to go up the template by hand; what DEVE precede the first deployment is the cdk bootstrap, which provides the foundational resources (bucket of assets), ECR, roles).",
+        "dva-avc-141:option:2": "Write the YAML by hand and using cdk import is to adopt resources EXISTENTES — is not the prerequisite of the first CDK.",
+        "dva-avc-141:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the bootstrap cdk provides, once per account/region, the foundational resources (bucket of assets), ECR, Deploying roles) on which the cdk deploy depends — only then does it synthesize and implant via CloudFormation.",
+        "Because cdk synth + upload manual provides the foundational resources on which the deployer depends — only then does cdk deploy (which only updates existing stacks) implement via CloudFormation.",
+        "Because granting AdministratorAccess provides the foundational resources on which the deployee depends — only then does the cdk deploy synthesize and implement via CloudFormation in the account/region.",
+        "Why write the YAML and using cdk import provides the foundational resources on which the deployment depends — only then the cdk deploy synthesizes and implements via CloudFormation in the account/region."
+      ]
+    },
+    "dva-avc-142": {
+      "optionReasons": {
+        "dva-avc-142:option:0": "",
+        "dva-avc-142:option:1": "Combining everything with Conditions keeps the giant template of 400+ resources — does not modulate or reuse the network in other stacks.",
+        "dva-avc-142:option:2": "It's the closest because Export/ImportValue also modulates and reuses the network — but the stacks stay INDEPENDENTES: the application is a deployable SEPARADO of the network, and the requirement is A ONLY logically coordinated deployment; pass Parameters and consume Outputs in a single operation is the intested stacks.",
+        "dva-avc-142:option:3": "StackSets distributes a template across multiple accounts/regions — it is not the composition of a single logical application deployment."
+      },
+      "finalJustifications": [
+        "Because the Nested stacks let the parent stack pass Parameters to the nested network stack and consume their Outputs (VpcId, subnets) via GetAtt — a single deployer coordinates everything, and the network is reusable in several parents.",
+        "Because the Conditions let the parent stack pass Parameters to the network section and consume your Outputs via GetAtt — a single deployer coordinates everything, and the network is reusable in several stacks.",
+        "Because Export/ImportValue lets the parent stack pass Parameters to the network stack and consume your outputs via GetAtt — a single deployer coordinates everything, and the network is reusable in several parents.",
+        "Because StackSets lets the parent stack pass Parameters to the network stack and consume your Outputs via GetAtt — a single deployer coordinates everything, and the network is reusable in several parent stacks."
+      ]
+    }
+  }
+}

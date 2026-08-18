@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "246-265",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-246": {
+      "optionReasons": {
+        "saa-med-246:option:0": "Wait within the invocation only burns execution time paid — if the bank does not return to 15 Min, the event dies the same way.",
+        "saa-med-246:option:1": "It's the closest because the SNS has real retry — but with a policy limited by protocol and SEM long persistence: exhausted attempts, message is discarded; holding events until bank returns requires DLQ in SQS (or Archive+Replay) no EventBridge.",
+        "saa-med-246:option:2": "More memory speeds up the function — does not make the bank unavailable to answer; the problem is external to Lambda.",
+        "saa-med-246:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the DLQ in SQS holds the failed events in a durable way to reprocess later — and Archive+Replay sends whole batches back when the bank returns.",
+        "Because the DLQ of the EventBridge monitors the health check of the external database and redelivers the events as soon as it responds.",
+        "Because the Archive freezes the Lambda at the point of failure and Replay resumes execution exactly of the call that was interrupted.",
+        "Because the line SQS assumes the role of the bank during the inavailability, responding to queries with the data stored in it."
+      ]
+    },
+    "saa-med-249": {
+      "optionReasons": {
+        "saa-med-249:option:0": "",
+        "saa-med-249:option:1": "It is the closest because this parameter exists and in fact limits the parallelism of that integration — but controls only the POLLING of the row: the function remains free to scale from other sources, and the scenario asks to limit the processing rate of the function itself; the classic and comprehensive brake is the Reserved Competition.",
+        "saa-med-249:option:2": "Batch size 1 does not limit parallelism — the service only invokes MAIS simultaneous execution of a message each; the throughput hardly changes.",
+        "saa-med-249:option:3": "Giant visibility timeout doesn't regulate rate — it only delays redeliveries and increases the risk of messages stuck for hours."
+      },
+      "finalJustifications": [
+        "Because Reserved Competition puts a ceiling on parallel performance of the function: with all the instances occupied, the SQS wait — the flow is limited and the waterfall stops.",
+        "Because Reserved Competition reserves exclusive instances for the queue, processing accumulated messages in order of arrival.",
+        "Because Reserved Competition returns messages above the limit with a new exponential delay calculated by Lambda.",
+        "Because Reserved Competition pauses the Event Source Mapping when the downstream saturates, resuming the polling in her recovery."
+      ]
+    },
+    "saa-med-251": {
+      "optionReasons": {
+        "saa-med-251:option:0": "",
+        "saa-med-251:option:1": "It's the closest because moving the versions is the right way — but a simple delete creates a Marker Delete by CIMA: the object is changed to look excluded, not restored. (Exclude invalid specific VERSSION would work — not what the option describes.) The supported stream is copy the previous version back..",
+        "saa-med-251:option:2": "Replication is for those who set it up ANTES — and also replicates the overwritten; it is not local version recovery mechanism.",
+        "saa-med-251:option:3": "There is no lifecycle guarantee for Glacier on the stage — and the version already saves the previous version in the pocket itself."
+      },
+      "finalJustifications": [
+        "Because with versioning the previous version follows in the bucket: just locate it (ListObjectVersions) and copy it back as current version.",
+        "Because ListObjectVersions includes a rollback command that promotes the chosen version without creating a new copy in the pocket.",
+        "Because CopyObject with VersionId mixes the two versions, recovering the valid blocks from the overwritten file by the script.",
+        "Because the console of S3 keeps a trash can 30 days per versioned bucket, and the restoration is made directly from there."
+      ]
+    },
+    "saa-med-254": {
+      "optionReasons": {
+        "saa-med-254:option:0": "Batch size maximum is 10.000 only with batching window and does not eliminate throttling — and a giant batch that fails reprocesses everything again.",
+        "saa-med-254:option:1": "It's the closest because long polling is real good practice and reduces empty chicks — but efficiency of POLL does not prevent EXPIRY: with the competition blown, messages continue to age until retention wins; what avoids loss is to retain for longer (14 days) + DLQ.",
+        "saa-med-254:option:2": "FIFO does not eliminate throttling — still reduces throughput; and duplicates are not the cause of the limit of competition.",
+        "saa-med-254:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the retention of even 14 days gives time for messages to wait for competition to free, and the DLQ captures those that fail repeatedly — nothing expires lost.",
+        "Because the major retention activates the priority queue of the SQS, processed before new messages at each traffic peak.",
+        "Because the DLQ absorbs the excess of throttling and forwards it to Lambda in reduced rate, within the limit of competition.",
+        "Because the retention of 14 days freezes the visibility timeout of pending payments, preventing any new expiration."
+      ]
+    },
+    "saa-med-258": {
+      "optionReasons": {
+        "saa-med-258:option:0": "",
+        "saa-med-258:option:1": "The scenario says that the requests complete in ~25s of PROCESSAMENTO — the described gargalo is the limit of the API Gateway, not the timeout of 3s function.",
+        "saa-med-258:option:2": "Cold start is seconds in the worst case — doesn't explain 25 processing seconds; time is of the operation itself.",
+        "saa-med-258:option:3": "It's the closest because it changes a real service configuration — but the number is invented: HTTP APIs have the MESMO ceiling of ~30 integration seconds; no variant of API Gateway waits beyond that, and the exit to long operations is the asynchronous pattern (202 + polling/WebSocket)."
+      },
+      "finalJustifications": [
+        "Because the roof of 29s is hard limit of API Gateway: Long operations saw asynchronous — 202 Accepted immediately, processing in background and polling/WebSocket.",
+        "Because the limit of 29s is elevated by Service Quotas, and the asynchronous pattern is only necessary above the 120 approved seconds.",
+        "Because 202 Accepted instructed or API Gateway keeping the connection open beyond the 29s up to Lambda complete all work.",
+        "Because the asynchronous pattern transfers the timeout to the client, who sets the maximum deadline by the header of the request sent."
+      ]
+    },
+    "saa-med-259": {
+      "optionReasons": {
+        "saa-med-259:option:0": "It's the closest because the lifecycle for Standard-IA is classic optimization — but it's a fixed rule and the AI collects the rate of RETRIEVAL: with occasional resessions, each reading pays; the requirement vetoes manual management and recovery fees — the dual requirement that only Intelligent-Tiering meets.",
+        "saa-med-259:option:1": "Glacier has recovery and latency cost — terrible for objects that are accessed again without warning.",
+        "saa-med-259:option:2": "One Zone-IA reduces durability (one AZ) and also collects retrieval — backups of reprocessed analytics do not fit.",
+        "saa-med-259:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Intelligent-Tiering moves each object between third parties by real use — without manual rule, without retriival rate — the exact unpredictable standard fit.",
+        "Because the Intelligent-Tiering predicts with ML which objects will be re-accessed and promotes them to the warm ter before the demand arrives.",
+        "Because Intelligent-Tiering charges average single rate per GB, always lower than any fixed storage class.",
+        "Because the Intelligent-Tiering replicates the cold objects to the Glacier keeping a hot copy, and the reading never pays waits."
+      ]
+    },
+    "saa-med-264": {
+      "optionReasons": {
+        "saa-med-264:option:0": "Signed URLs are generated for CLOUDFRONT (Not 'by the way S3') — and alone do not close the pocket: direct access to the S3 would continue to be possible.",
+        "saa-med-264:option:1": "It's the closest because secret header of origin is real technique — but for origins CUSTOM (ALB, own servers): S3 as origin does not validate arbitrary headers in bucket policy in this way; for S3 the native identity of the CloudFront is Origin Access Control.",
+        "saa-med-264:option:2": "Block Public Access Blocks Public Access — Does Not Create NENHUMA permission for the CloudFront; alone, break the distribution.",
+        "saa-med-264:option:3": ""
+      },
+      "finalJustifications": [
+        "Because OAC gives its own identity to the CloudFront: the bucket policy authorizes only this identity, direct access to the S3 Take it. 403 and authentication is on the edge.",
+        "Because OAC encrypts objects in transit with the distribution key, and only the CloudFront can decipher them at the edge.",
+        "Because OAC Imports authenticated website users to the bucket policy, updated to each login made by CloudFront.",
+        "Because OAC hides the name of the pocket in public URLs, and without the real address no one reaches the S3 directly at origin."
+      ]
+    },
+    "saa-med-265": {
+      "optionReasons": {
+        "saa-med-265:option:0": "",
+        "saa-med-265:option:1": "Athena does not expose DPUs to the user — it is a scanner-charged server; 'increase DPUs' is a configuration of Glue, not of Athena.",
+        "saa-med-265:option:2": "It's the closest one to compress. REDUZ real scanned bytes — but keeps the line-to-line format: Athena continues to read the entire file for any column and without pruning partition; columner + short partitions orders of magnitude more.",
+        "saa-med-265:option:3": "Query Result Reuse only helps you repeat IDENTICALs — new analyses continue scanning everything."
+      },
+      "finalJustifications": [
+        "Because Parquet/ORC read only the columns used (column pruning) and the partitions by date limit the scan to the filtered days — the double that drops GB scanned and cost.",
+        "Because the Parquet indexes the logs in a catalog of Athena, which responds to direct index queries without touching the index files S3.",
+        "Because partitioning distributes the wants among more us of Athena, and extra parallelism reduces time without changing the cost.",
+        "Because the column format caches the results per column in Athena, and the following will pay only the new columns."
+      ]
+    }
+  }
+}

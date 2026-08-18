@@ -178,20 +178,73 @@ app.use(express.static(path.join(__dirname)));
 
 // ── CloudArena: payload do jogo por certificação ─────────────────────────
 // /data é bloqueado no static (gabaritos); o jogo recebe daqui apenas as
-// questões QUE TÊM overlay, já resolvidas (vínculo por texto + checagem de
-// gabarito feita no servidor). Uma chamada por arena; zero por batalha.
+// questões QUE TÊM overlay, já resolvidas por optionId estável + checagem de
+// gabarito feita no servidor. matchText é apenas metadado legível.
+// Uma chamada por arena; zero por batalha.
 const arenaCache = new Map();
+
+const TOPIC_LABELS_EN = {
+    'iam': 'IAM and identities', 'ec2-compute': 'EC2 and compute', 's3-storage': 'S3 and storage',
+    'vpc': 'VPC and networking', 'databases': 'Databases',
+    'high-availability': 'High availability and scalability', 'dr-backup': 'Disaster recovery and backup',
+    'serverless': 'Serverless and messaging', 'security-services': 'Security services',
+    'monitoring': 'Monitoring and observability', 'migration': 'Migration and transfer',
+    'analytics': 'Analytics and Big Data', 'cost': 'Cost optimization', 'containers': 'Containers',
+    'app-integration': 'APIs and integration', 'edge-dns': 'Route 53, CloudFront and edge',
+    'hybrid-networking': 'Hybrid networking and edge computing', 'ml-ai': 'Machine Learning and AI',
+    'governance': 'Organizations and governance', 'sdk-cli': 'SDK, CLI and credentials',
+    'lambda': 'AWS Lambda', 'api-gateway': 'API Gateway', 'dynamodb': 'DynamoDB',
+    's3-dev': 'S3 for developers', 'messaging': 'Messaging and Step Functions',
+    'security-dev': 'IAM, KMS and secrets', 'cognito': 'Cognito', 'cicd': 'CI/CD (CodeSuite)',
+    'cloudformation-sam': 'CloudFormation and SAM', 'beanstalk': 'Elastic Beanstalk',
+    'troubleshooting': 'Troubleshooting and optimization',
+    'de-fundamentals': 'Data engineering fundamentals', 'streaming': 'Streaming ingestion (Kinesis and MSK)',
+    'batch-ingestion': 'Batch ingestion and migration', 'glue-etl': 'AWS Glue and Data Catalog',
+    'datalake-s3': 'Data Lake on S3', 'redshift': 'Amazon Redshift', 'athena': 'Amazon Athena',
+    'emr': 'Amazon EMR and Spark', 'orchestration': 'Pipeline orchestration',
+    'dataops': 'Data operations and quality', 'data-security': 'Data security and governance',
+    'nosql-stores': 'NoSQL data stores'
+};
+
+function hasReadyEnglishArena(certId) {
+    try {
+        const overlayPath = path.join(__dirname, 'data', 'cloudarena', 'breakdowns-en', `${certId}.json`);
+        if (!fs.existsSync(overlayPath)) return false;
+        const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
+        const overlayMeta = overlay._translation || {};
+        if (overlayMeta.locale !== 'en' || overlayMeta.sourceLocale !== 'pt-BR' || overlayMeta.status !== 'ready') {
+            return false;
+        }
+        for (const level of ['iniciante', 'medio', 'avancado']) {
+            const bankPath = path.join(__dirname, 'data', 'exams-en', certId, `${level}.json`);
+            if (!fs.existsSync(bankPath)) return false;
+            const bank = JSON.parse(fs.readFileSync(bankPath, 'utf8'));
+            const meta = bank._translation || {};
+            if (meta.locale !== 'en' || meta.sourceLocale !== 'pt-BR' || meta.status !== 'ready') return false;
+        }
+        return true;
+    } catch (error) {
+        console.error(`[CloudArena] falha ao validar conteúdo EN ${certId}:`, error.message);
+        return false;
+    }
+}
 
 app.get('/api/arena/:certId', (req, res) => {
     const certId = String(req.params.certId || '').toLowerCase();
     if (!/^[a-z]{3}-c\d{2}$/.test(certId)) {
         return res.status(400).json({ success: false, error: 'certId inválido' });
     }
-    if (arenaCache.has(certId)) {
-        return res.json(arenaCache.get(certId));
+    const requestedLocale = String(req.query.locale || '').trim().toLowerCase().startsWith('en') ? 'en' : 'pt-BR';
+    const useEnglish = requestedLocale === 'en' && hasReadyEnglishArena(certId);
+    const contentLocale = useEnglish ? 'en' : 'pt-BR';
+    const localeFallback = requestedLocale === 'en' && !useEnglish;
+    const cacheKey = `${certId}:${contentLocale}`;
+    if (arenaCache.has(cacheKey)) {
+        return res.json(arenaCache.get(cacheKey));
     }
     try {
-        const overlayPath = path.join(__dirname, 'data', 'cloudarena', 'breakdowns', `${certId}.json`);
+        const overlayDir = contentLocale === 'en' ? 'breakdowns-en' : 'breakdowns';
+        const overlayPath = path.join(__dirname, 'data', 'cloudarena', overlayDir, `${certId}.json`);
         let overlays = [];
         if (fs.existsSync(overlayPath)) {
             overlays = (JSON.parse(fs.readFileSync(overlayPath, 'utf8')).overlays) || [];
@@ -201,7 +254,8 @@ app.get('/api/arena/:certId', (req, res) => {
         let totalBank = 0;
 
         for (const level of ['iniciante', 'medio', 'avancado']) {
-            const bankPath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
+            const bankDir = contentLocale === 'en' ? 'exams-en' : 'exams';
+            const bankPath = path.join(__dirname, 'data', bankDir, certId, `${level}.json`);
             if (!fs.existsSync(bankPath)) continue;
             const bank = JSON.parse(fs.readFileSync(bankPath, 'utf8'));
             const domainNames = new Map((bank.domains || []).map(d => [d.id, d.name]));
@@ -209,14 +263,22 @@ app.get('/api/arena/:certId', (req, res) => {
                 totalBank++;
                 const ov = overlayById.get(q.id);
                 if (!ov) continue;
-                // vínculo por TEXTO + checagem cruzada de gabarito
-                const resolved = q.options.map(optionText => {
-                    const meta = (ov.options || []).find(o => o.matchText === optionText);
-                    return meta ? { text: optionText, stage: meta.stage, reasonWrong: meta.reasonWrong || '' } : null;
+                // vínculo por ID estável + checagem cruzada de gabarito.
+                // O texto pode evoluir ou ser localizado sem alterar a identidade.
+                const resolved = q.options.map((optionText, optionIndex) => {
+                    const expectedOptionId = `${q.id}:option:${optionIndex}`;
+                    const meta = (ov.options || []).find(o => o.optionId === expectedOptionId);
+                    return meta ? {
+                        optionId: expectedOptionId,
+                        text: optionText,
+                        stage: meta.stage,
+                        reasonWrong: meta.reasonWrong || ''
+                    } : null;
                 });
+                const correctOptionId = `${q.id}:option:${q.correct}`;
                 const correctMeta = resolved.find(o => o && o.stage === 'correct');
-                if (resolved.some(o => !o) || !correctMeta || correctMeta.text !== q.options[q.correct]) {
-                    console.error(`[CloudArena] overlay desalinhado ignorado: ${q.id}`);
+                if (resolved.some(o => !o) || !correctMeta || correctMeta.optionId !== correctOptionId) {
+                    console.error(`[CloudArena] overlay desalinhado por optionId ignorado: ${q.id}`);
                     continue;
                 }
                 // Inimigo resolvido pelo domínio oficial; nome do golpe vem do
@@ -227,16 +289,16 @@ app.get('/api/arena/:certId', (req, res) => {
                     text: q.text,
                     level,
                     domain: q.domain || 'unknown',
-                    attackName: (firstTopic && TOPIC_LABELS[firstTopic]) || firstTopic
-                        || domainNames.get(q.domain) || 'Nuvem',
+                    attackName: (firstTopic && (contentLocale === 'en' ? TOPIC_LABELS_EN[firstTopic] : TOPIC_LABELS[firstTopic]))
+                        || domainNames.get(q.domain) || firstTopic || (contentLocale === 'en' ? 'Cloud' : 'Nuvem'),
                     options: resolved,
                     justifications: (ov.finalBlow && ov.finalBlow.justifications) || [],
                     explanation: q.explanation || '',
                 });
             }
         }
-        const payload = { success: true, certId, totalBank, pools };
-        arenaCache.set(certId, payload);
+        const payload = { success: true, certId, requestedLocale, locale: contentLocale, localeFallback, totalBank, pools };
+        arenaCache.set(cacheKey, payload);
         res.json(payload);
     } catch (err) {
         console.error('[CloudArena] erro ao montar payload:', err.message);
@@ -346,8 +408,44 @@ function topicLabel(id) {
     return TOPIC_LABELS[id] || id;
 }
 
-// Carrega as pools de perguntas (cert x nível) em memória
-const examPools = new Map(); // chave: "certId:level" -> { certCode, certName, level, domains, questions }
+// Carrega as pools de perguntas (cert x nível) em memória.
+// PT-BR mantém a chave histórica `certId:level`; bancos EN prontos usam
+// `en:certId:level`. Um banco inglês só entra no runtime quando declara
+// explicitamente `_translation.status = ready`.
+const examPools = new Map();
+
+function normalizeExamLocale(locale) {
+    const value = String(locale || '').trim().toLowerCase();
+    return value === 'en' || value.startsWith('en-') ? 'en' : 'pt-BR';
+}
+
+function indexExamTopics(pool) {
+    pool.topicCounts = {};
+    for (const q of (pool.questions || [])) {
+        for (const t of (q.topics || [])) {
+            pool.topicCounts[t] = (pool.topicCounts[t] || 0) + 1;
+        }
+    }
+    return pool;
+}
+
+function resolveExamPool(certId, level, requestedLocale) {
+    const requested = normalizeExamLocale(requestedLocale);
+    if (requested === 'en') {
+        const english = examPools.get(`en:${certId}:${level}`);
+        if (english && english.questions && english.questions.length) {
+            return { pool: english, requestedLocale: 'en', locale: 'en', fallback: false };
+        }
+    }
+
+    const canonical = examPools.get(`${certId}:${level}`) || null;
+    return {
+        pool: canonical,
+        requestedLocale: requested,
+        locale: 'pt-BR',
+        fallback: requested === 'en',
+    };
+}
 
 function loadExamPools() {
     for (const [certId, cert] of Object.entries(CERTIFICATIONS)) {
@@ -355,21 +453,30 @@ function loadExamPools() {
             const filePath = path.join(__dirname, 'data', 'exams', certId, `${level}.json`);
             try {
                 const raw = fs.readFileSync(filePath, 'utf-8');
-                const pool = JSON.parse(raw);
-                // Índice de tópicos (campo `topics` das questões) para prática focada
-                pool.topicCounts = {};
-                for (const q of pool.questions) {
-                    for (const t of (q.topics || [])) {
-                        pool.topicCounts[t] = (pool.topicCounts[t] || 0) + 1;
-                    }
-                }
+                const pool = indexExamTopics(JSON.parse(raw));
                 examPools.set(`${certId}:${level}`, pool);
             } catch (error) {
                 console.log(`⚠️ Pool de simulado não encontrada: ${certId}/${level} (${error.message})`);
             }
+
+            const englishPath = path.join(__dirname, 'data', 'exams-en', certId, `${level}.json`);
+            if (!fs.existsSync(englishPath)) continue;
+            try {
+                const english = indexExamTopics(JSON.parse(fs.readFileSync(englishPath, 'utf-8')));
+                const meta = english._translation || {};
+                if (meta.locale !== 'en' || meta.sourceLocale !== 'pt-BR' || meta.status !== 'ready') {
+                    console.warn(`⚠️ Banco EN ignorado por status inválido: ${certId}/${level}`);
+                    continue;
+                }
+                examPools.set(`en:${certId}:${level}`, english);
+            } catch (error) {
+                console.warn(`⚠️ Banco EN ignorado: ${certId}/${level} (${error.message})`);
+            }
         }
     }
-    console.log(`📚 ${examPools.size} pools de simulado carregadas`);
+    const canonicalCount = [...examPools.keys()].filter(key => !key.startsWith('en:')).length;
+    const englishCount = [...examPools.keys()].filter(key => key.startsWith('en:')).length;
+    console.log(`📚 ${canonicalCount} pools PT-BR + ${englishCount} pools EN prontas carregadas`);
 }
 
 loadExamPools();
@@ -580,15 +687,19 @@ async function verifySocketIdToken(idToken) {
 
 // Lista certificações, níveis disponíveis, domínios e tamanho das pools
 app.get('/api/simulado/certifications', (req, res) => {
+    const requestedLocale = normalizeExamLocale(req.query.locale);
     const certifications = Object.entries(CERTIFICATIONS).map(([id, cert]) => ({
         id,
         code: cert.code,
         name: cert.name,
         shortName: cert.shortName,
         levels: cert.levels.map(level => {
-            const pool = examPools.get(`${id}:${level}`);
+            const resolved = resolveExamPool(id, level, requestedLocale);
+            const pool = resolved.pool;
             return {
                 id: level,
+                contentLocale: resolved.locale,
+                localeFallback: resolved.fallback,
                 totalQuestions: pool ? pool.questions.length : 0,
                 domains: pool ? pool.domains : [],
                 topics: pool
@@ -600,7 +711,7 @@ app.get('/api/simulado/certifications', (req, res) => {
         })
     }));
 
-    res.json({ success: true, maxQuestions: MAX_SIMULADO_QUESTIONS, certifications });
+    res.json({ success: true, locale: requestedLocale, maxQuestions: MAX_SIMULADO_QUESTIONS, certifications });
 });
 
 // Inicia um simulado: seleciona perguntas respeitando a proporção de domínios e oculta gabaritos
@@ -610,14 +721,16 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         return res.status(401).json({ success: false, error: 'Faça login para iniciar um simulado' });
     }
 
-    const { certId, level, numQuestions, domain } = req.body || {};
+    const { certId, level, numQuestions, domain, locale } = req.body || {};
+    const requestedLocale = normalizeExamLocale(locale);
 
     const cert = CERTIFICATIONS[certId];
     if (!cert || !cert.levels.includes(level)) {
         return res.status(400).json({ success: false, error: 'Certificação ou nível inválido' });
     }
 
-    const pool = examPools.get(`${certId}:${level}`);
+    const resolvedPool = resolveExamPool(certId, level, requestedLocale);
+    const pool = resolvedPool.pool;
     if (!pool || pool.questions.length === 0) {
         return res.status(404).json({ success: false, error: 'Pool de perguntas não disponível para essa combinação' });
     }
@@ -693,6 +806,9 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         level,
         certCode: pool.certCode,
         certName: pool.certName,
+        requestedLocale,
+        locale: resolvedPool.locale,
+        localeFallback: resolvedPool.fallback,
         domains: pool.domains,
         focusDomain,
         focusTopic,
@@ -709,6 +825,9 @@ app.post('/api/simulado/start', simuladoActionLimiter, async (req, res) => {
         certCode: pool.certCode,
         certName: pool.certName,
         level,
+        requestedLocale,
+        locale: resolvedPool.locale,
+        localeFallback: resolvedPool.fallback,
         domains: pool.domains,
         focusDomain,
         focusTopic,
@@ -1807,6 +1926,9 @@ class LiveSimuladoRoom {
         this.certCode = simuladoData.certCode;
         this.certName = simuladoData.certName;
         this.level = simuladoData.level;
+        this.requestedLocale = simuladoData.requestedLocale || 'pt-BR';
+        this.locale = simuladoData.locale || 'pt-BR';
+        this.localeFallback = !!simuladoData.localeFallback;
         this.domains = simuladoData.domains;
         this.questions = simuladoData.questions; // perguntas completas (com gabarito) - nunca enviadas aos alunos
         this.creatorSocketId = creatorSocketId;
@@ -2069,6 +2191,9 @@ class LiveSimuladoRoom {
             certCode: this.certCode,
             certName: this.certName,
             level: this.level,
+            requestedLocale: this.requestedLocale,
+            locale: this.locale,
+            localeFallback: this.localeFallback,
             mode: 'live',
             roomCode: this.code,
             participantsCount: this.players.size,
@@ -2440,7 +2565,8 @@ io.on('connection', (socket) => {
     // Criar sala de simulado ao vivo (professor)
     safeOn(socket, 'simulado:create-room', async (data, callback) => {
         try {
-            const { certId, level, numQuestions, creatorName, idToken } = data || {};
+            const { certId, level, numQuestions, creatorName, idToken, locale } = data || {};
+            const requestedLocale = normalizeExamLocale(locale);
 
             // O resultado fica gravado no histórico do professor (users/{uid}/simuladoAttempts),
             // então creatorId precisa ser o uid verificado pelo ID token - nunca o valor enviado pelo cliente.
@@ -2460,7 +2586,8 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            const pool = examPools.get(`${certId}:${level}`);
+            const resolvedPool = resolveExamPool(certId, level, requestedLocale);
+            const pool = resolvedPool.pool;
             if (!pool || pool.questions.length === 0) {
                 callback({ success: false, error: 'Pool de perguntas não disponível para essa combinação' });
                 return;
@@ -2483,6 +2610,9 @@ io.on('connection', (socket) => {
                 certCode: pool.certCode,
                 certName: pool.certName,
                 level,
+                requestedLocale,
+                locale: resolvedPool.locale,
+                localeFallback: resolvedPool.fallback,
                 domains: pool.domains,
                 questions
             }, socket.id, safeCreatorName, creatorId);
@@ -2504,6 +2634,9 @@ io.on('connection', (socket) => {
                 certCode: pool.certCode,
                 certName: pool.certName,
                 level,
+                requestedLocale,
+                locale: resolvedPool.locale,
+                localeFallback: resolvedPool.fallback,
                 domains: pool.domains,
                 totalQuestions: questions.length
             });

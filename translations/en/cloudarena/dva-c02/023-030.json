@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "023-030",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-023": {
+      "optionReasons": {
+        "dva-avc-023:option:0": "Roll the Scan each time 5 min only multiplies the cost of Scan — does not solve the reading of expired items.",
+        "dva-avc-023:option:1": "There is no Lifecycle of S3 in a table DynamoDB' — the premise is invalid.",
+        "dva-avc-023:option:2": "",
+        "dva-avc-023:option:3": "It's the closest because a GSU in expiresAt + Query + delete in lot in fact would find and remove the expired ones — but it is code and ability to maintain, and does not prevent the app from LER the expired session before cleaning; automatically delete and not return expired items is the TTL of the DynamoDB."
+      },
+      "finalJustifications": [
+        "Why enable the TTL with the attribute expiresAt (timestamp Unix in seconds) does the DynamoDB exclude automatically expired items without Scan or capacity consumption — and table to grow with expired.",
+        "Why reduce the Scan to 5 min does the DynamoDB exclude automatically expired items without Scan or capacity consumption — and table to grow with expired.",
+        "Because the Lifecycle of S3 does the DynamoDB exclude automatically expired items without Scan or capacity consumption — and table to grow with expired sessions.",
+        "Because GSI in expiresAt with Query and delete in batch does the DynamoDB exclude automatically expired items without Scan or capacity consumption — and table stops growing."
+      ]
+    },
+    "dva-avc-024": {
+      "optionReasons": {
+        "dva-avc-024:option:0": "It's the closest because a LSI with spell key OrderStatus would give exactly the query pattern — but the LSI can only be created JUNTO with the table; with the table in production there is 6 months, you can't add it; the index you can create at any time is the GSI.",
+        "dva-avc-024:option:1": "FilterExpression in OrderStatus reads all customer requests and discards after — inefficient and is not 'order by status''.",
+        "dva-avc-024:option:2": "No change to the key of the database table by UpdateTable — the key is unchangeable after creation.",
+        "dva-avc-024:option:3": ""
+      },
+      "finalJustifications": [
+        "Because GSI with PK CustomerId and SK OrderStatus can be created at any time in the table already in production — supports consulting customer requests for status with minimal disruption.",
+        "Because LSI with PK CustomerId and SK OrderStatus can be created at any time in the table already in production — supports consulting customer requests for status with minimal disruption.",
+        "Because FilterExpression in OrderStatus can be applied at any time in the table in production — supports viewing customer requests for status with minimal disruption.",
+        "Because changing the key spell to OrderStatus can be done at any time in the table in production — supports viewing customer requests for status with minimal disruption."
+      ]
+    },
+    "dva-avc-025": {
+      "optionReasons": {
+        "dva-avc-025:option:0": "Polling each 500ms is just what the requirement wants to avoid — high load and latency.",
+        "dva-avc-025:option:1": "MQTT IoT Core is for devices; the premise that the Lambda 'does not maintain connection' is in the wrong service — WebSocket API it's the one who keeps the connection, not the one Lambda.",
+        "dva-avc-025:option:2": "It's the closest because SSE also pushes server events to the client in stream — but it is UNIDIRECIONAL (only server→client) and API Gateway REST does not expose SSE in this way Lambda; Communication BIDIRECIONAL persistent with push specific customers is WebSocket API (PostToConnect).",
+        "dva-avc-025:option:3": ""
+      },
+      "finalJustifications": [
+        "Because WebSocket API maintains persistent two-way connection with $connect/$disconnect and custom routes, and PostToConnection (@connections) pushes design events to connected customers — no polling.",
+        "Because the REST API with SSE maintains persistent bidirectional connection with $connect/$disconnect routes, and PostToConnection pushes design events to connected customers — no polling.",
+        "Because the polling every time 500ms maintains persistent two-way connection with push routes, and the server pushes drawing events to connected customers — without repeatedly checking the endpoint.",
+        "Because MQTT IoT Core maintains persistent two-way connection with push routes, and the broker pushes drawing events to connected customers — no polling in endpoint HTTP."
+      ]
+    },
+    "dva-avc-026": {
+      "optionReasons": {
+        "dva-avc-026:option:0": "Cognito + Lambda Authentic user authorizer — but is not the native thrttle/quota mechanism per partner of API Gateway.",
+        "dva-avc-026:option:1": "It's the closest because rate-based rules of WAF limit the rate of fact — but by FAIXA DE IP, not by partner's credentials: do not impose quota MENSAL nor identify the partner for billing; limits per partner with quota and identification are API Keys associated with Usage Plans.",
+        "dva-avc-026:option:2": "One API separate by partner multiplies maintenance — and the 'Account Settings' throttle is on account, not by partner.",
+        "dva-avc-026:option:3": ""
+      },
+      "finalJustifications": [
+        "'Cause every one API Key associated with a Usage Plan defines throttle (rate/burst) and quota (per day/week/month) per partner, and x-api-key identifies who called — differentiated limits and partner billing.",
+        "Because each user Cognito with Lambda Authorizer defines throttle and quota per partner, and the group identifies who called—differentiated limits and partner billing in API.",
+        "Because every rule of WAF by IP defines throttle and monthly share by partner, and the IP track identifies who called — differentiated limits and partner billing in the API REST.",
+        "'Cause every one API separate defines throttle and share per partner in Accounts Settings, and the API distinct identifies who called — differentiated limits and partner billing."
+      ]
+    },
+    "dva-avc-027": {
+      "optionReasons": {
+        "dva-avc-027:option:0": "",
+        "dva-avc-027:option:1": "It's the closest because setting up dependencies in a EFS centralizes and updates in one place — but requires putting the functions in VPC (cold start, complexity) and mount the EFS in runtime; the native mechanism to share dependencies between functions is the Lambda Layer.",
+        "dva-avc-027:option:2": "CodeArtifact + pip installed in the deploy EMPACOTA dependencies in each function — does not reduce size or centralize the update.",
+        "dva-avc-027:option:3": "Combine 12 a single function with if/else router coupled with separate services — maintenance and scale anti-standard."
+      },
+      "finalJustifications": [
+        "Why pack pandas, numpy and the internal utility in Lambda Layers and attach them to 12 functions centralize dependencies: update the layer updates all at once, with smaller packages.",
+        "Because setting up the dependencies in a EFS and attach it to the 12 functions centralize dependencies: update the EFS updates all at once, with smaller packages, without VPC neither start.",
+        "Because hosting in CodeArtifact and installing in the deployer centralizes the dependencies of 12 functions: update repository updates all at once, with smaller packages.",
+        "Why combine the 12 in a function with router centralizes the dependencies: include them once updates all at once, with smaller package and without reimplanting each service."
+      ]
+    },
+    "dva-avc-028": {
+      "optionReasons": {
+        "dva-avc-028:option:0": "It's the closest because trying/catching with SendMessage would really route success and failure — but requires ESCREVER Customized code of routing within the function, exactly what the veto requirement; routing OnSuccess/OnFailure without code is the Destinations feature of Lambda asynchronous.",
+        "dva-avc-028:option:1": "",
+        "dva-avc-028:option:2": "Step Functions orchestrates streams — but involves rewriting the shot and adding orchestration, is not the native route of asynchronous invocation.",
+        "dva-avc-028:option:3": "DLQ treat only FALHAS (a row) — does not rotate SUCESSO; two DLQs don't cover the path of success."
+      },
+      "finalJustifications": [
+        "Because the Destinations of Lambda asynchronous route OnSuccess to the billing row and OnFailure (after retaliating exhaust) to the research row — without writing routing code to the function.",
+        "Because the try/catch with SendMessage routed OnSuccess to the billing row and OnFailure to the research row — without writing routing code to the function Lambda.",
+        "Because Step Functions with Catch/Pass route OnSuccess to the billing row and OnFailure to the research row — without writing routing code to the function Lambda.",
+        "Because the two DLQs routed OnSuccess to the billing row and OnFailure to the research row — without writing router code to the function Lambda."
+      ]
+    },
+    "dva-avc-029": {
+      "optionReasons": {
+        "dva-avc-029:option:0": "It's the closest because the most WCU reduces throttling in fact — but fixing the capacity at the worst peak is expensive and wastes most of the time, and does not correct the immediate retry that aggravates the problem; leaving the SDK apply exponential backoff with jitter (retryMode adaptive/standard) solves the cause.",
+        "dva-avc-029:option:1": "DAX is cached from LEITURA — does not absorb writing (UpdateItem); does not relieve writing throttling.",
+        "dva-avc-029:option:2": "More competition with immediate retry plays AINDA more written simultaneously — aggravated throttling.",
+        "dva-avc-029:option:3": ""
+      },
+      "finalJustifications": [
+        "Why set the SDK with retryMode 'adaptive' (or 'standard') and maxAttempts applies exponential backoff with jitter to retentable errors like ProvidedThroughputExceedException — relieving the throttling instead of aggravating it.",
+        "Why increase the WCU fixed applies exponential backoff with jitter to retentable errors like ProvidedThroughputExceededException — relieving the throttling instead of aggravating it.",
+        "Why enable the DAX apply exponential jitterbackoff to retentable errors like ProvidedThroughputExceedException — relieving writing throttling instead of aggravating it.",
+        "Because increasing reserved competition applies exponentially backoff with jitter to retentable errors like ProvidedThroughputExceededException — relieving the throttling instead of aggravating it."
+      ]
+    },
+    "dva-avc-030": {
+      "optionReasons": {
+        "dva-avc-030:option:0": "Step Functions Map with a record run adds orchestration and still does 500 PutItem — does not reduce calls.",
+        "dva-avc-030:option:1": "",
+        "dva-avc-030:option:2": "ConditionExpression per item avoids duplicate — does not reduce the number of calls or the risk of timeout.",
+        "dva-avc-030:option:3": "It's the closest because TransactWriteItems also records several items on a call — but it's limited to 100 items, costs the DOBRO ability and atomicity 'everything-or-nothing' is not required here; insert many items efficiently is the BatchWriteItem (25 by calling, forwarding UnprocessedItems)."
+      },
+      "finalJustifications": [
+        "Because BatchWriteItem records even 25 items per call: group the 500 in batches of 25 and forwarding UnprocessedItems drastically reduces calls from API and removes the timeout.",
+        "Because Step Functions Map saves up 25 items per call: group the 500 in batches of 25 and forwarding UnprocessedItems drastically reduces calls from API and removes the timeout.",
+        "Because ConditionExpression per item records up to 25 items per call: group the 500 in batches of 25 and forwarding UnprocessedItems drastically reduces calls from API and removes the timeout.",
+        "Because TransactWriteItems records even 25 items per call: group the 500 in batches of 25 and forwarding UnprocessedItems drastically reduces calls from API and removes the timeout."
+      ]
+    }
+  }
+}

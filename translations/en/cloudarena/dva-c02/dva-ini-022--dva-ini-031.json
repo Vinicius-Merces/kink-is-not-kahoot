@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-ini-022..dva-ini-031",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-ini-022": {
+      "optionReasons": {
+        "dva-ini-022:option:0": "",
+        "dva-ini-022:option:1": "Route 53 It's DNS/routing — does not store messages or uncouple producers and consumers.",
+        "dva-ini-022:option:2": "X-Ray Tracing Distributed — Not Message Row.",
+        "dva-ini-022:option:3": "It's the closest because the CloudFront also 'intermediate' traffic — but it is a CDN delivery of content, not a FILA durable that saves tasks for the consumer to process when back; unplugging with row is the Amazon SQS."
+      },
+      "finalJustifications": [
+        "Because Amazon SQS is a durable queue: the checkout threads tasks and billing consumes them when you return — services are uncoupled and nothing is lost in unavailability.",
+        "Because CloudFront is a durable queue: the checkout threads tasks and billing consumes them when you return — services are uncoupled and nothing is lost in unavailability.",
+        "Because Route 53 is a durable queue: the checkout threads tasks and billing consumes them when you return — services are uncoupled and nothing is lost in unavailability.",
+        "Because X-Ray is a long-lasting line: the check-out is running tasks and billing consumes them when you get back — services are uncoupled and nothing is lost in unavailability."
+      ]
+    },
+    "dva-ini-023": {
+      "optionReasons": {
+        "dva-ini-023:option:0": "It's the closest because it quotes the two right services — but INVERTE: flow A (warn various systems immediately) is PUSH for multiple subscribers, which is the SNS; the B flow (accumulate to A worker in his rhythm) is PULL in a row, which is the SQS; the option changes both.",
+        "dva-ini-023:option:1": "",
+        "dva-ini-023:option:2": "SQS for both does not cover the immediate fanout push of the A stream to several subscribers.",
+        "dva-ini-023:option:3": "SNS for both do not cover the accumulation in row for a single consumer process at its own pace (flow B)."
+      },
+      "finalJustifications": [
+        "Because SNS attends flow A (immediate push to multiple subscribers) and the SQS attends flow B (fil pull accumulating tasks for a consumer at his own pace).",
+        "Because SQS attends flow A (immediate push to multiple subscribers) and the SNS attends flow B (fil pull accumulating tasks for a consumer at his own pace).",
+        "Because SQS attends both flows (immediate push to multiple subscribers and pull row accumulating tasks for a consumer at the same pace).",
+        "Because SNS attends both flows (immediate push to multiple subscribers and pull row accumulating tasks for a consumer at the same pace)."
+      ]
+    },
+    "dva-ini-024": {
+      "optionReasons": {
+        "dva-ini-024:option:0": "It's the closest because S3 Event Notifications also triggers actions per event — but only for events of OBJETO of the S3 and with limited destinations/routing, without rules per CONTENT as 'ordered > R$1.000'; bus with declarative rules by content is the EventBridge.",
+        "dva-ini-024:option:1": "",
+        "dva-ini-024:option:2": "CloudTrail records calls from API for audit — is not bus of events with routing by rule.",
+        "dva-ini-024:option:3": "ElastiCache is cache in memory — does not route events."
+      },
+      "finalJustifications": [
+        "Because Amazon EventBridge is an event bus with declaratory rules per content: requests above R$1.000 go to anti-fraud and the others to standard flow — no routing code.",
+        "Because S3 Event Notifications is an event bus with declaratory rules per content: requests above R$1.000 go to anti-fraud and the others to standard flow — no routing code.",
+        "Because CloudTrail is an event bus with declaratory rules per content: requests above R$1.000 go to anti-fraud and the others to standard flow — no routing code.",
+        "Because ElastiCache is an event bus with declaratory rules for content: requests above R$1.000 go to anti-fraud and the others to standard flow — no routing code."
+      ]
+    },
+    "dva-ini-025": {
+      "optionReasons": {
+        "dva-ini-025:option:0": "",
+        "dva-ini-025:option:1": "It's the closest because the CodePipeline also ORQUESTRA sequenced steps — but it is for CI/CD (build/test/deploy software), not to model a NEGOCIO flow as a state machine with decisions and retentatives between Lambdas; this is the Step Functions.",
+        "dva-ini-025:option:2": "Chain rows SQS between steps requires coding the coordination and the treatment of error — the opposite of defining the flow visually.",
+        "dva-ini-025:option:3": "CloudWatch Alarms shoots in metrics — does not orchestrate a flow of steps."
+      },
+      "finalJustifications": [
+        "Because Step Functions defines the flow as a visual state machine, with decisions and retrentatives coordinating the Lambdas (validate → verify credit → create account) — without encoding the orchestration.",
+        "Because CodePipeline defines the flow as a visual state machine, with decisions and retrentatives coordinating the Lambdas (validate → verify credit → create account) — without encoding the orchestration.",
+        "♪ 'Cause you're chaining lines ♪ SQS defines the flow as a visual state machine, with decisions and retrentatives coordinating the Lambdas (validate → verify credit → create account) — without encoding the orchestration.",
+        "Because CloudWatch Alarms defines the flow as a visual status machine, with decisions and retentatives coordinating the Lambdas (validate → check credit → create account) — without encoding the orchestration."
+      ]
+    },
+    "dva-ini-026": {
+      "optionReasons": {
+        "dva-ini-026:option:0": "It's the closest because making the public bucket 'allows' the direct upload — but exposes the bucket to anyone, without user permission or expiration; allowing each upload securely and temporarily, keeping the bucket private, is the presigned URL.",
+        "dva-ini-026:option:1": "Send photos by email to support is not directly upload to S3 or application procedure.",
+        "dva-ini-026:option:2": "Distributing the access keys in the app code is long-term credential leak — insecure.",
+        "dva-ini-026:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the backend generates a presigned URL of PUT with the SDK and delivery to the customer: upload goes directly to the newsletter PRIVADO, allowed only by that valid link — without going through the server.",
+        "Because making the newsletter public generates a temporary authorization to the client: upload goes directly to the newsletter, authorized only by that valid access — without going through the application server.",
+        "Because sending by email to the support generates a temporary authorization to the client: upload goes directly to the private newsletter, authorized only by that link with validity — without going through the server.",
+        "Because distributing the access keys generates a temporary permission to the client: upload goes directly to the private pocket, authorized only by that valid link — without going through the server."
+      ]
+    },
+    "dva-ini-027": {
+      "optionReasons": {
+        "dva-ini-027:option:0": "It's the closest because a larger timeout would give time to the big shipment — but the PUT single does not parallel or resume: a network failure restarts the entire file; sending in parallel parts, resending only to the one that failed, is the multipart upload.",
+        "dva-ini-027:option:1": "Send by email to AWS import is not an application upload stream.",
+        "dva-ini-027:option:2": "",
+        "dva-ini-027:option:3": "Splitting the video into several small objects by hand fragments the file (turns several objects) — it is not the multipart, which delivers a single object."
+      },
+      "finalJustifications": [
+        "Because the multipart upload divides the file into parts sent in parallel: a failure sends only the affected part (not the whole video) and the throughput up — automated by SDKs.",
+        "Because the single upload with larger timeout divides the file into parts sent in parallel: a failure sends only the affected part and the throughput goes up — automated by SDKs.",
+        "Because sending by email divides the file into parts sent in parallel: a failure sends only the affected part (not the whole video) and the throughput up — automated by SDKs.",
+        "Because dividing the video by hand divides the file into parts sent in parallel: a failure sends only the affected part (not the whole video) and the throughput goes up — automated by SDKs."
+      ]
+    },
+    "dva-ini-030": {
+      "optionReasons": {
+        "dva-ini-030:option:0": "The task definition is not the source code — it REFERENCIA the image of the container, not the code inside it.",
+        "dva-ini-030:option:1": "The task definition is not the invoice — it is the definition of the execution of containers.",
+        "dva-ini-030:option:2": "It is the closest because the task definition and cluster are part of the ECS — but the CLUSTER is the capacity where the containers RODAM; the task definition is the BLUEPRINT describing COMO execute (image, CPU, memory, doors, variables, roles), not hardware.",
+        "dva-ini-030:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the task definition is the blueprint of the task: describes image, CPU, memory, doors, variables and roles — the ECS uses it to know COMO run the containers.",
+        "Because the physical cluster is the blueprint of the task: describes image, CPU, memory, doors, variables and roles — the ECS uses it to know how to run the containers.",
+        "Because the source code is the blueprint of the task: describes image, CPU, memory, doors, variables and roles — the ECS uses it to know how to run the application containers.",
+        "Because the monthly invoice is the blueprint of the task: describes image, CPU, memory, doors, variables and roles — the ECS it uses to know how to run the application containers."
+      ]
+    },
+    "dva-ini-031": {
+      "optionReasons": {
+        "dva-ini-031:option:0": "It's the closest because a fleet EC2 also rolls containers of the ECS — but demands PROVISIONAR, scale and apply patches in the instances (the opposite of serverless); declare CPU/memory per task and pay for use without managing instances is the Fargate.",
+        "dva-ini-031:option:1": "Lambda with image on a layer is not the model — container image in Lambda It's a way. ECR (PackageType Image), and Lambda is not the answer to 'roll containers in the ECS'.",
+        "dva-ini-031:option:2": "Lightsail is VPS simplified — is not the serverless capacity of ECS.",
+        "dva-ini-031:option:3": ""
+      },
+      "finalJustifications": [
+        "Because AWS Fargate rotates the containers of the ECS no provision/scale/patch of instances: just declare CPU/memory per task and pay for what to run — the serverless model requested.",
+        "Because the fleet EC2 managed rotates the containers of ECS no provision/scale/patch of instances: just declare CPU/memory by task and pay for what to run — the serverless model.",
+        "Because Lambda with image in a layer rotates the containers of ECS no provisioning/scaling/patch: just declare CPU/memory by task and pay for what to run — the serverless model.",
+        "Because Lightsail spins the containers of ECS no provision/scale/patch of instances: just declare CPU/memory per task and pay for what to run — the serverless model requested."
+      ]
+    }
+  }
+}

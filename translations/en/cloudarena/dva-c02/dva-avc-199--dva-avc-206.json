@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-avc-199..dva-avc-206",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-199": {
+      "optionReasons": {
+        "dva-avc-199:option:0": "Duration has not changed and there are Throttles — it is not reprocessing by Visibility Timeout short; it is limit of competition.",
+        "dva-avc-199:option:1": "It's the closest because the burst competition is a real limit of Lambda — but the claim that 'never can be circumvented' is false and is not the cause here; the most likely is the LIMITE COMPETITION CONTA (Soft, 1000) shared with other functions, remediable with quota increase and/or Reserved Competition.",
+        "dva-avc-199:option:2": "",
+        "dva-avc-199:option:3": "DLQ misconfigured would route messages to DLQ — does not generate Throttles metric of Lambda; wrong premise."
+      },
+      "finalJustifications": [
+        "Because the function divides the limit of competition of the account (soft 1000) with all the others: if they consume the pool, this one is throttled when climbing to the backlog; it heals by increasing the share of the account and/or giving Reserved Competition to it.",
+        "Because the function bars in the burst competition: it prevents climbing backlog; it heals itself by increasing the share of the account and/or giving Reserved Competition to it, despite the fixed limit.",
+        "Because Visibility Timeout short reprocesses messages and saturates competition: the function is throttled when climbing; it heals itself by increasing the account share and/or giving Reserved Competition to it.",
+        "Because the DLROC misconfigured route valid messages and generates Throttles: the function is suffocated; it fixes itself by increasing the account share and/or giving Reserved Competition to it for the backlog."
+      ]
+    },
+    "dva-avc-200": {
+      "optionReasons": {
+        "dva-avc-200:option:0": "",
+        "dva-avc-200:option:1": "Subscribe Filter → Firehose → Athena build a pipeline and provide infrastructure — Logs Insights consults direct groups.",
+        "dva-avc-200:option:2": "It's the closest because X-Ray actually unifies the requisition into a trace — but it does not add the LOGS of the CloudWatch of functions by trace ID; to find the ENTRADAS OF LOG of the three functions by correlationId in a query, is the Logs Insights consulting the three log groups at once.",
+        "dva-avc-200:option:3": "aws logtail + local grep is manual and per file — not the only chronological query requested."
+      },
+      "finalJustifications": [
+        "Because Logs Insights consults the THREE log groups in a single query (logGroupNames) with filter @message like /abc-123/ — returns the entries of the three functions in a single result, orderly over time, without manual correlation.",
+        "Because the Subscribe Filter for Firehose consults the three log groups in a single query with filter per abc-123 — returns the entries of the three functions in a single result, orderly, without manual correlation.",
+        "Because X-Ray consults the three log groups in a single query with filter by abc-123 — returns the log entries of the three functions in a single result, orderly over time, without manual correlation.",
+        "Because aws logtail + grep consults the three loggroups in a single query with filter per abc-123 — returns the entries of the three functions in a single result, orderly over time, without manual correlation."
+      ]
+    },
+    "dva-avc-201": {
+      "optionReasons": {
+        "dva-avc-201:option:0": "",
+        "dva-avc-201:option:1": "X-Ray gives distributed tracking — is not the detailed execution log or structured access log of API Gateway.",
+        "dva-avc-201:option:2": "Subscription Filters route existing logs — not the two logging features of the internship that the question describes.",
+        "dva-avc-201:option:3": "It's the closest because access logs have levels — but the statement is FALSA: the two resources are DISTINTOS: execution logs (detailed internal processing, INFO/ERROR) and access logs (customized format by request); are not 'both access logs differentiated by level'."
+      },
+      "finalJustifications": [
+        "Because they are the execution logs (detailed internal processing — autorizer, integration, mapping — for debugging) and the access logs (format JSON customized with $context.* by request, for analytics/auditory).",
+        "Because X-Ray covers both: detailed internal processing for debugging and formatting JSON customised for analytics — the two logging features of the stage in one.",
+        "Because the Subscription Filters are both: they separate in real time the detailed internal processing for debugging and the custom format by requisition for analytics in two destinations.",
+        "Because they're both log accesses, differing only by level INFO/ERROR: one brings the detailed internal processing for debugging and the other the customized format for analytics."
+      ]
+    },
+    "dva-avc-202": {
+      "optionReasons": {
+        "dva-avc-202:option:0": "Search each one's logs Lambda is just what you want to avoid — the history of Step Functions already shows the state and error.",
+        "dva-avc-202:option:1": "It's the closest because X-Ray helps visualize the execution — but the statement is FALSA: o Step Functions TEM native execution history; is not 'X-Ray exclusive'; the failed state, error and Retry appear in the Execution History/Console Graph.",
+        "dva-avc-202:option:2": "",
+        "dva-avc-202:option:3": "CloudTrail records calls from API (StartExecution/DescriptionExecution) — not the workflow status error."
+      },
+      "finalJustifications": [
+        "Because the Execution History/Console Graph highlights in red the state that failed and lists the events (TaskFailed with error type and message, and the TaskFailed de retries) — without scanning each one's logs Lambda.",
+        "Because X-Ray highlights in red the state that failed and lists events (TaskFailed with error type and message, and retries) — since the Step Functions has no native history of execution.",
+        "Because the logs of each Lambda highlight in red the state that failed and list the events (TaskFailed with error type and message, and retries) — running the functions in the order of flow.",
+        "Because CloudTrail highlights in red the failed state and lists events (TaskFailed with error type and message, and retries) — from the StartExecution/DescriptionExecution events."
+      ]
+    },
+    "dva-avc-203": {
+      "optionReasons": {
+        "dva-avc-203:option:0": "It's the closest because Logs Insights combines log conditions — but part of a premise FALSA: o X-Ray SUPORTA combine conditions (fault = true OR responsetime > 2) in filter expressions; no need to leave X-Ray for the logs.",
+        "dva-avc-203:option:1": "Clicking the node on the Service Map is manual and does not filter the tracks by AMBAS the conditions at once.",
+        "dva-avc-203:option:2": "",
+        "dva-avc-203:option:3": "Sampling rules control QUANTO if captured — do not filter traces already collected by fault/responsetime."
+      },
+      "finalJustifications": [
+        "Because the X-Ray expression filter 'fault = true OR responsetime > 2' filter the traces by AMBAS the conditions interactively, and can be saved as X-Ray Group for continuous monitoring — without code.",
+        "Because the Logs Insights 'fault = true OR answertime query > 2' filter the tracks by both conditions, and can be saved as X-Ray Group for continuous monitoring — no code on the console.",
+        "Why click on the Service Map nodes with 'fault = true OR responsetime > 2' filter the tracks by both conditions, and can be saved as X-Ray Group for continuous monitoring — no code.",
+        "Because the sampling rules with 'fault = true OR answertime > 2' filter the tracks by both conditions, and can be saved as X-Ray Group for continuous monitoring — no code on the console."
+      ]
+    },
+    "dva-avc-204": {
+      "optionReasons": {
+        "dva-avc-204:option:0": "Evaluation Periods high softness noise — but continues a LIMIAR STATISTICS only; does not adjust per hour/day.",
+        "dva-avc-204:option:1": "",
+        "dva-avc-204:option:2": "Contributor Insights rankia dimensional contributors — does not model the expected band from a seasonal alarm metric.",
+        "dva-avc-204:option:3": "It's the closest because multiple alarms per time band try to capture seasonality — but it's fragile manual maintenance (define thresholds per track, schedule enable/disable) and doesn't cover the growth trend; a model that learns the band expected by time/day is Anomaly Detection."
+      },
+      "finalJustifications": [
+        "Because Anomaly Detection trains a model in the Invocations metric and calculates a band expected per point (with daily/weekly seasonality and trend); alarm outside the band adjusts the threshold dynamically per hour/day.",
+        "Because the static alarm with Evaluation Periods high trains a model in the metric and calculates a band expected per point with seasonality; alarm outside the band adjusts the threshold dynamically per hour/day.",
+        "Because the Contributor Insights trains a model in the Invocations metric and calculates a band expected per point with seasonality; alarm outside the band adjusts the threshold dynamically per hour/day.",
+        "Because multiple alarms per band train a model in metric and calculate a band expected per point with seasonality; alarm outside the band adjusts the threshold dynamically per hour/day."
+      ]
+    },
+    "dva-avc-205": {
+      "optionReasons": {
+        "dva-avc-205:option:0": "The difference in Duration is not 'equal to timeout' in a cold start — compared to timeout does not isolate the init phase.",
+        "dva-avc-205:option:1": "It's the closest because it combines cold start with low competition — but CompetitiveExecutions=1 DO NOT confirm cold start (a warm invocation may also have competition 1); what proves the initialization is the subsegment 'Initiation' in the X-Ray trace.",
+        "dva-avc-205:option:2": "",
+        "dva-avc-205:option:3": "memory_use ~100% indicates memory pressure — is not the signature of cold start; init appears in the trace, not in the memory metric."
+      },
+      "finalJustifications": [
+        "Because the X-Ray trace of the slow invocation shows a subsegment 'Initiation' when there is cold start: if it consumes much of the 1200ms, latency is of init; if absent, it was warm and slowness comes from another call.",
+        "Because the CompetitiveExecutions metric=1 shows a subsegment 'Initiation' when there is cold start: if it consumes much of the 1200ms, latency is of init; if absent, it was warm.",
+        "Because the difference in Duration shows a subsegment 'Initiation' when there is cold start: if it consumes much of the 1200ms, latency is from init; if absent, it was warm and comes from another call.",
+        "Because the memory_utilization shows a subsegment 'Initiation' when there is cold start: if it consumes much of the 1200ms, latency is from init; if absent, it was warm and comes from another call."
+      ]
+    },
+    "dva-avc-206": {
+      "optionReasons": {
+        "dva-avc-206:option:0": "Logs Anomaly Detection finds anonymous patterns — no 'index fields' of free text for field query.",
+        "dva-avc-206:option:1": "It's the closest because standardizing the text template reduces the breakdown of patterns — but it still depends on PARSE of free text: any writing/space change reintroduces fragility; making the fields reliably searchable without parse is logging ESTRUTURADO (JSON).",
+        "dva-avc-206:option:2": "EMF is for Log-in METRICS — does not convert 'any free text field' into Insights searchable field.",
+        "dva-avc-206:option:3": ""
+      },
+      "finalJustifications": [
+        "Because structured logging emits JSON with consistent field names (orderId, customerId, total): Logs Insights automatically discovers the fields and allows states sum(total) by customerId without parse — immune to message writing.",
+        "Because standardizing the template emits the fields with consistent names: Logs Insights automatically discovers the fields and allows stats sum(total) by customerId without parse — immune to message writing.",
+        "Because Logs Anomaly Detection issues JSON with consistent field names: Logs Insights automatically discovers the fields and allows stats sum(total) by customerId without parse — unedited.",
+        "Because EMF issue JSON with consistent field names: Logs Insights automatically discovers the fields and allows stats sum(total) by customerId without parse — immune to message writing."
+      ]
+    }
+  }
+}

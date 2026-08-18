@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "266-289",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-266": {
+      "optionReasons": {
+        "saa-med-266:option:0": "",
+        "saa-med-266:option:1": "It's the closest because the Map state also parallels real invocations — but adds an entire state machine to orchestrate what a row solves: no retry/DLQ natives by message and cost by transition; for simple file fan-out, SQS→Lambda with batch size 1 is the direct drawing.",
+        "saa-med-266:option:2": "More memory gives more CPU, but 10 files from 12 min in an invocation burst the timeout of 15 — internal parallelism does not multiply the clock.",
+        "saa-med-266:option:3": "Fargate solves another problem (long jobs) — each file fits in 15 min; the goal is to parallelize, not escape the timeout."
+      },
+      "finalJustifications": [
+        "Because a message per file with batch size 1 does the SQS invoke a Lambda by parallel file — 10 simultaneous executions with retry and DLQ natives of the line.",
+        "Because the batch size 1 divide the file into 10 slices processed by the same invocation, which adds the results within the timeout.",
+        "Because Event Source Mapping extends the timeout of Lambda for 30 minutes when the origin is SQS, covering the 10 files.",
+        "Because SQS group 10 files in a single compressed message, and the Lambda processing in accelerated sequence by batch."
+      ]
+    },
+    "saa-med-271": {
+      "optionReasons": {
+        "saa-med-271:option:0": "Deduplication ID acts in the publication (producer) — does not prevent re-delivery by timeout in consumption; and rowing is not necessary.",
+        "saa-med-271:option:1": "Long polling reduces empty chicks — has no relation to redelivery by expired visibility timeout.",
+        "saa-med-271:option:2": "",
+        "saa-med-271:option:3": "It's the closest because ChangeMessageVisibility actually extends the invisibility and is a valid technique — but requires extra code calling the API during processing, a manual heartbeat; with known duration (~2 min), the direct fix is to configure the Visibility Timeout greater than the processing."
+      },
+      "finalJustifications": [
+        "Because with Visibility Timeout greater than processing (ex.: 5 min), the message becomes invisible throughout the work and the redelivery by timeout disappears.",
+        "Because the greatest timeout instructs the SQS confirming receipt at delivery, and message is deleted before processing.",
+        "Because the timeout of 5 minutes activates the exact-once mode of the Standard row, ensuring a single delivery per message consumed.",
+        "Because Visibility Timeout syncs with the timeout of Lambda automatically, and the two clocks expire together."
+      ]
+    },
+    "saa-med-276": {
+      "optionReasons": {
+        "saa-med-276:option:0": "It's the closest because Expedited recovers in minutes and storage is even cheaper — but Expedited is expensive by GB, has limited capacity (can be unavailable without Provisioned Capacity) and serves small ad hoc restorations; for reliable urgency, Instant Retrieval delivers guaranteed immediate access.",
+        "saa-med-276:option:1": "Deep Archive Standard Recovery Takes ATATE 12 hours — does not fit in the window of 1-2 required hours.",
+        "saa-med-276:option:2": "Standard-IA COBRA Retrieval by GB (the claim is wrong) — and the discount of ~57% loses to archive classes in rarely accessed.",
+        "saa-med-276:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Instant Retrieval a file cost (~68% minor) with access in milliseconds — urgent restoration is immediate, paying retrieval only when it occurs.",
+        "Because Instant Retrieval keeps a hot cache of the most likely backups of restoration, chosen by ML of itself S3.",
+        "Because the Instant Retrieval exempts the recovery rate in emergency restorations declared next to the support of the AWS.",
+        "Because the Instant Retrieval replicates the 500 TB for a secondary region, and the restoration reads the nearest copy of the team."
+      ]
+    },
+    "saa-med-278": {
+      "optionReasons": {
+        "saa-med-278:option:0": "It's the closest because after replicating the access turns local in fact — but the REPLECTION itself pays the same cross-region transfer per object, and still doubles the storage cost; moving the consumer to the data region eliminates the transfer without doubling anything.",
+        "saa-med-278:option:1": "VPC Peering between regions ALSO collects inter-region transfer — there is no free route between regions.",
+        "saa-med-278:option:2": "Transfer Acceleration is for internet uploads via edge — does not apply (no cheating) traffic between regions of the AWS.",
+        "saa-med-278:option:3": ""
+      },
+      "finalJustifications": [
+        "Why put the Lambda in the region of the bucket zero the account: transfer between services within the same region is free, and nothing needs to be duplicated.",
+        "Because the Lambda in the same region accesses the S3 the internal network of the AZ, and the AWS credit the old transfer on the following invoice.",
+        "Because the change of region activates the free tier regional transfer, which covers the volume of Athena with monthly leave.",
+        "Because Athena starts to deliver the results by reference (poster) S3), and the Lambda read the data without actually transferring them."
+      ]
+    },
+    "saa-med-280": {
+      "optionReasons": {
+        "saa-med-280:option:0": "NAT Mechanism saves on time, but turns gargalo and single point of failure managed by you — and cross-AZ traffic remains paid for.",
+        "saa-med-280:option:1": "It's the closest because endpoints REALMENTE cut cost of NAT for services AWS — But they don't eliminate '100%': the traffic to the INTERNET (the scenario requirement) continues to require the NAT; the cost cross-AZ some is with a NAT Gateway by AZ and local routes.",
+        "saa-med-280:option:2": "'Split-horizon DNS' is not a VPC for this — resolution DNS does not change the data path of NAT.",
+        "saa-med-280:option:3": ""
+      },
+      "finalJustifications": [
+        "Because one NAT Gateway by AZ with local route keeps traffic in AZ itself — the cost cross-AZ is missing and the resilience improves break.",
+        "Because the three of us NAT Gateways divide the same fixed monthly rate, and the cost per AZ falls to one third of the original value charged.",
+        "Because NAT Gateway local compresses the AZ's own outbound traffic, reducing the GB processed at the volume rate.",
+        "Because AZ routes activate the aggregate traffic discount of VPC, applied when each AZ resolves its own output."
+      ]
+    },
+    "saa-med-284": {
+      "optionReasons": {
+        "saa-med-284:option:0": "The SSM Inventory collection CONFIGURATION and installed software — does not analyze use or recommend sizes.",
+        "saa-med-284:option:1": "It's the closest because the Cost Explorer TEM Rightizing Recommendations — but the allegation is wrong: they are based on just metrics of the CloudWatch and focus cost; performance analysis with ML (CPU, memory, network, disk) and projection by workload is the Compute Optimizer.",
+        "saa-med-284:option:2": "The Trusted Advisor points out instances SUBUTILIZADAS (low-use check) — does not recommend the ideal type/size by workload.",
+        "saa-med-284:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Computer Optimizer analyzes with ML the historical metrics CloudWatch — CPU, memory with agent, network and disk — and recommends type and size by workload.",
+        "Because Computer Optimizer automatically applies the recommendations in the maintenance window, resizing the approved fleet.",
+        "Because the Computer Optimizer tests the workload in parallel instances of various sizes and measures the actual performance of each.",
+        "Because Computer Optimizer crosses metrics with the invoice of Cost Explorer, prioritizing higher cost instances by use."
+      ]
+    },
+    "saa-med-288": {
+      "optionReasons": {
+        "saa-med-288:option:0": "It is the closest because it seems logical not to pay for what is not in use — but it is the classic mistake of EBS: volume provided charged per GB/month ANEXADO OR NOT; unsealing does not suspend anything — just delete (or snapshot + delete) closes the cost.",
+        "saa-med-288:option:1": "",
+        "saa-med-288:option:2": "Snapshots charge per GB/month in QUALQUER region — cross-region copy only adds transfer cost.",
+        "saa-med-288:option:3": "Snapshots and unattached volumes also charge — there is no 'courtesy' of free storage in AWS."
+      },
+      "finalJustifications": [
+        "'Cause the three of them are really charging for it.: EIP disassociated by hour, snapshot by GB/month and volume EBS per GB provided — cleaning orphans is direct economy.",
+        "Because the triple charge only happens after 30 days of inactivity, the period of absence AWS can resociate everything.",
+        "Because EIP stop collects per hour, but snapshots and orphan volumes are converted into storage credits from S3.",
+        "Because only the volume EBS full-size charge; EIP and snapshots pay frozen symbolic fee until final exclusion."
+      ]
+    },
+    "saa-med-289": {
+      "optionReasons": {
+        "saa-med-289:option:0": "False: an Intelligent-Tiering TEM object monitoring rate — 'free for any size' is just the mistake.",
+        "saa-med-289:option:1": "There is no automatic promotion of small objects to the Frequent Access 'to compensate' — tiering follows access, not size.",
+        "saa-med-289:option:2": "",
+        "saa-med-289:option:3": "It is the closest because it is correct that there is a fee and that small objects are disadvantaged — but it is wrong to UNIDADE: the monitoring is charged POR OBJETO, not by GB; so the small object is expensive to monitor, and the right is to keep it in S3 Standard."
+      },
+      "finalJustifications": [
+        "Because monitoring is charged by OBJETO/month: below 128 KB the rate exceeds the tiering economy, and the AWS recommends the S3 Standard for them.",
+        "Because monitoring is charged by GB, and small objects are virtually free to follow in Intelligent-Tiering.",
+        "Because objects below 128 KB go straight to the hot tier at no cost, and monitoring only goes above that size limit.",
+        "Because Intelligent-Tiering exempts the rate of small objects and the snake only of large ones, reversing the logic of efficiency by size."
+      ]
+    }
+  }
+}

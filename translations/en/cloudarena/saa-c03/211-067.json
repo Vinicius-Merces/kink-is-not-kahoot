@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "211-067",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-ini-211": {
+      "optionReasons": {
+        "saa-ini-211:option:0": "The Default VPC It's POR CONTA — never shared between accounts.",
+        "saa-ini-211:option:1": "The Default VPC EXISTE — each account is born with one per region.",
+        "saa-ini-211:option:2": "The CIDR by Default VPC It's 172.31.0.0/16 And she's coming. PRONTA (subnets, IGW, routes) — does not require manual configuration.",
+        "saa-ini-211:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Default VPC is created in each region: CIDR 172.31.0.0/16, AZ public sub-network, IGW attached and routes to the internet — instances in it gain public IP by default.",
+        "Because the Default VPC it is only reading: accepts instances, but new sub-networks and routes require the creation of a VPC Customized.",
+        "Because the Default VPC is born isolated from the internet until the first Internet Gateway be created and attached manually by the administrator.",
+        "Because the Default VPC share CIDR with all the other VPCs in the account, which prevents peering between them in the future of the network."
+      ]
+    },
+    "saa-ini-212": {
+      "optionReasons": {
+        "saa-ini-212:option:0": "",
+        "saa-ini-212:option:1": "Half right — the output is really all released by default, and that's what brings it closer to the correct one. But the other half is wrong: a Security Group new isn't NENHUMA entry rule, i.e. all inbound traffic is denied until the administrator explicitly releases.",
+        "saa-ini-212:option:2": "The exit is not blocked by default — there is a rule allow-all outbound.",
+        "saa-ini-212:option:3": "There are no standard rules for 'type of instance' — SG does not know what the instance is."
+      },
+      "finalJustifications": [
+        "Because the pattern is: released output (Allow All Outbound for 0.0.0.0/0) and entry all blocked (no rule inbound) — the instance speaks to the world, the world does not initiate connection with it.",
+        "Because the pattern of Security Group mirror the rules of NACL from the subnet where the instance is — the two firewalls are born synchronized by zone.",
+        "Because the AWS blocks the entire exit from Security Group new until user accepts traffic terms, preventing network abuse in recent accounts.",
+        "Because Security Group new inherits the rules of the last group edited in the account, accelerating the configuration of standardized fleets of instances."
+      ]
+    },
+    "saa-ini-216": {
+      "optionReasons": {
+        "saa-ini-216:option:0": "Numbering of CIDR is human convention — does not technically define anything.",
+        "saa-ini-216:option:1": "",
+        "saa-ini-216:option:2": "The Block Public Access is from S3 — has no relation to sub-networks.",
+        "saa-ini-216:option:3": "Security Groups protect INSTANCES — Open doors do not make the sub-network public."
+      },
+      "finalJustifications": [
+        "Because what defines it is the TABELA OF ROTAS: route 0.0.0.0/0 → Internet Gateway = public; without this route, the instances have no way to the internet = private.",
+        "Because the public subnet is the one that hosts the NAT Gateway — it is his presence that opens the internet path to the area.",
+        "Because the AWS marks the subnets as public at the time of creation, and this classification cannot be changed after.",
+        "Because public sub-networks operate on IPv6 and private IPv4 — the protocol defines internet exposure."
+      ]
+    },
+    "saa-ini-217": {
+      "optionReasons": {
+        "saa-ini-217:option:0": "The IGW does not filter protocols — there is no 'port list' in Internet Gateway.",
+        "saa-ini-217:option:1": "The NACLs FATHER allow all traffic — the typical silent blockade is the non-entry SG; and NACL not 'take priority', they are different layers.",
+        "saa-ini-217:option:2": "The temporary public IP works for SSH normally — only changes after stop/start.",
+        "saa-ini-217:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Security Group denies all entry by default: no inbound rule on door 22 of the correct origin, SSH gives timeout — even with public IP and public sub-network.",
+        "Because SSH requires a fixed Elastic IP to complete the handshake — dynamic public IPs are rejected by the protocol.",
+        "Because the door 22 is blocked in Internet Gateway by default, and release is done in the configuration of the VPC, not of the instance.",
+        "Because new instances go through a quarantine of 24h before releasing external access, the verification window of the AWS."
+      ]
+    },
+    "saa-ini-218": {
+      "optionReasons": {
+        "saa-ini-218:option:0": "Just CloudTrail not enough — network recognition and malicious domains come from Flow Logs and DNS Logs.",
+        "saa-ini-218:option:1": "",
+        "saa-ini-218:option:2": "Contents S3 It's Macie; HTTP in ALB It's WAF; you want to RDS are not standard source — service mix.",
+        "saa-ini-218:option:3": "The GuardDuty enable sources AUTOMATICAMENTE — does not require manually configure logs."
+      },
+      "finalJustifications": [
+        "Because GuardDuty analyze by pattern CloudTrail (APIs), VPC Flow Logs and DNS logs, with ML and thread intel — without having to enable these sources separately.",
+        "Because GuardDuty intercepts traffic in real time with a network agent of its own, mirroring packages for analysis.",
+        "Because GuardDuty analyzes the emails of the root account in search of phishing, the initial vector of most compromises.",
+        "Because GuardDuty depends on Security Hub to receive the logs — it is the hub that aggregates the sources before the ML analysis happens."
+      ]
+    },
+    "saa-ini-224": {
+      "optionReasons": {
+        "saa-ini-224:option:0": "",
+        "saa-ini-224:option:1": "VPC Endpoints Create CAMINHOS private for services — not sub-network firewall.",
+        "saa-ini-224:option:2": "Route tables define PARA ONDE traffic goes — do not allow/negade packages as firewall.",
+        "saa-ini-224:option:3": "The Internet Gateway is connectivity — does not filter traffic."
+      },
+      "finalJustifications": [
+        "Because the NACLs are the firewall at the level of SUB-REDE: Statess, entry/exit rules evaluated in numerical order, applied before traffic reaches the instances.",
+        "Because the NACLs are stateful as the Security Groups, but applied by sub-network — the traffic response is released by itself.",
+        "Because the NACLs filter only the traffic that comes out of VPC for the internet, leaving the internal traffic to the Security Groups.",
+        "Because the NACLs replace the Security Groups when configured, unifying the subnet firewall at a single control point."
+      ]
+    },
+    "saa-med-010": {
+      "optionReasons": {
+        "saa-med-010:option:0": "The S3 is storage of objects — you can save data lake, but do not perform analytic queries.",
+        "saa-med-010:option:1": "The Lambda perform short functions — is not an analytical bank.",
+        "saa-med-010:option:2": "",
+        "saa-med-010:option:3": "The DynamoDB It's NoSQL for key operations — not designed for complex BI analytic consultations."
+      },
+      "finalJustifications": [
+        "Because Redshift is the managed data warehouse of AWS: columnar storage and massively parallel processing, optimized for analytical queries in large volumes.",
+        "Because Redshift is a memory columnar cache that accelerates any connected relational database without migration of cluster data.",
+        "Because Redshift replaces the S3 as a layer of raw lake storage, unifying ingestion and analysis in a single managed service.",
+        "Because Redshift executes the transactional and analytical loads together, eliminating the separation between OLTP and OLAP on the BI platform."
+      ]
+    },
+    "saa-med-067": {
+      "optionReasons": {
+        "saa-med-067:option:0": "Larger files reduce overhead listing, but the Athena continue VARRENDO the same terabytes.",
+        "saa-med-067:option:1": "Timetable does not change the scanned volume — the collection of Athena It's for TB scan, not by schedule..",
+        "saa-med-067:option:2": "The Athena consultation or S3 — move to EBS is not part of the architecture.",
+        "saa-med-067:option:3": ""
+      },
+      "finalJustifications": [
+        "Because partitioning by date allows you to skip directories out of the filter (partition pruning) and the compressed columnar Parquet reads only the columns used — the scan drops orders of magnitude.",
+        "Because the Parquet indexes the data in Glue Data Catalog, eliminating scanning — o Athena direct response of the metadata index.",
+        "Because partitions automatically move the old data to the Glacier, and the Athena Just sweep what stays in the hot layer.",
+        "Because Athena is free for data in column format — scanning collection only applies to files CSV and JSON without compression."
+      ]
+    }
+  }
+}

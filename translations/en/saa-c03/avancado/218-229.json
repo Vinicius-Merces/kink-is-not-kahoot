@@ -1,0 +1,139 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "218-229",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-218": {
+      "text": "A stream of the Kinesis Data Streams has 5 consumer applications. With standard shared consumption, consumers compete for 2 MB/s reading per shard and delivery latency increased. The requirement is that CADA consumer has dedicated reading throughput and delivery latency of ~70 ms, without increasing the number of shards. Which feature answers?",
+      "options": [
+        "Migrate consumers to long polling",
+        "Enable Enhanced Fan-Out (EFO), registering each consumer to receive 2 MB/s dedicated by shard via push (HTTP/2)",
+        "Reduce consumer batch size",
+        "Increase stream retention period"
+      ],
+      "explanation": "A) Incorrect: long polling is the concept of SQS, not of Kinesis. B) Correct: with Enhanced Fan-Out, each registered consumer receives a dedicated route from 2 MB/s per shard with push delivery in ~70 ms — eliminates competition without reharding. C) Incorrect: minor batch can even increase overload; does not create dedicated throughput. D) Incorrect: retention affects how long data can be reread, not throughput."
+    },
+    "saa-avc-219": {
+      "text": "Intermittently slow requirements cross: CloudFront → API Gateway → Lambda A → Lambda B → DynamoDB. The team enabled the AWS X-Ray and wants to quickly identify QUAL chain node concentrates latency and visualizes dependencies between services. What feature of X-Ray offers this vision?",
+      "options": [
+        "The groups of log CloudWatch of each Lambda",
+        "X-Ray's Service Map, which shows the graph of dependencies with latency and error rates per node",
+        "The CloudTrail Lake",
+        "The Duration metrics of the Lambda no CloudWatch"
+      ],
+      "explanation": "A) Incorrect: the logs show each function in isolation — correlating the journey manually is slow and subject to error. B) Correct: the Service Map draws the full graph of the request (us and edges) with average latency, percentages and errors per component — the fastest way to find the gargalo. C) Incorrect: CloudTrail audit calls from API of management, not latency of application requests. D) Incorrect: Duration shows the time of each function, but not the point-to-point view nor the dependencies."
+    },
+    "saa-avc-220": {
+      "text": "A critical application rotates in Elastic Beanstalk. The company requires that the production agents NUNCA serve traffic with mixed versions (old and new at the same time responding to requests in the same environment) and that the rollback is immediately via DNS. What strategy meets these two requirements?",
+      "options": [
+        "Rolling deployment with batch 25%",
+        "Rolling with additional batch",
+        "Blue/green with two environments and exchange of CNAME (swap environment URLs)",
+        "All at once out of business hours"
+      ],
+      "explanation": "A) Incorrect: rolling mix versions during deployment — part of the instances responds with the old version and starts with the new one. B) Incorrect: also operates with mixed versions during transition. C) Correct: in blue/green, the new version rises in separate environment; the exchange of CNAME Move 100% of traffic at once and rollback is another exchange of DNS — D) Incorrect: all at once cause downtime and rollback requires new deployment."
+    },
+    "saa-avc-221": {
+      "text": "A payment company needs to perform cryptographic operations (signature and encryption) with keys that, by contract, must reside in HSMs of single tenant under its sole control, but wants very high availability of such operations within the VPC. Which architecture or AWS CloudHSM recommended for production?",
+      "options": [
+        "One single HSM in an AZ with weekly backup",
+        "A cluster CloudHSM with multiple HSMs distributed in at least two AZs, with automatic synchronization and balancing of the keys between them",
+        "Two HSMs in the same AZ to reduce latency",
+        "Use KMS as a contingency replica of the CloudHSM"
+      ],
+      "explanation": "A) Incorrect: a single HSM is a single point of failure — the AWS explicitly recommends against this in production. B) Correct: clusters CloudHSM synchronize keys automatically between HSMs in multiple AZs and balance requests — the recommended high availability design. C) Incorrect: same AZ does not protect against AZ's own failure. D) Incorrect: AZ keys CloudHSM are not replicable to the KMS — are distinct cryptographic domains."
+    },
+    "saa-avc-222": {
+      "text": "A company uses Storage Gateway in Volume Gateway mode for on-premises servers.: TODOS the data should remain stored locally (first on-premises) due to latency requirement, and the cloud should store only one-time backups (snapshots) EBS) for recovery. Which volume gateway mode attends?",
+      "options": [
+        "Hide Volumes",
+        "Stored volumes, keeping the local complete dataset and sending asynchronous snapshots to AWS",
+        "Gateway File",
+        "Gateway Tape"
+      ],
+      "explanation": "A) Incorrect: in cached mode, the primary data is in the S3 and only the cache is local — the reverse of the requirement. B) Correct: in the stored mode, the full volume resides on-premises (total local latency) and the gateway sends incremental snapshots to the AWS as backup — exactly the scenario. C) Incorrect: File Gateway exposes NFS/SMB about S3, non volumes iSCSI. D) Incorrect: Tape Gateway emulates tapes for backup software."
+    },
+    "saa-avc-223": {
+      "text": "An Oracle on-premises bank migration to Amazon Aurora PostgreSQL needs to occur with downtime of a few minutes. 2 TB What combination of tools and approach enables this heterogeneous migration almost without downtime?",
+      "options": [
+        "Storage Snapshot + Restoring No Aurora",
+        "AWS SCT to convert the Oracle→PostgreSQL schema, and AWS DMS as full load + CDC (continuous replication) until cutover",
+        "Export dump SQL and import no Aurora one weekend",
+        "AWS DataSync replicating Oracle data files"
+      ],
+      "explanation": "A) Incorrect: Oracle storage snapshot is not restoreable in Aurora PostgreSQL (different machines). B) Correct: Heterogeneous migration = SCT convert schema and objects; DMS makes the load complete and then replicates the changes (CDC) continuously — the cutter turns only the point of the application, with minutes of unavailability. 2 TB with continuous writing generates downtime hours and loss of changes during import. D) Incorrect: DataSync copy ARQUIVOS; Oracle data files don't work on Aurora."
+    },
+    "saa-avc-224": {
+      "text": "A data lake in S3 is consumed by several applications. A precise support application of the same objects JSON, but with the fields of PII MASCARADOS — without doubling the data in a second pocket and without changing the original objects. Which solution meets with minimal architecture?",
+      "options": [
+        "Replicate the bucket with one Lambda rewriting the masked objects",
+        "Give access to read only and rely on the customer's masking",
+        "S3 Subject matter Lambda: an Access Point that invokes a function Lambda to transform (mask) the object at the time of reading",
+        "Athena with CREATE TABLE AS SELECT daily"
+      ],
+      "explanation": "A) Incorrect: duplicates data (doubles storage cost and creates synchronization problem) — which the requirement forbids. B) Incorrect: masking in the customer is not control: the raw data reaches the application. C) Correct: the S3 Subject matter Lambda intercept GET and applies the real-time transformation function — the application receives the masked object, without copying and without changing the original.: CTAS materializes a copy (duplication) and adds daily lag."
+    },
+    "saa-avc-225": {
+      "text": "A critical global application needs to operate in active-active mode in two regions, with automatic failover and consistent data. Which three components form the basis of this multi-region architecture? (Select THREE Alternatives)",
+      "options": [
+        "Amazon Route 53 with latency/failover routing policy and health checks between regions",
+        "One single ALB shared between the two regions",
+        "DynamoDB Global Tables Aurora Global Database) for the multi-region data layer",
+        "VPC Peering to replicate user traffic",
+        "Replicated infrastructure (ALB + ASG) implanted independently in CADA Region",
+        "One single Auto Scaling Group covering the two regions"
+      ],
+      "explanation": "(a) Correct: or Route 53 directs users to the nearest/healthy region and takes a region from the air automatically via health checks. B) Incorrect: ALBs are regional — does not exist ALB between regions. C) Correct: the data layer needs multi-region replication native (Global Tables)/Aurora Global). D) Incorrect: peering connects networks; does not distribute users or replicates data. E) Correct: each Region needs its complete and independent computer stack. F) Incorrect: a ASG does not cross regions — it is a regional resource."
+    },
+    "saa-avc-226": {
+      "text": "A site behind the CloudFront + ALB is suffering from layer attacks 7: Requisition floods HTTP of thousands of IPs and attempts to SQL injection. DUAS measures mitigate these attacks on the edge? (Select DUAS alternatives)",
+      "options": [
+        "Linking AWS WAF to distribution, with managed rules (SQLi)/XSS) and rate-based rules against flood",
+        "Increase the size of the origin instances",
+        "Move the origin to another region",
+        "Hire AWS Shield Advanced for managed DDoS protection, visibility and support SRT",
+        "Lock the door 443 no Security Group of origin"
+      ],
+      "explanation": "(a) Correct: or WAF filter malicious patterns (managed rules) and rate-based rules automatically limit abusive IPs — everything on the edge, before the origin. B) Incorrect: scaling the origin absorbs more attack rather than blocking it — and expensive. C) Incorrect: changing the region does not affect attacks that follow the DNS. D) Correct: or Shield Advanced adds advanced DDoS detection/mitigation (L3/L4/L7), Shield Response Team and cost protection. E) Incorrect: block 443 knock down the website itself."
+    },
+    "saa-avc-227": {
+      "text": "The consultations of the Amazon Athena about a data lake of logs in JSON are expensive (scanned data collection) and slow. DUAS Do optimizations drastically reduce the volume scanned per query? (Select DUAS alternatives)",
+      "options": [
+        "Convert data to compressed columnal format (Apache Parquet)/ORC)",
+        "Increase the number of bucks S3",
+        "Share data by date (e.g. year/month/day) and filter by partitions in queries",
+        "Migrate consultations to the same SQL no RDS",
+        "Enable MFA Delete No Bucket"
+      ],
+      "explanation": "A) Correct: column format allows you to read only the columns used in the query, with compression — reductions in 90%+ in scanning are common. B) Incorrect: the amount of buckets does not influence the volume scanned by query. C) Correct: with Hive style partitioning + filter WHERE in the partition, the Athena read only the relevant folders (partition pruning). D) Incorrect: move data lake logs to a bank OLTP Inverts architecture and multiplies costs.: MFA Delete is protection against exclusion, no effect in consultation."
+    },
+    "saa-avc-228": {
+      "text": "Functions Lambda associated with a VPC need: (1) consult a bank RDS in private sub-network, and (2) call one API public third party on the internet. Today internet calls fail by timeout. DUAS settings fix architecture? (Select DUAS alternatives)",
+      "options": [
+        "Provide one NAT Gateway in a public sub-network of VPC",
+        "Link an Elastic IP directly to the function Lambda",
+        "Add route 0.0.0.0/0 → NAT Gateway on the road table of the private sub-networks used by the Lambda",
+        "Move function Lambda for the public sub-network with automatic IP",
+        "Create a Gateway Endpoint for the API of third parties"
+      ],
+      "explanation": "A) Correct: Internet access from private sub-networks requires a NAT Gateway (B) Incorrect: it is not possible to attach Elastic IP to a function Lambda. C) Correct: without the default route pointing to the NAT, Internet traffic has no way — the two pieces (NAT + D) Incorrect: Lambdas in VPC use ENIs that do not receive public IP — public sub-network does not resolve. S3 and DynamoDB, not for external APIs."
+    },
+    "saa-avc-229": {
+      "text": "A table of the DynamoDB that stores events uses the date (YYYY-MM-DD) as partition key and undergoes throttling at peak times, even with aggregate capacity remaining. DUAS design techniques correct this hot partition? (Select DUAS alternatives)",
+      "options": [
+        "Exchange the partition key for an attribute of ALTA cardinality and uniform access (e.g. device/user ID))",
+        "Increase the average size of items",
+        "Apply write sharding: add a calculated suffix to the key (e.g. date)#1..date#N) to spread the same day's writings between partitions",
+        "Enable PITR in the table",
+        "Create a LSI to absorb the writing"
+      ],
+      "explanation": "A) Correct: High cardinality key distributes traffic evenly between partitions — structural correction. B) Incorrect: larger items consume MAIS ability, aggravating the limit. C) Correct: when the natural key is of low cardinality, write sharding with suffix spreads the writings of the same logical value between N partitions. D) Incorrect: PITR it is data recovery, without relation to throughput. E) Incorrect: LSIs share the partition capacity of the table — do not absorb hot partitions."
+    }
+  }
+}

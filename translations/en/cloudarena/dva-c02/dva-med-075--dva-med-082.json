@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "dva-med-075..dva-med-082",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-med-075": {
+      "optionReasons": {
+        "dva-med-075:option:0": "It's the closest because it suggests a configuration file read by Beanstalk — but 'make.config' in S3' is not his mechanism; customize the creation (packages, files, commands, options) versioned with the code is via .eb files extensions in the root of the package.",
+        "dva-med-075:option:1": "Edit to AMI base in production is fragile and not versioned — the opposite of the application.",
+        "dva-med-075:option:2": "",
+        "dva-med-075:option:3": "Configure by SSH in each instance is manual and not versioned — does not survive new instances of ASG."
+      },
+      "finalJustifications": [
+        "Because .ebextensions files (YAML/JSON) in the root of the package bring sections such as packages, files, commands and option_settings — customizing the creation, versioned along with the code.",
+        "Because make.config does not S3 brings sections such as packages, files, commands and option_settings — customizing the creation of the environment, versioned along with the application code.",
+        "Why edit to AMI base brings sections like packages, files, commands and option_settings — customizing the creation of the environment, versioned along with the application code.",
+        "Why set up via SSH brings sections such as packages, files, commands and option_settings — customizing the creation of the environment, versioned along with the application code."
+      ]
+    },
+    "dva-med-076": {
+      "optionReasons": {
+        "dva-med-076:option:0": "",
+        "dva-med-076:option:1": "Turn off and reseal cause total unavailability — not deployed production insurance.",
+        "dva-med-076:option:2": "It's the closest because Rolling also updates without taking everything down — but it updates the MESMAS batch instances (versions can coexist during transition) and rollback requires new deployment; new instances validated before replacing, with simple rollback, is the policy Immutable.",
+        "dva-med-076:option:3": "All at once is the fastest, but the least safe: drop everything and climb the new version without prior validation."
+      },
+      "finalJustifications": [
+        "Because Immutable creates new instances with the new version in ASG temporary, valid and only then discard the old ones — without mixing versions in an instance and with simple rollback.",
+        "Because turning off and reconnecting creates new instances with the new version, valid and only then discards the old ones — without mixing versions in an instance and with simple rollbacks.",
+        "Because Rolling without additional batch creates new instances with the new version, it validates and only then discards the old ones — without mixing versions in an instance and with simple rollbacks.",
+        "Because All at once creates new instances with the new version, it validates and only then discards the old ones — without mixing versions in an instance and with simple rollbacks."
+      ]
+    },
+    "dva-med-077": {
+      "optionReasons": {
+        "dva-med-077:option:0": "S3 Artifacts version — does not make the blue/green traffic displacement of ECS.",
+        "dva-med-077:option:1": "It is the closest because updating the task definition also implements the new version — but shoots the ROLLING standard update, not blue/green with target group test and listener switching; this flow is the ECS with CodeDeploy (deployment controller CODE_DEPLOY).",
+        "dva-med-077:option:2": "",
+        "dva-med-077:option:3": "A second cluster with exchange of DNS is manual and coarse assembly — is not the blue/green managed by ECS."
+      },
+      "finalJustifications": [
+        "Because ECS with CodeDeploy (CODE_DEPLOY) climbs the new set behind a target group test, validates and switches the production listener for it — blue/green managed with two target groups.",
+        "Why update the task definition goes up the new set behind a target group test, validates and switches the production listener for it — blue/green managed with two target groups.",
+        "Why to version containers in S3 climbs the new set behind a target group test, validates and switches the production listener for it — blue/green managed with two target groups.",
+        "Because the second cluster with exchange of DNS climbs the new set behind a target group test, validates and switches the production listener for it — blue/green managed with two target groups."
+      ]
+    },
+    "dva-med-078": {
+      "optionReasons": {
+        "dva-med-078:option:0": "It is the closest because desiredCount defines how many tasks the service maintains — but it does not control the LIMITES during deployment; ensuring floor and roof of tasks in rolling update is the minimum pairHealthyPercent (80% = minimum 8) and maximumPercent (150% = maximum 15).",
+        "dva-med-078:option:1": "",
+        "dva-med-078:option:2": "cpu and memory dimension the task — do not control how many are active during implantation.",
+        "dva-med-078:option:3": "healthCheckGracePeriodSeconds postpones health check at the beginning — does not define floor/task roof."
+      },
+      "finalJustifications": [
+        "Why the MinimumHealthyPercent (80%) never less than 8 tasks attending and maximum% (150%) never again 15 running — exactly the limits of rolling update.",
+        "Because the desiredCount and launchType never guarantee less than 8 tasks answering and never again 15 running — exactly the service rolling update limits ECS.",
+        "Because the cpu and the memory of the task never guarantee less than 8 tasks answering and never again 15 running — exactly the service rolling update limits ECS.",
+        "Because the healthCheckGracePeriodSeconds guarantees never less than 8 tasks answering and never again 15 running — exactly the service rolling update limits ECS."
+      ]
+    },
+    "dva-med-079": {
+      "optionReasons": {
+        "dva-med-079:option:0": "Increasing timeout only allows builds more LONGOS — Don't speed them up.",
+        "dva-med-079:option:1": "",
+        "dva-med-079:option:2": "Rolling with less memory tends to DEIXAR the slower build — no more efficient.",
+        "dva-med-079:option:3": "It is the closest because removing the tests actually shortens the build — but at the cost of losing validation (dangerous practice); reducing the time by keeping the pipeline intact is the cache of the CodeBuild, that re-uses Docker dependencies and layers between builds."
+      },
+      "finalJustifications": [
+        "Because the cache of CodeBuild Re-use of dependencies (buildspect path no S3) and the Docker layers (local cache) between builds — without lowering anything or lowering everything again at each execution.",
+        "Because increasing the timeout takes advantage of the Docker dependencies and layers between builds — without lowering anything or lowering everything again at every execution of the CodeBuild.",
+        "Because running with less memory takes advantage of the Docker dependencies and layers between builds — without lowering anything or lowering everything again at every execution of the CodeBuild.",
+        "Because removing the tests takes advantage of the Docker dependencies and layers between builds — without lowering anything or lowering everything again at every execution of the CodeBuild."
+      ]
+    },
+    "dva-med-080": {
+      "optionReasons": {
+        "dva-med-080:option:0": "Editing environment variables by hand requires (many times) new deployment and has neither gradual rollout nor automatic rollback.",
+        "dva-med-080:option:1": "Flag on a code constant only changes with new deploy — the opposite of activating without deploy.",
+        "dva-med-080:option:2": "It's the closest because the name 'AWS Config' suggests managing configuration — but it evaluates CONFORMIDADE resources AWS, no feature application flags; connect a feature gradually with validation and rollback by alarm, without new deployment, is the AWS AppConfig.",
+        "dva-med-080:option:3": ""
+      },
+      "finalJustifications": [
+        "Because AWS AppConf activates the feature for 10% of users with deployment gradual strategies, validators and automatic rollback by alarms of the CloudWatch — all without new deployment.",
+        "Because edit environment variables activates the feature to 10% users with progressive strategies, validators and automatic rollback by alarms of the CloudWatch — all without new deployment.",
+        "Because keeping the flag on a constant activates the feature for 10% users with progressive strategies, validators and automatic rollback by alarms of the CloudWatch — all without new deployment.",
+        "Because AWS Configure Enables Feature for 10% users with progressive strategies, validators and automatic rollback by alarms of the CloudWatch — all without new deployment."
+      ]
+    },
+    "dva-med-081": {
+      "optionReasons": {
+        "dva-med-081:option:0": "A comment on the template does not impose anything — the CloudFormation or ignores.",
+        "dva-med-081:option:1": "",
+        "dva-med-081:option:2": "It's the closest because taking the seat from the template actually protects it from stack updates — but abandons management by IaC (drift, no versioning); protect the resource DENTRO of the stack, requiring explicit release, is the stack policy denying Update:Replace/Delete in the logical resource.",
+        "dva-med-081:option:3": "Rename the resource to 'PROTEGIDO' is just a name — does not block substitution or exclusion."
+      },
+      "finalJustifications": [
+        "Because the stack policy denying Update:Replace and Update:Delete for the bank's logical resource blocks accidental changes in it, requiring explicit release — protection within the stack itself.",
+        "Because a warning comment denying Update:Replace and Update:Delete to bank resource blocks accidental changes, requiring explicit release — protection within the stack itself.",
+        "Because removing the template seat denying Update:Replace and Update:Delete blocks accidental changes, requiring explicit release — protection within the own stack of CloudFormation.",
+        "Why rename the resource denying Update:Replace and Update:Delete blocks accidental changes in it, demanding explicit release — protection within the very stack of CloudFormation."
+      ]
+    },
+    "dva-med-082": {
+      "optionReasons": {
+        "dva-med-082:option:0": "It is the closest because it is an attribute of resource policy of the CloudFormation — but UpdateReplacePolicy treats behavior in SUBSTITUTE during UPDATE (e 'Delete' would erase the old resource; surviving the EXCLUSATION of the stack is DeletionPolicy: Retain (or Snapshot)).",
+        "dva-med-082:option:1": "",
+        "dva-med-082:option:2": "DependsWe define ORDEM of breeding — does not preserve the resource in the exclusion of stack.",
+        "dva-med-082:option:3": "'Condition: Never' would prevent the creation of the appeal — is not safeguard against exclusion."
+      },
+      "finalJustifications": [
+        "Because DeletionPolicy: Retain (or Snapshot) in the bank's resource preserves the bank (or a final snapshot) when the stack is erased — the data survives the exclusion of the stack.",
+        "Because UpdateReplacePolicy: Deletes on the bank's resource preserves the bank (or a final snapshot) when the stack is deleted — the data survives the exclusion of the stack from the CloudFormation.",
+        "Because DependsOn pointing to itself preserves the bank (or a final snapshot) when the stack is erased — the data survives the exclusion of the stack from the CloudFormation.",
+        "Because Condition: Never in the resource preserves the bank (or a final snapshot) when the stack is erased — the data survives the exclusion of the stack from the CloudFormation."
+      ]
+    }
+  }
+}

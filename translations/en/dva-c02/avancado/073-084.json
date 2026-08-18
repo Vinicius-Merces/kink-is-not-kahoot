@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "avancado",
+    "sourcePath": "data/exams/dva-c02/avancado.json",
+    "range": "073-084",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-avc-073": {
+      "text": "A function Lambda in Node.js you just need to call 'GetItem' in a single table of Amazon DynamoDB, but the current code uses 'const' AWS = Requires(\"aws-sdk'); const dynamodb = new AWS.DynamoDB.DocumentClient();' (the monolithic package of AWS SDK for JavaScript v2, loaded into the global scope of the module). The team notes relatively high cold start times and wants to reduce the overhead startup related to loading the SDK. What change directly reduces this overhead?",
+      "options": [
+        "Move instruction 'requires(\"aws-sdk\")' for inside the handler function (instead of the global scope of the module), so that it is loaded only when necessary.",
+        "Enable AWS Lambda SnapStart for Node.js function, to cache the already initialized state of SDK.",
+        "Increase the function's assigned memory Lambda, since memory is proportional to CPU and accelerate the initialization of the SDK regardless of the version used.",
+        "Migratory to AWS SDK for JavaScript v3, which is divided into modular packages per service (ex.: '@aws-sdk/client-dynamodb'), importing and packing only the customer and the required commands (e.g. 'DynamoDBClient' and 'GetItemCommand')."
+      ],
+      "explanation": "Correct. AWS SDK for JavaScript v3 is modular, allowing you to import only the specific customers and commands needed, instead of the complete monolithic package. This reduces the size of the implementation package and the amount of code that needs to be loaded/initiated during a cold start, reducing directly the time of cold start.",
+      "hint": "Think of how the structure (monolithic vs. modular) of the package SDK loaded affects the amount of code executed during function startup.",
+      "optionRationales": [
+        "Correct. AWS SDK for JavaScript v3 is modular, allowing you to import only the specific customers and commands needed, instead of the complete monolithic package. This reduces the size of the implementation package and the amount of code that needs to be loaded/initiated during a cold start, reducing directly the time of cold start.",
+        "Incorrect. More memory/CPU PODE speed up the execution of the initialization code, but does not solve the CAUSA RAIZ: loading a package SDK monolithic with many unused modules. Migrating for modular v3 imports directly reduces the QUANTIDADE of code to be initialized, being a more directed correction.",
+        "Incorrect. Move initialization of the SDK inside the handler makes it run NOVAMENTE in CADA invocation (without re-using the execution context between warm invocations), making both cold start and warm start MAIS LENTOS — the opposite of the optimization intended. The initialization in the global scope is reused in subsequent invocations..",
+        "Incorrect. Lambda SnapStart is not available for Node.js runtime — it is not a viable option for this function, regardless of the problem of loading the SDK. Migratory for modular imports of SDK v3 is the direct and widely applicable optimization for this specific problem."
+      ]
+    },
+    "dva-avc-074": {
+      "text": "A company is building an IoT data intake pipeline that receives MILHARES of sensor readings per second, each requiring a short sequence (sub-seconds a few seconds) of transformation/validation steps before being recorded in a database. The pipeline does not need waiting steps for human tasks, does not require semantics of execution exactly once (exactly-once) or long retention of execution history, and cost-effectiveness in ALTO VOLUME is a priority. AWS Step Functions is more suitable?",
+      "options": [
+        "Use AWS Step Functions Express Workflows, designed for workloads of ALTO VOLUME and short duration (to 5 minutes), with execution semantics at least once (at-last-once) and price model based on number of executions/duration/memory consumed.",
+        "Use a single function Lambda performing all transformation/validation steps internally in the code, without using Step Functions.",
+        "Use AWS Step Functions Standard Workflows, which offer exact-once execution and retention of execution history by 90 days.",
+        "Use AWS Step Functions Standard Workflows with a 'Wait' status 0 seconds between each step to minimize the duration and cost of execution."
+      ],
+      "explanation": "Correct. Express Workflows are designed specifically for high volume and short-term workloads, with a price model (based on number of executions, duration and memory) significantly more economical than Standard Workflows in this scenario. At-last-once semantics and the lack of long-term retention are adequate, since the scenario does not exactly-once nor long-term audit.",
+      "hint": "Think about what kind of workflow the Step Functions is optimized, in terms of price model and execution semantics, for flows of very high volume and short duration.",
+      "optionRationales": [
+        "Correct. Express Workflows are designed specifically for high volume and short-term workloads, with a price model (based on number of executions, duration and memory) significantly more economical than Standard Workflows in this scenario. At-last-once semantics and the lack of long-term retention are adequate, since the scenario does not exactly-once nor long-term audit.",
+        "Incorrect. The Standard Workflows price model is based on TRANSITIONS OF ESTADO, focused on smaller, longer and audit-needed workflows (e.g. approval processes). In thousands of executions per second, this cost model would be significantly more expensive than Express Workflows, and the exact-once/long retention features are not requirements of this scenario..",
+        "Incorrect. Although possible, this approach loses the visual definition of the workflow, the retry/catch treatment by step and the observation by step that the Step Functions offers. As the scenario explicitly describes 'a sequence of steps', the orchestration via Step Functions (Express) is the evaluated option, and its high volume cost model directly addresses the concern of throughput.",
+        "Incorrect. Adding 'Wait' states does not change the fundamental price model of Standard Workflows (based on state transitions), which remains more expensive than Express Workflows in this volume of executions. A 'Wait' state of 0 seconds still adds an extra state transition (additional cost) without functional benefit."
+      ]
+    },
+    "dva-avc-075": {
+      "text": "A 'Products' table of the Amazon DynamoDB has an item with a tag attribute representing a CONJUNTO of unique strings (e.g. {\"electronics\", \"promoting\", \"launching\"). Several administrators can competely add or remove individual tags from the same product (e.g.: an admin adds 'liquidacao' while another removes 'launching' almost at the same time). The current implementation reads the full list of 'tags', modifies it in the application code and saves the entire list back with 'PutItem', causing loss of updates (lost updates) when competing editions overlap.?",
+      "options": [
+        "Define 'tags' as the String Set (SS) type of DynamoDB and use 'UpdateItem' with 'UpdateExpression': \"ADD tags:novaTag\"' (or 'DELETE tags :tagAntiga'), with the encapsulated value as a set.",
+        "Store each tag as an item SEPARADO in the table (one item per product-tag pair) and use 'Query' to recover all tags from a product.",
+        "Use 'ConditionExpression: attribute_not_exists(tags)' in any update of the 'tags' attribute to avoid concurrent changes.",
+        "Keep tags as a list JSON (type List, L), but encapsulate each reading-modification-written cycle in a transaction of the DynamoDB ('TransactWriteItems') with a 'ConditionExpression' checking if the list has not changed."
+      ],
+      "explanation": "Correct. By setting 'tags' as a String Set (SS) and using operations 'ADD'/'DELETE' in 'UpdateExpression', DynamoDB applies the additions/removals of elements of the set atomicly on the server side. Competing administrators adding/removing tags DIFERENTES do not overwrite each other's changes, eliminating the pattern of reading-modification-writing and the resulting running condition.",
+      "hint": "Think of what kind of native data from DynamoDB allows to add or remove individual elements from a collection atomicly without having to rewrite the entire collection.",
+      "optionRationales": [
+        "Correct. By setting 'tags' as a String Set (SS) and using operations 'ADD'/'DELETE' in 'UpdateExpression', DynamoDB applies the additions/removals of elements of the set atomicly on the server side. Competing administrators adding/removing tags DIFERENTES do not overwrite each other's changes, eliminating the pattern of reading-modification-writing and the resulting running condition.",
+        "Incorrect. This approach (optimistic lock with retants) could work, but requires implementing retents in the application code for each tag edition. Use the native Set type with 'ADD'/'DELETE' completely eliminates the reading-modification-writing pattern (and the need for retrentatives) for this specific case of adding/removing individual elements.",
+        "Incorrect. This is a valid alternative data modeling (which would also avoid loss of updates, making each tag addition/removal an independent 'PutItem'/'DeleteItem'), but represents a significant change in data model/migration compared to the use of the native Set type in the existing 'tags' attribute, which resolves the competition problem with a much more ad hoc change.",
+        "Incorrect. 'attribute_not_exists(tags)' would only succeed if the attribute 'tags'' AINDA NO EXISTISSE in the item. As the item already has a tag attribute with existing tags, any conditional update would fail immediately, regardless of competition — this condition does not express 'avoid concurrent modification' usefully here.."
+      ]
+    },
+    "dva-avc-076": {
+      "text": "An application generates a high volume flow of log events that need to be delivered, in almost real time, to a data lake in Amazon S3 in Apache Parquet format (converted from the JSON the original), for further analysis with the Amazon Athena. The team wants a fully managed delivery mechanism that takes care of buffering, compression, format conversion and delivery to S3, SEM write or operate custom consumer code (e.g. a function) Lambda which polling a stream and engraves lots in S3 What service meets this requirement?",
+      "options": [
+        "Use jobs of ETL in streaming from AWS Glue to read continuously from a Kinesis Data Stream, convert to Parquet and record no S3.",
+        "Configure Event Notifications from Amazon S3 to trigger a function Lambda whenever new log files are sent, converting them to Parquet.",
+        "Use Amazon Kinesis Data Streams with a Consumer Lambda customized that makes buffer of records, converts to Parquet and records lots in S3.",
+        "Use Amazon Kinesis Data Firehose, configured with a stream delivery that has the Amazon S3 as a destination, with the integrated log format conversion resource enabled to convert the records JSON in Apache Parquet."
+      ],
+      "explanation": "Correct. Amazon Kinesis Data Firehose automatically manages buffering, compression, format conversion (including JSON for Apache Parquet, using AWS Glue Date Catalogue) and delivery to Amazon S3, fully configurable without requiring custom consumer code — meeting exactly the requirement of a fully managed delivery mechanism.",
+      "hint": "Think of what service the AWS offers, in a fully managed and configurable way, the delivery of data in streaming for the S3 with built-in format conversion, without requiring a consumer of his own.",
+      "optionRationales": [
+        "Correct. Amazon Kinesis Data Firehose automatically manages buffering, compression, format conversion (including JSON for Apache Parquet, using AWS Glue Date Catalogue) and delivery to Amazon S3, fully configurable without requiring custom consumer code — meeting exactly the requirement of a fully managed delivery mechanism.",
+        "Incorrect. This is exactly the custom consumer code approach (buffer logic, format conversion, recording in S3, treatment of errors/retests) that the team wants EVITAR. The Kinesis Data Firehose provides this delivery mechanism in a managed way, without custom code.",
+        "Incorrect. AWS Glue Streaming ETL is a viable alternative to transformations COMPLEXAS, but requires writing and keeping a job of ETL Custom Spark (transformation code, job monitoring) — more operational overhead than format conversion based on Firehose configuration for this simple case of JSON for Parquet.",
+        "Incorrect. This option assumes that log files are already coming to S3 as a prerequisite (a circular problem, as it takes the FLUXO of log events up to S3 is precisely the original requirement), and would still require code Lambda custom conversion, which Firehose natively provides."
+      ]
+    },
+    "dva-avc-077": {
+      "text": "One API REST no Amazon API Gateway is protected by a Lambda Custom Authorizer (type) TOKEN) valid tokens JWT issued by a Amazon Cognito User Pool E executes an additional custom logic (check a feature flag by holding in a table of the DynamoDB) before returning the policy document IAM. The current implementation only decodes the payload of JWT on base64 to read claims, SEM check your cryptographic signature — meaning that a JWT forged with arbitrary claims (e.g. a different sub/tenant ID) would go through custom logic. The team needs to keep the custom verification by the holder, but correct the validation of the JWT so that only tokens genuinely emitted by the User Pool are reliable. What correction resolves this?",
+      "options": [
+        "Replace Lambda Authorizer for native authorisation of type COGNITO_USER_POOLS no API Gateway, pointing directly to User Pool.",
+        "Configure the Lambda Authorizer to call the API 'GetUser Cognito with the JWT as accesses token in CADA request, treating a successful response as valid.",
+        "Decode the payload of JWT (base64) and check whether the claim 'cognito:username' corresponds to a value in an allowlist table in DynamoDB, without checking the signature of the JWT.",
+        "No. Lambda Authorizer, check the signature of the JWT using the public keys of the User Pool (JWKS, available at the endpoint JWKS from User Pool), validate the 'iss' (issuer), 'aud'/'client_id', 'exp' and 'token_use' claims, and SOMENTE SO apply the custom feature flag verification by the holder to the DynamoDB."
+      ],
+      "explanation": "Correct. Signing check via JWKS confirms that the token was genuinely issued by the User Pool and has not been changed, and the validation of standard claims ('iss', 'aud'/'client_id', 'exp', 'token_use') ensures that the token is valid, has not expired and has been issued to the expected client app. DENTRO of the Lambda Existing Authorizer, team preserves custom logic of feature flag by maintainer while correcting security failure.",
+      "hint": "Think of what it really proves that a JWT was issued by a Cognito User Pool and not forged by an attacker.",
+      "optionRationales": [
+        "Correct. Signing check via JWKS confirms that the token was genuinely issued by the User Pool and has not been changed, and the validation of standard claims ('iss', 'aud'/'client_id', 'exp', 'token_use') ensures that the token is valid, has not expired and has been issued to the expected client app. DENTRO of the Lambda Existing Authorizer, team preserves custom logic of feature flag by maintainer while correcting security failure.",
+        "Incorrect. Decoding without checking the signature means that an attacker can forge a JWT with any value of 'cognito:usename' and go through the checklist, since the signature (the actual proof that the token was issued by Cognito) This does not correct the vulnerability described..",
+        "Incorrect. The native authorizer COGNITO_USER_POOLS automatically validates the signature and claims of JWT, but DOESN'T support running custom logic of feature flag by holding it in DynamoDB that the team needs to maintain. Lambda Authorizer would eliminate this mandatory custom verification.",
+        "Incorrect. API 'GetUser' works only with ACCESS TOKENS (non ID tokens) and adds a network call to Cognito in CADA request for API, increasing latency — while local signature verification JWT using keys JWKS in cache is the standard and performatic approach, without depending on an external call by request."
+      ]
+    },
+    "dva-avc-078": {
+      "text": "An authentic mobile app users via a Amazon Cognito User Pool. After login, the app needs to send photos directly to a user-specific prefix in a Amazon S3 (ex.: 's3://Bucket/users/{cognito-identity-id}/') SEM pass the upload by a API backend (to reduce latency/cost in large files). The app already has the User Pool ID token obtained in the login. What is the default way to get credentials from AWS with restricted permission for this upload directly to S3?",
+      "options": [
+        "The app calls a function Lambda backend (via API Gateway) that uses your execution roll to call 's3:PutObject' in user name, transmitting the file through the API Gateway/Lambda.",
+        "Use the User Pool ID token directly as the 'Authorization' header value in requests to API of the S3 (SigV4), since the token already proves the identity of the user.",
+        "Embed a user's long-term access keys IAM dedicated ('mobile-app') directly in the app, restricted to the prefix S3 per user via conditions in the policy of the pocket.",
+        "Configure a Amazon Cognito Identity Pool with User Pool as authentication provider; the app exchanges User Pool ID token for temporary user credentials AWS via 'GetCredentialsForidentity' (after 'GetId') of Identity Pool, assuming a role of IAM whose policy restricts 's3:PutObject' to prefix 'users'/${cognito-identity.amazonaws.com:sub}/*' using policy variables."
+      ],
+      "explanation": "Correct.. Cognito Identity Pools are designed exactly for this flow: exchange a token of identity (from User Pool, or from another provider) for temporary credentials of AWS with a narrow scope, IAM. Using policy variables like '${cognito-identity.amazonaws.com:sub}', the role policy can dynamically restrict access to the prefix S3 specific user authenticated, allowing direct and secure upload without going through the backend.",
+      "hint": "Think of what resource the Cognito allows you to exchange a user authentication token for temporary credentials of AWS with restricted permissions via a roll of the IAM.",
+      "optionRationales": [
+        "Correct.. Cognito Identity Pools are designed exactly for this flow: exchange a token of identity (from User Pool, or from another provider) for temporary credentials of AWS with a narrow scope, IAM. Using policy variables like '${cognito-identity.amazonaws.com:sub}', the role policy can dynamically restrict access to the prefix S3 specific user authenticated, allowing direct and secure upload without going through the backend.",
+        "Incorrect. That's exactly the backend router approach the team wants EVITAR for large files (payload limits of API Gateway, running time/cost Lambda to transmit large files). Cognito Identity Pools provide direct temporary credentials from AWS to overcome this need.",
+        "Incorrect. Incorporating long-term credentials into a mobile app is a high security risk (the credentials can be extracted from the binary of the app and never automatically expire/rotate). Cognito Identity Pools provide temporary and automatically restricted credentials exactly to avoid this risk.",
+        "Incorrect. API of the S3 requires signed requests with SigV4 using CREDENCIAIS OF ACESSO DA AWS (temporary or long-term) — a JWT of a Cognito User Pool is not a valid credential of AWS and cannot be used directly to sign/authenticate requests to API of the S3; He needs to be first. TROCADO by credentials of the AWS via an Identity Pool."
+      ]
+    },
+    "dva-avc-079": {
+      "text": "An application needs to encrypt large files (several hundreds of MB) before storing them, using a Customer Master Key (CMK) of the AWS KMS for key management. However, the APIs 'Encrypt'/'Decrypt' KMS have a limit of 4 KB of data in plain text per call, making them inadequate to directly encrypt large files. What is the correct standard (envelope encryption) to resolve this?",
+      "options": [
+        "Call 'Encrypt' from KMS directly on the large file, dividing it into blocks of 4 KB and encrypting each block separately with CMK.",
+        "Store key material from CMK directly in the application configuration (via a single export of KMS) and perform all the encryption/description locally without new calls to KMS.",
+        "Use 'GenerateDataKeyWithPlaintext' to get just the encrypted data key, and then call 'Decrypt' immediately to get the key in plain text before encrypting the file.",
+        "Call 'GenerateDataKey' from KMS to get a data key in plain text and its encrypted version by KMS; use the data key in TEXTO PLANO with a local symmetric algorithm (ex.: AES-256-GCM) to encrypt the large file; store the data key CRIPTOGRAFADA for KMS next to encrypted file; immediately discard the data key in plain text from memory. To describe, call 'Decrypt' KMS in the stored data key to retrieve the key in plain text and then describe the file locally."
+      ],
+      "explanation": "Correct. This is the classic envelope encryption standard: 'GenerateDataKey' returns, in a single call, both the data key in plain text (used to encrypt files of any size locally with an efficient symmetrical algorithm) and its encrypted version by KMS (stored securely next to the file). KMS never processes the file itself, just the small data key, bypassing the limit of 4 KB and keeping the master key (CMK) protected within the KMS.",
+      "hint": "Think about how to bypass the limit of 4 KB of KMS generating an auxiliary key that can be used locally to encrypt data of any size.",
+      "optionRationales": [
+        "Correct. This is the classic envelope encryption standard: 'GenerateDataKey' returns, in a single call, both the data key in plain text (used to encrypt files of any size locally with an efficient symmetrical algorithm) and its encrypted version by KMS (stored securely next to the file). KMS never processes the file itself, just the small data key, bypassing the limit of 4 KB and keeping the master key (CMK) protected within the KMS.",
+        "Incorrect. Although sharing the file can technically bypass the size limit, call 'Encrypt' the KMS for CADA block of 4 KB of a file of several hundred MB would require thousands of calls to API of the KMS (cost, latency and risk of throttling). Envelope encryption with a single call to 'GenerateDataKey' and local encryption is the efficient and recommended standard.",
+        "Incorrect. 'GenerateDataKeyWithPlaintext' returns SOMENTE the encrypted data key (without flat text), requiring a call ADICIONAL and immediate 'Decrypt' only to get the plain text key needed for encryption — an extra and redundant call compared to 'GenerateDataKey', which already returns AMBAS the versions (flat and encrypted text) in a single call to the encryption flow.",
+        "Incorrect. AWS KMS (keys managed by AWS and by the customer, with key material within the service HSMs) DO NOT support export of their key material in the general case — this runs counter to the central security model of the KMS, which keeps the non-exportable key material within the service HSMs."
+      ]
+    },
+    "dva-avc-080": {
+      "text": "An application stores database credentials RDS which should be ROTACIONADAS automatically to each 30 days, without requiring re-implantation of the application or downtime, with the rotation process (updating both the stored value and the user password in the database) fully managed by AWS. What a service/resource combination of AWS meets this requirement?",
+      "options": [
+        "AWS Secrets Manager with automatic rotation configured, using a function Lambda rotational (managed by Secrets Manager or customized) associated with secrecy — the Secrets Manager supports scheduled rotation (e.g., each 30 days) that updates both the stored value of the secret and the credentials in the bank RDS, and the application recovers the current value via 'GetSecretValue' in execution time.",
+        "Store credentials as a standard string parameter (not SecureString) in Parameter Store, since rotation changes only the value and encryption is not relevant for rotation.",
+        "Encoding credentials as function environment variables Lambda, encrypted with a key from the KMS, and manually update the environment variable and reimplant the function to each 30 days.",
+        "Store credentials as a SecureString parameter in AWS Systems Manager Parameter Store, and set up a scheduled rule of Amazon EventBridge invoking a function Lambda customized to each 30 days to update the parameter value."
+      ],
+      "explanation": "Correct. AWS Secrets Manager provides native support to scheduled secret rotation, including ready-to-use integrations with RDS updating AMBOS the stored value no Secrets Manager And the user password in the database, by means of a function Lambda The application simply looks for the current value via 'GetSecretValue' whenever you need to connect, without needing to redeploy.",
+      "hint": "Think of what service the AWS offers scheduled and fully managed credentials rotation, with native integration to update both the stored secret and password in the database.",
+      "optionRationales": [
+        "Correct. AWS Secrets Manager provides native support to scheduled secret rotation, including ready-to-use integrations with RDS updating AMBOS the stored value no Secrets Manager And the user password in the database, by means of a function Lambda The application simply looks for the current value via 'GetSecretValue' whenever you need to connect, without needing to redeploy.",
+        "Incorrect. Parameter Store SecureString has no rotation mechanism NATIVO; although a solution customized with EventBridge+Lambda PUDESSE update the parameter, it would need to be fully built and maintained by the team (including the password update in the RDS) — o Secrets Manager provides this native rotation orchestration to RDS.",
+        "Incorrect. Storage of database credentials in plain text (String, not SecureString) is a security issue regardless of rotation — SecureString (encrypted via KMS) should always be used for credentials, and this option does not yet have any rotation mechanism.",
+        "Incorrect. This approach requires manual re-implantation of each 30 days (exactly the operating/downtime overhead that the requirement wants to avoid), and does not deal with the actual rotation of the user's password in RDS."
+      ]
+    },
+    "dva-avc-081": {
+      "text": "A company uses an Active Directory Federation Services (AD FS) on-premises as an identity provider for employee single sign-on. They want employees to log in to AWS Management Console using its existing AD corporate credentials, assuming different roles of IAM based on the AD group to which they belong (e.g., 'Developers' takes on 'DeveloperRole', 'Admins' takes on 'AdminRole')'), SEM create users IAM for each employee. What mechanism of the AWS meets this requirement?",
+      "options": [
+        "Create a user IAM individual for each employee, and use AD FS to automatically sync passwords with the login on each user's console IAM via AD Connector.",
+        "Create a Amazon Cognito User Pool, configure AD FS as an identity provider SAML for User Pool, and use Cognito Identity Pools to map authenticated users to roles of IAM for access to the console.",
+        "Configure AD FS as an identity provider SAML 2.0 no AWS IAM (creating a resource IAM Identity Provider), and create roles of IAM with trust policies that allow the provider SAML take them via 'sts:AssumeRoleWithSAML'; AD FS is configured with claims rules SAML mapping the belonging to AD groups for the attribute 'https://aws.amazon.com/SAML/Attributes/Role', determining which role IAM each employee can take over at the federation on the console.",
+        "Use GetFederationToken AWS STS, called by a user's credentials IAM long-term built into a portal application, to generate temporary login URLs on the console for employees based on the AD group."
+      ],
+      "explanation": "Right, the federation. SAML 2.0 with 'AssumeRoleWithSAML' is the standard mechanism of AWS to allow users authenticated by a corporate IdP (such as AD FS) to assume roles of IAM and access the AWS Management Console without the need for users IAM individual. AD FS claims rules map AD groups to the Role attribute of the SAML, controlling which role each employee can assume.",
+      "hint": "Think of what resource the IAM allows users authenticated by an external corporate identity provider to assume roles of IAM directly to access the AWS Management Console.",
+      "optionRationales": [
+        "Right, the federation. SAML 2.0 with 'AssumeRoleWithSAML' is the standard mechanism of AWS to allow users authenticated by a corporate IdP (such as AD FS) to assume roles of IAM and access the AWS Management Console without the need for users IAM individual. AD FS claims rules map AD groups to the Role attribute of the SAML, controlling which role each employee can assume.",
+        "Incorrect. Cognito User Pools/Identity Pools are designed for authentication/authorization at the APLY level (issuing JWTs/temporary credentials for app users to call APIs or services from AWS), not to federate employees in AWS MANAGEMENT CONSOLE — the federation SAML of the IAM with 'AssumeRoleWithSAML' is the direct mechanism for access to the console via corporate IdPs.",
+        "Incorrect. This approach requires creating and managing users IAM individual (the requirement explicitly wants EVITAR this), and AD Connector is a directory proxy for cases of use of the AWS Directory Service/WorkSpaces, not a user console login password synchronization mechanism IAM.",
+        "Incorrect. This approach requires a user IAM long-term with extensive permissions embedded in a customised portal application (safety risk), and does not take advantage of the trust relationship SAML already existing with the AD FS neither maps roles from the groups of the AD in the direct and native form that 'AsumeRoleWithSAML' offers."
+      ]
+    },
+    "dva-avc-082": {
+      "text": "A team sets up a pocket of the Amazon S3 with event notifications to invoke a function Lambda Every time a new object is sent, they've given it to EXECUTION ROLE function Lambda permission ('s3:GetObject') to read the bucket, but the event notification of the S3 is not firing the function Lambda — o CloudTrail It shows no attempt at invocation.?",
+      "options": [
+        "Increase the function's reserved competition Lambda to ensure that it has the capacity to be invoked by the events of the S3.",
+        "Add an inline policy to the execution role of Lambda granting 'lambda:InvokeFunction' no ARN of the function itself.",
+        "Enable permission 's3:PutBucketNotification' in Execution Roll of Lambda, since the function needs permission to receive notifications from the bucket.",
+        "The function Lambda Needs a POLICY BASEADA EM RECURSO (Lambda permit) allowing the main service of the S3 ('s3.amazonaws.com') invoke function ('lambda:InvokeFunction'), restricted to the specific pocket (via the 'SourceArn' condition) — this is separated from EXECUTION ROLE (which controls what function PODE FAZER in execution, e.g.: read the S3) and need to be added (e.g. via 'aws lambda add-permission' or o equivalent 'AWS::Lambda::Permission no CloudFormation/SAM) to allow the S3 INVOQUE the function."
+      ],
+      "explanation": "Right, so that a service from AWS (as the S3) may invoke a function Lambda, the function needs a resource-based policy granting 'lambda:InvokeFunction' to the corresponding main service, usually restricted by 'SourceArn' to the specific bucket. INDEPENDENTE execution roll, which only controls what the function can do (its output calls) when it is running.",
+      "hint": "Think of the difference between what a function Lambda PODE FAZER (his execution roll) and who has permission to INVOCAR the function (its resource-based policy)).",
+      "optionRationales": [
+        "Right, so that a service from AWS (as the S3) may invoke a function Lambda, the function needs a resource-based policy granting 'lambda:InvokeFunction' to the corresponding main service, usually restricted by 'SourceArn' to the specific bucket. INDEPENDENTE execution roll, which only controls what the function can do (its output calls) when it is running.",
+        "Incorrect. Execution roll controls what the function can do via SDK of AWS ENQUANTO IS EXECUTIVE; it has no relation to whether a SERVICE EXTERNO (S3) is allowed to INVOCAR the function — such permission must be granted through a policy based on recourse of the function, not by execution role.",
+        "Incorrect. Limits of competition affect how many invocations can be rolled SIMULTANEAMENTE since the invocations are already taking place, not if S3 It's okay. AUTORIZADO to invoke the function — this does not resolve the lack of permission to invoke.",
+        "Incorrect. 's3:PutBucketNotification' is an action of API of the S3 for CONFIGURAR the UM notification definitions BUCKET (typically executed once, by who configures the integration, via console/CLI/IAC) — is not a permission that the execution roll of the function Lambda it needs to be implemented in time, and it does not grant to S3 the ability to invoke the function."
+      ]
+    },
+    "dva-avc-083": {
+      "text": "A company requires that TODOS objects sent to a specific newsletter of the Amazon S3 or OBRIGATORIAMENTE encrypted with SSE-KMS (encryption on the server side using a key from KMS managed by the customer) — uploads without this encryption header should be REJEITADOS at the level of API, regardless of which main IAM performs upload. How this should be applied?",
+      "options": [
+        "Configure the 'default encryption' of the pocket to SSE-KMS with the key managed by the customer, trusting that the S3 automatically encrypt all objects that do not specify an encryption header.",
+        "Enable S3 Object Lock in Compliance mode in the pocket, which prevents objects from being overwritten or deleted, unless they meet specific criteria, including encryption.",
+        "Attach a policy of the IAM each main of the IAM which can send objects to the pocket, with a 'Condition' requiring the header 's3:x-amz-server-side-encryption 's3:PutObject'.",
+        "Add a statement in the bucket policy with 'Effect: Deny' for 's3:PutObject' for main '*', with a 'Condition' using 'StringNotEquals' in the requisition header 's3:x-amz-server-side-encryption' (and optionally 's3:x-amz-server-side-encryption-aws-kms-key-id' for a key KMS specific) — this NEGA any PutObject request that does NOT include the header/key SSE-KMS required, regardless of the other permissions of the principal of the IAM."
+      ],
+      "explanation": "Correct. A denial statement (Deny) in the policy of the bucket with the condition 'StringNotEquals' in the header 's3:x-amz-server-side-encryption' rejects, at the level of API, any 'PutObject' which does not specify the required encryption — this denial applies to QUALQUER main (since the main of the declaration is '*'), regardless of your permissions IAM the individual, taking into account the 'requirement regardless of which main'.",
+      "hint": "Think about which level of configuration allows you to deny a request from API based on a specific header, regardless of who is making the request.",
+      "optionRationales": [
+        "Correct. A denial statement (Deny) in the policy of the bucket with the condition 'StringNotEquals' in the header 's3:x-amz-server-side-encryption' rejects, at the level of API, any 'PutObject' which does not specify the required encryption — this denial applies to QUALQUER main (since the main of the declaration is '*'), regardless of your permissions IAM the individual, taking into account the 'requirement regardless of which main'.",
+        "Incorrect. Default encryption automatically encrypts objects that do NOT specify configurations of SSE, but no REJEITA uploads — it does not require a specific header to be present, and a different type of encryption explicitly specified by the sender could still be ACEITO (overlapping the default), failing to reject non-compliant uploads.",
+        "Incorrect. Attach the same condition to the policy of the IAM of CADA main individually is operationally fragile (need to be replicated to any current and future main, including main accounts of other accounts over which the team may not have control) — a single statement in the bucket policy applies the requirement centrally, regardless of the main, which is much more robust.",
+        "Incorrect. S3 Object Lock controls retention behavior WORM (write-once-read-many) to prevent the deletion/modification of objects (retention/legal hold) — is not related to requiring a specific encryption configuration on the server's side in PutObject requests."
+      ]
+    },
+    "dva-avc-084": {
+      "text": "One API REST no API Gateway uses one Lambda Authorizer (type TOKEN) which validates a key API Customized passed in the header 'Authorization'. The function of the authorizer makes a query to the DynamoDB to validate the key, adding ~50ms latency a CADA The team wants you to API Gateway store in CACHE the result (policy) IAM) of the authorizer for repeated requests with the MESMA key API, avoiding invoking the Lambda Authorizer (and consultation to DynamoDB) in all applications, for 5 minutes. Which configuration achieves this goal?",
+      "options": [
+        "Define the identity source of the Lambda Authorize as 'context.requestId', so that each request is treated as unique and stored in cache independently.",
+        "Configure the Lambda Authorizer with 'authorizerResultTtlInSeconds' defined as 300 (5 minutes) and 'identitysource' defined as the heading 'Authorization' — the API Gateway will cache the policy IAM returned by the author, indexed by the value of 'identitySource' (the key to API in the heading 'Authorization', by TTL configured; subsequent requests with the MESMO header value inside the window of TTL re-use cache policy SEM invoke the Lambda Authorizer.",
+        "Increase the assigned memory of the function Lambda Authorizer to speed up the consultation DynamoDB, reducing additional latency by requisitioning.",
+        "Enable response cache (cache cluster) at method level in API Gateway for protected methods, with a TTL of 300 seconds."
+      ],
+      "explanation": "Correct. 'authorizerResultTtlInSeconds' controls for how long API Gateway caches the result (policy document IAM) returned by Lambda Authorizer, using the value of 'identitySource' (here, the header 'Authorization' containing the key to API) as a cache key. Requirements with the same cache key API within TTL re-use the cached result, avoiding the invocation of the authorizer and the query to the DynamoDB.",
+      "hint": "Think of which two configurations of the Lambda Authorizer control how long the API Gateway caches an authorization decision and what value of the request is used as a key to that cache.",
+      "optionRationales": [
+        "Correct. 'authorizerResultTtlInSeconds' controls for how long API Gateway caches the result (policy document IAM) returned by Lambda Authorizer, using the value of 'identitySource' (here, the header 'Authorization' containing the key to API) as a cache key. Requirements with the same cache key API within TTL re-use the cached result, avoiding the invocation of the authorizer and the query to the DynamoDB.",
+        "Incorrect. The response cache at method level stores in cache at RESPOSTA DO BACKEND (the actual result of the API) by requisition parameters, not the AUTHORIZER — is a different cache layer that does not reduce the invocations of Lambda Authorizer.",
+        "Incorrect. Increasing memory can marginally reduce execution time, but not ELIMINA the consultation DynamoDB/Invocation of the Authorizer at each request — the team specifically wants to EVITAR invoke the authorizer in repeated requests, which only the cache resolves.",
+        "Incorrect. Using a unique value per request (such as 'requestId', which differs in each request) as a cache key means that the cache NUNCA would produce a hit (each request has a different 'identity'), completely nullifying the purpose of the cache."
+      ]
+    }
+  }
+}

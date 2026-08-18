@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "014-025",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-014": {
+      "text": "A financial institution stores extremely sensitive encrypted data with the Amazon S3 using SSE-KMS. Compliance policy requires the company to have complete control over the life cycle of encryption keys, including the ability to immediately disable a key to make all associated objects inaccessible (kill switch), and to audit in detail each encryption/description operation.?",
+      "options": [
+        "Use Customer Managed Keys on AWS KMS, with restrictive key policies, allowing to disable or schedule the key deletion and auditing the use via AWS CloudTrail.",
+        "Use AWS managed keys (aws/s3) of the KMS, because they already provide tracking of use in CloudTrail and may be excluded by the customer when necessary.",
+        "Use SSE-S3 (keys managed by AWS) to simplify the operation, since the encryption AES-256 is equivalent in safety and auditability to SSE-KMS.",
+        "Implement client-side encryption with a custom library before uploading to S3, storing keys in a database RDS separate."
+      ],
+      "explanation": "Customer Managed Keys no KMS give the customer total control over key policy, rotation, enable/disable and delete key; all calls kms:Decrypt and kms:GenerateDataKey are individually registered in CloudTrail, allowing granular audit and an immediate kill switch when disabled key.",
+      "hint": "The granular control over enabling/disableing and auditing an encryption key is directly linked to who is the administrative key owner in the key management service.",
+      "optionRationales": [
+        "Customer Managed Keys no KMS give the customer total control over key policy, rotation, enable/disable and delete key; all calls kms:Decrypt and kms:GenerateDataKey are individually registered in CloudTrail, allowing granular audit and an immediate kill switch when disabled key.",
+        "♪ Out of the way SSE-S3 also use AES-256, the keys are fully managed by the AWS without customer-configurable key policies, without customer-driven granular disabling capacity and without individual key-use registration in the CloudTrail, not meeting the control and audit requirements.",
+        "AWS managed keys cannot be disabled, have their policy edited or be excluded by the customer; the life cycle is entirely controlled by AWS, what does not meet the requirement of immediate kill switch under customer control.",
+        "Building a custom key management system introduces significantly higher operational and security risks than using the KMS, which is already validated for FIPS 140-2 and offers managed HSMs, without the need to reinvent this infrastructure."
+      ]
+    },
+    "saa-avc-015": {
+      "text": "An application executed in instances Amazon EC2 within private sub-networks (no route to a Internet Gateway or NAT Gateway) needs to read and record objects in a pocket Amazon S3 The security team requires that this traffic never cross the public internet and that access to the ticket is restricted only to requests originating from that VPC, even if they are credentials IAM valid are compromised and used from another location. What combination of configurations meets TODOS requirements?",
+      "options": [
+        "Attach managed AmazonS3FullAccess to the Role policy IAM of the bodies EC2 and rely only on the principle of least privilege of permissions IAM.",
+        "Use AWS Direct Connect to create a dedicated connection between the VPC and service Amazon S3.",
+        "Create a Gateway VPC Endpoint for the Amazon S3 and add to the policy of the bucket a condition that denies access to unless aws:SourceVpce matches the endpoint ID.",
+        "Provide one NAT Gateway in the public sub-network and update the route table of the private sub-network to point 0.0.0.0/0 for the NAT Gateway."
+      ],
+      "explanation": "The Gateway VPC Endpoint S3 allows private traffic between VPC and the S3 no use NAT Gateway or Internet Gateway, and the condition aws:SourceVpce in the pocket policy ensures that even with valid credentials, access is only allowed if originated by this specific endpoint, blocking external attempts.",
+      "hint": "Consider a network mechanism that maintains traffic for a service AWS inside the backbone of the AWS and a resource policy condition based on the origin of such traffic.",
+      "optionRationales": [
+        "The Gateway VPC Endpoint S3 allows private traffic between VPC and the S3 no use NAT Gateway or Internet Gateway, and the condition aws:SourceVpce in the pocket policy ensures that even with valid credentials, access is only allowed if originated by this specific endpoint, blocking external attempts.",
+        "Although the NAT Gateway allow private sub-networks to access the S3 by public internet (via its public endpoint), this violates the requirement that traffic never cross the public internet and does not restrict access to the ticket by network origin.",
+        "Permissions IAM control 'who' can access, but do not prevent the same credentials from being used from outside the VPC if they are committed; the explicit requirement to restrict by network origin requires a condition based on VPC Endpoint in Resource Policy.",
+        "The AWS Direct Connect is designed to connect on-premises data centers to AWS via dedicated circuit, not being the appropriate mechanism for private traffic between resources within itself VPC and services AWS regional S3, which is solved via VPC Endpoints."
+      ]
+    },
+    "saa-avc-016": {
+      "text": "A development team stores a database password Amazon RDS for PostgreSQL no AWS Secrets Manager. Security policy requires automatic rotation of credentials for each 30 days without downtime of the application and without manual intervention, in addition to versioning the credentials to allow rollback in case of rotation failure. Which solution fully meets this requirement with the least implementation effort?",
+      "options": [
+        "Configure native autorotation AWS Secrets Manager for RDS, using the function Lambda of managed rotation provided by AWS, with a schedule of 30 days.",
+        "Store password in AWS Systems Manager Parameter Store as a SecureString parameter and create a cron job in an instance EC2 to manually alter it every month.",
+        "Disable password authentication RDS and use only Security Groups to control access to the database.",
+        "Encode the bank password directly into the application source code and update the Git repository to each 30 days via IC/CD pipeline."
+      ],
+      "explanation": "The AWS Secrets Manager has function templates Lambda Rotation ready specifically for the Amazon RDS, implementing the multi-step rotation strategy (createsecret, setsecret, testsecret, finishsecret) with automatic versioning (AWSCURRENT/AWSPENDING/AWSPREVIOUS), allowing downtime and rollback rotation through secret versions.",
+      "hint": "Look for the service that already comes with integration and pre-built rotation functions specifically for managed databases of the AWS.",
+      "optionRationales": [
+        "The AWS Secrets Manager has function templates Lambda Rotation ready specifically for the Amazon RDS, implementing the multi-step rotation strategy (createsecret, setsecret, testsecret, finishsecret) with automatic versioning (AWSCURRENT/AWSPENDING/AWSPREVIOUS), allowing downtime and rollback rotation through secret versions.",
+        "The Parameter Store has no native automatic rotation integrated into the life cycle of the RDS; a solution based on cron job manual in EC2 introduces a single point of failure, high operational effort and risk of inconsistency between the stored secret and the bank's real password.",
+        "Disable password authentication without setting alternative authentication (such as IAM Database Authentication) would leave the bank inaccessible or unsafe; Security Groups control network access, do not replace the need for authentication credentials in the bank.",
+        "Store credentials directly in the source code is a classic unsafe practice that exposes secrets in the versioning history and in any environment where the code is implemented, besides not providing automatic rotation or secure versioning."
+      ]
+    },
+    "saa-avc-017": {
+      "text": "A public web application exposed through a Application Load Balancer (ALB) has suffered volumetric layer attacks 7 (HTTP (flood) originating from a large number of different IP addresses, in addition to recurrent attempts to SQL injection. The company is also a customer of a plan that offers specialized support from the DDoS Response team (DRT) of AWS during incidents. What combination of services mitigates AMBOS the types of attack and provides access to specialized support?",
+      "options": [
+        "Linking ALB to one AWS WAF Web ACL with rules managed for SQL injection and a rate-based rule (rate-based rule), in addition to signing AWS Shield Advanced.",
+        "Migrate application to instances EC2 with Elastic IP and configure Security Groups to allow only traffic from a fixed list of reliable IPs.",
+        "Enable only the AWS Shield Standard, which is already activated automatically and offers complete protection against layer attacks 7 and SQL injection without additional cost.",
+        "Configure Network ACLs in the sub-network of the ALB to block all traffic HTTP door entry 80 and 443."
+      ],
+      "explanation": "The AWS WAF with managed rules (Managed Rule Groups) blocks known patterns of SQL injection while a rate-based rule mitigates HTTP floods limiting IP requests of origin; AWS Shield Advanced adds advanced layered DDoS protection 3/4/7 and gives access to the DDoS Response Team (DRT) during incidents.",
+      "hint": "Think of an application filtering layer that understands requisition patterns HTTP combined with a DDoS protection service that includes specialized human support.",
+      "optionRationales": [
+        "The AWS WAF with managed rules (Managed Rule Groups) blocks known patterns of SQL injection while a rate-based rule mitigates HTTP floods limiting IP requests of origin; AWS Shield Advanced adds advanced layered DDoS protection 3/4/7 and gives access to the DDoS Response Team (DRT) during incidents.",
+        "The AWS Shield Standard automatically protects against the most common DDoS network and transport attacks (layers) 3 and 4), but does not include protection against application layer attacks as SQL injection does not offer access to the DDoS Response Team, which is an exclusive benefit of Shield Advanced.",
+        "Lock the doors 80 and 443 would make the web application completely inaccessible to legitimate users, being an unviable solution that does not distinguish malicious traffic from legitimate traffic.",
+        "Restricting access to a fixed list of IPs is not feasible for a public web application with diverse users and does not mitigate attacks from SQL injection does not offer specialized support against DDoS, in addition to eliminating the benefits of scalability and traffic distribution from ALB."
+      ]
+    },
+    "saa-avc-018": {
+      "text": "A great organization has 50 accounts AWS organized in multiple organizational units (OUs) in AWS Organizations, representing different departments. The IT team wants all the 2.000 employees log in once using the corporate identity provider (Microsoft Enter ID via SAML) and, from a single portal, they can assume different levels of access (only reading, administrator, financial) in specific accounts, without creating users. IAM which solution meets this requirement with a lower administrative burden?",
+      "options": [
+        "Configure the AWS IAM Identity Center (successor to AWS SSO) integrated with Microsoft Sign in ID via SAML 2.0, defining Permission Reusable Sets and assigning them to user groups for specific accounts within the organization.",
+        "Use Service Control Policies (SCPs) no AWS Organizations to grant read, admin and financial access permissions directly to employees.",
+        "Manually Create a User IAM in each of the 50 accounts for each of the 2.000 employees, totaling 100.000 users IAM, with individual policies.",
+        "Enable Amazon Cognito User Pools in the organization's management account and use groups from Cognito to map permissions IAM in each member account."
+      ],
+      "explanation": "The IAM Identity Center centralizes federated authentication via SAML with the Entra ID and allows to define Permission Sets (sets of reusable permissions, such as ReadOnly, AdministratorAccess or Customized) assigned to user groups per account, eliminating the need for users IAM individual and providing a single access portal (AWS portal access).",
+      "hint": "The right service centralizes the federation SAML corporate and uses reusable 'permission sets' for multiple accounts within an organization.",
+      "optionRationales": [
+        "The IAM Identity Center centralizes federated authentication via SAML with the Entra ID and allows to define Permission Sets (sets of reusable permissions, such as ReadOnly, AdministratorAccess or Customized) assigned to user groups per account, eliminating the need for users IAM individual and providing a single access portal (AWS portal access).",
+        "This approach is operationally impossible on a scale, requiring manual management of 100.000 identities, no single sign-on real and violating good practices of centralized identity management.",
+        "SCPs define the maximum permissions that member accounts may have, but do not grant permissions to identities or provide authentication or federation of users; they do not replace a user access management system.",
+        "The Amazon Cognito is aimed at authentication of end users of applications (mobile/web), not for corporate identity federation of employees accessing the console and multiple accounts AWS way SSO; o IAM Identity Center is the service designed for this use case."
+      ]
+    },
+    "saa-avc-019": {
+      "text": "A startup is developing a mobile app that allows users to log in with their Google or Facebook accounts and, after authenticated, upload photos directly to a pocket Amazon S3 and record records in a table of Amazon DynamoDB, each user accessing only their own data. The team does not want to manage any backend of their own authentication or expose long-term credentials in the application. Which architecture meets these requirements?",
+      "options": [
+        "Use Amazon Cognito User Pools for federated authentication with Google and Facebook as identity providers, and Cognito Identity Pools to exchange identity tokens for temporary credentials of AWS STS with restricted permissions via IAM roles and policies with context variables of Cognito.",
+        "Use AWS IAM Identity Center to federate end users of the mobile app via Google and Facebook, assigning permission sets access to the S3 and DynamoDB.",
+        "Create a IAM Role with AmazonS3FullAccess and AmazonDynamoDBFullAccess policy, and embed the Access Keys of this role directly into the mobile app source code.",
+        "Implement a custom authentication server in an instance EC2 that validates tokens on Google/Facebook and directly generates Access Keys IAM permanent for each user."
+      ],
+      "explanation": "Cognito User Pools manages the federation with external identity providers (Google, Facebook) without its own backend, while Identity Pools provides temporary credentials from STS; political IAM with the variable cognito-identity.amazonaws.com:sub allow you to restrict each user's access to your own objects S3 (by prefix) and DynamoDB (by partition key), with no long-term credentials.",
+      "hint": "Think of the service focused on end-user identities of applications that combines social identity providers with the issuance of temporary credentials from AWS.",
+      "optionRationales": [
+        "Cognito User Pools manages the federation with external identity providers (Google, Facebook) without its own backend, while Identity Pools provides temporary credentials from STS; political IAM with the variable cognito-identity.amazonaws.com:sub allow you to restrict each user's access to your own objects S3 (by prefix) and DynamoDB (by partition key), with no long-term credentials.",
+        "Embed long-term Access Keys into a mobile application is an extremely unsafe practice, as the code can be decompiled, exposing credentials with full access to S3 and DynamoDB for any user of the app, without isolation between users.",
+        "Building and maintaining a custom authentication server adds unnecessary operational complexity and security risk when the Cognito already offers this functionality in a managed way, besides generating Permanent Access Keys being an unrecommended practice.",
+        "The IAM Identity Center is designed to provide access to the console's workforce (staff) and accounts AWS way SSO corporate, not for authentication of end users of consumer applications; Amazon Cognito is the appropriate service for this use case."
+      ]
+    },
+    "saa-avc-020": {
+      "text": "An e-commerce company exposes its website through a Application Load Balancer with a certificate TLS issued for the domain www.lojaexemplo.com.br. The security team requires that the certificate be automatically renewed before it expires without manual intervention and that communication between users and the ALB be always encrypted (HTTPS), with automatic rerouting of requests HTTP for HTTPS. What solution requires the least continuous operational effort for certificate management?",
+      "options": [
+        "Buy a certificate from an external certifying authority, upload manual to IAM as a server certificate (IAM Server Certificate Store) and associate it with ALB.",
+        "Configure the Amazon Route 53 with a record of aliases pointing to ALB and depend on DNSSEC to provide cryptography in transit without using certificates TLS no ALB.",
+        "Generate a self-signed certificate using OpenSSL in an instance EC2 and configure it not ALB to avoid costs with certifying authorities.",
+        "Request a public certificate at AWS Certificate Manager (ACM) with validation DNS, associate it with a listener HTTPS (443) no ALB, and set up a listener HTTP (80) with a redirection rule for HTTPS."
+      ],
+      "explanation": "Certificates issued by ACM with validation DNS are automatically renewed by AWS before expiry, without any manual intervention, provided that the registration CNAME validation remains in the Route 53 (or DNS equivalent); or ALB supports listener rules to redirect HTTP for HTTPS native.",
+      "hint": "Look for the managed certificate service from AWS which is natively integrated into load balancers and automatically renews certificates when issued with validation by DNS.",
+      "optionRationales": [
+        "Certificates issued by ACM with validation DNS are automatically renewed by AWS before expiry, without any manual intervention, provided that the registration CNAME validation remains in the Route 53 (or DNS equivalent); or ALB supports listener rules to redirect HTTP for HTTPS native.",
+        "Certificates manually loaded no IAM (Server Certificate Store) are not automatically renewed; the team would need to repeat the manual process of purchase, upload and association before each expiration, increasing the operational effort and the undetected risk of expiration.",
+        "Self-signed certificates are unreliable by browsers and require users to ignore safety warnings, as well as need manual renewal, which does not meet production requirements for a public e-commerce site.",
+        "DNSSEC protects the integrity of the answers DNS against falsification, but does not provide transport layer encryption (TLS) for traffic HTTP between the browser and ALB; is a safety mechanism of DNS, not a substitute for certificates TLS."
+      ]
+    },
+    "saa-avc-021": {
+      "text": "The security team of an organization with 40 accounts no AWS Organizations Wants to ensure that NENHUMA member count, including the root user of these accounts, can disable the AWS CloudTrail, exclude existing audit trails or exit the organization, even if administrative credentials are compromised. What approach does this control apply in a preventive and comprehensive way in all accounts?",
+      "options": [
+        "Enable log file integrity validation (log file validation) in CloudTrail to detect adulterations in log files stored in S3.",
+        "Create a Service Control Policy (SCP) attached to the root of the organization (or to an OR containing all accounts) which explicitly denies the actions cloudtrail:StopLogging, cloudtrail:DeleteTrail and organizations:LeaveOrganization for all main players.",
+        "Configure a rule of AWS Configure to monitor the status of CloudTrail and manage a notification via Amazon SNS when logging is disabled.",
+        "Attaching a Policy IAM managed to all administrative roles of each account denying the shares cloudtrail:StopLogging, cloudtrail:DeleteTrail and organizations:LeaveOrganization."
+      ],
+      "explanation": "SCPs define the maximum permission limit for all identities of a member account, including root user, and cannot be replaced by policies IAM local; one SCP of explicit denial (deny) in these actions blocks preventively any attempt, even by administrators with compromised credentials.",
+      "hint": "Think of the only type of policy that can restrict permissions even to the root user of a member account, centrally throughout the organization.",
+      "optionRationales": [
+        "SCPs define the maximum permission limit for all identities of a member account, including root user, and cannot be replaced by policies IAM local; one SCP of explicit denial (deny) in these actions blocks preventively any attempt, even by administrators with compromised credentials.",
+        "Policies IAM do not apply to the root user of the account and may be modified or removed by an administrator with sufficient permissions (including an attacker with compromised credentials), not offering a comprehensive preventive guarantee as a SCP.",
+        "The AWS Config with this rule only detects and notifys after the fact (reactive/detective approach), not preventing the action to disable the CloudTrail is, which does not meet the prevention requirement.",
+        "Log integrity validation only ensures that stored log files have not been changed after recording, but does not prevent someone from stopping logging or deleting the log path from CloudTrail before new events are recorded."
+      ]
+    },
+    "saa-avc-022": {
+      "text": "A company needs to continuously ensure that all the newsletters S3 set up in any of the following: 25 your organization's accounts follow a set of compliance rules based on CIS AWS Foundations Benchmark (e.g. public access lock, enabled encryption). In addition to detecting non-compliant buckets, the solution must automatically correct buckets that are created with public access enabled, without manual intervention. What solution meets this requirement in a scalable way throughout the organization?",
+      "options": [
+        "Enable AWS Trusted Advisor with the Business plan in each account and manually review the security checks related to buckets S3 public every week.",
+        "Implement a Compliance Pack of AWS Config (based on the template of CIS AWS Foundations Benchmark) via AWS Organizations, combining managed config rules with automatic config remediation actions AWS Systems Manager Automation to fix non-compliant pocketes.",
+        "Enable AWS CloudTrail on all accounts and use Amazon Athena to consult the logs in search of operations to create buckets S3 public.",
+        "Request each development team to manually document the configuration of their newsletters S3 in a shared spreadsheet, reviewed quarterly by the security team."
+      ],
+      "explanation": "Conformity Packages AWS Config can be implemented throughout the organization from the management account, grouping compliance rules (such as checking public access in buckets S3) with automatic remediation via SSM Automation, correcting configuration deviations without manual and scale intervention.",
+      "hint": "Look for a service that continuously evaluates resource configuration against a set of predefined rules and can be combined with correction automations, centrally deployable throughout the organization.",
+      "optionRationales": [
+        "Conformity Packages AWS Config can be implemented throughout the organization from the management account, grouping compliance rules (such as checking public access in buckets S3) with automatic remediation via SSM Automation, correcting configuration deviations without manual and scale intervention.",
+        "The Trusted Advisor provides useful checks on buckets S3 with public access, but does not offer automatic remediation or native aggregation on an organizational scale with continuous application of policies; depends on periodic manual review, not being an automated and continuous solution.",
+        "The CloudTrail with Athena allows forensic and investigative analyses after the fact, but does not continuously evaluate the configuration of resources against a compliance framework nor performs automatic remedying.",
+        "A manual process based on non-scale spreadsheets for 25 accounts, does not detect real-time deviations and does not offer any automatic remedial action, going against the requirement of automatic correction of non-compliant buckets."
+      ]
+    },
+    "saa-avc-023": {
+      "text": "A company with 35 accounts AWS organized not AWS Organizations it wants its central security team, located in a dedicated security account, to have unified visibility of threats (such as EC2 communicating with known command and control servers, or possible cryptocurrencies mining) in TODAS the accounts, without having to enable and configure an individual detection service in each account separately. Which approach meets this requirement with the least operational effort?",
+      "options": [
+        "Enable AWS CloudTrail Lake on the security account and create queries SQL scheduled to identify suspicious patterns of API in all accounts.",
+        "Designate the security account as the managing director of the Amazon Macie way AWS Organizations to detect network threats in all accounts.",
+        "Enable Amazon GuardDuty individually in each of the 35 accounts and configure each to send notification emails to the security team via Amazon SNS.",
+        "Designate the security account as the managing director of the Amazon GuardDuty through the AWS Organizations, automatically enabling or GuardDuty in all existing and future member accounts, with centrally aggregated finding in the security account."
+      ],
+      "explanation": "The Amazon GuardDuty supports native integration with the AWS Organizations, allowing a security account to be designated as a delegated administrator and automatically enable the GuardDuty in all member accounts (current and future), adding all threat finding (such as communication with known malicious IPs or cryptocurrency mining) in a single location.",
+      "hint": "Think of the threat detection service that has a native managing director model of the AWS Organizations for automatic mass-enabled.",
+      "optionRationales": [
+        "The Amazon GuardDuty supports native integration with the AWS Organizations, allowing a security account to be designated as a delegated administrator and automatically enable the GuardDuty in all member accounts (current and future), adding all threat finding (such as communication with known malicious IPs or cryptocurrency mining) in a single location.",
+        "Enable and configure the GuardDuty individually in 35 accounts is operationally costly, prone to account configuration inconsistencies and does not offer an aggregate and centralized view of the finding, requiring the security team to monitor multiple inboxes.",
+        "The Amazon Macie is focused on the discovery and classification of sensitive data stored in Amazon S3 (as PII), not in detection of network threats such as communication with command and control infrastructure or cryptocurrency mining, which is the domain of GuardDuty.",
+        "The CloudTrail Lake allows you to consult events of API historial, but does not perform behavioral and intelligence analysis of threats in real time (as a correlation with malicious IP feeds) that the GuardDuty provides natively."
+      ]
+    },
+    "saa-avc-024": {
+      "text": "The security team of an organization with 35 accounts AWS needs a single pane of glass that automatically adds security finders generated by Amazon GuardDuty, AWS Configure and Amazon Inspector in all accounts, and that continuously evaluates the security posture of these accounts against the standard CIS AWS Foundations Benchmark, assigning a compliance score. Which service was specifically designed for this purpose?",
+      "options": [
+        "AWS Security Hub, configured with delegated administrator via AWS Organizations and aggregation between regions, with the safety standard CIS AWS Foundations Benchmark enabled.",
+        "Amazon Detective, configured as managing director via AWS Organizations to calculate the conformity score CIS of all accounts.",
+        "AWS Audit Manager, collecting evidence automatically from GuardDuty, Configure and Inspector to generate the conformity score CIS in real time.",
+        "Develop Functions AWS Lambda customised that periodically consult the APIs of the GuardDuty, Configure and Inspector in each account, storing the results in a table of Amazon DynamoDB and viewing them on a dashboard of Amazon QuickSight."
+      ],
+      "explanation": "The AWS Security Hub is designed to automatically add multiple service finding (GuardDuty, Configure, Inspector, Macie and others) in a standardized format (AWS Security Finding Format), supports delegated administrator for the entire organization, aggregation between regions and calculates a continuous compliance score against standards such as CIS AWS Benchmark Foundations.",
+      "hint": "Look for the service whose main purpose is to add multiple security finding services to AWS in a standardized format and score compliance against recognized benchmarks.",
+      "optionRationales": [
+        "The AWS Security Hub is designed to automatically add multiple service finding (GuardDuty, Configure, Inspector, Macie and others) in a standardized format (AWS Security Finding Format), supports delegated administrator for the entire organization, aggregation between regions and calculates a continuous compliance score against standards such as CIS AWS Benchmark Foundations.",
+        "The Amazon Detective is an investigation tool that helps to analyze and visualize relationships between security finding to discover the root cause of incidents, but does not aggregate multiple service finding in a single panel nor calculates compliance scores against benchmarks such as CIS.",
+        "The AWS Audit Manager continuously collects evidence to support formal audits in relation to regulatory frameworks, but its purpose is to generate evidence reports for auditors, not to function as a real-time operating panel that aggregates multiple service security finding.",
+        "Build this customized reimplement solution, with significant development and maintenance effort, a functionality that AWS Security Hub already offers natively, managed and with support to multiple accounts via Organizations."
+      ]
+    },
+    "saa-avc-025": {
+      "text": "During an investigation, the security team identified that a specific IP address is making repeated attempts of brute force against the door 22 (SSH) of several instances EC2 in a sub-network. The team needs to block IMEDIATAMENTE all traffic originating from that IP to TODAS sub-network instances (current and future), without needing to edit the configuration of each Security Group individually, since there are dozens of Security Groups which mechanism allows this?",
+      "options": [
+        "Create a Web ACL of the AWS WAF associated with fora EC2 with a rule that locks the IP address on the door 22.",
+        "Add a denial rule (deny) to the IP address of origin at Network ACL associated with the sub-network, with a lower priority (rule number) than existing permission rules.",
+        "Remove Internet Gateway of VPC to cut off all external connectivity until the attack stops.",
+        "Add a denial rule (deny) to the original IP address on the door 22 in each of the Security Groups associated with sub-network instances."
+      ],
+      "explanation": "Network ACLs operate at the level of the sub-network, are statesss and support explicit rules of DENY, being evaluated before the Security Groups; a deny rule with low priority number (evaluated first) immediately blocks the traffic of this IP for all sub-network instances, current and future, without need to change multiples Security Groups.",
+      "hint": "Think about the network security component that operates at the sub-network level, is evaluated before the Security Groups and is the only one who supports explicit rules of denial.",
+      "optionRationales": [
+        "Network ACLs operate at the level of the sub-network, are statesss and support explicit rules of DENY, being evaluated before the Security Groups; a deny rule with low priority number (evaluated first) immediately blocks the traffic of this IP for all sub-network instances, current and future, without need to change multiples Security Groups.",
+        "Security Groups support only permission rules (allow); it is not possible to create a deny rule in a Security Group, making this approach technically impossible, in addition to requiring the editing of dozens of Security Groups individually.",
+        "Remove Internet Gateway would interrupt all connectivity from entering and leaving the internet to the VPC whole, affecting legitimate users and services, a disproportionate action compared to blocking a single malicious IP.",
+        "The AWS WAF operates in the application layer (HTTP/HTTPS) and can only be associated with Amazon CloudFront, Application Load Balancer, API Gateway or AWS AppSync, unable to filter traffic SSH (door 22) directly to for instance EC2."
+      ]
+    }
+  }
+}

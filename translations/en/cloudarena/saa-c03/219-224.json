@@ -1,0 +1,95 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "219-224",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-219": {
+      "optionReasons": {
+        "saa-avc-219:option:0": "Logs CloudWatch by Lambda bring textual detail — do not mount the graph of requests dependencies.",
+        "saa-avc-219:option:1": "",
+        "saa-avc-219:option:2": "CloudTrail Lake audits calls from API — does not trace the latency of the request by the service chain.",
+        "saa-avc-219:option:3": "It's the closest because the Duration metric of Lambda shows latency by function of fact — but isolated, by service, SEM the graph of the entire chain: does not reveal which NO of the sequence concentrates the delay or dependencies; the view of dependencies with latency/error per node is the Service Map of X-Ray."
+      },
+      "finalJustifications": [
+        "Because the X-Ray Service Map draws the graph CloudFront→API Gateway→Lambdas→DynamoDB with latency and error rate per node — chain gargalo appears immediately, with visible dependencies.",
+        "Because the logs of CloudWatch draw the graph CloudFront→API Gateway→Lambdas→DynamoDB with latency and error rate per node — chain gargalo appears immediately, with visible dependencies.",
+        "Because CloudTrail Lake draws the graph CloudFront→API Gateway→Lambdas→DynamoDB with latency and error rate per node — chain gargalo appears immediately, with visible dependencies.",
+        "Because the Duration metric of Lambda draw graph CloudFront→API Gateway→Lambdas→DynamoDB with latency and error rate per node — chain gargalo appears immediately, with visible dependencies."
+      ]
+    },
+    "saa-avc-220": {
+      "optionReasons": {
+        "saa-avc-220:option:0": "Rolling 25% also updates in batches in the same environment — mixed versions during deployment.",
+        "saa-avc-220:option:1": "It's the closest because rolling with additional batch preserves capacity during deployment — but still updates instances in LOTES no MESMO environment: during transition, old and new versions serve traffic together (mixed versions), which the requirement prohibits; separate environment with exchange of CNAME It's Blue/green..",
+        "saa-avc-220:option:2": "",
+        "saa-avc-220:option:3": "All at once knocks down everything and climbs the new version — causes unavailability and does not give immediate rollback by DNS."
+      },
+      "finalJustifications": [
+        "Because Blue/green is the new version in a separate environment (without mixed versions of production) and the exchange of CNAME turn traffic — rollback is immediately back CNAME to the old environment.",
+        "Because rolling with additional batch climbs the new version in a separate environment (without mixed versions) and the exchange of CNAME turn traffic — rollback is immediately back CNAME to the old environment.",
+        "Because the rolling 25% the new version in a separate environment (without mixed versions) and the exchange of CNAME turn traffic — rollback is immediately back CNAME to the old environment.",
+        "Because the all at once climbs the new version in a separate environment (without mixed versions) and the exchange of CNAME turn traffic — rollback is immediately back CNAME to the old environment."
+      ]
+    },
+    "saa-avc-221": {
+      "optionReasons": {
+        "saa-avc-221:option:0": "One single HSM is a single point of failure — weekly backup does not give the high availability of operations.",
+        "saa-avc-221:option:1": "",
+        "saa-avc-221:option:2": "It is the closest because two HSMs already give redundancy — but in MESMA AZ: a failure of AZ drops both together; high production availability requires cluster with HSMs at least DUAS AZs, with automatic key synchronization and balancing.",
+        "saa-avc-221:option:3": "The KMS is not the contingency replica of CloudHSM — are distinct services; and the keys need to stay in HSM single-tenant."
+      },
+      "finalJustifications": [
+        "Because the cluster CloudHSM with HSMs in at least two AZs synchronizes and balances the keys automatically: operations continue if an AZ falls, with single-tenant keys under company control.",
+        "Because two HSMs in the same AZ synchronize and balance the keys automatically: operations continue if an AZ falls, with single-tenant keys under the sole control of the company.",
+        "♪ 'Cause one single ♪ HSM with weekly backup synchronizes and balances the keys automatically: operations continue if an AZ falls, with single-tenant keys under company control.",
+        "Because KMS as contingency synchronizes and balances the keys automatically: the operations continue if an AZ falls, with single-tenant keys under sole control of the company."
+      ]
+    },
+    "saa-avc-222": {
+      "optionReasons": {
+        "saa-avc-222:option:0": "It's the closest because Cached volumes also keeps data on-premises — but there only as CACHE: the PRIMARY dataset is in the AWS (S3), what violates 'all local data by latency'; keeping the complete local set and sending only snapshots to the cloud is the Stored volume mode.",
+        "saa-avc-222:option:1": "",
+        "saa-avc-222:option:2": "File Gateway exposes files by NFS/SMB with cloud data — not local block volume with snapshots.",
+        "saa-avc-222:option:3": "Tape Gateway is virtual tape library for backup — not local primary block storage."
+      },
+      "finalJustifications": [
+        "Because the Stored volumes keep the dataset COMPLETO on-premises (low latency) and send snapshots EBS asynchronous to AWS only for recovery — exactly the two requirements.",
+        "Because Cached volumes keep the complete dataset on-premises and send snapshots EBS asynchronous to AWS only for recovery — exactly the two requirements.",
+        "Because File Gateway keeps the complete dataset on-premises and sends snapshots EBS asynchronous to AWS only for recovery — exactly the two requirements.",
+        "Because Tape Gateway keeps the complete dataset on-premises and sends snapshots EBS asynchronous to AWS only for recovery — exactly the two requirements."
+      ]
+    },
+    "saa-avc-223": {
+      "optionReasons": {
+        "saa-avc-223:option:0": "Storage snapshot + non-converting restore Oracle→PostgreSQL (HETEROGENE migration) — incompatible.",
+        "saa-avc-223:option:1": "",
+        "saa-avc-223:option:2": "It's the closest because exporting a dump and importing into Aurora migrates the data in fact — but it's the ONLY load: the bank receives write CONTINUA, and the dump would be outdated in the cutover (downtime of hours, not minutes); convert the schema (SCT) and replicate continuously (DMS full load + CDC) till it turns is the migration almost without downtime.",
+        "saa-avc-223:option:3": "DataSync copy ARQUIVOS — does not convert or replicate transactions from an Oracle bank to the Aurora PostgreSQL."
+      },
+      "finalJustifications": [
+        "Because SCT converts Oracle→PostgreSQL schema and the DMS Make full load + CDC replicating the continuous writings until the cutover — the turn takes place with downtime of a few minutes.",
+        "Because the dump SQL converts Oracle→PostgreSQL schema and replicates the continuous writings until the cutover — the turn takes place with a few minutes downtime on the weekend of import.",
+        "Because the snapshot + restore converts the Oracle→PostgreSQL schema and replicates the continuous writings until the cutover — the turn occurs with a few minutes downtime in the restoration.",
+        "Because DataSync converts Oracle→PostgreSQL schema and replicates the continuous writings to the cutover — the turn takes place with a few minutes downtime in the copy of the files."
+      ]
+    },
+    "saa-avc-224": {
+      "optionReasons": {
+        "saa-avc-224:option:0": "It's the closest because a Lambda masking objects produces the right result — but recording in a replicated COPY: duplicates the data in a second pocket, exactly what the veto requirement; masks in LEITURA, without doubling or changing the original, is the S3 Subject matter Lambda.",
+        "saa-avc-224:option:1": "Trusting in the customer's masking delivers the data from PII raw by the net — does not protect anything in fact.",
+        "saa-avc-224:option:2": "",
+        "saa-avc-224:option:3": "CTAS daily Athena materializes a new table (copy) — duplicates data and lags until the next run."
+      },
+      "finalJustifications": [
+        "Because S3 Subject matter Lambda uses an Access Point that invokes a Lambda to mask the PII at the time of LEITURA — the support app sees the masked fields without doubling data or changing the original objects.",
+        "Why replicate with Lambda uses an Access Point that masks the PII at the time of reading — the support app sees the masked fields without doubling data or changing the original objects.",
+        "Because customer masking uses an Access Point that masks the PII at the time of reading — the support app sees the masked fields without doubling data or changing the original objects.",
+        "Because CTAS daily Athena uses an Access Point that masks the PII at the time of reading — the support app sees the masked fields without doubling data or changing the original objects."
+      ]
+    }
+  }
+}

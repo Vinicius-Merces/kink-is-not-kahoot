@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dea-c01",
+    "range": "005-012",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dea-med-005": {
+      "optionReasons": {
+        "dea-med-005:option:0": "It's the closest because the unique full load migrates the data in fact — but it's a STATISTICAL load: as the bank receives write CONTINUA, the destination gets outdated until the cutover (downtime of hours); replicating the changes until it turns is the full load + CDC.",
+        "dea-med-005:option:1": "",
+        "dea-med-005:option:2": "Dump SQL manual is single and time-consuming load — same lag problem and long downtime.",
+        "dea-med-005:option:3": "Snapshot of restored storage is fixed point in time — does not capture continuous writings until cutover."
+      },
+      "finalJustifications": [
+        "Because the full load + CDC load the initial bench and then continuously replicate the changes until the cutover — the turn takes place with downtime of a few minutes, despite continuous writing.",
+        "Because the single full load loads the initial bench and then continuously replicates the changes until the cutter — the turn takes place with downtime of a few minutes, despite continuous writing.",
+        "Because the dump SQL load the initial bench and then continuously replicate the changes until the cutover — the turn takes place with downtime of a few minutes, despite continuous writing.",
+        "Because the snapshot of the storage loads the initial bench and then continuously replicates the changes until the cutter — the turn takes place with downtime of a few minutes, despite continuous writing."
+      ]
+    },
+    "dea-med-006": {
+      "optionReasons": {
+        "dea-med-006:option:0": "HDFS in larger volumes changes storage — does not eliminate the cost of the cluster connected all day.",
+        "dea-med-006:option:1": "Changing the job schedule does not turn off the cluster — idle hours continue to be charged.",
+        "dea-med-006:option:2": "",
+        "dea-med-006:option:3": "It's the closest because we the biggest make the job finish faster — but the cluster CONTINUA On 24/7, paying the ~22h idle; cost cut comes from closing the cluster at the end of the job (transient cluster, given in S3 way EMRFS), not to accelerate the 2h."
+      },
+      "finalJustifications": [
+        "Because the transient cluster is created only for the 2h of the job (data on S3 way EMRFS) and closed at the end — only the execution time is paid, without the ~22h idle from before.",
+        "Why move the HDFS for larger volumes creates the cluster only for the 2h of the job (data on S3 way EMRFS) and closes it at the end — only execution time is paid, without idle hours.",
+        "Because scheduling the job for business hours creates the cluster only for the 2h (data not available) S3 way EMRFS) and closes it at the end — only execution time is paid, without idle hours.",
+        "Because doubling the size of the knots creates the cluster just for the 2h of the job (data on S3 way EMRFS) and closes it at the end — only the execution time is paid, without the ~22h idle from before."
+      ]
+    },
+    "dea-med-007": {
+      "optionReasons": {
+        "dea-med-007:option:0": "",
+        "dea-med-007:option:1": "It's the closest because the Athena also AGREGA (SUM by period) — but in consultation SQL on request on EM data REPOUSO no S3, not in processing Stream CONTINUATION with state and windows of 1 minute in real time; continuous windows on stream are the Managed Service for Apache Flink.",
+        "dea-med-007:option:2": "Glue Crawler catalog scheme/partitions — does not process stream or compute windows.",
+        "dea-med-007:option:3": "QuickSight is the dashboard layer — consumes the result, does not process in windows."
+      },
+      "finalJustifications": [
+        "Because Managed Service for Apache Flink processes the stream continuously with state and windows of 1 minute, issuing real-time aggregations for dashboards — exactly the requirement.",
+        "Because Athena continuously process the stream with state and windows of 1 minute, issuing real-time aggregations for dashboards — exactly the requirement for sales per minute.",
+        "Because Glue Crawler processes the stream continuously with state and windows of 1 minute, issuing real-time aggregations for dashboards — exactly the requirement for sales per minute.",
+        "Because QuickSight continuously process the stream with state and windows of 1 minute, issuing real-time aggregations for dashboards — exactly the requirement for sales per minute."
+      ]
+    },
+    "dea-med-008": {
+      "optionReasons": {
+        "dea-med-008:option:0": "S3 Versioning saves versions of OBJETOS — does not validate or version message schemes.",
+        "dea-med-008:option:1": "",
+        "dea-med-008:option:2": "It's the closest because the Glue Data Quality is also family Glue and protects the pipeline — but it validates REGRAS OF QUALIDADE data (nulls, bands, uniqueness), not EVOLUTION and compatibility of SCHEMAS Avro; versioning schemas and controlling the compatibility of changes is the Glue Registration Scheme.",
+        "dea-med-008:option:3": "AWS config audit resource configuration AWS — Nothing to do with Avro event schemes."
+      },
+      "finalJustifications": [
+        "Because Glue Scheme Registry versions the Avro schemes centrally and imposes compatibility rules on changes — the evolution of the scheme stops silently breaking consumers.",
+        "Because Glue Data Quality versions the Avro schemes centrally and imposes compatibility rules on changes — the evolution of the scheme stops silently breaking consumers.",
+        "Because S3 Versioning versions the Avro schemes centrally and imposes compatibility rules on changes — the evolution of the scheme stops breaking consumers silently.",
+        "Because AWS config versions Avro schemes centrally and imposes compatibility rules on changes — the evolution of the scheme stops breaking consumers silently."
+      ]
+    },
+    "dea-med-009": {
+      "optionReasons": {
+        "dea-med-009:option:0": "False: o Athena supports native Parquet — the statement says that already used Parquet.",
+        "dea-med-009:option:1": "It's the closest because a ceiling of files per bucket would explain slowness in a plausible way — but the S3 DO NOT limit the amount of objects; the actual gargalo is the overhead POR OBJETO by opening millions of tiny files (small files), solved by compacting into larger files.",
+        "dea-med-009:option:2": "Transfer Acceleration Accelerate uploads via edge — has no effect on the time you consult Athena.",
+        "dea-med-009:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the problem is the excess of small files: the overhead by object dominates the query; compact/group into files from 128 MB+ (Firehose buffer or compaction jobs) restores performance.",
+        "Because the limit of files per bucket is the excess of small files: the overhead per object dominates the query; compact/group into files from 128 MB+ restores the performance of Athena.",
+        "Because the lack of Parquet is the excess of small files: the overhead by object dominates the query; compact/group in files of 128 MB+ restores the performance of Athena.",
+        "Because the lack of Transfer Acceleration is the excess of small files: the overhead per object dominates the query; compact/group into files from 128 MB+ restores the performance of Athena."
+      ]
+    },
+    "dea-med-010": {
+      "optionReasons": {
+        "dea-med-010:option:0": "",
+        "dea-med-010:option:1": "It's the closest because Firehose with backup also records events in a durable way — but it's ENTREGA managed for a destination, without multiple independent consumers reading the same stream REPLAY of last 7 days; reading by several consumers with replay is the Kinesis Data Streams with Extended Retention.",
+        "dea-med-010:option:2": "SQS deliver each message to a consumer and remove it after processing — does not allow multiple independent consumers to read.",
+        "dea-med-010:option:3": "SNS is currently delivery pub/sub — no historical store for replay of 7 days."
+      },
+      "finalJustifications": [
+        "Because Kinesis Data Streams with retention of 7 days keeps events in the shard: the real-time consumer reads now and new consumers can reprocess the latest 7 days independently.",
+        "Because Firehose with backup keeps events in the shard: the real-time consumer reads now and new consumers can reprocess the latest 7 days independently.",
+        "Because SQS with DLQ keeps events in the shard: the real-time consumer reads now and new consumers can reprocess the latest 7 days independently.",
+        "Because SNS with replay keeps events in the shard: the real-time consumer reads now and new consumers can reprocess the latest 7 days independently."
+      ]
+    },
+    "dea-med-011": {
+      "optionReasons": {
+        "dea-med-011:option:0": "Parallel multipart remains trapped in the 200 Link Mbps — does not change the physical band ceiling.",
+        "dea-med-011:option:1": "It's the closest because the DataSync really transfers large volumes to the S3 — but by INTERNET, only 200 Mbps: move 400 TB in this band would take a lot more than 3 weeks; when the network does not fit in time, the physical transport is the Snowball Edge.",
+        "dea-med-011:option:2": "",
+        "dea-med-011:option:3": "Transfer Acceleration accelerates via edge, but continues to depend on the same home internet — insufficient for 400 TB within the deadline."
+      },
+      "finalJustifications": [
+        "Because the 200 Mbps move 400 TB by network breaks the deadline of 3 weeks: o Snowball Edge physically transports the data, fitting into the window when the internet does not carry the volume.",
+        "Because the 200 Mbps DataSync on the internet bursts the deadline of 3 weeks: move the data so fits in the window even with the internet limited to the source link.",
+        "Because the 200 Mbps the parallel multipart breaks the deadline of 3 weeks: split in parts fits in the window even with the internet limited to the link of 200 Mbps of origin.",
+        "Because the 200 Mbps the Transfer Acceleration breaks the deadline of 3 weeks: accelerate via edge fits in the window even with the internet limited to the link of 200 Mbps of origin."
+      ]
+    },
+    "dea-med-012": {
+      "optionReasons": {
+        "dea-med-012:option:0": "EMR for the first opposite the ‘without administering clusters'; and Athena is consulted SQL, non-motor ETL Spark.",
+        "dea-med-012:option:1": "Lambda does not rotate ETL Large door Spark (limit of 15 min/resources); and Glue does not give runtime control/Spot of the second load.",
+        "dea-med-012:option:2": "",
+        "dea-med-012:option:3": "It's the closest because the Glue serves very well the PRIMEIRO case (ETL Spark serverless, without clustering) — but does not cover the SEGUNDO: custom native libraries, runtime control and specific instances with Spot require the EMR; use Glue for both of them do not meet the second load."
+      },
+      "finalJustifications": [
+        "Because Glue cover the first case (ETL Spark serverless, without cluster management) and EMR covers the second (native libraries, runtime control and specific instances with Spot) — each service in your profile.",
+        "Because EMR cover the first case (ETL Spark serverless, without cluster management) and Athena covers the second (native libraries, runtime control and instances with Spot) — each service in your profile.",
+        "Because Lambda cover the first case (ETL Spark serverless, without cluster management) and Glue covers the second (native libraries, runtime control and instances with Spot) — each service in your profile.",
+        "Because Glue cover the first case (ETL Spark serverless, without cluster management) and Glue covers the second (native libraries, runtime control and instances with Spot) — the same service on both profiles."
+      ]
+    }
+  }
+}

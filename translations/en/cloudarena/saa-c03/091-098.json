@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "091-098",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-avc-091": {
+      "optionReasons": {
+        "saa-avc-091:option:0": "It's the closest because more shards REALMENTE increases the total flow — but consumers continue DIVIDINDO the 2 MB/s of each shard between themselves (shared throughput), and the statement vetoes the excessive increase in shards/cost; dedicated fee POR CONSUMIDOR by shard is Enhanced Fan-Out.",
+        "saa-avc-091:option:1": "Kinesis does not have 'Consumer Group' Kafka style that gives throughput dedicated only by name — concept exchanged.",
+        "saa-avc-091:option:2": "Insert Lambda + SQS per consumer adds cost and latency — does not give 2 MB/s dedicated by native shard.",
+        "saa-avc-091:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Enhanced Fan-Out with SubscribeToShard gives every registered consumer their own 2 MB/s per shard — without competition for GetRecords or multiply shards.",
+        "Because increasing the number of shards gives each registered consumer their own 2 MB/s per shard — without competing for GetRecords or relying on dedicated fan-out.",
+        "Because a Consumer Group per consumer gives each one registered their own 2 MB/s per shard — without competing for GetRecords or multiply stream shards.",
+        "Because a line SQS per consumer gives to each registered own 2 MB/s per shard — without competing for GetRecords or multiply stream shards."
+      ]
+    },
+    "saa-avc-092": {
+      "optionReasons": {
+        "saa-avc-092:option:0": "",
+        "saa-avc-092:option:1": "Topic FIFO warrants order/dedup — does not prevent failure of delivery by poorly configured row policy.",
+        "saa-avc-092:option:2": "You don't do 'polling' of SNS' by lost notifications — the SNS push; failure capture is the DLQ of signature.",
+        "saa-avc-092:option:3": "It's the closest because a DLQ to capture failed deliveries is the right idea — but the SNS Annex to the redrive policy POR ASSINATURA, not 'at the level of the topic shared by all': to capture only the send failures without touching Stock and Invoicing, the DLQ will go to ASSINATURA Sending."
+      },
+      "finalJustifications": [
+        "Because the policy redirects with DLQ on signature SNS send captures only the failed deliveries of this row for reprocessing — without changing how Stock and Invoicing operate.",
+        "Because the DLQ at the level of the topic SNS captures only failed deliveries from the Send row for reprocessing — without changing how Stock and Invoice operate your signatures.",
+        "Because the topic FIFO with DLQ captures only failed deliveries from the Send row for reprocessing — without changing how Stock and Invoice operate your signatures.",
+        "Because the Retry loop in Shipping captures only the failed deliveries of this row for reprocessing — without altering how Stock and Invoice operate their topic signatures."
+      ]
+    },
+    "saa-avc-093": {
+      "optionReasons": {
+        "saa-avc-093:option:0": "It's the closest because more replicas give more availability in general — but all remain in the MESMA AZ unique: if this AZ falls, all tasks disappear together; resilience AZ failure requires spreading the tasks by multiple AZs sub-networks in the service network configuration.",
+        "saa-avc-093:option:1": "Route 53 no 'restart tasks ECS in another AZ' — health check of DNS does not orchestrate the scheduler of ECS.",
+        "saa-avc-093:option:2": "",
+        "saa-avc-093:option:3": "Placement Group 'spread' applies to instances EC2 of the cluster — Fargate there are no instances of yours, and does not define task AZ."
+      },
+      "finalJustifications": [
+        "Why specifying multiple AZs sub-networks in awsvpcConfiguration does the ECS spread the tasks between the zones: the fall of an AZ only takes part, and the service keeps the others.",
+        "Because increasing the desired count in the same AZ does the ECS spread the tasks between the zones: the fall of an AZ only takes part, and the service keeps the other tasks active.",
+        "Because the health check of Route 53 does the ECS spread the tasks between the zones: the fall of an AZ only takes part, and the service keeps the other tasks active in another AZ.",
+        "Because the Placement Group spreads the ECS spread the tasks between the zones: the fall of an AZ only takes part, and the service keeps the other tasks active in another AZ."
+      ]
+    },
+    "saa-avc-094": {
+      "optionReasons": {
+        "saa-avc-094:option:0": "",
+        "saa-avc-094:option:1": "Shutdown behavior 'stop' applies to the closing of the instance's SO — does not control the stairway ASG.",
+        "saa-avc-094:option:2": "There's no way to schedule the cleaning. '3 min before' a reactive scale-in — it happens on demand, not at fixed time.",
+        "saa-avc-094:option:3": "It's the closest because the grace period is also a waiting time for ASG — but it postpones the evaluation of HEALTH after the release of the instance; does not secure the TERMINATION for the graceful closure: retain the instance in 'Terminating' until the cleaning is finished is the lifecycle hook of termination."
+      },
+      "finalJustifications": [
+        "Because the lifecycle hook of termination secures the instance in the state 'Terminating' for the necessary time: cleaning (disregister, flush to S3, (notification) concludes before the instance is terminated.",
+        "Because the shutdown behavior 'stop' holds the instance in the state 'Terminating' for the necessary time: the cleaning ends before the instance is completed in the group scale-in.",
+        "Because the Lambda scheduled to secure the instance in the state 'Terminating' for the necessary time: the cleaning ends before the instance is completed in the group's stairway.",
+        "Because the grace period of 3 minutes secure the instance in the state 'Terminating' for the necessary time: the cleaning concludes before the instance is completed in the group's stairway."
+      ]
+    },
+    "saa-avc-095": {
+      "optionReasons": {
+        "saa-avc-095:option:0": "Global Accelerator with hand adjusted weights is manual and without readiness/anti-split-brain.",
+        "saa-avc-095:option:1": "",
+        "saa-avc-095:option:2": "Simple failover with health check updated by hand is just the fragile mechanism you want to replace.",
+        "saa-avc-095:option:3": "It's the closest because runbooks from SSM + alarms updating or Route 53 way API they also automate the failure — but the decision depends on calling APIs (potentially in the degraded region), has no lock built against split-brain or readiness checks; the three requirements together are the Route 53 Application Recovery Controller."
+      },
+      "finalJustifications": [
+        "Because Route 53 ARC decides the failure by routing independent controls of the region with failure, has lock against split-brain and wheel readiness checks confirming that the secondary supports traffic.",
+        "Because the runbooks of SSM decide the failover by independent controls of the region with failure, have lock against split-brain and run readiness checks confirming that the secondary supports traffic.",
+        "Because Global Accelerator decides the failure by independent controls of the region with failure, has lock against split-brain and wheel readiness checks confirming that the secondary supports traffic.",
+        "Because the simple failover decides the failover by independent controls of the region with failure, has lock against split-brain and wheel readiness checks confirming that the secondary supports traffic."
+      ]
+    },
+    "saa-avc-096": {
+      "optionReasons": {
+        "saa-avc-096:option:0": "Config fixes configuration deviations — does not inject resilience failures in a controlled way.",
+        "saa-avc-096:option:1": "Trusted Advisor recommends good practices of failure tolerance — does not perform failure injection experiments.",
+        "saa-avc-096:option:2": "It's the closest because the canaries of CloudWatch Synthetics also TESTAM the application monitored — but they simulate TRAFFIC/monitor availability from outside; not INJETAM controlled failures (defining instances, forcing failure of RDS) with safe reversal; chaos engineering experiments are the AWS Fault Injection Simulator.",
+        "saa-avc-096:option:3": ""
+      },
+      "finalJustifications": [
+        "Because AWS FIS injects controlled failures — finish part of the instances, force failover RDS — in a monitored and reversible way, validating the resilience mechanisms in staging.",
+        "Because the synthetics canaries inject controlled flaws — finish part of the instances, force failure RDS — in a monitored and reversible way, validating the resilience in staging.",
+        "Because AWS Config injects controlled failures — finish part of the instances, force failover of RDS — in a monitored and reversible way, validating the resilience mechanisms in staging.",
+        "Because Trusted Advisor injects controlled failures — finish part of the instances, force failover RDS — in a monitored and reversible way, validating the resilience in staging."
+      ]
+    },
+    "saa-avc-097": {
+      "optionReasons": {
+        "saa-avc-097:option:0": "It's the closest because it's also status check alarm with action — but look at the target ERRADO: StatusCheckFailed_Instruction points to NO SO/instance problem, and 'Reboot' restarts in MESMO hardware; hardware failure HARDWARE underlying is StatusCheckFailed_System, and the action that recreates in new hardware preserving ID/IP/EBS It's 'Recover''.",
+        "saa-avc-097:option:1": "",
+        "saa-avc-097:option:2": "Put the instance in a ASG violates the requirement (accurate legacy application of stable ID instance, outside of ASG).",
+        "saa-avc-097:option:3": "Stopping/starting from time to time is blind and disruptive — not recovery triggered by hardware failure."
+      },
+      "finalJustifications": [
+        "Because the alarm in StatusCheckFailed_System with 'Recover' action recreates the instance in new hardware failure hardware, preserving IP, IP, IP, IP and Volumes EBS — no ASG.",
+        "Because the StatusCheckFailed_Instruction alarm with 'Reboot' action recreates the instance in new hardware failure hardware, preserving the IP, IP, IP, and Elastic IP Forum and volumes EBS — no ASG.",
+        "Because ASG with capacity 1 recreates the instance in new hardware in hardware failure, preserving IP, IP, IP, IP and Volumes EBS — without manual intervention.",
+        "Because SSM Automation stopping and starting from time to time recreates the instance in new hardware in failure, preserving IP, private IP, Elastic IP and Volumes EBS — no ASG."
+      ]
+    },
+    "saa-avc-098": {
+      "optionReasons": {
+        "saa-avc-098:option:0": "DynamoDB Global Tables has no 'strong consistency between regions' — replication is possible by definition.",
+        "saa-avc-098:option:1": "It's the closest because latency routing in fact usually keeps the user in the same region — but it does NOT guarantee this: changes in latency, travel and failover take the same user to another region, generating concurrent writing on the same item; against the silent loss with last-writer-wins, the drawing needs to be resilient to conflicts.",
+        "saa-avc-098:option:2": "TransactWriteItems gives atomicity DENTRO of a region — not co-ordinated written between replicas of different regions.",
+        "saa-avc-098:option:3": ""
+      },
+      "finalJustifications": [
+        "Because with last-writer-wins and eventual consistency, competing writings in the same item between regions are overwritten in silence: minimizing them (the 'gift' item by region, conditional expressions, additive updates) is what prevents loss.",
+        "Because latency routing holds each user to the same region: competing writings in the same item between regions overwrite in silence, and fixing the region is what prevents loss.",
+        "Because strong consistency between regions prevents conflicts: competing writings in the same item between regions overwrite in silence, and strong replication is what prevents loss.",
+        "Because transactions between replicas guarantee global atomicity: competing writings in the same item between regions overwrite in silence, and TransactWriteItems is what prevents loss."
+      ]
+    }
+  }
+}

@@ -1,0 +1,66 @@
+name: Gerar conteúdo EN das trilhas
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [ feat/i18n-foundation ]
+    paths:
+      - 'translations/requests-trails/**.json'
+  workflow_dispatch:
+    inputs:
+      request:
+        description: 'Arquivo JSON em translations/requests-trails/'
+        required: true
+        default: 'translations/requests-trails/all.json'
+
+concurrency:
+  group: translate-trail-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolver solicitação
+        id: req
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "path=${{ inputs.request }}" >> "$GITHUB_OUTPUT"
+          else
+            REQUEST=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^translations/requests-trails/.*\.json$' | head -n 1)
+            test -n "$REQUEST"
+            echo "path=$REQUEST" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Instalar motor de tradução local
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'torch>=2.3,<3' --index-url https://download.pytorch.org/whl/cpu
+          pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
+      - name: Gerar catálogos das trilhas
+        run: python3 scripts/generate_trail_literal_catalog.py "${{ steps.req.outputs.path }}"
+      - name: Validar paridade, fidelidade e resíduo PT dos catálogos
+        run: python3 scripts/validate_i18n.py
+      - name: Versionar catálogos validados
+        shell: bash
+        run: |
+          git add locales/pt-BR/trail-*-literals.json locales/en/trail-*-literals.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): add validated offline study trail English catalogs'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "medio",
+    "sourcePath": "data/exams/saa-c03/medio.json",
+    "range": "241-252",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-med-241": {
+      "text": "A company uses Amazon CloudFormation to manage infrastructure. The team made an update on the stack and a change in the configuration of a Auto Scaling Group failed in the middle of the update, leaving the stack in state 'UPDATE_ROLLBACK_FAILED'. What action should the team take to restore the stack to a stable state?",
+      "options": [
+        "Apply a new template with the CloudFormation which explicitly reverses the changes in the problematic update — the CloudFormation apply manual rollback as a successful new update",
+        "Delete the entire stack and recreate from scratch with the original template — it's safer than trying to recover a stack in state UPDATE_ROLLBACK_FAILED",
+        "Use 'Continue Update Rollback' in the CloudFormation or via API, specifying the features that are blocking the rollback to skip them — this allows the CloudFormation completes the rollback of the resources you can undo, restoring the stack to the state prior to the problematic update",
+        "Use CloudFormation Drift Detection to identify out-of-conformity features and manually sync real state with template — this will unlock stack"
+      ],
+      "explanation": "Right. UPDATE_ROLLBACK_FAILED occurs when the autorollback itself failed. The solution is 'Continue Update Rollback', which allows you to specify resources to jump during the rollback (e.g. resources that have been deleted externally and no longer exist). After skipping the problematic resources, the CloudFormation complete the rollback to the last known stable state.",
+      "hint": "When a stack CloudFormation is in UPDATE_ROLLBACK_FAILED, which specific action allows you to try to complete the rollback, with the option of skippar problematic features?",
+      "optionRationales": [
+        "Right. UPDATE_ROLLBACK_FAILED occurs when the autorollback itself failed. The solution is 'Continue Update Rollback', which allows you to specify resources to jump during the rollback (e.g. resources that have been deleted externally and no longer exist). After skipping the problematic resources, the CloudFormation complete the rollback to the last known stable state.",
+        "Incorrect as recommended approach. Delete and recreate can result in data loss (stack database) and unnecessary downtime., CloudFormation can fail by deleting the stack if it also has troubleshooting features. 'Continue Update Rollback' is the correct and safe approach to solving UPDATE_ROLLBACK_FAILED.",
+        "Incorrect. Drift Detection identifies resources that have been modified outside the CloudFormation (e.g. manual changes in the console), but does not directly resolve the state UPDATE_ROLLBACK_FAILED. The rollback blocking state is not caused by drift — it is caused by failure in the rollback process itself. 'Continue Update Rollback' is the correct mechanism.",
+        "Incorrect for state UPDATE_ROLLBACK_FAILED. In this state, the CloudFormation DO NOT accept new updates directly — it is waiting for the existing rollback to be completed. Trying a new update in this state results in error. Only 'Continue Update Rollback' (or 'Delete Stack') are actions available in that state."
+      ]
+    },
+    "saa-med-242": {
+      "text": "A company uses Amazon ECS with Fargate to perform microservices. A critical service was unavailable because all their tasks failed and were not restarted. The team verified that the tasks are in status. 'STOPPED' with message 'Essential container exited'. ECS must be configured to ensure that this service automatically recovers from task failures?",
+      "options": [
+        "Use ECS Service (not standalone tasks) with a desired count configured — the ECS Service continuously monitors the number of running tasks and automatically restarts tasks that stop, always keeping the desired task count running",
+        "Configure an Application Auto Scaling for the ECS Service with a Target Tracking policy — this ensures that the number of tasks automatically recovers when there are failures",
+        "Enable ECS Container Health Check with automatic reset — the ECS restarts the specific container when the health check fails, without needing a Service",
+        "Configure a CloudWatch Alarm that monitors the ECS TaskCount and trigger one Lambda to start new tasks when the count falls below expected"
+      ],
+      "explanation": "Correct. Tasks ECS created as part of a ECS Service are managed automatically: if a task for (for any reason including 'essential container exited'), the Service Scheduler detects that running count is below the desired count and automatically launches a new replacement task. Standalone Tasks (without Service) do not have this automatic resilience.",
+      "hint": "What is the construction of ECS continuously manages the task life cycle, always keeping a desired number running and automatically replacing those that fail?",
+      "optionRationales": [
+        "Correct. Tasks ECS created as part of a ECS Service are managed automatically: if a task for (for any reason including 'essential container exited'), the Service Scheduler detects that running count is below the desired count and automatically launches a new replacement task. Standalone Tasks (without Service) do not have this automatic resilience.",
+        "Incorrect as a solution for the specific case. Application Auto Scaling for ECS adjusts to ESCALA metric based (CPU, memory, requests/s) — does not manage recovery of failed tasks. Recovery of failed tasks is the responsibility of ECS SERVICE SCHEDULER (desired count), which is an independent mechanism of Auto Scaling.",
+        "Incorrect as the main approach. An alarm CloudWatch + Lambda to restart tasks would be a manual re-implementation of the ECS Service Scheduler already does it automatically and in a much more reliable way. This approach has greater latency (CloudWatch alarm has collection period) and more operational complexity.",
+        "Incorrect. Container Health Checks no ECS are used to define when a container is 'healthy', but do not guarantee automatic reboot of tasks stopped by 'essential container exited'. != 0), o ECS for TODA the task — restarting only that container is not the standard behavior of Fargate. The ECS Service with desired count is the correct mechanism."
+      ]
+    },
+    "saa-med-243": {
+      "text": "A company uses Amazon Route 53 for traffic routing. The team needs to direct 10% from traffic to a new version of an application (canary release) to test with a small fraction of users before full deployment. Route 53 allows this traffic percentage division?",
+      "options": [
+        "Weighted Routing Policy — the team creates two records for the same domain name with different weights (e.g., current version with weight) 90, new version with weight 10), and the Route 53 distributes traffic proportionally to the weights, resulting in ~10% for the new version",
+        "Latency-based Routing Policy — users closest to the new version (which is in a different region) receive traffic proportional to latency, resulting in ~10% according to geographical distribution",
+        "Geolocation Routing Policy with the region where the new version is deployed receiving users from a specific geographic area that represents ~10% from the user base",
+        "Failover Routing Policy with health checks configured to alternate between primary (90%) and secondary (10%) based on availability"
+      ],
+      "explanation": "Correct. Weighted Routing Policy no Route 53 allows to distribute traffic between multiple endpoints with proportional weights. Setting up two records (or sets of records) for the same hostname with weights 90 and 10, approximately 10% of requests DNS will solve for the endpoint of the new version. It is the standard mechanism for canary releases and blue/green deployments percentages in Route 53.",
+      "hint": "What is the policy of routing Route 53 distributes traffic proportionally to configured numerical weights — ideal for canary releases with precise percentage control?",
+      "optionRationales": [
+        "Correct. Weighted Routing Policy no Route 53 allows to distribute traffic between multiple endpoints with proportional weights. Setting up two records (or sets of records) for the same hostname with weights 90 and 10, approximately 10% of requests DNS will solve for the endpoint of the new version. It is the standard mechanism for canary releases and blue/green deployments percentages in Route 53.",
+        "Incorrect. Latency-based Routing directs users to the endpoint with less latency (from the perspective of the network AWS for the region) — does not offer traffic division percentage control. The resulting division would depend on where users are geographically, not on a configurable percentage.",
+        "Incorrect. Failover Routing is for high availability (100% traffic goes to primary, with failback to secondary only when the primary is unavailable) — does not divide traffic percently. There is no control of 10%/90% in the policy of Failover.",
+        "Incorrect. Geolocation Routing directs users based on their geographical location (country, continent) — does not offer traffic percentage control. The division would depend on the actual geographic distribution of users, not on a configurable and reliable percentage of 10%."
+      ]
+    },
+    "saa-med-244": {
+      "text": "A company uses Amazon Aurora with multiple Read Replicas in a region. An application of reports makes heavy queries that are affecting the performance of the writing endpoint of Aurora. The team wants to ensure that reading queries are automatically distributed by the Read Replicas without changing the application code to have two different endpoints. Aurora You'll have to work it out.?",
+      "options": [
+        "Use Aurora Reader Endpoint — a unique endpoint that Aurora automatically manage to balance read connections between all available Read Replicas, without the application needing to know the individual endpoints of each replica",
+        "Enable Aurora Global Database — the Global Database creates replicas in multiple regions and directs reading queries to the nearest user area automatically",
+        "Configure a Application Load Balancer (ALB) in front of the Read Replicas Aurora — o ALB does load balancing of database connections between replicas, without the application needing specific replication endpoints",
+        "Use Amazon RDS Proxy for pooling connections — the RDS Proxy maintains pre-established connections with the Read Replicas and automatically distributes read queries between them"
+      ],
+      "explanation": "Correct. Aurora provides an Endpoint Reader Cluster that loads automatically between the Read Replicas. The report application connects to this single reading endpoint, and the Aurora distributes the connections between the available replicas. This does not require changes in the application's business logic — just the configuration of which endpoint to use for reading vs. writing.",
+      "hint": "The Aurora automatically provides a special read-out endpoint that balances connections between available Read Replicas — what is the name of this endpoint?",
+      "optionRationales": [
+        "Correct. Aurora provides an Endpoint Reader Cluster that loads automatically between the Read Replicas. The report application connects to this single reading endpoint, and the Aurora distributes the connections between the available replicas. This does not require changes in the application's business logic — just the configuration of which endpoint to use for reading vs. writing.",
+        "Incorrect. ALB operates in Layer 7 (HTTP/HTTPS) — does not support database connection routing (using specific protocols such as PostgreSQL wire protocol). Aurora Reader Endpoint or o RDS Proxy are the right mechanisms. ALB is not used for database connection load balancing.",
+        "Incorrect in this case. Aurora Global Database is for replication CROSS-REGION (latency <1s between regions) — does not solve the reading distribution between multiple replicas INTRA-REGIONAL The Reader Endpoint of the cluster Aurora is the mechanism to balance readings between replicas in the same region.",
+        "Partially correct in that the RDS Proxy can be configured to route reading traffic, but its main function is the connection pooling to reduce connection overload — not the primary mechanism for balancing between Read Replicas. Aurora Reader Endpoint is the native and correct mechanism for distribution of readings between replicas."
+      ]
+    },
+    "saa-med-245": {
+      "text": "A company uses AWS Elastic Beanstalk to deploy a web application. The team wants to update the application version without any downtime, keeping the possibility of immediate rollback if the new version has problems. Elastic Beanstalk is more suitable?",
+      "options": [
+        "All at Once — updates all instances simultaneously; if there is a problem, a manual redeploy of the previous version is required, but the update process itself is the fastest",
+        "Blue/Green Deployment Elastic Beanstalk — create an identical environment ('green') with the new version, fully test, and then use 'Swap Environment URLs' to instantly switch traffic; the old environment ('blue') is preserved for immediate rollback if necessary",
+        "Immutable Deployment — launches new instances in a temporary group with the new version; after confirmed health, replaces the old instances and finishes the temporary ones; rollback is done ending the new instances",
+        "Rolling with Additional Batch — implements the new batch version, adding temporary instances to maintain total capacity, ensuring zero downtime during update"
+      ],
+      "explanation": "Right. Blue/Green doesn't Elastic Beanstalk maintains two complete environments: blue (current production) and green (new version). After tests in green, Swap Environment URLs instantly changes the CNAMEs — zero downtime. For rollback, just make another swap back. The blue environment remains intact until the confirmation that the green is OK.",
+      "hint": "What Deployment Strategy Maintains DOIS complete environments (old and new version) simultaneously, allowing instant exchange of URL and immediate rollback to the previous environment?",
+      "optionRationales": [
+        "Right. Blue/Green doesn't Elastic Beanstalk maintains two complete environments: blue (current production) and green (new version). After tests in green, Swap Environment URLs instantly changes the CNAMEs — zero downtime. For rollback, just make another swap back. The blue environment remains intact until the confirmation that the green is OK.",
+        "Partially correct over zero downtime, but rollback is NOT immediate. In Rolling with Additional Batch, part of the instances already have the new version when the update is in progress — a rollback requires a new rollback deployment (which also takes time). Blue/Green is superior when immediate rollback is a requirement.",
+        "Partially correct over zero downtime, but the rollback of the Immutable may take time depending on the completion process of the new instances. Blue/Green is superior to immediate rollback as it keeps the old environment completely intact and the swap of URL is instantaneous (without the need to launch new instances).",
+        "Incorrect. All at Once causes downtime during the update (all instances being updated at the same time). It is the fastest but least suitable strategy for production environments that need zero downtime."
+      ]
+    },
+    "saa-med-246": {
+      "text": "A company uses Amazon EventBridge to process events from multiple sources. A rule EventBridge send events to a function Lambda which makes calls to an external database. Occasionally, the bank becomes temporarily unavailable, causing failures in the Lambda. The team wants faulty events to be automatically reprocessed until the bank becomes available. What configuration implements retry with persistent events?",
+      "options": [
+        "Increase function timeout Lambda for 15 minutes — a Lambda will wait longer for the bank to be available during the same invocation, without need of external retry",
+        "Configure Amazon SNS as target of rule EventBridge instead of Lambda — o SNS has integrated automatic retry for all destinations and persistent messages until delivery is confirmed",
+        "Enable Lambda Power Tuning to increase memory and speed of function — with more CPU, a Lambda process events faster before the bank's retry timeout is reached",
+        "Configure Dead Letter Queue (DLQ) in a row SQS as a destination of failure in EventBridge Event Bus, with a retry rule reproducing row events SQS periodically — or use the EventBridge Archive + Replay to retain and resend failed events"
+      ],
+      "explanation": "Correct. EventBridge supports automatic retreats for events that failed delivery (up to 24h by default, configurable up to 24h with configurable number of retries). For persistence beyond that, the EventBridge Destinations allows you to configure a row SQS as DLQ for events that have exhausted the retreats. For more flexible replay, the EventBridge Archive + Replay allows you to retain an event stream and reprocess specific intervals.",
+      "hint": "To persist events that failed and ensure reprocessing, which line service AWS can be configured as Dead Letter Queue of EventBridge, capturing events after exhausted retreats?",
+      "optionRationales": [
+        "Correct. EventBridge supports automatic retreats for events that failed delivery (up to 24h by default, configurable up to 24h with configurable number of retries). For persistence beyond that, the EventBridge Destinations allows you to configure a row SQS as DLQ for events that have exhausted the retreats. For more flexible replay, the EventBridge Archive + Replay allows you to retain an event stream and reprocess specific intervals.",
+        "Incorrect. Increasing the timeout does not solve the unavailability of the bank that lasts longer than 15 minutes, and keep one Lambda in execution waiting for the available bank is inefficient and expensive. EventBridge has its own retry mechanism — the Lambda must fail quickly when the bank is unavailable, leaving the EventBridge/SQS manage retry.",
+        "Incorrect. SNS it also has withdrawals for its subscribers, but only for a limited period (does not persist indefinitely). Lambda by SNS just add a layer — SNS I would then have to invoke the Lambda Anyway. The correct solution for persistence of failed events is DLQ (SQS) + explicit retry, or EventBridge Archive/Replay.",
+        "Incorrect. Lambda Power Tuning optimizes memory size for better performance/cost, but does not resolve external bank unavailability — if the bank is out, more CPU The problem is of retry and persistence of events, not function performance.."
+      ]
+    },
+    "saa-med-247": {
+      "text": "A company uses a Network Load Balancer (NLB) to balance traffic TCP/UDP for instance EC2. The team wants to ensure that each customer is always directed to the same instance EC2 during a session (IP stickiness), without needing to manage session status in the application. NLB implements this?",
+      "options": [
+        "VPC Security Groups with rules that force IPs from specific clients to IPs from specific instances — deterministic routing ensures that the same client always reaches the same instance",
+        "Sticky Sessions with cookies managed by ALB (AWSALB/AWSALBCORS) — o ALB injects a cookie into the answer that identifies the instance, and the customer presents the cookie in subsequent requests",
+        "Session affinity via Amazon ElastiCache — the application stores session mapping in ElastiCache, and the NLB check the cache before each routing to direct to the correct instance",
+        "Sticky Sessions with IP-based stickiness of origin in NLB (Source IP affinity) — o NLB maintains a source IP mapping for the destination instance, ensuring that connections from the same source IP are always routed to the same instance"
+      ],
+      "explanation": "Correct. NLB Supports Sticky Sessions based on source IP (Source IP affinity), not on cookies like ALB. When enabled, the NLB map the IP of origin (and optionally the port) to a specific instance, ensuring that connections from the same client are always sent to the same target during the configured stickiness period.",
+      "hint": "The NLB operates in Layer 4 (TCP/UDP) and has no cookies like the ALB — which stickiness mechanism uses, based on which connection attribute?",
+      "optionRationales": [
+        "Correct. NLB Supports Sticky Sessions based on source IP (Source IP affinity), not on cookies like ALB. When enabled, the NLB map the IP of origin (and optionally the port) to a specific instance, ensuring that connections from the same client are always sent to the same target during the configured stickiness period.",
+        "Incorrect. Stickiness cookies (AWSALB) are a functionality of APPLICATION Load Balancer (ALB, Layer 7), not of the Network Load Balancer (NLB, Layer 4). The NLB operates in Layer 4 (TCP/UDP) and does not handle cookies HTTP — its stickiness mechanism is based on source IP (Source IP affinity), not on cookies.",
+        "Incorrect. NLB does not consult external services (such as ElastiCache) for routing decisions — it is a load balancing service on Layer 4 with own router logic. In addition, the statement specified 'without needing to manage state in the application', and using ElastiCache requires the application to manage the session.",
+        "Incorrect. Security Groups are firewalls that control which ports and IPs have access permission — do not route traffic to specific instances. Load Balancer (NLB/ALB), Not by Security Groups."
+      ]
+    },
+    "saa-med-248": {
+      "text": "A company uses AWS CloudFormation with StackSets to implement a configuration policy of CloudTrail in all 50 accounts of AWS Organization. When updating the StackSet template, the team wants the change to be automatically applied to all accounts without manually creating/deleteing StackSet instances. What functionality of StackSet supports this?",
+      "options": [
+        "Create a Lambda with SDK of AWS that it will go through all the 50 accounts and execution `aws cloudformation update-stack` in each — this propagates the change without needing additional configuration in the StackSet",
+        "Enable Parameter Store Override in StackSet so that each account applies its own parameters when the template is centrally updated",
+        "Use AWS Config Conformance Packs with Auto-Remediation — Conformance Pack automatically detects and applies the desired configuration to all accounts without StackSets needing",
+        "CloudFormation StackSets with Auto Deployment enabled to Organizations — when enabled, StackSet automatically creates stack instances in new accounts added to the OR, removes deleted accounts, and can be configured to propagate template updates automatically to all existing accounts"
+      ],
+      "explanation": "The StackSets with Auto Deployment for AWS Organizations automatically manages the stack instance life cycle: creates new accounts, removes accounts that exit the OR, and supports 'Automatic deployments' to keep instances up to date. By updating the StackSet template, changes can be spread to all OR accounts in an orchestrated way with competition control and tolerance to configurable failures.",
+      "hint": "What is the functionality of StackSet when integrated with AWS Organizations, automatically manages the creation and removal of stack instances as accounts enter and exit the OOs?",
+      "optionRationales": [
+        "The StackSets with Auto Deployment for AWS Organizations automatically manages the stack instance life cycle: creates new accounts, removes accounts that exit the OR, and supports 'Automatic deployments' to keep instances up to date. By updating the StackSet template, changes can be spread to all OR accounts in an orchestrated way with competition control and tolerance to configurable failures.",
+        "Incorrect as a substitute. AWS Config Conformance Packs evaluate resource configuration compliance and may have automatic remediation — but they are not an infrastructure deployment mechanism like CloudFormation. To implement and manage features (such as configurations of CloudTrail) in a consistent manner in multiple accounts, CloudFormation StackSets is the right mechanism.",
+        "Incorrect as recommended approach. Lambda to iterate and update stacks individually is exactly what the StackSet with Auto Deployment eliminates. In addition to being more laborious, the Lambda would need cross-account permissions on all 50 accounts, error processing, coordinated rollback — everything StackSet already manages.",
+        "Incorrect. Override of parameters in StackSets allows individual instances to have parameter values different from the StackSet default, but is not an automatic template update propagation mechanism. Updating StackSet instances when the template changes is managed by Auto Deployment and by the UpdateStackSet operation'."
+      ]
+    },
+    "saa-med-249": {
+      "text": "A company has a microservices architecture with several functions Lambda which communicate via SQS. The team observed that when a function Lambda the downstream gets overloaded, the messages accumulate in the queue SQS, and when it recovers, try to process everything at once, causing new overloads in cascade. As the team can limit the rate of message processing in a row SQS by a function Lambda?",
+      "options": [
+        "Configure the 'Competition' reserved in the function Lambda — by limiting the maximum number of parallel executions of Lambda, the maximum thread reading throughput SQS is implicitly limited, as more messages cannot be processed when all competing instances are occupied",
+        "Configure Maximum Competition in Event Source Mapping SQS for Lambda — a specific parameter that directly limits the number of parallel processes of that integration SQS→Lambda without affecting competition from other functions",
+        "Configure Event Source Mapping 'Batch Size' from Lambda for 1 (a message by invocation) — this forces sequential processing and effectively limits the throughput",
+        "Configure the line's Visibility Timeout SQS for a high value (ex.: 12 hours) — messages in processing are invisible for longer, limiting the rate of new messages available for processing"
+      ],
+      "explanation": "Correct. Reserved Competition at Lambda sets the maximum number of parallel instances that can be executed. As the Event Source Mapping SQS invokes Lambda in parallel based on the available messages, limiting the reserved competition effectively limits the processing rate — protecting downstream systems and avoiding cascade overloads.",
+      "hint": "How you limit the number of parallel instances of a function Lambda which can be executed simultaneously, indirectly controlling the reading rate of the row SQS?",
+      "optionRationales": [
+        "Correct. Reserved Competition at Lambda sets the maximum number of parallel instances that can be executed. As the Event Source Mapping SQS invokes Lambda in parallel based on the available messages, limiting the reserved competition effectively limits the processing rate — protecting downstream systems and avoiding cascade overloads.",
+        "Incorrect as a complete solution. Batch size 1 reduces the number of invocation messages but does not limit the number of parallel invocations — the Lambda it can still be invoked hundreds of times in parallel (one per message), generating similar overload. Reserved competition is effective throughput control.",
+        "Incorrect. Visibility Timeout High does not limit processing throughput — it only delays reprocessing of messages that are being processed. In practice, new messages that reach the queue are still visible immediately for processing, and the Lambda can still be invoked in high competition to prosecute them.",
+        "Partially correct but confused with the right answer. The 'Maximum Competition' in Event Source Mapping is a more recent feature (2023) which works in a similar way — but for the SAA-C03, the canonical response on throughput limitation SQS→Lambda is via Reserved Competition. Both serve similar purposes, but Reserved Competition is broader and is not Event Source Mapping specific."
+      ]
+    },
+    "saa-med-250": {
+      "text": "A company has a high-traffic web application hosted behind a ALB with Auto Scaling. The operations team realized that some instances EC2 are overloaded while others are idle, even with the ALB The team suspects that the ALB is disproportionately routed to some instances. ALB Target Group can solve this imbalance?",
+      "options": [
+        "Configure Cross-Zone Load Balancing no ALB — this ensures that the ALB distributes traffic evenly between instances in all AZs, eliminating imbalances by AZ",
+        "Configure Stickiness in Target Group with TTL of 1 2nd — with TTL very short, the sessions are redistributed frequently, resulting in more even balance over time",
+        "Increase the number of instances EC2 no Auto Scaling Group — more instances distribute the burden, reducing the burden by instance and perceived imbalance",
+        "Enable Left Outstanding Requests (LOR) algorithm in Target Group — or ALB route each new request to the instance with the least number of requests in processing at that time, instead of the Round Robin standard that also distributes without considering the current load of each instance"
+      ],
+      "explanation": "Right. ALB it is Round Robin, which distributes requests equally in sequence without considering the current load of each instance. If some requests take much longer (e.g. heavy wants), the instance accumulates more load. (LOR) considers the backlog of each instance, sending new requests to those who are less busy — resulting in more effective balancing when response times vary.",
+      "hint": "Which alternative algorithm to Round Robin considers the current backlog of each instance (processing requirements) when deciding where to send the next request?",
+      "optionRationales": [
+        "Right. ALB it is Round Robin, which distributes requests equally in sequence without considering the current load of each instance. If some requests take much longer (e.g. heavy wants), the instance accumulates more load. (LOR) considers the backlog of each instance, sending new requests to those who are less busy — resulting in more effective balancing when response times vary.",
+        "Incorrect. Stickiness with TTL short would redistribute users frequently, but it could still cause imbalance if some users have heavier demands than others. Furthermore, Stickiness was designed to keep a user in the same instance (useful for local sessions), not for load balancing — its use to 'improve' the balancing is an anti-standard.",
+        "Incorrect for the specific problem. Adding more instances can help if the problem is of insufficient total capacity, but does not solve the algorithmic imbalance of Round Robin — with more instances, Round Robin can still overload some while others become idle if response times vary.",
+        "Partially relevant: Cross-Zone Load Balancing (which is already enabled by default in ALB) ensures that each node of the ALB distributes to instances in all AZs — solves imbalances by AZ. But the statement describes overload/ocociosity within instances (not by AZ), suggesting that the problem is the Round Robin router algorithm, not the cross-AZ distribution."
+      ]
+    },
+    "saa-med-251": {
+      "text": "A company uses Amazon S3 to store daily backups from your on-premises databases. Bucket has enabled versioning. A backup script accidentally overwritten a critical file with invalid data. As the team can recover the previous version of the file in S3?",
+      "options": [
+        "List the versions of the object in S3 using ListObjectVersions, identify the previous version (by VersionId and LastModified), and copy that version back to the object (CopyObject with VersionId as source) or use the Console S3 to restore the previous version",
+        "Delete the current object in S3 — This creates a Marker Delete, doing the S3 automatically reveal the previous version as the current version of the object",
+        "Use S3 Replication to recover the previous version of a replicated destination pocket — replication keeps all versions in the destination for recovery cases",
+        "Restore the latest backup from before the incident stored in S3 Glacier — the life cycle of the bucket will automatically move older versions to the Glacier"
+      ],
+      "explanation": "Right. S3 Versioning enabled, all versions of an object are retained. To recover the previous version: (1) list versions with ListObjectVersions to identify the correct version by VersionId and timestamp, (2) copy the old version over the current (CopyObject) or make GetObject by specifying VersionId. The console S3 has a graphical interface for this.",
+      "hint": "With S3 Enabled versioning, all versions are retained. As you identify and access an earlier specific version of an object — which parameter uniquely identifies a version?",
+      "optionRationales": [
+        "Right. S3 Versioning enabled, all versions of an object are retained. To recover the previous version: (1) list versions with ListObjectVersions to identify the correct version by VersionId and timestamp, (2) copy the old version over the current (CopyObject) or make GetObject by specifying VersionId. The console S3 has a graphical interface for this.",
+        "Incorrect. The question specifies that the versioning is enabled and the file was overwritten (new version created). The previous version is still in S3 Standard (unless a lifecycle rule has moved it to Glacier — the statement does not mention this). S3 no need to restore the Glacier.",
+        "Incorrect as a direct solution for the case described. The statement does not mention a configured replication loop. In addition, with enabled versioning, the previous version of the file is already available in MESMO Bucket — no replicated Bucket is required to recover it.",
+        "Incorrect. A 'delete' in a versioned pocket creates a Marker Delete (does not delete the object) — subsequent GETs return a 404, not the previous version. To reveal the previous version, it would be necessary to delete the Delete Marker, not the object. Furthermore, 'delete the current object' (the version with invalid data) without specifying the VersionId would only create a Delete Marker, would not reveal the good version."
+      ]
+    },
+    "saa-med-252": {
+      "text": "A company uses Amazon ECS with Fargate during an application. During a deployment, the team wants to ensure that the old version of the tasks continue to serve traffic until the new tasks are completely healthy and the ALB has confirmed the health checks. What configuration in ECS Service controls this safe deployment behavior?",
+      "options": [
+        "Use ECS Rolling Update with constraints task placement that require new and old tasks never to coexist in the same instance (distinctTribunal) — the ECS waits for the old instance to finish before launching the new",
+        "Configure Deployment Configuration with 'Minimum Healthy Percent' and 'Maximum Percent' no ECS Service — minimum healthy percentage ensures that a minimum percentage of old tasks continue to run during deployment, and maximum percentage controls the total (old + new) tasks allowed, preventing the new version from replacing old tasks before being healthy",
+        "Use AWS CodeDeploy with typical deployment 'ECS Blue/Green' — or CodeDeploy manage the safe replacement of tasks, ensuring that the ALB only direct traffic to new tasks after health check confirmed",
+        "Configure a ECS Service Discovery with Route 53 — the Discovery Service records the new tasks in DNS and the Route 53 health check removes old ones automatically when new ones are healthy"
+      ],
+      "explanation": "Correct. Deployment Configuration no ECS Service has two parameters: 'Minimum Healthy Percent' (ex.: 100%) ensures that 100% of the tasks of the desired count continue healthy during deployment — ECS only remove old tasks when the new ones pass in the health check of ALB. 'Maximum Percentage (ex.: 200%) allows you to launch new tasks (add above the desired) before removing the old ones. Together, ensure zero-downtime and secure replacement.",
+      "hint": "Which parameter of 'Deployment Configuration' no ECS Service ensures that a minimum percentage of old tasks continue running until new ones pass the health checks of ALB?",
+      "optionRationales": [
+        "Correct. Deployment Configuration no ECS Service has two parameters: 'Minimum Healthy Percent' (ex.: 100%) ensures that 100% of the tasks of the desired count continue healthy during deployment — ECS only remove old tasks when the new ones pass in the health check of ALB. 'Maximum Percentage (ex.: 200%) allows you to launch new tasks (add above the desired) before removing the old ones. Together, ensure zero-downtime and secure replacement.",
+        "Incorrect to Fargate. Task Placement Constraints (as a separate Forum) apply to clusters EC2, no Fargate (which does not explicitly manage instances). Furthermore, forcing old and new ones never coexist would cause downtime during the transition. Deployment Configuration (min/max percent) is the correct and applicable mechanism to Fargate.",
+        "Incorrect for the scenario with ALB. Service Discovery with Route 53 is suitable for service-to-service communication (internal microservices), not for the safe deployment scenario with ALB. When the ECS Service uses ALB, the safe deployment mechanism is the Deployment Configuration (min/max healthy percent) combined with the health checks of the ALB.",
+        "Correct conceptually but not the configuration NATIVA of the ECS Service that the statement asks. CodeDeploy ECS Blue/Green is a valid and powerful option for deployment, but requires integration with CodeDeploy separate. Deployment Configuration (min/max percent) is the native configuration of ECS Service that controls this behavior directly."
+      ]
+    }
+  }
+}

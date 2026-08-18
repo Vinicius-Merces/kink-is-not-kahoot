@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "158-169",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-158": {
+      "text": "An application needs to download a single very large object (a machine learning model file from 50 GB) of the Amazon S3 The team observed that a request for GET unique and sequential reaches a throughput plateau well below the network bandwidth available, because a single connection TCP cannot fully use this capability. They want to parallel download of this ONE object in multiple connections to maximize total throughput.",
+      "options": [
+        "Issue multiple requests GET competitors using the header HTTP 'Range' to download different bytes intervals of the same object in parallel, rebuilding the file locally",
+        "Use S3 Multipart Upload to forward the object in smaller parts and then download each part separately",
+        "Enable Amazon S3 Transfer Acceleration to this download",
+        "Migrate the instance EC2 that performs the download for a type of instance with Enhanced Networking, increasing the network capacity available"
+      ],
+      "explanation": "Correct. Requirements GET parallel with 'Range' (byte-range fetches) allow the application to use multiple connections TCP simultaneously for different parts of the same object, adding the throughput of these connections and significantly accelerating the download of a large object compared to a single GET sequential.",
+      "hint": "Consider how to split the download of a single large file into multiple requests HTTP competitors operating on different parts of the same object.",
+      "optionRationales": [
+        "Correct. Requirements GET parallel with 'Range' (byte-range fetches) allow the application to use multiple connections TCP simultaneously for different parts of the same object, adding the throughput of these connections and significantly accelerating the download of a large object compared to a single GET sequential.",
+        "Incorrect. Transfer Acceleration optimizes the network path via edge locations of the CloudFront, mainly for geographically distant customers. It does not, by itself, parallel the download of a ONE object in multiple connections — a request GET only would remain limited by the throughput features of a single connection.",
+        "Incorrect. Multipart Upload is a mechanism of UPLOAD for creating objects; does not apply to DOWNLOAD of an existing object. 50 GB only to allow parallel download of the parts would be extremely costly and inefficient in terms of storage and transfer.",
+        "Incorrect. Enhanced Networking increases the capacity ceiling of the instance network interface, but a single connection TCP (a single request GET) typically can't saturate even a moderate network interface due to window/congestion control features of the TCP in long distances — without parallelizing the download itself, more network capacity available is not used."
+      ]
+    },
+    "saa-avc-159": {
+      "text": "A manufacturing industry executes real-time equipment control software in an on-premises factory that requires latency of milliseconds of single digit for local sensors and actuators — latency even of tens of milliseconds for a region AWS is unacceptable for this control loop. The company wishes to use the MESMAS APIs, services (such as Amazon EC2, Amazon EBS, Amazon ECS) and operational tools (such as AWS CloudFormation, IAM) which already uses in the cloud, with the ability to integrate this on-premises infrastructure into a VPC in the Region AWS nearest.",
+      "options": [
+        "Implement control software in the Region AWS nearest and connect via AWS Direct Connect to obtain the lowest possible latency",
+        "Use AWS Wavelength to implement the closest application to the factory",
+        "Implant AWS Outposts (rack or server) in the factory installation itself",
+        "Use AWS Local Zones, by implementing resources in the Local Zone closest to the factory"
+      ],
+      "explanation": "Correct. AWS Outposts it brings infrastructure designed by the AWS, with native services (EC2, EBS, ECS/EKS, etc.) and the same APIs/control tools used in the Regions, directly within the customer's on-premises installation — providing local computing with latency of milliseconds of single digit for latency-sensitive workloads, while integrating into a VPC in the Region AWS anchor for hybrid connectivity and consistent operations.",
+      "hint": "The key requirement is to have infrastructure AWS native physically within the factory itself, not only geographically close.",
+      "optionRationales": [
+        "Correct. AWS Outposts it brings infrastructure designed by the AWS, with native services (EC2, EBS, ECS/EKS, etc.) and the same APIs/control tools used in the Regions, directly within the customer's on-premises installation — providing local computing with latency of milliseconds of single digit for latency-sensitive workloads, while integrating into a VPC in the Region AWS anchor for hybrid connectivity and consistent operations.",
+        "Incorrect. Even with Direct Connect, the latency between the factory floor and the data centers of a region AWS (potentially hundreds of km away) involves propagation delay which typically exceeds much of the milliseconds of single digit. Direct Connect improves latency predictability and bandwidth compared to the internet, but does not make regional latency comparable to a truly LOCAL on-premises.",
+        "Incorrect. AWS Wavelength incorporates computing and storage infrastructure AWS within networks 5G of telecommunications operators, specifically for mobile applications/ ultra-low latency edge accessed by devices via 5G — not designed to extend the infrastructure AWS within an on-premises customer installation.",
+        "Incorrect. AWS Local Zones are infrastructure deployments AWS in large metropolitan areas, extending a region to closer to population/industrial centers, but still are facilities operated by the AWS in a metropolitan area (not within the customer's own factory). They reduce latency compared to a distant region, but do not provide the placement within the installation that milliseconds control loops of single digit require — the Outposts puts the infrastructure physically inside the customer's installation."
+      ]
+    },
+    "saa-avc-160": {
+      "text": "An application uses Amazon ElastiCache for Redis in 'Cluster Mode Disabled' mode (a single shard with a primary node). The data set fits comfortably into the memory of a single node, and the volume of writing is low to moderate, but the traffic of LEITURA has grown substantially and is now the limiting factor — network capacity/CPU of the primary node to answer readings is running out, even if the size of the dataset and the writing throughput do not require partitioning.",
+      "options": [
+        "Enable Cluster Mode (Cluster Mode Enabled) with multiple shards to distribute the reading load",
+        "Increase the node type to the largest available size (vertical scaling) to support more reading traffic in the single primary node",
+        "Add Read Replicas to existing replication group (keeping 'Cluster Mode Disabled') and configure the application to distribute traffic from LEITURA among the replicas, keeping the writings directed to the primary",
+        "Implement o Amazon DynamoDB Accelerator (DAX) in front of ElastiCache for Redis to reduce reading load on Redis"
+      ],
+      "explanation": "As the gargalo is specifically capable of LEITURA (not dataset size or write throughput), add read replicas to MESMO shard provides additional reading endpoints to horizontally scale the readthroughput without the additional complexity of Cluster Mode (data partition via hash slots), which would only be required if the dataset size or writethroughput were the restriction.",
+      "hint": "Identify whether the problem is related to data size/write (which would require partitioning) or only to reading capacity (which can be scaled horizontally without partitioning)).",
+      "optionRationales": [
+        "As the gargalo is specifically capable of LEITURA (not dataset size or write throughput), add read replicas to MESMO shard provides additional reading endpoints to horizontally scale the readthroughput without the additional complexity of Cluster Mode (data partition via hash slots), which would only be required if the dataset size or writethroughput were the restriction.",
+        "Incorrect. Enable Cluster Mode and partition into shards is the correct tool when the TAMANHO DO DATASET or the throughput of ESCRITA exceeds the capacity of a single node (requiring data partitioning). Here the dataset fits comfortably into a node and the volume of writing is moderate — partitioning adds unnecessary complexity (management of hash slots) when simply adding read replicas to the existing shard resolves directly the reading gargal described.",
+        "Incorrect. Vertical scaling can increase capacity to a certain point, but has a rigid roof (the largest type of knot available) and concentrates TODO the reading traffic and written in a single node; does not provide the scaling HORIZONTAL reading (multiple endpoints) that read replies offer, nor diverts primary readings.",
+        "Incorrect. DAX is a specific cache layer for tables of Amazon DynamoDB (using the API of the DynamoDB); is not a cache layer that is positioned in front of ElastiCache for Redis — this combination is not a valid architecture standard in AWS."
+      ]
+    },
+    "saa-avc-161": {
+      "text": "A company has a Network Load Balancer (NLB) with target groups containing instances EC2 registered in 3 Availability zones, but with unequal number of healthy targets per AZ (AZ-A has 1 instance, AZ-B has 1 instance, AZ-C has 4 insti tutions), due to the way in which Auto Scaling Group launched the instances. With the standard configuration of the NLB (Cross-Zone Load Balancing disabled), each node load balancer in an AZ distributes traffic only between targets DAQUELA AZ, making the unique instances of AZ-A and AZ-B each receive as much traffic as the 4 fora AZ-C receive COMBINADAS — causing severe overload in the AZ-A and AZ-B.",
+      "options": [
+        "Manually adjust Auto Scaling Group to always ensure the exact same number of instances in each AZ",
+        "Configure Target Tracking Policies Auto Scaling based on the AZ request count, climbing AZ-A and AZ-B independently",
+        "Replace Network Load Balancer by one Application Load Balancer, which always distributes equally among all targets regardless of AZ",
+        "Enable Cross-Zone Load Balancing no NLB and in their target groups"
+      ],
+      "explanation": "With Cross-Zone Load Balancing enabled, each node of load balancer distributes the traffic received between the targets registered in TODAS enabled AZs (not just in their own AZ), achieving a balanced distribution by TARGET regardless of how targets are distributed among AZs. The trade-off is that data transfer charges between AZs can be applied when traffic is sent to a different AZ target than the one that received the request..",
+      "hint": "Think about what Network configuration Load Balancer determines whether each balancer node distributes traffic only to local AZ targets or to all registered targets.",
+      "optionRationales": [
+        "With Cross-Zone Load Balancing enabled, each node of load balancer distributes the traffic received between the targets registered in TODAS enabled AZs (not just in their own AZ), achieving a balanced distribution by TARGET regardless of how targets are distributed among AZs. The trade-off is that data transfer charges between AZs can be applied when traffic is sent to a different AZ target than the one that received the request..",
+        "Incorrect. Although balancing the NUMBER of instances by AZ helps to mitigate this specific imbalance under the behavior of the FATHER (disabled cross-zone), it is a manual and fragile solution for something that Cross-Zone Load Balancing resolves directly and automatically, even with unequal target counts between AZs — ASGs may naturally present temporary imbalances during staging and replacement events.",
+        "Incorrect. Although the ALB have Cross-Zone Load Balancing enabled by default (and cannot be disabled), change the TIPO of load balancer is a much larger architectural change than simply enabling a configuration option in NLB existing — and could mean losing Layer features 4 of the NLB (as static IPs and ultra low latency) that may be needed in other parts of architecture.",
+        "Incorrect. This is an overly complex and customised approach to solving a load distribution problem that Cross-Zone Load Balancing solves with a single configuration option. AZ-directed scaling policies based on requisition count are not a standard configuration of ASG and would require substantial custom tools."
+      ]
+    },
+    "saa-avc-162": {
+      "text": "A table of the Amazon DynamoDB attends to a workload with highly predictable daily traffic pattern: low traffic during the morning, gradual increase during business hours until a well-known peak, and gradual drop after — this pattern is repeated daily with small variations. The team wants the most economic capacity mode for this predictable and gradual pattern, maintaining the automatic capacity adjustment according to the daily standard, without manual intervention.",
+      "options": [
+        "Use capacity mode Provided with capacity FIXA defined in the value of the daily peak, without Auto Scaling",
+        "Use the On-Demand capability mode, which automatically scales to any level of traffic without needing configuration",
+        "Use DynamoDB Accelerator (DAX) to absorb traffic peaks, allowing the base table to use minimum provided capacity throughout the year",
+        "Use the Provisioned mode with AWS Implementation Auto Scaling set to table"
+      ],
+      "explanation": "Right. For a traffic pattern ALTAMENTE PREVIOUS and gradually variable, the provided mode (which has cost per unit of capacity lower than On-Demand) combined with Auto Scaling (adjusting WCU/RCU provided based on usage targets, following the daily ramp) offers the most economical option, since the price award of On-Demand (designed for unpredictable traffic/with peaks) is not necessary when the pattern is well understood and gradual.",
+      "hint": "Compare the cost per unit of capacity between modes and consider what automatically accompanies a gradual and predictable traffic pattern without paying the unpredictability award.",
+      "optionRationales": [
+        "Right. For a traffic pattern ALTAMENTE PREVIOUS and gradually variable, the provided mode (which has cost per unit of capacity lower than On-Demand) combined with Auto Scaling (adjusting WCU/RCU provided based on usage targets, following the daily ramp) offers the most economical option, since the price award of On-Demand (designed for unpredictable traffic/with peaks) is not necessary when the pattern is well understood and gradual.",
+        "Incorrect. On-Demand responds to QUALQUER traffic level (including unforeseeable peaks) without capacity planning, which is valuable for IMPRESSIBLE workloads, but has cost POR REQUIREMENT higher than the Provided mode. For a well understood, gradual and PREVIOUS workload, this price award is usually unnecessary — Provided + Auto Scaling offers similar automatic adjustment at a lower cost for predictable patterns.",
+        "Incorrect. Provide fixed capacity at the level of PICO means paying for WCU/RCU at peak level throughout the low traffic period of the morning also, when actual use is far below the provided — this is significantly less economical than the Auto Scaling, reducing the capacity provided during periods of low traffic.",
+        "Incorrect. DAX is a cache layer of LEITURA; does not alter the capacity needs of ESCRITA of the table, and use DAX to compensate for LEITURA sub-provided solves a different problem (latency/reading cost) than adjusting capacity PROVISIONADA the predictable format of daily traffic — something that the Auto Scaling solves directly."
+      ]
+    },
+    "saa-avc-163": {
+      "text": "A company executes clusters Amazon EMR for night batch processing jobs with a known deadline (must be completed before business hours). CORE of the cluster (which perform HDFS DataNodes and store data that cannot be lost during the job) are dimensioned to the basic capacity, but the volume of processing varies from night to night, and on peak nights this basic capacity is not enough to complete before the deadline. EXTRA in peak nights to accelerate processing, as economical as possible, accepting that this extra capacity can occasionally be interrupted during the job without catastrophic impact (the processing framework deals with the re-execution of tasks that can be).",
+      "options": [
+        "Add Us TASK (which perform only YARN NodeManagers/Computer, no data HDFS) to the cluster using Spot Instances, dynamically climbing (e.g. via EMR Managed Scaling) according to processing demand",
+        "Continuously increase the number of nodes CORE (using On-Demand) to support the expected heavier night volume, every night",
+        "Add Us CORE additional use Spot Instances to provide extra capacity on peak nights",
+        "Use functions AWS Lambda to deal with excess processing capacity on peak nights"
+      ],
+      "explanation": "Right. TASK do not store data from HDFS, then, if a knot TASK in Spot is interrupted, only the tasks in progress in it are lost and re-executed elsewhere by YARN/processing framework (e.g. Spark/Hadoop native failure tolerance), without data loss risk. Use Spot for this extra elastic and interrupt-tolerant capacity provides significant savings compared to On-Demand for the 'peak' capacity required on heavy nights.",
+      "hint": "Differentiate the role of knots CORE (store data HDFS) of the knots TASK (only computing) when deciding where to apply capacity Spot interruptible.",
+      "optionRationales": [
+        "Right. TASK do not store data from HDFS, then, if a knot TASK in Spot is interrupted, only the tasks in progress in it are lost and re-executed elsewhere by YARN/processing framework (e.g. Spark/Hadoop native failure tolerance), without data loss risk. Use Spot for this extra elastic and interrupt-tolerant capacity provides significant savings compared to On-Demand for the 'peak' capacity required on heavy nights.",
+        "Incorrect. CORE execute HDFS DataNodes and store part of the cluster data (including replicated blocks); if a node CORE in Spot is interrupted, this may affect the availability/replication factor of the HDFS, potentially causing job failures or data loss risk — no TASK (which do not store data HDFS) are the appropriate choice for capacity Spot tolerant of interruptions, not us CORE.",
+        "Incorrect. Providing permanently for the capacity of the heavier night means paying for that capacity every night, even in the lightest — the opposite of economic for a night-to-night workload; the elastic staggering of us TASK adjusts the capacity to the real demand of each night.",
+        "Incorrect. AWS Lambda has a limit of execution time (15 minutes) and was not designed to integrate as additional computational capacity within a cluster EMR/Hadoop/YARN existing — restructure surplus processing as functions Lambda separate would require a fundamentally different processing model from the batch job based on EMR existing."
+      ]
+    },
+    "saa-avc-164": {
+      "text": "A company is migrating to the AWS an on-premises file storage workload that depends on specific NetApp features ONTAP: storage efficiency via deduplication/compression, snapshots with quick restoration, snap-based replicationMirror and multiprotocol support (NFS and SMB) the same data set, with sub-milisecond latency for performance-sensitive applications (such as data banks via NFS). They want a fully managed file storage service at AWS that provides exactly the set of features and APIs of ONTAP, without restructuring the application to a different storage paradigm.",
+      "options": [
+        "Use Amazon FSx for NetApp ONTAP",
+        "Use Amazon FSx for Lustre",
+        "Use Amazon FSx for Windows File Server",
+        "Use Amazon EFS (Elastic File System)"
+      ],
+      "explanation": "Correct. Amazon FSx for NetApp ONTAP is a service fully managed by AWS running NetApp file system ONTAP real, providing native resources of the ONTAP (deduplication/compression for storage efficiency, Snapshots, SnapMirror replication, multiprotocol access NFS/SMB/iSCSI to the same data) with high performance and low latency storage — meeting directly the requirement to maintain the set of resources and APIs of ONTAP No restructuring.",
+      "hint": "The central requirement is to replicate exactly the capabilities of the NetApp file system ONTAP (SnapMirror, deduplication, multiprotocol) without restructuring the application — think about which FSx service runs its own ONTAP.",
+      "optionRationales": [
+        "Correct. Amazon FSx for NetApp ONTAP is a service fully managed by AWS running NetApp file system ONTAP real, providing native resources of the ONTAP (deduplication/compression for storage efficiency, Snapshots, SnapMirror replication, multiprotocol access NFS/SMB/iSCSI to the same data) with high performance and low latency storage — meeting directly the requirement to maintain the set of resources and APIs of ONTAP No restructuring.",
+        "Incorrect. FSx for Windows File Server provides file storage based on SMB built on Windows Server, with native Windows resources (integration with Active Directory, ACLs NTFS, DFS), but DO NOT provide specific NetApp resources ONTAP, as SnapMirror replication or deduplication/multiprotocol in the format of ONTAP — is a different file system technology (based on Windows, not on ONTAP).",
+        "Incorrect. Amazon EFS is a file system NFS fully managed built on the distributed file technology of the AWS (not NetApp ONTAP); although support NFS and have its own backup/snapshot mechanisms, does not provide specific resources of ONTAP (SnapMirror, deduplication in style ONTAP, Multiprotocol NFS+SMB in the same volume in the sense of ONTAP) — would require restructuring in order to abandon specific dependencies of ONTAP.",
+        "Incorrect. FSx for Lustre is optimized for high performance computer workloads (HPC) and machine learning that require throughput/IOPS extremely high with a parallel file system (Lustre), strongly integrated with S3 for data processing pipelines — does not provide NetApp's enterprise resource set ONTAP (SnapMirror, deduplication in style ONTAP, support to SMB), making it inadequate for migration that depends on specific capacities of the ONTAP."
+      ]
+    },
+    "saa-avc-165": {
+      "text": "A company is migrating a distributed database (Apache Cassandra style) to hundreds of instances EC2 within a single Availability Zone. The database design distributes replicas of each data partition between logical racks, and the company wants to minimize the chance that an underlying hardware failure (energy/shared network rack) affects multiple replicas of the same partition simultaneously. The solution needs to support hundreds of instances in the same AZ, grouped in line with the database's own replica distribution scheme..",
+      "options": [
+        "Use a Cluster Placement Group to group all instances",
+        "Use a Partition Placement Group, distributing groups of instances (aligned to database replicas) between different logical partitions",
+        "Distribute multiple instances Auto Scaling Groups, one per Availability Zone, without using placement groups",
+        "Use a Spread Placement Group to ensure each instance is in distinct hardware"
+      ],
+      "explanation": "Correct. A Partition Placement Group divides instances into logical partitions, each positioned in a distinct set of hardware racks (with separate power and network); instances within the same partition can share racks, but different partitions do not. 7 AZ partitions with hundreds of instances — ideal for systems like Cassandra, HDFS and Kafka, where you want to align hardware partitions to the replica distribution scheme of the distributed system itself.",
+      "hint": "Think about what kind of placement group allows you to group hundreds of instances into isolated hardware partitions, aligned to the replica scheme of a distributed system.",
+      "optionRationales": [
+        "Correct. A Partition Placement Group divides instances into logical partitions, each positioned in a distinct set of hardware racks (with separate power and network); instances within the same partition can share racks, but different partitions do not. 7 AZ partitions with hundreds of instances — ideal for systems like Cassandra, HDFS and Kafka, where you want to align hardware partitions to the replica distribution scheme of the distributed system itself.",
+        "Incorrect. Cluster Placement Group groups the instances as close as possible to the same hardware, optimizing for ultra-low latency in strongly coupled loads (HPC) — exactly the OPOSTO of what is needed here (isolating fault domains), and increases the risk of a related hardware failure affecting many replicas simultaneously.",
+        "Incorrect. The Spread Placement Group places each instance in distinct hardware, without two instances sharing the same underlying hardware — but is limited to 7 AZ instances, not meeting the requirement of 'hundreds of instances' in the same AZ.",
+        "Incorrect. Trusting only in the distribution between AZs does not treat the isolation of rack/hardware failure level DENTRO of the same AZ, which is precisely what Partition Placement Groups provide; the scenario requires hundreds of instances in the same AZ with isolation aligned to replicas."
+      ]
+    },
+    "saa-avc-166": {
+      "text": "A company operates a global distribution via Amazon CloudFront and, during the launch of a performance-sensitive product, needs almost real-time visibility (in the order of seconds) over metrics at the individual requisition level — latency, hit/miss cache, status code and edge location — for operational monitoring and alerts. CloudFront, delivered to Amazon S3, have delivery delay of up to several hours, which is inadequate for active monitoring during launch.",
+      "options": [
+        "Enable Real-time Logs from CloudFront, configuring the delivery for the Amazon Kinesis Data Streams, and process with Kinesis Firehose Date/Lambda for dashboards and alerts almost in real time",
+        "Enable data events of AWS CloudTrail for the CloudFront, to capture data at the request level almost in real time",
+        "Use metrics of Amazon CloudWatch for the CloudFront, as a hit cache rate and total requests",
+        "Use standard access logs from CloudFront delivered to S3, consulting them with the Amazon Athena every few minutes"
+      ],
+      "explanation": "The Real-time Logs of CloudFront deliver log data to Amazon Kinesis Data Streams in a seconds window, with sampling rate and configurable fields, allowing operational monitoring almost in real time — in sharp contrast to the time lag of standard log access.",
+      "hint": "The requirement is granularity by individual request delivered in seconds — think of what resource the CloudFront transmits flow logs instead of batch files.",
+      "optionRationales": [
+        "The Real-time Logs of CloudFront deliver log data to Amazon Kinesis Data Streams in a seconds window, with sampling rate and configurable fields, allowing operational monitoring almost in real time — in sharp contrast to the time lag of standard log access.",
+        "Incorrect. Standard access logs have delivery latency typically up to 24 hours (frequently a few hours), which is inappropriate for the monitoring requirement almost in real time (seconds), regardless of the frequency of consultation.",
+        "Incorrect. CloudTrail capture management events/API (and, optionally, data events for some services), non-metric performance requirements content requirements of end users (latence, hit/miss cache) of distributions CloudFront — is not the appropriate mechanism for this use case.",
+        "Incorrect. CloudWatch for the CloudFront provide operational metrics AGREGADAS, with a granularity of not more than 1 minute, don't detail it. POR REQUIREMENT (individual ratio), edge location, specific status of each request) required for detailed operational analysis — Real-time Logs provide this granularity."
+      ]
+    },
+    "saa-avc-167": {
+      "text": "A company needs to ingest clickstream data and deliver it, with the minimum operating overhead, directly to Amazon S3 in batches, with optional format conversion (JSON for Parquet) and compression, for further consultation with Amazon Athena. There is no need for customised real-time registration processing with sub-second latency by multiple independent consumer applications — only managed and reliable delivery to S3 with transformation.",
+      "options": [
+        "Use Amazon Kinesis Data Streams with a custom consumer application (e.g. EC2) grouping batch records and recording them in S3",
+        "Use Amazon SQS to store in buffer the clickstream events, and an scheduled job of AWS Glue to read from SQS and record in S3",
+        "Use Amazon Kinesis Firehose data configured to deliver to S3 with format conversion for Parquet and compression",
+        "Use AWS DMS (Database Migration Service) to transmit the clickstream data to the S3"
+      ],
+      "explanation": "Correct. Kinesis Data Firehose is a fully managed delivery service that stores in buffer, optionally transforms (format conversion, transformation via Lambda), compresses and delivers data to destinations as S3, Redshift and OpenSearch, without need to manage consumers/shards — meeting exactly the requirement of 'minimum operating overhead, delivery to S3 with transformation'.",
+      "hint": "Compare the level of management between the two services Kinesis: one requires building and operating consumer applications, the other delivers directly to destinations with integrated transformation.",
+      "optionRationales": [
+        "Correct. Kinesis Data Firehose is a fully managed delivery service that stores in buffer, optionally transforms (format conversion, transformation via Lambda), compresses and delivers data to destinations as S3, Redshift and OpenSearch, without need to manage consumers/shards — meeting exactly the requirement of 'minimum operating overhead, delivery to S3 with transformation'.",
+        "Incorrect. Data Streams requires to build and manage custom consumer applications (by dealing with iterators shard, checkpointing, scaling and format conversion logic) — operational overhead significantly higher than Firehose for the simple requirement to deliver to S3 with transformation'; Data Streams is the right choice when you need customised real-time MULTIPLES consumers with sub-second access to the raw stream.",
+        "Incorrect. SQS is a general-purpose message row, not designed for high throughput streaming intake with ordination/replay semantics, and has no native format/compression conversion in delivery to S3 — this pipeline would be much more complex and customized than Firehose, which has already been designed for this purpose..",
+        "Incorrect. DMS is designed to migrate/replicate data from BANCOS OF DADOS (using CDC) for destinations, not for ingesting data from EVENTOS clickstream generated by applications — is not the appropriate service for this case of using streaming intake."
+      ]
+    },
+    "saa-avc-168": {
+      "text": "A function AWS Lambda which sustains a API the customer has peaks of latency by cold start during a daily increase of traffic that starts precisely at 9h e ends at 18h (commercial schedule, predictable standard). The team configured Provisioned Competition to eliminate cold starts during this window, but does not want to pay for this provided competition 24 hours per day — it should be automatically increased before 9h and reduced after 18h, on a recurring daily schedule.",
+      "options": [
+        "Set Reserved Competition in function to match expected peak traffic, activate all the time",
+        "Use AWS Implementation Auto Scaling with a scheduled scaling action (scheduled scaling) directed to the Provisioned Competition configuration of the function Lambda (for a published version/alias)",
+        "Configure target tracking policies based on the CompetitiveExecutions metric CloudWatch",
+        "Increase function memory allocation Lambda, which increases proportionally to CPU and reduces the duration of the cold start"
+      ],
+      "explanation": "Correct. The Application Auto Scaling Supports Provided Competition from Lambda as a 'scalable target', and scheduled scaling actions allow you to set recurring schedules (based on cron) to increase/reduce the Provided Competition set at specific times — taking exactly into account the predictable daily business schedule pattern, avoiding paying for provided competition outside this window.",
+      "hint": "The traffic pattern is completely predictable per hour — think of what mechanism allows pre-provisioning and then reduce competition from Lambda in scheduled times, instead of reacting to demand.",
+      "optionRationales": [
+        "Correct. The Application Auto Scaling Supports Provided Competition from Lambda as a 'scalable target', and scheduled scaling actions allow you to set recurring schedules (based on cron) to increase/reduce the Provided Competition set at specific times — taking exactly into account the predictable daily business schedule pattern, avoiding paying for provided competition outside this window.",
+        "Incorrect. Target tracking reacts to metric/use changes ATUAL (This would still allow the occurrence of cold start-ups while competition is increased reactively at the beginning of the increase in traffic; for a time frame, the CONHECIDO e PREVIOUS, scheduled phasing pre-provisions competition ANTES from the beginning of the peak, completely avoiding the cold start.",
+        "Incorrect. Increasing memory can reduce the duration of a cold start to a certain point, but not ELIMINA cold startups, and does not meet the cost optimization objective of having provided competition only during business hours — is a lever unrelated to the requirement.",
+        "Incorrect. Reserved Competition limits/guaranteed the allocation of competition, but does NOT pre-initiate running environments (does not eliminate cold startups) — that is specifically what Provided Competition does; moreover, setting it permanently at peak level does not meet the requirement to reduce outside business hours."
+      ]
+    },
+    "saa-avc-169": {
+      "text": "A production database Amazon RDS for PostgreSQL presents intermittent performance degradation. The DBA team needs to identify which consultations SQL specific, waiting events (wait events) or database load (in terms of Average Active Sessions) are responsible during these degradation windows, with minimal configuration, ideally with a visual dashboard showing the database load detailed by SQL, wait state, user and host over time, including historical data retained for at least one week without additional infrastructure.",
+      "options": [
+        "Enable Amazon RDS Performance Insights",
+        "Enable Enhanced Monitoring in the instance RDS to visualize metrics at the level of the operating system with granularity of 1 second",
+        "Configure a separate dashboard in Amazon CloudWatch with custom metrics published by a script that consults pg_stat_statements periodically",
+        "Enable Slow Queries log RDS and analyze the logs with the Amazon Athena"
+      ],
+      "explanation": "Correct. Performance Insights is a fully managed database performance monitoring feature that provides a database load dashboard (DB Load, measured in Average Active Sessions)/AAS), with the ability to detail the load by query SQL, wait event, user, host and other dimensions; retains performance data by 7 days without additional cost (longer retention in paid layer), no need to install agents or manage additional infrastructure.",
+      "hint": "Think of what native resource of RDS provides a database load dashboard (Average Active Sessions) detailed by SQL and wait event, without agents or additional infrastructure.",
+      "optionRationales": [
+        "Correct. Performance Insights is a fully managed database performance monitoring feature that provides a database load dashboard (DB Load, measured in Average Active Sessions)/AAS), with the ability to detail the load by query SQL, wait event, user, host and other dimensions; retains performance data by 7 days without additional cost (longer retention in paid layer), no need to install agents or manage additional infrastructure.",
+        "Incorrect. Enhanced Monitoring provides metrics at the level of SISTEMA OPERACIONAL (CPU, memory, disk, network at the underlying host level, via agent), not analysis at the level of BANCO OF DADOS of consultations SQL/wait events — it is complementary, but does not answer 'what consultations SQL/Wait events are causing the load'.",
+        "Incorrect. This approach requires building and maintaining custom scripts/infrastructures to extract and publish data from pg_stat_statements, something that Performance Insights already natively provides as a managed resource with integrated visual dashboard — far greater operational overhead for the same result.",
+        "Incorrect. Slow query logs capture queries that exceed a limit, but do not provide the holistic and real-time view of 'Average Active Sessions detailed by wait event/SQL/user, and analyze via Athena requires exporting logs and building queries — a much more manual and less integrated approach than the native dashboard of Performance Insights."
+      ]
+    }
+  }
+}

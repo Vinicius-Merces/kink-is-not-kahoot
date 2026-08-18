@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "087-094",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-087": {
+      "optionReasons": {
+        "dva-avc-087:option:0": "TakeRole in a role of Account A is OUTRO drawing — the scenario uses the role of Account B directly; what is missing is the key policy.",
+        "dva-avc-087:option:1": "",
+        "dva-avc-087:option:2": "It's the closest one to add. kms:Decrypt 'somewhere in Account A' looks like the missing piece — but the BUCKET POLICY controls or S3, NO KMS: kms:Decrypt is not granted in the policy of the bucket; the final gate of the CMK is the KEY POLICY, who needs to authorize the role of Account B.",
+        "dva-avc-087:option:3": "BucketKeyEnabled reduces calls to KMS (cost) — does not grant permission cross-account decryption that is missing."
+      },
+      "finalJustifications": [
+        "Because the key policy of CMK (Account A) must grant kms:Decrypt to the role of Account B: in cross-account access to a CMK, both the key policy (end door) and the policy IAM Caller need to allow — missing key policy.",
+        "Because the role of Account B needs to assume a role of Account A with kms:Decrypt: in cross-account access, both this role and policy IAM of the caller need to allow — missing the role assumption.",
+        "Because the A Account's Bucket Policy needs to grant kms:Decrypt to the role of Account B: in cross-account access, both the bucket policy and the policy IAM Caller need to allow — missing the bucket policy.",
+        "Because BucketKeyEnabled needs to be enabled in Account A: in cross-account access, both he and the policy IAM Caller need to allow decryption — lack to enable Bucket Key."
+      ]
+    },
+    "dva-avc-088": {
+      "optionReasons": {
+        "dva-avc-088:option:0": "Multi-region replication copies the secret — does not grant cross-account access to the role of Account B.",
+        "dva-avc-088:option:1": "Automatic password-change rotation — does not change account access permissions.",
+        "dva-avc-088:option:2": "",
+        "dva-avc-088:option:3": "It's the closest because the key policy of KMS It's REALMENTE necessary (the secret is encrypted by KMS) — But she alone is not enough: the policy is missing BASEADA EM RECURSO in the same SECRET authorizing the role of Account B to call GetSecretValue; cross-account requires both, and the secret policy resource is what is missing."
+      },
+      "finalJustifications": [
+        "Why is it missing to attach a resource-based policy to secrecy (A account) authorizing the role of Account B to call GetSecretValue: in the cross-account, in addition to the policy IAM of the caller, the policy of recourse to secrecy is mandatory.",
+        "Because there is a lack to enable the multi-region replication of secrecy to Account B: in cross-account, in addition to politics IAM of the caller, the replication of the secret is mandatory for the getsecretvalue.",
+        "Because it is not possible to enable the automatic rotation of the secret: in the cross-account, in addition to politics IAM of the caller, rotation updates permissions and is mandatory for GetSecretValue.",
+        "Why do you have to share the key? KMS of the secret via key policy with Account B: in the cross-account, besides the policy IAM from the caller, the key policy is mandatory for GetSecretValue."
+      ]
+    },
+    "dva-avc-089": {
+      "optionReasons": {
+        "dva-avc-089:option:0": "Reserved competition 0 it would prevent invocation — but it would make a throttle/competition error, not AccessDenied's KMS.",
+        "dva-avc-089:option:1": "",
+        "dva-avc-089:option:2": "Encrypt with CMK does not change the TAMANHO of the implementation package — the premise is invented.",
+        "dva-avc-089:option:3": "It's the closest because it invokes key spec details from KMS — but is wrong: the encryption of environmental variables of the Lambda uses SIMETRIC key, no RSA asymmetric; what is missing is the execution roll have kms:Decrypt CMK, because the service Lambda decipher the variables (with the permissions of the roll) before calling the handler."
+      },
+      "finalJustifications": [
+        "Because it's missing. kms:Decrypt EXECUTION ROLE: with a CMK, the service Lambda uses roller permissions to decipher the environment variables before the handler — without this, the invocation fails with AccessDenied's KMS.",
+        "Because you reserved competition 0 requires kms:Decrypt in execution roll: the service Lambda uses roller permissions to decipher variables before handler — without this, invocation fails with AccessDenied.",
+        "Because the big package demands kms:Decrypt in execution roll: the service Lambda uses roller permissions to decipher variables before the handler — without this, the invocation fails with AccessDenied's KMS.",
+        "Because the incompatible key spec requires kms:Decrypt in execution roll: the service Lambda uses roller permissions to decipher variables before handler — without this, invocation fails with AccessDenied."
+      ]
+    },
+    "dva-avc-090": {
+      "optionReasons": {
+        "dva-avc-090:option:0": "StackSets distributes templates — does not impose a Maximum Permissions on freely created roles by devs.",
+        "dva-avc-090:option:1": "",
+        "dva-avc-090:option:2": "Attach MaxDeveloperPermissions as a Policy (non-boundary) only CONCEDE these permissions — no LIMITA what other annexed policies can add.",
+        "dva-avc-090:option:3": "It's the closest because a SCP denying iam:* and organizations:* also imposes a ceiling — but it reaches OR INTEIRA (all the main ones), blocking legitimate uses, and is not 'by roll created by the developer'; the maximum ceiling per delegated roll is the boundary permissions required in iam:CreateRole."
+      },
+      "finalJustifications": [
+        "Because the required boundary permissions no iam:CreateRole is the roof: the effective permissions of any roll created by the dev are the INTERSECTION between your policies and the MaxDeveloper Permissions — never wider.",
+        "Because the StackSets are the roof: the effective permissions of any roll created by the dev are the intersection between its policies and the MaxDeveloper Permissions applied — never wider than it.",
+        "Because attaching MaxDeveloper Permissions as a policy is the roof: the effective permissions of any role created by the dev are the intersection between its policies and it — never wider.",
+        "Because the SCP in OR is the ceiling: the effective permissions of any roll created by the dev are the intersection between its policies and MaxDeveloper Permissions — never wider than it."
+      ]
+    },
+    "dva-avc-091": {
+      "optionReasons": {
+        "dva-avc-091:option:0": "It's the closest because custom attributes and claims seem connected — but marking an attribute as 'recordable' does NOT automatically include it as a claim of the JWT; add/overwrite claims in tokens issued is the trigger Pre Token Generation.",
+        "dva-avc-091:option:1": "Post Authentication wheel DEPOIS login for post-auth actions — is not the hook that injects claims into the tokens that are being issued.",
+        "dva-avc-091:option:2": "",
+        "dva-avc-091:option:3": "One Lambda Extra Authorizer with consultation to DynamoDB reintroduces the query by request that is to be avoided."
+      },
+      "finalJustifications": [
+        "Because the trigger Pre Token Generation runs after authentication and before issuing the tokens: it reads custom:tenant_id and adds the tenant_id claim to the JWT — the services to read of the claims without extra consultation.",
+        "Why mark the attribute as engravable wheel after authentication and before issuing the tokens: includes custom:tenant_id as claim tenant_id in JWT — the services to read of the claims without extra consultation.",
+        "Because the trigger Post Authentication runs after authentication and before issuing the tokens: read custom:tenant_id and add the tenant_id claim to the JWT — the services to read of the claims without extra consultation.",
+        "Because Lambda Extra autorizer spins after authentication and before issuing tokens: read custom:tenant_id and add the tenant_id claim to JWT — the services to read of the claims without extra consultation."
+      ]
+    },
+    "dva-avc-092": {
+      "optionReasons": {
+        "dva-avc-092:option:0": "Block Public Access and no Principal:* prevents PUBLIC access — but valid Internet credentials would still be accessed; does not confine itself to VPC.",
+        "dva-avc-092:option:1": "It's the closest one because it restricts by aws:Source CIDR of VPC seems to limit the network — but it is fragile (traffic to S3 goes out with public IP via NAT, not CIDR private) and does not tie to the way of VPC; deny access outside the VPC endpoint is the condition aws:SourceVpce in the pocket policy.",
+        "dva-avc-092:option:2": "",
+        "dva-avc-092:option:3": "Don't put a bucket on. S3 'on a subnet' does not remove its DNS public — the premise is invalid."
+      },
+      "finalJustifications": [
+        "Because the Gateway VPC Endpoint for the S3 and the bucket policy with Deny when aws:sourceVpce is not the endpoint configured bar any request outside of VPC — even with valid internet credentials.",
+        "Because the bucket policy with aws:Source CIDR of VPC and Deny out of it bar any request out of VPC — even with valid internet credentials, confined to the private range.",
+        "Because the Block Public Access and the Bucket Policy with Deny out of the VPC endpoint bar any request outside of the VPC — even with valid internet credentials, without Main:*.",
+        "Why put the bucket on the private subnet and the bucket policy with Deny out of the VPC endpoint bar any request outside of the VPC — even with valid internet credentials."
+      ]
+    },
+    "dva-avc-093": {
+      "optionReasons": {
+        "dva-avc-093:option:0": "It's the closest because using the same roll and deciding the prefix on the client 'appears' to work — but gives the TODOS the authenticated MESMA wide permission: the check on the customer is mockable and does not in fact restrict the S3; assigning different roles by group is the 'Choose role from token' mapping of Identity Pool.",
+        "dva-avc-093:option:1": "",
+        "dva-avc-093:option:2": "Cognito User Pool does not annex policies IAM per user — authorisation of resources AWS comes from Identity Pool roles.",
+        "dva-avc-093:option:3": "Two Identity Pools duplicate the configuration and move the decision to the client — token mapping resolves with only one."
+      },
+      "finalJustifications": [
+        "Because the 'Choose roll from token' mapping inspects cognito:groups in GetCredentialsForIdentity and assigns premium or standard role — each group receives restricted permission to its prefix, on the server.",
+        "Because the standard roll with customer check inspects cognito:groups and assigns premium or standard role — each group receives restricted permission to its prefix, on the server.",
+        "Because user policies at User Pool inspect cognito:groups and assign the premium or standard role — each group receives restricted permission to its prefix, on the server.",
+        "Because two Identity Pools inspect cognito:groups and assign the premium or standard role — each group receives the restricted permission to its prefix, chosen by the customer."
+      ]
+    },
+    "dva-avc-094": {
+      "optionReasons": {
+        "dva-avc-094:option:0": "It's the closest because it seems logical to rotate 'change the key' and invalidate references — but it's wrong: automatic rotation DOES NOT change ID/ARN of CMK; it generates new material under the MESMO ARN and keeps the old versions, so the historical data remain decipherable without change.",
+        "dva-avc-094:option:1": "There is no keyversion parameter in Decrypt — the KMS choose the correct version by ciphertext metadata.",
+        "dva-avc-094:option:2": "",
+        "dva-avc-094:option:3": "Rotation DOES NOT make old data undecipherable — the opposite: old versions are preserved to decipher history."
+      },
+      "finalJustifications": [
+        "Because, yes, the old data follow decipherable without change: rotation generates new material while maintaining the same ID/ARN and the previous versions, and Decrypt automatically uses the version that ciphertexted.",
+        "Because, no, rotation changes ID/ARN invalidating the old references: Decrypt does not find the version that ciphertexted, requiring re-reference the historical objects.",
+        "Because, yes, but the application needs to pass a KeyVersion parameter on Decrypt: keeping the same ARN, it indicates which version ciphertexted each for the KMS decipher the history.",
+        "Because, no, all old data is permanently indecipherable after rotation: you have to reencrypt the entire history with the new material before the rotation completes."
+      ]
+    }
+  }
+}

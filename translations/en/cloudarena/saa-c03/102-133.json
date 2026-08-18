@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "range": "102-133",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "saa-med-102": {
+      "optionReasons": {
+        "saa-med-102:option:0": "Snapshot + manual restoration takes time, changes endpoint and loses transactions — it's not automatic failover.",
+        "saa-med-102:option:1": "The RDS Proxy improves connections and smoothes failover, but SEM Multi-AZ is no standby to fail.",
+        "saa-med-102:option:2": "Read replica requires promotion MANUAL and exchange of endpoint — does not answer 'automatic and without changing endpoint'.",
+        "saa-med-102:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Multi-AZ maintains synchronous standby in another AZ and does automatic failover in 1-2 min updating the DNS of the MESMO endpoint — the application does not change configuration.",
+        "Because Multi-AZ promotes the most up-to-date read replica in failover, turning it into primary without losing transactions.",
+        "Because Multi-AZ divides transactions between the two instances, and the survivor already has half of the bank's active connections.",
+        "Because Multi-AZ keeps the booth in another region of the AWS, protecting financial data even from complete regional disasters."
+      ]
+    },
+    "saa-med-110": {
+      "optionReasons": {
+        "saa-med-110:option:0": "",
+        "saa-med-110:option:1": "Retention 0 DESLIGA automatic backups — precisely destroys recovery capacity.",
+        "saa-med-110:option:2": "The read replica has replicated corruption — promoting it does not return the state of 14h30.",
+        "saa-med-110:option:3": "The daily snapshot reflects the home of the backup window — it would lose all legitimate transactions of the day until 14h30."
+      },
+      "finalJustifications": [
+        "Because PITR uses daily snapshot + continuous transaction logs: restore to 14h30 creates a NOVA instance exactly in the pre-corruption state, preserving legitimate transactions up there.",
+        "Because PITR reverses only the corrupted tables within the current instance, preserving the rest of the bank in production without downtime.",
+        "Because PITR apply the latest snapshot and undo the last transactions one by one until you reach the timestamp of 14h30 in the current instance.",
+        "Because PITR requires Multi-AZ enabled to work — it is the synchronous standby that preserves the state of each minute of the configured hold window."
+      ]
+    },
+    "saa-med-113": {
+      "optionReasons": {
+        "saa-med-113:option:0": "No manual string update: the endpoint cluster is REDIRECIONADO by himself Aurora.",
+        "saa-med-113:option:1": "The replicas share the ARMAZENAMENTO distributed — not dependent on the writer to exist; one of them turns to the new writer.",
+        "saa-med-113:option:2": "No manual creation from snapshot — existing replica promotion is automatic.",
+        "saa-med-113:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Aurora automatically promotes a replica to write (even shared storage) and redirects the endpoint cluster — typically in < 30s, without reconfiguring the application.",
+        "Because Aurora restarts the original writer three times before considering the failure, avoiding unnecessary promotions in transitory failures.",
+        "Because the failover copies the writer's storage for the chosen replica, and the time depends on the volume of data to be transferred between the AZs.",
+        "Because the endpoint cluster points to all three instances at the same time, and the driver chooses the healthy at each application connection."
+      ]
+    },
+    "saa-med-118": {
+      "optionReasons": {
+        "saa-med-118:option:0": "",
+        "saa-med-118:option:1": "The Auto Scaling of the provisions REAGE minutes late — sudden peaks of 50x take throttling before adjustment; and maximum high does not change slow reaction.",
+        "saa-med-118:option:2": "GSI It's the way to CONSULTA — does not increase the ability to absorb peaks.",
+        "saa-med-118:option:3": "The DAX speed up LEITURAS — does not absorb peaks of ESCRITA."
+      },
+      "finalJustifications": [
+        "Because On-Demand instantly scales with real traffic (accommodating up to twice the previous peak immediately) — without manual adjustment and without throttling in unpredictable peaks.",
+        "Because On-Demand maintains a reserve capacity 50 times higher than average, pre-paid to absorb any peak.",
+        "Because On-Demand threads the excess requests in an internal buffer to the capacity up, swapping throttling for latency.",
+        "Because On-Demand deactivates the limits per partition of the table, letting each partition consume the total throughput available in the region."
+      ]
+    },
+    "saa-med-119": {
+      "optionReasons": {
+        "saa-med-119:option:0": "Streams holds events for just 24 HORAS — the exclusion was 3 days; and do not 'revert' anything alone.",
+        "saa-med-119:option:1": "",
+        "saa-med-119:option:2": "Restore Backup More ANTIGO overwriting production would destroy valid requests from the last few days.",
+        "saa-med-119:option:3": "Global Tables replicate the state ATUAL — the new replica would be born without the excluded items."
+      },
+      "finalJustifications": [
+        "Because PITR restores the pre-exclusion status in a NOVA table: the production remains intact and the excluded items are recovered from the restored table.",
+        "Because PITR inject the deleted items back into the production table automatically, without interrupting new orders.",
+        "Because PITR keeps a trash can of items excluded by 35 days, from where the catalog can be retrieved item.",
+        "Because PITR synchronizes the new restored table with the production after the restoration, mixing the two states alone."
+      ]
+    },
+    "saa-med-125": {
+      "optionReasons": {
+        "saa-med-125:option:0": "Write in the two nodes by application breaks the consistency of the replication — the replica is read only.",
+        "saa-med-125:option:1": "Memcached DOESN'T have replication or automatic failover — it's the classic Redis vs Memcached.",
+        "saa-med-125:option:2": "Daily snapshot + new cluster = hours of unavailability and new endpoint — not automatic failover.",
+        "saa-med-125:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Replication Group with Multi-AZ + Automatic Failover automatically promotes the replica and updates the primary endpoint (DNS) — the application continues at the same address.",
+        "Because Automatic Failover periodically trades the roles of the knots for security, keeping both of them ready to take over the writings.",
+        "Because the Redis Multi-AZ persists the sessions on disk EBS, and the new node charges them from there after any hardware failure of the primary.",
+        "Because the Replication Group creates a third referee node that takes over the writings while the primary and the replica renegotiate the roles."
+      ]
+    },
+    "saa-med-132": {
+      "optionReasons": {
+        "saa-med-132:option:0": "",
+        "saa-med-132:option:1": "More vCPUs is paying more to continue running the MESMA redundant consultation at each request.",
+        "saa-med-132:option:2": "Indexes help, but the consultation COMPLEXA would continue running at each access — and 'without changing logic' points to cache.",
+        "saa-med-132:option:3": "The reply is still EXECUTA the heavy consultation at each request — moves the place load instead of eliminating it."
+      },
+      "finalJustifications": [
+        "Because with the same results that change little, the cache-aside in ElastiCache serves most of the memory requirements (with TTL minutes) — CPU of the RDS released and minimum latency.",
+        "Because ElastiCache rewrites the complex query in an optimized version with memory indexes, returning the same result in less time.",
+        "Because ElastiCache syncs with MySQL and invalidates the cache every time UPDATE, ensuring always identical responses to the bank.",
+        "Because ElastiCache eliminates the need of the bank for the profile page, becoming the primary source of the summary of users' activities."
+      ]
+    },
+    "saa-med-133": {
+      "optionReasons": {
+        "saa-med-133:option:0": "The table is in ON-DEMAND — there is no capacity provided; and more capacity does not change the LATENCIA of milliseconds.",
+        "saa-med-133:option:1": "Migratory to S3 + JSON static abandons the DynamoDB and breaks the consistency of the catalogue — disproportionate.",
+        "saa-med-133:option:2": "GSI is alternative path of consultation — does not reduce the latency of GetItem nor reaches microseconds.",
+        "saa-med-133:option:3": ""
+      },
+      "finalJustifications": [
+        "Because DAX is memory cache compatible with the API of the DynamoDB: GetItPopular items fall from milliseconds to MICROSSEGUNDOS, without changing the scheme — just point to the endpoint of the DAX.",
+        "Because DAX preload the entire table in the memory every hour, keeping the items on sale always available before the first access of the event.",
+        "Because DAX increases the parallelism of table partitions in events, dividing the millions of GetItem between internal replicas of the DynamoDB.",
+        "Because DAX serves the popular items directly from edge locations of the CloudFront, approaching the catalog of buyers in each region of the event."
+      ]
+    }
+  }
+}

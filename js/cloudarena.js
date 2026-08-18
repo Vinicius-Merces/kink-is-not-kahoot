@@ -308,7 +308,7 @@
     // Uma chamada por arena; zero chamadas por batalha.
     async function loadArenaData(certId) {
         if (arenaData[certId]) return arenaData[certId];
-        const payload = await fetchJson(`/api/arena/${certId}`);
+        const payload = await fetchJson(`/api/arena/${certId}?locale=${encodeURIComponent(window.I18n?.locale || 'pt-BR')}` /* cloudpathArenaLocale */);
         if (!payload.success) throw new Error(payload.error || 'Falha ao carregar a arena');
         const pools = payload.pools || { iniciante: [], medio: [], avancado: [] };
         const covered = LEVELS.reduce((s, l) => s + (pools[l] ? pools[l].length : 0), 0);

@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "031-038",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-031": {
+      "optionReasons": {
+        "dva-avc-031:option:0": "It is the closest because raising the payload limit would attack the rejection of the API Gateway — but that limit is HARD (not raised by quota), and even so the Lambda would continue under memory pressure with uploads in buffer; take the file out of the way API Gateway→Lambda with presigned URL solve both problems.",
+        "dva-avc-031:option:1": "Transfer Acceleration accelerates transport — but maintains flow through API Gateway/Lambda, with the same payload limit and memory pressure.",
+        "dva-avc-031:option:2": "Streaming through /tmp still passes the file through Lambda and for API Gateway — does not remove payload limit or memory load.",
+        "dva-avc-031:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Lambda generates a presigned URL from PutObject and the app sends the file DIRETO to S3, without going through API Gateway Lambda — add payload limit and memory pressure.",
+        "Because raising the payload limit makes the app send the file directly to S3, without going through API Gateway Lambda — add payload limit and upload memory pressure.",
+        "Because Transfer Acceleration makes the app send the file directly to S3, without going through API Gateway Lambda — add payload limit and upload memory pressure.",
+        "Because streaming by /tmp makes the app send the file directly to S3, without going through API Gateway Lambda — add payload limit and upload memory pressure."
+      ]
+    },
+    "dva-avc-032": {
+      "optionReasons": {
+        "dva-avc-032:option:0": "It's the closest because it can rebuild order and deduplication with Standard row + ID table + timestamp — but it's reimplementing in hand what the row FIFO it already guarantees natively (order by group and deduplication), with more code and fault points; the FIFO with MessageGroupId and MessageDeduplicationId solves directly.",
+        "dva-avc-032:option:1": "VisibilityTimeout high in Standard avoids simultaneous processing of UMA message — does not guarantee ORDEM between messages and deduplication.",
+        "dva-avc-032:option:2": "SNS Standard with fan-out does not guarantee order or dedup — and one row per customer does not scale.",
+        "dva-avc-032:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the line SQS FIFO with MessageGroupId = Customer ID ensures order by customer and MessageDeduplicationId = Order ID (or content dedup) discards forwardings in the 5 minutes — both native requirements.",
+        "Because the Standard row with IDs table and timestamp ensures order per client via MessageGroupId and deduplicates forwarding in the window of 5 minutes — the two requirements with custom deduplication.",
+        "Because the Standard line with High VisibilityTimeout guarantees customer order via MessageGroupId and deduplicates forwarding in the window of 5 minutes — both requirements when processing one message at a time.",
+        "Because SNS Standard with fan-out per client ensures order via MessageGroupId and deduplicates forwarding in the window of 5 minutes — both requirements with one row per customer."
+      ]
+    },
+    "dva-avc-033": {
+      "optionReasons": {
+        "dva-avc-033:option:0": "Larger timeout/memory keep sequential processing in an invocation — the same risk of bursting and losing tracking.",
+        "dva-avc-033:option:1": "It's the closest because the Parallel state also processes parallel images with branch tracking — but requires 50 STATISTICAL branches in the definition, incompatible with a VARIABLE-Size batch (up to 50); dynamically iterating over the array with configurable competition is the Map state.",
+        "dva-avc-033:option:2": "Batch size 50 the Lambda put the 50 images in one single invocation again — back to sequential and all-or-notting.",
+        "dva-avc-033:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the Map state iterates over the array of up 50 images invoking an execution per image (MaxConcurrency configurable) — each one processed in parallel and independent, with success/failure tracked by item.",
+        "Because the Parallel state with 50 static branches invokes one execution per image — each one processed in parallel and independent, with success/failure tracked by variable batch item.",
+        "Because increasing timeout/memory invokes an execution per image — each one processed in parallel and independent, with success/failure tracked by batch item of up 50 images.",
+        "Because the batch size 50 no SQS invokes an execution per image — each one processed in parallel and independent, with success/failure tracked by batch item of up to 50 images."
+      ]
+    },
+    "dva-avc-034": {
+      "optionReasons": {
+        "dva-avc-034:option:0": "",
+        "dva-avc-034:option:1": "It is the closest because GetItem→check→PutItem seems to guarantee non-negative — but there is a window between reading and writing: two competing Lambdas read the same last item and both record (race condition); the atomic verification on the server is UpdateItem with ConditionExpression.",
+        "dva-avc-034:option:2": "Reserved Competition 1 serialization TUDO — kills the scale and is still gambiarra for an item atomicity problem.",
+        "dva-avc-034:option:3": "Recalculating via Streams is ASSIGNRO — the stock would have already been negative before the recalculation."
+      },
+      "finalJustifications": [
+        "Because the UpdateItem with 'SET stockCount = stockCount - :dec' and ConditionExpression 'stockCount >= :dec' makes the reading-verification-atomic writing on the server — only one of the competing purchases of the last item passes.",
+        "Because GetItem followed by PutItem does the atomic reading-verification-writing on the server — only one of the competing purchases of the last item passes, without negative stock.",
+        "Because Reserved Competition 1 does the atomic reading-verification-writing on the server — only one of the competing purchases of the last item passes, without negative stock.",
+        "Because the recalculation via Streams makes the reading-verification-atomic writing on the server — only one of the competing purchases of the last item passes, without negative stock."
+      ]
+    },
+    "dva-avc-035": {
+      "optionReasons": {
+        "dva-avc-035:option:0": "It's the closest because the DAX accelerates the reading of fact — but he hides the ITEM COMPLETO: continues to transfer and desirialize the 30 attributes; the endpoint only needs two, and reducing the returned data is ProjectionExpression.",
+        "dva-avc-035:option:1": "Splitting the table and doing join in reading is heavy reengineering for a projection solved problem.",
+        "dva-avc-035:option:2": "",
+        "dva-avc-035:option:3": "Scan reads the entire table — expensive and unnecessary for a getItem by key."
+      },
+      "finalJustifications": [
+        "Because the ProjectionExpression in GetItem asking for only 'username' and 'avatarUrl' reduces the data returned by the network and the overhead of deserialization — the listing endpoint becomes light.",
+        "Because DAX in front of the table reduces the data returned by the network and the overhead of desiralization by ordering only 'username' and 'avatarUrl' — the listing endpoint is light.",
+        "Because dividing the table reduces the data returned by the network and the overhead of desiralization by asking only 'username' and 'avatarUrl' — the listing endpoint is light with the join.",
+        "Because the Scan with FilterExpression reduces the data returned by the network and the overhead of desiralization by asking only 'username' and 'avatarUrl' — the listing endpoint gets light."
+      ]
+    },
+    "dva-avc-036": {
+      "optionReasons": {
+        "dva-avc-036:option:0": "Binary Media Type is for binary content — does not change the proxy envelope or body parsing.",
+        "dva-avc-036:option:1": "It's the closest because custom integration with VTL REALMENTE would deliver the simplified object — but it changes the type of integration and adds a mapping template to maintain; with the proxy integration already in use, the minimum correction is the function to do JSON.parse event.body and extract { userId, action }.",
+        "dva-avc-036:option:2": "",
+        "dva-avc-036:option:3": "Lambda Authorizer authorizes requests — does not transform the body to the main function."
+      },
+      "finalJustifications": [
+        "Because in proxy integration the payload arrives in event.body as string: the function does JSON.parse and extract { userId, action } from inside it — minimum correction, without changing integration.",
+        "Because in custom integration the payload arrives in event.body as a string: the mapping template makes the parse and extracts { userId, action } — delivering the object directly, when changing the integration.",
+        "Because with Binary Media Type the payload arrives in event.body as string: the configuration makes the parse and extracts { userId, action } from inside it — without changing the proxy integration.",
+        "Because with one Lambda Authorizing the payload arrives at event.body as a string: the authorizer parses and extracts { userId, action } before the main function — without changing the integration."
+      ]
+    },
+    "dva-avc-037": {
+      "optionReasons": {
+        "dva-avc-037:option:0": "It's the closest because it moves in a row configuration to reduce calls — but VisibilityTimeout controls how long a message RECEBIDA is invisible, not the frequency of polling in an empty row; reducing empty calls is long polling (WaitTimeSeconds up 20s).",
+        "dva-avc-037:option:1": "Convert to FIFO changes row type — does not reduce empty row calls of polling.",
+        "dva-avc-037:option:2": "",
+        "dva-avc-037:option:3": "Call each 100ms AUMENTA the empty calls and consumption of CPU — the opposite of the desired."
+      },
+      "finalJustifications": [
+        "Why set WaitTimeSeconds to 20s activates the long polling: o SQS waits for the arrival of a message (or timeout) before answering — adds the shrug of empty calls and the tight link of CPU.",
+        "Why increase VisibilityTimeout activates or long polling: o SQS waits for a message to arrive before replying — adds the shrug of empty calls and the tight link of CPU.",
+        "Because convert to FIFO activates the long polling: o SQS waits for a message to arrive before replying — adds the shrug of empty calls and the tight link of CPU of worker.",
+        "Why call each 100ms active or long polling: o SQS waits for a message to arrive before replying — adds the shrug of empty calls and the tight link of CPU of worker."
+      ]
+    },
+    "dva-avc-038": {
+      "optionReasons": {
+        "dva-avc-038:option:0": "",
+        "dva-avc-038:option:1": "Scan with FilterExpression reads the entire table (millions of items) and discards 98% — exactly what you want to avoid.",
+        "dva-avc-038:option:2": "It's the closest because a second table synchronized by Streams also isolates the ~2% marked — but requires maintaining extra table, synchronization code and eventual consistency; the same result without new table comes out of a GSI ESPARSO in the key needsManagerReview.",
+        "dva-avc-038:option:3": "GSI with TicketId as PK indexing TODOS items — does not filter those that need revision or is scattered."
+      },
+      "finalJustifications": [
+        "Because GSI scattered with needsManagerReview as PK only includes items that HAVE the attribute (the ~2% marked): a Query in the index reads only them, without sweeping the table or maintaining extra structure.",
+        "Because the second table synchronized by Streams only includes the items marked (the ~2%): a Query in it reads only them, without sweeping the table — at the cost of an extra table and synchronization.",
+        "Because the Scan with FilterExpression only includes the marked items (the ~2%): the query reads only them, without sweeping the entire table or maintaining additional structure for management review..",
+        "Because GSI with TicketId as PK only includes the items marked (the ~2%): a Query in the index reads only them, without sweeping the table or maintaining extra structure for management review."
+      ]
+    }
+  }
+}

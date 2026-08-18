@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "level": "iniciante",
+    "sourcePath": "data/exams/dva-c02/iniciante.json",
+    "range": "085-096",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "dva-ini-085": {
+      "text": "A developer added log instructions (console.log/print) to a function Lambda to investigate a bug. Where these messages can be consulted after the executions?",
+      "options": [
+        "In a text file on the function server, accessible via SSH",
+        "No. Amazon CloudWatch Logs, in the log group of the function (/aws/lambda/function name)",
+        "Logs are discarded at the end of each execution",
+        "No. AWS CloudTrail, with the calls from API"
+      ],
+      "explanation": "The Lambda automatically send the default output and runtime logs to the CloudWatch Logs, organized in log group by function and log streams by execution instance — provided the execution roll has log permissions.",
+      "hint": "Everything that the function 'prints' results in the log service, in a group with her name on it..",
+      "optionRationales": [
+        "The Lambda automatically send the default output and runtime logs to the CloudWatch Logs, organized in log group by function and log streams by execution instance — provided the execution roll has log permissions.",
+        "No accessible server in the Lambda — the environment is managed and the logs flow to the CloudWatch.",
+        "The CloudTrail records calls from API Administrative — not function code log output.",
+        "Logs persist no CloudWatch Logs according to the configured hold — do not get lost at the end of execution."
+      ]
+    },
+    "dva-ini-086": {
+      "text": "The team wants to be notified by email when the error rate 5xx of a API overtake 1% by 5 minutes. What a combination of resources of the CloudWatch implements this notification?",
+      "options": [
+        "Manually consult metrics every hour",
+        "Enable AWS Configure to send alert",
+        "An alarm from the CloudWatch about the error metric, with action publishing in a topic SNS signed by the team's email",
+        "A dashboard from CloudWatch sending emails alone"
+      ],
+      "explanation": "The standard alert flow: metric → alarm with threshold and period → action for topic SNS → signatures (e-mail, chat) notified when the status changes to ALARM.",
+      "hint": "Metric + 'awakener' with threshold + notification topic = alert in email.",
+      "optionRationales": [
+        "The standard alert flow: metric → alarm with threshold and period → action for topic SNS → signatures (e-mail, chat) notified when the status changes to ALARM.",
+        "Dashboards display graphs for query — the one that triggers notifications is the alarm with configured action.",
+        "Manual monitoring does not scale and delays detection — the alarm automates continuous observation.",
+        "Config assesses configuration compliance — does not monitor application error metrics."
+      ]
+    },
+    "dva-ini-087": {
+      "text": "A function Lambda which calls a API external is failing message 'Task timed out after 3.00 Seconds'. API external responds normally in up 8 What is the diagnosis and correction??",
+      "options": [
+        "Memory is missing in the function, which locks when assigning variables",
+        "A AWS limits all functions to 3 seconds, no configuration possible",
+        "The function configured timeout (3s, the pattern) is less than the time of dependence; the timeout should be increased to accommodate the call (with margin))",
+        "Execution roll is without permission for the API external"
+      ],
+      "explanation": "The message indicates that the execution has reached the set limit: with dependence leading 8s, the timeout needs to be greater (ex: 10-15s) — also assessing whether the slow call deserves optimization or asynchronous processing.",
+      "hint": "The message delivers the villain: the function clock expired before the dependency responds — adjusts the clock.",
+      "optionRationales": [
+        "The message indicates that the execution has reached the set limit: with dependence leading 8s, the timeout needs to be greater (ex: 10-15s) — also assessing whether the slow call deserves optimization or asynchronous processing.",
+        "3 seconds is just the default — timeout is configurable up 15 minutes.",
+        "Memory burst generates specific memory error — timeout message points to time limit.",
+        "External APIs do not pass through IAM — lack of permission generates access errors in services AWS, no timeout."
+      ]
+    },
+    "dva-ini-088": {
+      "text": "Users realize that the first request to a API serverless after periods of inactivity takes longer than the following. AWS Lambda explains this initial latency?",
+      "options": [
+        "Cold start: when there is no active running environment, the Lambda needs to provide the environment and initialize runtime and code before processing",
+        "The API Gateway shuts down at night to save",
+        "Throttling account on the first call of the day",
+        "Cache DNS expired in customer"
+      ],
+      "explanation": "Cold start is the cost of starting a new environment (code download, runtime boot, startup code); following invocations reuse the 'hot' environment and are faster.",
+      "hint": "Cold motor slows to start; after heated, the laps are fast.",
+      "optionRationales": [
+        "Cold start is the cost of starting a new environment (code download, runtime boot, startup code); following invocations reuse the 'hot' environment and are faster.",
+        "Throttling rejects requests above competition with error 429 — does not add initialization latency to the first call.",
+        "The API Gateway is an always active service — not hibernate by inactivity.",
+        "Resolution DNS add occasional milliseconds — not the consistent pattern of 'first called slow after idle' of the running environment."
+      ]
+    },
+    "dva-ini-089": {
+      "text": "An application started receiving ProvidedThroughputExceededException errors when saving to a table of DynamoDB in mode provided during peaks. What are two appropriate responses to this throttling?",
+      "options": [
+        "Remove Error Treatment to Accelerate Writing",
+        "Retrieve with exponential backoff in the client (SDKs standard) and adjust capacity (auto scaling or on-demand mode) to track peaks",
+        "Migrate the table to S3",
+        "Reduce the capacity provided to force less traffic"
+      ],
+      "explanation": "Treatment combines customer resilience (retries with increasing expectation absorb short peaks) and dimensioning in service (auto scaling capacity provided or exchanged for on-demand in unpredictable traffic).",
+      "hint": "Two remedies together: intelligent patientness in the client (backoff) and breath in the server (capacity).",
+      "optionRationales": [
+        "Treatment combines customer resilience (retries with increasing expectation absorb short peaks) and dimensioning in service (auto scaling capacity provided or exchanged for on-demand in unpredictable traffic).",
+        "Ignoring errors silently knocks down data — rejected writings would be lost.",
+        "The S3 does not replace transactional key-value table — the problem is sizing, not wrong service.",
+        "Less capacity generates MAIS throttling — aggravates the symptoms exactly."
+      ]
+    },
+    "dva-ini-090": {
+      "text": "Even with total capacity remaining, a table of the DynamoDB throttling suffers because most requests use the same partition key value (a giant customer concentrates traffic). As this problem is called and what is the direction of the solution?",
+      "options": [
+        "Hot partition: the solution involves redistributing access, e.g. with higher cardinality keys or sharding suffixes on the key",
+        "Star schema: just normalize the tables",
+        "Drift: just rotate the detection of deviations from the CloudFormation",
+        "Cold start: just warm the table with test requests"
+      ],
+      "explanation": "The limits are worth it. POR partition: Focusing traffic on a key breaks the local boundary even with free aggregate capacity — the key redesign (spreading access) is the structural correction.",
+      "hint": "Everybody banging in the same drawer — the drawer warms; spreads the beats.",
+      "optionRationales": [
+        "The limits are worth it. POR partition: Focusing traffic on a key breaks the local boundary even with free aggregate capacity — the key redesign (spreading access) is the structural correction.",
+        "Cold start is the phenomenon of initialization of the Lambda — not from partitions of the DynamoDB.",
+        "Drift is the difference between stack and template — unrelated to partition traffic distribution.",
+        "Dimensional modelling is the concept of data warehouse — the problem here is access concentration on a key NoSQL."
+      ]
+    },
+    "dva-ini-091": {
+      "text": "Operations team needs to find out QUEM excluded a table from DynamoDB production on the last Friday — user, time and IP of origin of the call. Which service provides this registration?",
+      "options": [
+        "Amazon Inspector",
+        "Amazon CloudWatch Metrics",
+        "AWS CloudTrail, which records the name DeleteTable with the identity, time and IP of origin",
+        "AWS X-Ray"
+      ],
+      "explanation": "The CloudTrail is the audit trail of calls from API: the DeleteTable event appears with userIdentity, sourceIPAddress and timestamp — the direct response to 'who did what's'.",
+      "hint": "For the 'who, when and where' of an action in the account, follow the trail.",
+      "optionRationales": [
+        "The CloudTrail is the audit trail of calls from API: the DeleteTable event appears with userIdentity, sourceIPAddress and timestamp — the direct response to 'who did what's'.",
+        "Metrics aggregate performance numbers — do not record the identity of those who carried out administrative actions.",
+        "X-Ray tracks application requests for latency analysis — non-audit of administrative actions.",
+        "The Inspector scan vulnerabilities — does not maintain history of calls from API."
+      ]
+    },
+    "dva-ini-092": {
+      "text": "Malformed messages in a row SQS fail repeatedly in the consumer and return to the row in infinite cycle, hindering the processing of valid messages. What configuration isolates these problematic messages for analysis?",
+      "options": [
+        "Delete the row and create another one whenever you stop",
+        "Increase retention period for messages to expire alone",
+        "Reduce visibility timeout to accelerate reprocessing",
+        "Configure a dead-letter queue (DLQ) with maxReceiveCount: after N attempts, the message is moved to the quarantine row"
+      ],
+      "explanation": "The redrive policy with DLQ removes 'poisonous' messages from the cycle after the limit of receptions, preserving them for diagnosis and releasing the main row for healthy traffic.",
+      "hint": "After N fails, the message goes to 'infirmary' — which special line is that?",
+      "optionRationales": [
+        "The redrive policy with DLQ removes 'poisonous' messages from the cycle after the limit of receptions, preserving them for diagnosis and releasing the main row for healthy traffic.",
+        "Recreate Deleted Row TODAS messages, including valid — and the cycle starts again with the next malformed.",
+        "Waiting days until they expire keeps the noise in processing and loses messages without diagnosis.",
+        "Reappearing faster only intensifys loop failures — the problem is lack of quarantine."
+      ]
+    },
+    "dva-ini-093": {
+      "text": "A function Lambda image processing takes 30 seconds with 256 MB of memory. The developer doubled the memory to 512 MB and time fell to 14 Seconds, with a total cost of almost the same.?",
+      "options": [
+        "A AWS does not charge functions with more than 512 MB",
+        "The Lambda migrated the function to a faster region",
+        "No. Lambda, a CPU is allocated proportionally to memory: more memory means more processing power, and the shorter execution compensates the higher price per millisecond",
+        "It was coincidence; memory does not affect performance in Lambda"
+      ],
+      "explanation": "Memory is the only 'button' of resources of Lambda and drag CPU together: for processing loads, climbing memory often reduces the duration to the point of maintaining (or reducing) the total cost — the classic tuning adjustment.",
+      "hint": "No. Lambda, memory and CPU come in the same package: pay for a 'greater engine' that ends well early can leave for free.",
+      "optionRationales": [
+        "Memory is the only 'button' of resources of Lambda and drag CPU together: for processing loads, climbing memory often reduces the duration to the point of maintaining (or reducing) the total cost — the classic tuning adjustment.",
+        "The memory relationship→CPU is documented and deterministic — the gain is expected in processing-limited loads.",
+        "Functions do not exchange Region alone — the gain came from additional computational power.",
+        "The collection continues by GB-second in any configuration — no free track by size."
+      ]
+    },
+    "dva-ini-094": {
+      "text": "A call from the application to S3 returns the 'AccessDenied' error. The team confirmed that the bucket and the object exist. What is the most effective verification sequence to diagnose the permission problem?",
+      "options": [
+        "Restart application until error disappears",
+        "Exchange the Bucket Region",
+        "Make the public bucket to eliminate the error",
+        "Review the identity policy you call (role/user), the bucket policy and settings like Block Public Access/Cryptography required, remembering that an explicit Deny in any layer prevails"
+      ],
+      "explanation": "Access Denied results from the combined assessment: the precise identity of Allow, the resource cannot deny, and controls like BPA, SCPs and conditions (e.g. key KMS) also participate — research covers layers in order.",
+      "hint": "Denied? Check out the two tips (who calls and the resource) and the global 'vetos' — remembering that a Deny wins everything.",
+      "optionRationales": [
+        "Access Denied results from the combined assessment: the precise identity of Allow, the resource cannot deny, and controls like BPA, SCPs and conditions (e.g. key KMS) also participate — research covers layers in order.",
+        "Permission does not change with reboot — the error is deterministic until someone adjusts the policies.",
+        "Solve Access Denied with public display swaps an error for a security incident.",
+        "Region does not participate in authorisation decision — moving data does not correct policies."
+      ]
+    },
+    "dva-ini-095": {
+      "text": "After a marketing campaign, a function Lambda has received errors of 'Rate exceeded' (throttling) for bursting the limit of competing executions. In addition to requesting quota increase, which resource of Lambda ensures that a specific CRITICAL function always has execution capability available?",
+      "options": [
+        "Increase function timeout",
+        "Add more memory to function",
+        "Publish more versions of the function",
+        "Reserved competition, reserving a portion of the account's competition exclusively for this function"
+      ],
+      "explanation": "The reserved competition guarantees the minimum dedicated to the critical function (and simultaneously limits its maximum), protecting it from the dispute with the other functions of the account at peaks.",
+      "hint": "For the function VIP Never be without a table in the crowded restaurant, book her seats.",
+      "optionRationales": [
+        "The reserved competition guarantees the minimum dedicated to the critical function (and simultaneously limits its maximum), protecting it from the dispute with the other functions of the account at peaks.",
+        "Timeout controls the maximum duration of each execution — not the amount of simultaneous executions available.",
+        "Memory accelerates individual executions, but does not reserve competition slots in the account.",
+        "Versions organise deployments — do not multiply the available concurrent capacity."
+      ]
+    },
+    "dva-ini-096": {
+      "text": "A developer needs to investigate an intermittent error searching for patterns in a function's logs Lambda — filter messages by content, add by field, and analyze specific periods — with a query language about log groups. CloudWatch Do it.?",
+      "options": [
+        "Download the logs and search manually in a text editor",
+        "Amazon Inspector",
+        "CloudWatch Logs Insights, with interactive queries (filter, parse, stats) about the log groups",
+        "AWS X-Ray Analytics"
+      ],
+      "explanation": "Logs Insights performs analytical queries about logs (filters, field extraction, aggregations, and graphics) — the tool to investigate patterns without exporting anything.",
+      "hint": "The 'SQL of the CloudWatch: filter, extract and add directly to the log groups.",
+      "optionRationales": [
+        "Logs Insights performs analytical queries about logs (filters, field extraction, aggregations, and graphics) — the tool to investigate patterns without exporting anything.",
+        "Manual inspection does not scale for millions of lines — structured query finds patterns in seconds.",
+        "X-Ray analyzes traces of distributed requests — the text search of logs belongs to Logs Insights.",
+        "The Inspector varre vulnerabilities — do not consult application logs."
+      ]
+    }
+  }
+}

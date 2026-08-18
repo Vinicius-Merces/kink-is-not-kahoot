@@ -1,0 +1,67 @@
+name: Gerar catálogo EN das páginas internas
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/offline_mt.py'
+      - 'scripts/translation_integrity.py'
+      - 'scripts/validate_i18n.py'
+      - 'scripts/generate_internal_literal_catalog.py'
+      - 'admin.html'
+      - 'create-quiz.html'
+      - 'historico.html'
+      - 'host.html'
+      - 'my-quizzes.html'
+      - 'player.html'
+      - 'progresso.html'
+      - 'js/admin.js'
+      - 'js/create-quiz.js'
+      - 'js/historico.js'
+      - 'js/host-socket.js'
+      - 'js/player-socket.js'
+      - 'js/progresso.js'
+      - 'js/quiz-manager.js'
+      - 'js/report-question.js'
+      - 'js/study-progress.js'
+      - '.github/workflows/generate-internal-literals.yml'
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar motor de tradução local
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'torch>=2.3,<3' --index-url https://download.pytorch.org/whl/cpu
+          pip install 'transformers>=4.44,<5' 'sentencepiece>=0.2,<1'
+      - name: Gerar catálogos internos PT EN
+        run: python3 scripts/generate_internal_literal_catalog.py
+      - name: Validar paridade, fidelidade e resíduo PT
+        run: python3 scripts/validate_i18n.py
+      - name: Versionar catálogos
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add locales/pt-BR/internal-literals.json locales/en/internal-literals.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(i18n): add validated offline internal application literal catalogs'
+          git pull --rebase origin "$HEAD_BRANCH"
+          git push origin "HEAD:${HEAD_BRANCH}"

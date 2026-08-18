@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "iniciante",
+    "sourcePath": "data/exams/saa-c03/iniciante.json",
+    "range": "241-252",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-ini-241": {
+      "text": "A company has a bucket S3 with critical data and wants to protect them from accidental exclusion by any user, including administrators. S3 prevents objects from being deleted or overwritten for a specified period?",
+      "options": [
+        "S3 Versioning with MFA Delete enabled — requires MFA to delete versions of objects; as administrators rarely have the MFA available, this effectively prevents deletions",
+        "S3 Intelligent-Tiering — by moving objects to layers of infrequent access storage, the S3 automatically protects objects against deletion for a minimum period of 30 days",
+        "S3 Object Lock in mode COMPLIANCE — once activated, NENHUM user (no root account) AWS) can delete or modify protected objects during the configured retention period, ensuring immutability for compliance (WORM)",
+        "S3 Bucket Policy with Deny for s3:DeleteObject — creating a policy that denies s3:DeleteObject for all users, no object in the pocket can be deleted"
+      ],
+      "explanation": "Correct.. S3 Object Lock mode COMPLIANCE is the most restrictive: the object cannot be deleted or modified by NENHUM user during the retention period — neither administrators nor root. GOVERNANCE is less restrictive (special permission users can bypass it). Object Lock is used for data that need to be regulatively unchangeable. (LGPD, SOX, HIPAA).",
+      "hint": "What is the functionality of S3 implements the model WORM (Write Once, Read Many) — making objects immutable for a period, preventing deletion even by administrators?",
+      "optionRationales": [
+        "Correct.. S3 Object Lock mode COMPLIANCE is the most restrictive: the object cannot be deleted or modified by NENHUM user during the retention period — neither administrators nor root. GOVERNANCE is less restrictive (special permission users can bypass it). Object Lock is used for data that need to be regulatively unchangeable. (LGPD, SOX, HIPAA).",
+        "Partially correct as protection, but insufficient for 'including administrators' — users with permission AdministratorAccess can modify or remove bucket policies. Object Lock in mode COMPLIANCE is technically impossible to be circumvented even by administrators, being superior to the described scenario of unrestricted protection.",
+        "Partially correct as additional control, but MFA Delete Still PERMITE deletion by whom you have MFA. The description 'rarely have the MFA available' is not a technical warranty. Object Lock in mode COMPLIANCE is the technical protection guaranteed — regardless of having MFA or not, the delete operation is denied during the retention period.",
+        "Incorrect. S3 Intelligent-Tiering is a storage class that moves objects between layers based on access patterns to optimize costs — it has no relation to deletion protection. There is no delete protection in any storage class of the S3 by itself (no Object Lock or Versioning)."
+      ]
+    },
+    "saa-ini-242": {
+      "text": "A startup uses AWS and wants to understand how the Amazon Route 53. A developer asks: 'What is a TTL in a record DNS And why does it matter?' Which explanation is correct?",
+      "options": [
+        "TTL is the maximum number of hops (rotator jumps) that a package DNS can cross — when you reach zero, the package is discarded to avoid endless routing loops",
+        "TTL in DNS determines how long the instance EC2 the application is active — when the TTL expires, the instance is automatically restarted by Route 53 to maintain server health",
+        "TTL (Time To Live) is the time in seconds that solvers DNS will cache the response of a record — a TTL low (ex.: 60(s) means that changes in DNS Propagates rapidly (solvents consult more frequently), but generate more traffic; a TTL high (ex.: 86400(s) reduces traffic DNS but increases the time of propagation of changes",
+        "TTL is the maximum time the source server expects for a response DNS before timeout — one TTL low means that the server quickly gives up if the client does not respond"
+      ],
+      "explanation": "Correct.. TTL defines how long solvers DNS Intermediaries (ISPs, browsers) will cache the answer. TTL low = rapid spread of changes, more consultations to Route 53. TTL high = less consultations (lower cost, lower latency DNS), but changes take longer to propagate. In deployments, it is common practice to reduce TTL hours before making a change of DNS.",
+      "hint": "TTL DNS And what happens when that time expires in the solvers who hid the answer??",
+      "optionRationales": [
+        "Correct.. TTL defines how long solvers DNS Intermediaries (ISPs, browsers) will cache the answer. TTL low = rapid spread of changes, more consultations to Route 53. TTL high = less consultations (lower cost, lower latency DNS), but changes take longer to propagate. In deployments, it is common practice to reduce TTL hours before making a change of DNS.",
+        "Incorrect. TTL is not related to server connection timeout — is the cache time of the solvers. TTL is configured in the log DNS and determines how long the solvers save the answer before consulting again. It is a configuration on the side of the DNS, not from the application server.",
+        "Incorrect. The description of 'hops and discard in zero' is of TTL in IP packages (field in the IP header), not of TTL in records DNS. Though they use the same name, TTL DNS has a completely different meaning: is the cache time of the record DNS, measured in seconds.",
+        "Incorrect. TTL DNS has no relation to instances EC2 or rebooting of servers. Route 53 does not restart instances. TTL is exclusively about the cache time of records DNS in intermediate solvers."
+      ]
+    },
+    "saa-ini-243": {
+      "text": "A company has a microservices architecture where several services need to communicate. They want a messaging system where producer services can send messages without having to wait for consumers to process — consumers process at their own pace. AWS is more suitable for this disconnection?",
+      "options": [
+        "Amazon SQS (Simple Queue Service) — is a managed message queue where producers send messages to the queue and consumers process them independently; messages stay in the queue until they are processed (or expired), completely decoupling the rate of consumption production",
+        "Amazon SNS (Simple Notification Service) — allows producer services to publish messages to multiple consumers simultaneously, decoupling consumption production in real time",
+        "Amazon API Gateway — allows services to communicate via APIs REST synchronous; using long timeout, the producer can wait for the response anointingly",
+        "Amazon ElastiCache — instances temporarily store messages in the Redis/Memcached cache, allowing producers and consumers to operate at different speeds"
+      ],
+      "explanation": "Correct.. SQS is the line service of the AWS for asynchronous decoupling. The producer sends to the queue and continues his work without waiting. The consumer pulls messages from the queue at his own pace. If the consumer stays slow, the messages accumulate in the row without loss. It is the most common asynchronous decoupling pattern.",
+      "hint": "What service AWS is specifically a FILA of managed messages — where producers put messages and consumers withdraw them at their own pace, without the producer having to wait?",
+      "optionRationales": [
+        "Correct.. SQS is the line service of the AWS for asynchronous decoupling. The producer sends to the queue and continues his work without waiting. The consumer pulls messages from the queue at his own pace. If the consumer stays slow, the messages accumulate in the row without loss. It is the most common asynchronous decoupling pattern.",
+        "Partially correct for pub/sub, but SNS is for immediate delivery (push) — does not buffer. If a consumer is not available at the time of publication, you may lose the message. SQS makes the real time disconnection (message stays in line). SNS is often used in conjunction with SQS: SNS does fan-out for multiple rows SQS.",
+        "Incorrect. API Gateway is for SINCONA communication (request-response) — the customer awaits the answer. Even with long timeouts, it is not the same as asynchronous processing via row. For asynchronous uncoupling where the producer does not have to wait for the consumer, SQS is the correct solution.",
+        "Incorrect. ElastiCache is a data cache (Redis/Memcached) to speed up access to data — it is not a messaging system with guarantees of delivery, visibility, retention and DLQ (Dead Letter Queue) as the SQS. Using cache as a message queue would be a fragile solution without the guarantees of a managed queue service."
+      ]
+    },
+    "saa-ini-244": {
+      "text": "A company wants to ensure that its application is resilient to regional failures of the AWS. Which disaster recovery strategy offers the smallest RTO (recovery time) in case of a region failure AWS?",
+      "options": [
+        "Warm Standby — maintains a reduced version of the application running in another region ready to scale; the RTO is of 0 seconds because the servers are already fully initialized",
+        "Multi-Site Active/Active — the application runs simultaneously in multiple regions with active traffic in all; in the event of a failure of a region, the Route 53 or Global Accelerator redirects traffic to healthy regions without perceptible downtime",
+        "Backup and Restore — Makes regular backup of data to S3 in another region and, in case of failure, restores the complete infrastructure from the backup; this is the fastest method because the S3 instantly restores",
+        "Pilot Light — keeps critical components (databank) in another region and scales the other components (EC2) where necessary; or RTO it is instantaneous because the servers are already preheated"
+      ],
+      "explanation": "Correct. Multi-Site Active/Active has RTO close to zero because there is no 'failover' — traffic simply stops going to the region fails and continues in the others that are already active. It is the most expensive but least expensive DR strategy RTO. Other strategies (Backup/Restore, Pilot Light, Warm Standby) have progressively smaller RTOs but still have some recovery time.",
+      "hint": "What DR strategy results in RTO close to zero — because the application is already running with active traffic in multiple regions simultaneously, not requiring 'failover''?",
+      "optionRationales": [
+        "Correct. Multi-Site Active/Active has RTO close to zero because there is no 'failover' — traffic simply stops going to the region fails and continues in the others that are already active. It is the most expensive but least expensive DR strategy RTO. Other strategies (Backup/Restore, Pilot Light, Warm Standby) have progressively smaller RTOs but still have some recovery time.",
+        "Incorrect. Backup and Restore has the MAIOR RTO ((h) DR strategies — the entire infrastructure of the zero must be created and the data restored (which may take a long time)). S3 does not restore infrastructure EC2/RDS 'Instantly.' It's the cheapest but least agile strategy in recovery..",
+        "Incorrect about RTO Pilot Light keeps the minimum active (usually the bench) and scales the rest during the DR. The time to scale additional components (launch instances) EC2, configure ALB, update DNS) results in RTO of 10-60 minutes — not instant. Multi-Site Active/Active has the lowest RTO.",
+        "Incorrect about RTO of 0 Warm Standby has reduced capacity that needs to be scaled to production in case of failure (scaling EC2, adjust database, update DNS) — resulting in RTO Multi-Site Active/Active has RTO close to zero because nothing needs to be done — traffic is already being distributed to all regions."
+      ]
+    },
+    "saa-ini-245": {
+      "text": "A company uses Amazon ELB (Elastic Load Balancer) with instances EC2. The administrator realized that some instances are receiving traffic even when they are in trouble and not responding correctly. ELB determines if an instance is healthy to receive traffic?",
+      "options": [
+        "ELB Health Checks — o ELB periodically send verification requests (HTTP/HTTPS for one URL specific, or TCP for a door) for each instance; if the instance does not respond with the correct status code (ex.: 200 OK) for a configurable number of consecutive times, the ELB the brand as unhealthy and stops sending traffic to it",
+        "The ELB uses Status Checks from EC2 (System Status Check and Mechanism Status Check) — if any of these checks fail, the ELB automatically replaces the instance",
+        "The ELB monitor the status of the instances EC2 way AWS Systems Manager — if the agent SSM not responding, the instance is considered unhealthy",
+        "The ELB monitor the use of CPU of the bodies CloudWatch — cases with CPU above 80% are considered unhealthy and removed from traffic rotation"
+      ],
+      "explanation": "Right. ELB Health Checks are configurable: protocol (HTTP, HTTPS, TCP), path (e.g. /health), port, check interval, timeout, health check threshold/unhealthy. An instance marked as unhealthy does not receive new requests until it is healthy again. The application must have an endpoint /health that returns 200 when working.",
+      "hint": "Like the ELB check whether an instance EC2 is responding correctly — what type of request it sends, and what criterion it uses to mark the instance as 'unhealthy''?",
+      "optionRationales": [
+        "Right. ELB Health Checks are configurable: protocol (HTTP, HTTPS, TCP), path (e.g. /health), port, check interval, timeout, health check threshold/unhealthy. An instance marked as unhealthy does not receive new requests until it is healthy again. The application must have an endpoint /health that returns 200 when working.",
+        "Incorrect. ELB does not use CPU as a criterion of health — high CPU may indicate high load (working instance normally) or problem. The health criterion is RESPOSTA the health check requests (the instance answers correctly?). CPU 100% may still be serving requests correctly and would be considered healthy.",
+        "Incorrect. ELB does not depend on AWS Systems Manager to determine health. Health Checks are made directly by ELB by means of requests HTTP/HTTPS/TCP for the court itself — independent of any installed agent. SSM is for operational management (remote commands, patches), not for health checks of ELB.",
+        "Incorrect. ELB Health Checks EC2 Status Checks are independent mechanisms. EC2 Status Checks check hardware and SO integrity — ELB does not use them to decide about traffic. ELB uses your own health checks application. You can configure the Auto Scaling for use ELB health checks (which then replaces instances), but the decision-making mechanism of ELB are your own health checks."
+      ]
+    },
+    "saa-ini-246": {
+      "text": "One company implemented a multi-AZ architecture with EC2 and ALB. The architect realized that when an AZ becomes overloaded, traffic is not rebalanced for less busy instances in the other AZ. What configuration of the ALB ensures more uniform load distribution between all instances in all AZs?",
+      "options": [
+        "Sticky Sessions (Session Affinity) — when enabling sticky sessions, the ALB ensures that requests from the same client always go to the same instance, distributing different users to different instances in a balanced way",
+        "Increase the number of registered AZs ALB of 2 for 3 — with more AZs, the traffic is distributed more granularly between the nodes of ALB, resulting in better balance",
+        "Configure target groups with the same weight between AZs — when balancing target groups weights, the ALB uniformly distributes traffic",
+        "Cross-Zone Load Balancing — when enabled, or ALB distributes the requests equally between TODAS the instances registered in the TODAS the AZs, regardless of which AZ traffic entered; without this, the traffic arriving in an AZ is restricted to the instances of that AZ"
+      ],
+      "explanation": "By default, ALB route traffic between AZ instances where the request arrived. With Cross-Zone Load Balancing (enabled by default in ALB from 2016), o ALB can send a request that arrived at AZ-a for an instance in the AZ-b if it is less busy, resulting in more uniform distribution. ALB, is enabled by default (but has data transfer cost between AZs in NLB).",
+      "hint": "What configuration of the ALB allows it to distribute traffic between fora in TODAS AZs (not just those of AZ where traffic entered)?",
+      "optionRationales": [
+        "By default, ALB route traffic between AZ instances where the request arrived. With Cross-Zone Load Balancing (enabled by default in ALB from 2016), o ALB can send a request that arrived at AZ-a for an instance in the AZ-b if it is less busy, resulting in more uniform distribution. ALB, is enabled by default (but has data transfer cost between AZs in NLB).",
+        "Incorrect — Sticky Sessions makes the opposite of rebalancing. Sticky Sessions make the same client always hit the MESMA This can be done. PIORAR the imbalance if many customers are stuck in the overloaded instance. For uniform distribution, Cross-Zone Load Balancing and absence of sticky sessions are required.",
+        "Incorrect. Weights in target groups exist but are for specific cases such as blue/green deployments — they are not the solution for uniform distribution between AZs. Cross-Zone Load Balancing is the specific mechanism to ensure that instances in all AZs receive load proportionally.",
+        "Incorrect. Increasing the number of AZs improves resilience (more failure isolation zones), but does not solve the traffic problem being not redistributed between AZs when one is overloaded. Cross-Zone Load Balancing is the correct mechanism for this."
+      ]
+    },
+    "saa-ini-247": {
+      "text": "A company uses Amazon S3 and wants to understand the difference between S3 Standard and S3 Standard-IA (Infrequent Access). A developer asks when to use each class. What is the main difference?",
+      "options": [
+        "S3 Standard has durability of 99.999999999% (11 nine), while S3 Standard-IA has a lower durability of 99.99% for storing data in less locations to reduce cost",
+        "S3 Standard is for frequently accessed data (higher storage cost, no recovery cost); S3 Standard-IA is for rarely accessed data (minor storage cost, but has additional cost per GB recovered/accessed) — decision depends on frequency of access to minimize total cost",
+        "S3 Standard-IA has access latency greater than S3 Standard — data in Standard-IA takes minutes to become available after a request for access",
+        "S3 Standard-IA is for data in transit (in active use), while S3 Standard is for permanently stored data — the AI in the name means 'In Active' (use)'"
+      ],
+      "explanation": "Correct.. S3 Standard: storage cost ~$0.023/GB/month, no charge per retriival. S3 Standard-IA: lower storage cost (~$0.0125/GB/month), but there is a charge per retrieval ($0.01/GB accessed). For frequently accessed data, Standard is cheaper in total. For rarely accessed data (backups, old logs), Standard-IA is cheaper. Both have the same durability (11 new).",
+      "hint": "S3 Standard-IA means 'Infrequent Access' — which cost is higher in this class (storage or retrieval), and when it compensates for using it instead of Standard?",
+      "optionRationales": [
+        "Correct.. S3 Standard: storage cost ~$0.023/GB/month, no charge per retriival. S3 Standard-IA: lower storage cost (~$0.0125/GB/month), but there is a charge per retrieval ($0.01/GB accessed). For frequently accessed data, Standard is cheaper in total. For rarely accessed data (backups, old logs), Standard-IA is cheaper. Both have the same durability (11 new).",
+        "Incorrect. AMBAS the classes have the same durability of 99.999999999% (11 The difference is not of durability, but of storage cost vs. retriival cost, optimized for different access frequency..",
+        "Incorrect. S3 Standard-IA has the MESMA latency of access in milliseconds that S3 Standard (immediate access) — other than S3 Glacier Instant/Flexible/Deep Archive that have larger recovery latency. The 'IA' in Standard-IA refers to expected access frequency, not recovery latency.",
+        "Incorrect. 'IA' means 'Infrequent Access', not 'In Active use''. S3 Standard-IA is for rarely accessed stored data — the opposite of 'active data'. Both are persistent storage classes."
+      ]
+    },
+    "saa-ini-248": {
+      "text": "A company uses Amazon CloudWatch to monitor your instances EC2. The team of operations wants to be notified by email when using CPU stay above 80% for more than 5 which two features of the CloudWatch are necessary for this?",
+      "options": [
+        "One CloudWatch Alarm (configured with the CPUtilization metric, thread > 80, period 5 min, number of evaluation periods = 1) + one SNS Topic with email signature — the alarm triggers when the condition is met and posts a message in SNS, sending the email to the registered address",
+        "One CloudWatch Dashboard + one CloudWatch Events Rule — the dashboard displays a CPU in real time and Events Rule sends email when the CPU exceeds the thread configured in the panel",
+        "One CloudWatch Log Group + one CloudWatch Log Metric Filter — by filtering log CPU of the EC2 and create a custom metric, you can set alerts for when the metric exceeds 80%",
+        "One AWS Settings + Amazon SNS — when creating a Config Rule that detects CPU above 80%, the Config publishes the violation in SNS for notification by email"
+      ],
+      "explanation": "Correct. For notification of CPU: (1) Create CloudWatch Alarm: metric EC2 CPUtilization, threshold > 80, period 5 minutes, evaluate 1 period; (2) Link the alarm to one SNS Topic with email subscription (email needs to be confirmed). CPU is above 80% by 5 min, the alarm changes state ALARM and publishes no SNS, sending the email.",
+      "hint": "To send email when a metric exceeds a thread in CloudWatch, two resources are needed: CloudWatch monitor the metric and fire, and which message service sends the email?",
+      "optionRationales": [
+        "Correct. For notification of CPU: (1) Create CloudWatch Alarm: metric EC2 CPUtilization, threshold > 80, period 5 minutes, evaluate 1 period; (2) Link the alarm to one SNS Topic with email subscription (email needs to be confirmed). CPU is above 80% by 5 min, the alarm changes state ALARM and publishes no SNS, sending the email.",
+        "Incorrect. CloudWatch Dashboards are for VISUALIZATION (do not send notifications). CloudWatch Events (now EventBridge) reacts to resource status change events (not metrics exceeding thresholds). For METRIC-based notification with threshold, CloudWatch ALARM is the correct remedy.",
+        "Incorrect for this case. CPUutilization is a native metric of EC2 no CloudWatch — is not a log. To use Log Metric Filters, it would be necessary to export metrics for logs and process them, which is unnecessarily complex. CloudWatch Alarm with metric EC2 pattern is the direct and correct path.",
+        "Incorrect. AWS Config assesses CONFIGURES of resources (e.g.: Security Group There's a door. 22 Open?') — does not monitor real-time performance metrics like CPU. For monitoring metrics and threats-based alerts, CloudWatch Alarm is the right service."
+      ]
+    },
+    "saa-ini-249": {
+      "text": "A company wants to understand when to use a Application Load Balancer (ALB) versus a Network Load Balancer (NLB). What statement correctly describes the difference between the two?",
+      "options": [
+        "ALB only supports HTTPS (encrypted traffic); NLB only supports HTTP (Unencrypted traffic) — the choice between the two depends on whether the application uses SSL/TLS",
+        "ALB and NLB are identical in functionality — the only difference is that the ALB has native support to Amazon WAF for protection against web attacks",
+        "ALB operates in the layer 7 (HTTP/HTTPS) and can route based on URL path, hostname, or headers (ex.: /api/* goes to one target group, /images/* goes to another); NLB operates in the layer 4 (TCP/UDP) with ultra-low latency, ideal for non--HTTP like games, VoIP, and loads that need static IPs",
+        "ALB is for high load production environments; NLB is for development and testing environments — the NLB It's cheaper and has less functionality"
+      ],
+      "explanation": "Correct.. ALB (Application Load Balancer): layer 7, You understand? HTTP/HTTPS, supports content-based routing (path, hostname, headers, query strings), WebSocket, built-in authentication. NLB (Network Load Balancer): layer 4 (TCP/UDP), latency in the order of milliseconds, supports static elastic IPs, ideal for protocols not-HTTP and high performance network requirements.",
+      "hint": "ALB operates in which layer of model OSI (and understands which protocol)? NLB operate in which layer? Which has support for routing by URL path?",
+      "optionRationales": [
+        "Correct.. ALB (Application Load Balancer): layer 7, You understand? HTTP/HTTPS, supports content-based routing (path, hostname, headers, query strings), WebSocket, built-in authentication. NLB (Network Load Balancer): layer 4 (TCP/UDP), latency in the order of milliseconds, supports static elastic IPs, ideal for protocols not-HTTP and high performance network requirements.",
+        "Incorrect. ALB how much NLB support encrypted traffic (HTTPS/TLS). The difference isn't about encryption — it's about the operating layer and intelligent routing capacity. ALB operates in the layer 7 (application), NLB in the layer 4 (transport).",
+        "Incorrect. There is no distinction of 'production vs. development' between ALB and NLB. Both are used in production for different use cases. NLB may have even more throughput than ALB for certain loads ( ultra-low latency design). The choice is based on the type of application and routing requirements, not in the environment.",
+        "Incorrect. ALB and NLB have fundamental differences in architecture and case of use (chamber 7 vs 4, routing by content vs. connection TCP pure, latency, etc.). ALB have integration with WAF and NLB do not have (because WAF It's a layer 7 and NLB It's a layer 4), that's just one of the many differences — they're not identical."
+      ]
+    },
+    "saa-ini-250": {
+      "text": "A company uses AWS and wants to understand what is an Availability Zone (AZ) and how it differs from a Region AWS. What statement correctly describes the region → AZ hierarchy?",
+      "options": [
+        "Regions and AZs are synonymous terms in AWS — both refer to physical data centers where servers are hosted; the difference is only terminology per team.",
+        "A Region AWS is a set of geographically separated AZs in the same location (e.g. us-east)-1 = Northern Virginia); each AZ is composed of one or more physically separated centers with independent energy, networks and cooling — physical separation ensures that failures in one AZ do not affect others in the same Region",
+        "A Region AWS is a unique data center; an AZ is a server room within the data center — multiple AZs within a Region share the same energy and network infrastructure for efficiency",
+        "An AZ is a cluster of servers EC2 within a sub-network VPC; a Region is composed of multiple sub-networks in different geographical locations of the world — each Region may have AZs in up to 5 different continents"
+      ],
+      "explanation": "Right. AWS: Regions > Availability Zones > data centers. One Region (e.g. us-east)-1) has multiple AZs (e.g. us-east)-1a, us-east-1b, us-east-1(c) which are physically separated but connected by low latency high-speed network. AZs are isolated from each other so that a failure (natural disaster, electrical problem) in one AZ does not cascade to the other.",
+      "hint": "A region contains multiple AZs. What is the goal of physical separation between AZs — why they have independent energy, network and cooling?",
+      "optionRationales": [
+        "Right. AWS: Regions > Availability Zones > data centers. One Region (e.g. us-east)-1) has multiple AZs (e.g. us-east)-1a, us-east-1b, us-east-1(c) which are physically separated but connected by low latency high-speed network. AZs are isolated from each other so that a failure (natural disaster, electrical problem) in one AZ does not cascade to the other.",
+        "Incorrect. AZs are not cluster EC2 are not related to sub-networks VPC — are physical places (data centers) within the same geographical area (city/ metropolitan area). The AZs of a Region are in the same country/geographic area — not on different continents. Each Region has nearby AZs (ms of latency)).",
+        "Incorrect. A Region is not a single data centre — it is a collection of geographically scattered AZs. INDEPENDENTE (energy, network, cooling), not shared. The goal is exactly that a failure (energy, for example) in one AZ does not affect the others.",
+        "Incorrect. Region and AZ are distinct hierarchical concepts: a Region contains MULTIPLES AZs. A Region is a geographical group (e.g.: 'us-east')-1' = Northern Virginia), while an AZ is a specific physical site within that region (e.g. 'us-east-1a'). Not synonymous."
+      ]
+    },
+    "saa-ini-251": {
+      "text": "A company has a web application with many static images that are served by Amazon S3. Users in Brazil complain of slow access to the site hosted in us-east-1. How to improve image loading time for global users without migrating data to other regions?",
+      "options": [
+        "Increase Bucket Size S3 and enable 'requester countries' to reduce latency — bucks with 'requester countries' configuration have dedicated bandwidth from AWS",
+        "Migratory or Bucket S3 for the sa-east region-1 (São Paulo) — by hosting the data closest to users, latency will be automatically reduced for Brazil",
+        "Enable S3 Transfer Acceleration — using the backbone network of AWS for uploads and downloads, the transfer of objects S3 is accelerated for users anywhere in the world",
+        "Configure the Amazon CloudFront as CDN in front of the pocket S3 — o CloudFront distributes the content to edge locations around the world; users in Brazil will be served by edge location in São Paulo, drastically reducing the latency of delivery of static content"
+      ],
+      "explanation": "Correct.. CloudFront is the CDN (Content Delivery Network) AWS. When a user in Brazil first accesses the image, the CloudFront Bucket search S3 (us-east-1) and cached in the edge location of São Paulo. Subsequent requirements are met directly from the edge (São Paulo → user), eliminating the latency of a full trip to EUA.",
+      "hint": "To reduce static content latency for global users without moving data, which service AWS distributes content to geographic locations close to users (edge locations)?",
+      "optionRationales": [
+        "Correct.. CloudFront is the CDN (Content Delivery Network) AWS. When a user in Brazil first accesses the image, the CloudFront Bucket search S3 (us-east-1) and cached in the edge location of São Paulo. Subsequent requirements are met directly from the edge (São Paulo → user), eliminating the latency of a full trip to EUA.",
+        "Works for Brazilian users, but harms other global users (European, Asian would have higher latency). CloudFront serves all global users of edge location closer without needing to migrate data. Migrating the bucket is a partial solution that creates a new problem for users from other regions.",
+        "Incorrect. S3 Transfer Acceleration UPLOADS for the S3 (send data by backbone AWS instead of the public internet) — not a CDN for downloads. CloudFront is the correct service to speed up content delivery to end users.",
+        "Incorrect. 'Requester Pays' is a configuration of BILLING who makes the object accesser pay for the transfer costs (instead of the owner of the pocket) — has no connection with latency or dedicated bandwidth. CloudFront is the performance solution for static content."
+      ]
+    },
+    "saa-ini-252": {
+      "text": "A company has a database RDS MySQL that is being overloaded with reading queries (SELECT). You want to write (INSERT/UPDATE/DELETE) how to improve reading performance without increasing the size of the primary instance?",
+      "options": [
+        "Increase IOPS provided by the RDS (Provisioned IOPS SSD) — more IOPS increases the bank's reading throughput, allowing you to want more SELECT are processed simultaneously",
+        "Enable RDS Multi-AZ — the standby bench in another AZ absorbs reading queries to distribute the load between the two instances",
+        "Create one or more RDS Read Replicas — read replicas receive an asynchronous copy of primary data and may serve as a query SELECT; by redirecting most readings to replicas, the load in the primary instance is significantly reduced",
+        "Enable RDS Performance Insights — Performance Insights automatically analyzes and optimizes slow reading queries, improving performance without architectural changes"
+      ],
+      "explanation": "Correct.. RDS Read Replicas are created with asynchronous replication from the primary bank. SELECT (read) — the application needs to be configured to use the replica endpoint for readings. The primary continues to receive written. 5 read replicas for MySQL/PostgreSQL.",
+      "hint": "What is the functionality of RDS creates copies of the bench that can serve reading queries (SELECT), distributing the load between multiple reading instances?",
+      "optionRationales": [
+        "Correct.. RDS Read Replicas are created with asynchronous replication from the primary bank. SELECT (read) — the application needs to be configured to use the replica endpoint for readings. The primary continues to receive written. 5 read replicas for MySQL/PostgreSQL.",
+        "Incorrect. Multi-AZ standby bench does not accept read queries — it is exclusive to failover. Multi-AZ is for high availability, not for read scalability. Read Replicas are the correct mechanism for distributing read load.",
+        "Partly useful to improve I/O throughput on disk, but it is a vertical solution (better the existing instance). If the reading load continues to grow, it will reach the limit again. Read Replicas are a horizontal solution (scale adding more reading instances) more efficient and economical for the described scenario.",
+        "Incorrect. RDS Performance Insights is a tool for MONITORAMENTO and DIAGNOSTIC — shows which wants are slower and consume more resources. It does not automatically optimize wants. To reduce the reading load in the primary, the correct architectural solution is Read Replicas."
+      ]
+    }
+  }
+}

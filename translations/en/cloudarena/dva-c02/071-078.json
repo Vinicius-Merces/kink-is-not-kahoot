@@ -1,0 +1,123 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "dva-c02",
+    "range": "071-078",
+    "generator": "offline-marian-faithful"
+  },
+  "questions": {
+    "dva-avc-071": {
+      "optionReasons": {
+        "dva-avc-071:option:0": "Two GetItems in one Lambda Streams does not guarantee atomic snapshot — Streams orders changes, does not isolate readings.",
+        "dva-avc-071:option:1": "",
+        "dva-avc-071:option:2": "Two sequential GetItems with ConsistentRead read each item at different times — without the assurance of unique vision.",
+        "dva-avc-071:option:3": "It's the closest because BatchGetItem also looks for the two items in one call — but it's NOT isolated: items can be read in slightly different moments and another transaction can change one of them; a consistent view at the same time is TransactGetItItems (transactional reading))."
+      },
+      "finalJustifications": [
+        "Because TransactGetItems reads Account and PendingTransfer in a single transactional read operation — both reflect the same moment, without another transaction altering one of them in the middle.",
+        "Because encapsulate two GetItem into one Lambda from Streams read Account and PendingTransfer at the same instant — both reflect a unique vision, without alteration by another transaction in the middle.",
+        "Because two GetItems with ConsistentRead read Account and PendingTransfer at the same instant — both reflect a unique vision, without alteration by another transaction in the middle of reading.",
+        "Because BatchGetItem reads Account and PendingTransfer at the same time — both reflect a unique and isolated view, without alteration by another transaction in the middle of reading."
+      ]
+    },
+    "dva-avc-072": {
+      "optionReasons": {
+        "dva-avc-072:option:0": "It's the closest because a Lambda Minimum with Provided Competition would actually respond fast — but keeps the cost/overhead of a function for an operation TRIVIAL the transition (and provided competition still costs); Lambda is the direct integration of API Gateway with the service DynamoDB (VTL).",
+        "dva-avc-072:option:1": "ALB + containers adds infrastructure to operate — more overhead, not less, to a trivial GetItem.",
+        "dva-avc-072:option:2": "Cache with Lambda backend still keeps the Lambda (and invokes in miss cache) — does not delete the function.",
+        "dva-avc-072:option:3": ""
+      },
+      "finalJustifications": [
+        "Because the integration of service from AWS of the API Gateway calls GetItem action from DynamoDB direct, with VTL mounting the requisition and transforming the response into JSON — no Lambda, with lower latency and overhead.",
+        "Because the Lambda Minimum with Provided Competition calls GetItItem DynamoDB direct, with VTL mounting the requisition and transforming the response — without extra function, with less latency and overhead.",
+        "Because ALB with containers call GetItem of DynamoDB direct, with VTL mounting the requisition and transforming the response into JSON — no Lambda, with lower latency and operational overhead.",
+        "Because the cache with Lambda backend call GetItem from DynamoDB direct, with VTL mounting the requisition and transforming the response — without extra function, with less latency and overhead."
+      ]
+    },
+    "dva-avc-073": {
+      "optionReasons": {
+        "dva-avc-073:option:0": "It's the closest because delaying the requirement postpones the loading — but still carries the SDK v2 MONOLYTIC whole (only in the first invocation, not in the init), without reducing the volume; what cuts the overhead is to migrate to the SDK v3 modular, importing only the client and the used commands.",
+        "dva-avc-073:option:1": "SnapStart takes snapshots from the initialized state — but does not reduce the TAMANHO of the SDK loaded; and the gain here comes from v3 modulation.",
+        "dva-avc-073:option:2": "More memory speeds up the init a bit — but continues to carry the SDK v2 whole; does not attack the cause of the overhead.",
+        "dva-avc-073:option:3": ""
+      },
+      "finalJustifications": [
+        "Why migrate to the AWS SDK v3 (ex.: @aws-sdk/client-dynamodb) only DynamoDBClient and GetItemCommand — pack much less code and directly reduce the cold start overhead.",
+        "Because moving the requirement to the handler only imports DynamoDBClient and GetItemCommand — pack much less code and directly reduces the cold start overhead.",
+        "Why Enable SnapStart Imports Only DynamoDBClient and GetItemCommand — Packs Much Less Code and Directly Reduces Cold Start Overhead.",
+        "Because increasing memory matters only DynamoDBClient and GetItemCommand — pack much less code and directly reduce the cold start overhead."
+      ]
+    },
+    "dva-avc-074": {
+      "optionReasons": {
+        "dva-avc-074:option:0": "",
+        "dva-avc-074:option:1": "One Lambda monolithic with all steps in the code loses orchestration/observability of the Step Functions — is not the requested remedy.",
+        "dva-avc-074:option:2": "It's the closest because Standard also orchestrates the steps — but it's optimized for flows LONGOS and durable (exactly-once, history of 90 days), with a price POR TRANSITION that is expensive in high volume; for thousands of short runs per second with priority cost, Express Workflows is the right.",
+        "dva-avc-074:option:3": "Standard with Wait 0 does not make it cheap — Standard's transition cost remains high in volume."
+      },
+      "finalJustifications": [
+        "Because Express Workflows is made for high volume and short duration (up to 5 min), with at-last-once semantics and price per execution/duration/memory — the most cost-effective for thousands of IoT events per second.",
+        "Because Standard Workflows is made for high volume and short duration (up to 5 min), with at-last-once semantics and price per execution — the most cost-effective for thousands of IoT events per second.",
+        "Because the Lambda monolithic is made for high volume and short duration, with at-last-once semantics and price per execution — the most cost-effective for thousands of IoT events per second.",
+        "Because the Standard with Wait 0 is made for high volume and short duration, with semantics at-last-once and price per execution — the most cost-effective for thousands of IoT events per second."
+      ]
+    },
+    "dva-avc-075": {
+      "optionReasons": {
+        "dva-avc-075:option:0": "",
+        "dva-avc-075:option:1": "One item per pair product-tag changes the whole data model — heavy solution for what ADD/DELETE resolve natively.",
+        "dva-avc-075:option:2": "attribute_not_exists(tags) only lets record when the attribute DOES NOT exist — would block any edit after the first tag.",
+        "dva-avc-075:option:3": "It is the closest because a transaction with ConditionExpression in the list would also avoid the loss update — but keeping 'tags' as List requires the entire read-modify-write cycle under condition (complex and conflicting under competition); adding/removing an element atomicly is the String Set type with ADD/DELETE in UpdateItem."
+      },
+      "finalJustifications": [
+        "Because the String Set type with UpdateItem 'ADD tags:novaTag' (or 'DELETE tags :tagAntiga') add/remove an atomic element to the server — competing editions of different tags do not overwrite.",
+        "Because an item per pair product-tag adds/removes an atomic element to the server — competing editions of distinct tags do not overwrite, recovering everything by Query.",
+        "Because attribute_not_exists(tags) in each update adds/removes an atomic element to the server — competing editions of distinct tags do not overwrite in the product.",
+        "Because the list with TransactWriteItems and condition adds/removes an atomic element to the server — competing editions of distinct tags do not overwrite in the product."
+      ]
+    },
+    "dva-avc-076": {
+      "optionReasons": {
+        "dva-avc-076:option:0": "Glue streaming is also code/infra to operate (continuous Spark jobs) — more overhead than Firehose managed.",
+        "dva-avc-076:option:1": "Notification of S3 → Lambda presupposes the logs already S3 and add conversion code — is not the managed flow delivery.",
+        "dva-avc-076:option:2": "It's the closest because a consumer Lambda no Kinesis really makes buffer, converts and records in S3 — but it is precisely the Customized Consumer Code that the requirement wants to avoid operating; managed delivery with buffering, compression, conversion to Parquet and destination S3 is the Kinesis Firehose Date.",
+        "dva-avc-076:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Kinesis Date Firehose with destination S3 and enabled format conversion makes buffering, compression and conversion of JSON for Parquet and delivery to S3 — fully managed, without custom consumer.",
+        "Because Glue streaming makes buffering, compression and conversion of JSON for Parquet and delivery to S3 — fully managed, without custom consumer operating on the log pipeline.",
+        "Because the notification of the S3 with Lambda makes buffering, compression and conversion of JSON for Parquet and delivery to S3 — fully managed, without custom consumer operating.",
+        "Because Kinesis Data Streams Lambda makes buffering, compression and conversion of JSON for Parquet and delivery to S3 — fully managed, without custom consumer operating."
+      ]
+    },
+    "dva-avc-077": {
+      "optionReasons": {
+        "dva-avc-077:option:0": "Switch to COGNITO_USER_POOLS valid JWT native — but discards logic CUSTOMIZADA by holding that the requirement requires.",
+        "dva-avc-077:option:1": "Call GetUser at each request is expensive/latent and covers only accesses tokens — it is not the standard signature check of JWT.",
+        "dva-avc-077:option:2": "It's the closest because checking a claim against an allowlist seems to add security — but SEM check the ASSINATURA, one JWT forged with any pass claim; the correction is to validate the signature by the public keys of the User Pool (JWKS) and claims (iss/aud/exp/token_use) ANTES of logic by the holder.",
+        "dva-avc-077:option:3": ""
+      },
+      "finalJustifications": [
+        "Why check the signature of the JWT with the JWKS user pool and validate iss/aud/exp/token_use ensures that only genuine tokens pass — and only then turns the custom feature flag check per holder.",
+        "Because decoding base64 and checking claim against an allowist ensures that only genuine tokens pass — and only then does custom feature flag check by holding on to DynamoDB.",
+        "Why migrate to COGNITO_USER_POOLS ensures that only genuine tokens pass — and only then does the custom feature flag check per holder, maintained in the authorization flow.",
+        "Because calling GetUser at each request ensures that only genuine tokens pass — and only then does the custom feature flag check run by holding on DynamoDB."
+      ]
+    },
+    "dva-avc-078": {
+      "optionReasons": {
+        "dva-avc-078:option:0": "Skip the upload to a Lambda backend violates the 'no going through API backend' and not uploading directly.",
+        "dva-avc-078:option:1": "It's the closest because ID token proves the user's identity — but it's NOT credential AWS: o S3 (SigV4) does not accept a JWT in the Authorization; it is necessary to TROCAR o ID token by credentials AWS temporary, what the Cognito Identity Pool makes.",
+        "dva-avc-078:option:2": "Long-lasting keys built into the app is the anti-standard that the requirement wants to avoid.",
+        "dva-avc-078:option:3": ""
+      },
+      "finalJustifications": [
+        "Because Identity Pool exchanges User Pool ID token for credentials AWS temporary (GetId + GetCredentialsForIdentity), in a role that restricts the s3:PutObject to prefix users/${cognito-identity.amazonaws.com:sub}/*.",
+        "Why use ID token as an Authorization to exchange or token for credentials AWS temporary, in a roll that restricts the s3:PutObject to user prefix — upload directly and restricted to S3.",
+        "Why incorporate long-term keys exchange the token for credentials AWS temporary, in a roll that restricts the s3:PutObject to user prefix — upload directly and restricted to S3.",
+        "Why call Lambda backend changes ID token to credentials AWS temporary, in a roll that restricts the s3:PutObject to user prefix — upload directly and restricted to S3."
+      ]
+    }
+  }
+}

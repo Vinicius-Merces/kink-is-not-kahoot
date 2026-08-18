@@ -7,6 +7,10 @@
     };
 
     const PASS_SCORE = 70;
+
+    function activeExamLocale() {
+        return (window.I18n && window.I18n.locale === 'en') ? 'en' : 'pt-BR';
+    }
     const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
     let session = null;          // resposta de simulado:create-room (inclui roomCode, certCode, domains, etc.)
@@ -59,7 +63,7 @@
         const idToken = await user.getIdToken();
 
         ensureSocket(() => {
-            socketClient.createLiveSimuladoRoom(certId, level, numQuestions, user.displayName || 'Professor', user.uid, idToken, (response) => {
+            socketClient.createLiveSimuladoRoom(certId, level, numQuestions, user.displayName || 'Professor', user.uid, idToken, activeExamLocale(), (response) => {
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = '🎓 Criar Sala ao Vivo';
@@ -71,6 +75,9 @@
                 }
 
                 session = response;
+                if (response.localeFallback && activeExamLocale() === 'en') {
+                    Utils.showToast('English questions are not available for this level yet. The live room will use Portuguese content.', 'warning');
+                }
                 currentIndex = -1;
                 viewingIndex = null;
                 totalQuestions = response.totalQuestions;

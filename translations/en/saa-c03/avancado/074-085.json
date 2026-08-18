@@ -1,0 +1,217 @@
+{
+  "_batch": {
+    "locale": "en",
+    "sourceLocale": "pt-BR",
+    "certId": "saa-c03",
+    "level": "avancado",
+    "sourcePath": "data/exams/saa-c03/avancado.json",
+    "range": "074-085",
+    "generator": "offline-marian-faithful-v2"
+  },
+  "questions": {
+    "saa-avc-074": {
+      "text": "One Auto Scaling Group is associated with a Application Load Balancer. The cases EC2 are passing on status checks of the EC2 (hardware/hypervisor OK), but the application running on them has stopped and is returning HTTP 500 in the health check of ALB. Even so, the Auto Scaling Group is not replacing these unhealthy instances. Which configuration change solves this problem?",
+      "options": [
+        "Decrease the 'healthy threshold count' ALB so that the instances are marked as healthy more quickly.",
+        "Replace Application Load Balancer by a Network Load Balancer, that performs health checks more reliable.",
+        "Increase the health check grace period Auto Scaling Group to give the application more time to recover.",
+        "Change the type of health check Auto Scaling Group of 'EC2' for 'ELB' (or enable both), so that the ASG consider the results of the health check of ALB."
+      ],
+      "explanation": "When the type of health check ASG It's just 'EC2', o ASG ignores the outcome of health checks of ALB and considers any instance that passes in the status checks of the EC2 (hardware/hypervisor level); change to 'ELB' (or enable both) does the ASG consider application level failures detected by ALB (as HTTP 500) and automatically replace unhealthy instances.",
+      "hint": "Consider the difference between Auto Scaling Group checks by default (status of instance) and what the load balancer check (health of application) — and how ASG can be configured to consider both.",
+      "optionRationales": [
+        "When the type of health check ASG It's just 'EC2', o ASG ignores the outcome of health checks of ALB and considers any instance that passes in the status checks of the EC2 (hardware/hypervisor level); change to 'ELB' (or enable both) does the ASG consider application level failures detected by ALB (as HTTP 500) and automatically replace unhealthy instances.",
+        "The grace period is just late QUANDO the health checks begin to be evaluated after the launch of the instance; it does not solve the problem of ASG no DETECTAR application level failures, since the type of health check configured is only 'EC2'.",
+        "Reducing the limit of healthy checks does not solve the root cause, which is the ASG not consulting the results of the health check ALB due to the health check type configuration; ALB would continue to mark the instance as unhealthy (HTTP 500), but the ASG Just don't act on that information..",
+        "The NLB operates in the layer 4 and your health checks would not detect better an application returning HTTP 500 (a layer failure 7); the central problem is the configuration of the TIPO of health check ASG, not the type of load balancer used."
+      ]
+    },
+    "saa-avc-075": {
+      "text": "A company executes its primary application stack in us-east-1 and maintains a standby battery in us-west-2. The requirements are: Amazon Route 53 should automatically route users to us-west-2 SOMENTE when us-east-1 be unavailable (detected via health check at an endpoint of the application), and reroute to us-east-1 automatically when this region recovers — without manual intervention in either case. Route 53 meets this requirement?",
+      "options": [
+        "Weighted Routing Policy with Weight 100% for us-east-1 and 0% for us-west-2, changing the weights manually during an interruption.",
+        "Multivalue Answer routing policy with health checks on both records.",
+        "Latency-based routing policy with records for both regions.",
+        "Failover routing policy, with a record PRIMARY pointing to the endpoint in us-east-1 associated with a health check of Route 53, and a record SECONDARY pointing to the endpoint in us-west-2."
+      ],
+      "explanation": "In the policy of routing Failover, the Route 53 return the record PRIMARY while your health check is intact; if the health check fails, the Route 53 automatically returns the log SECONDARY (us-west-2), and return the PRIMARY automatically when the health check passes again — meeting both requirements without manual intervention.",
+      "hint": "Think about the policy of routing the Route 53 which explicitly defines 'primary' and 'secondary' roles linked to health checks.",
+      "optionRationales": [
+        "In the policy of routing Failover, the Route 53 return the record PRIMARY while your health check is intact; if the health check fails, the Route 53 automatically returns the log SECONDARY (us-west-2), and return the PRIMARY automatically when the health check passes again — meeting both requirements without manual intervention.",
+        "Changing weights manually during a break requires a human operator to detect failure and update records DNS, what does not meet the AUTOMATICAL health check-based router requirement.",
+        "Latency routing always directs users to the region with less latency for them, INDEPENDENTEMENTE of the primary region be healthy or not; it does not provide failover behavior linked to a designated primary region that the requirement requires.",
+        "Multivalue Answer returns until 8 Randomly healthy records to customers (for basic load/availability distribution); it does not designate a record as primary and another as secondary/standby with the structured behavior of failure-to-fail required."
+      ]
+    },
+    "saa-avc-076": {
+      "text": "A global game application requires players in North America, Europe and Asia to read E ESCREVAM in a table 'player profile' with low latency from their respective regions, with changes made in one region automatically propagated to the others (multi-active-active region). The application must continue with total reading and writing capacity in any region even if another region is not available.?",
+      "options": [
+        "Use Amazon DynamoDB Global Tables, setting up replica tables in each of the three Regions.",
+        "Use Amazon Aurora Global Database, setting up clusters in Asia and Europe as primary writers.",
+        "Installing tables DynamoDB in each region and use AWS DMS to continuously replicate the changes bidirectionally between the three tables.",
+        "Use a single table DynamoDB in a region (e.g. us-east)-1) with clusters of DynamoDB Accelerator (DAX) implemented in Europe and Asia."
+      ],
+      "explanation": "The DynamoDB Global Tables offers multi-region and multi-active replication: writings made in any replica are propagated to all other replicas (possibly consistency), and applications in each region can read and write locally with full availability, even if other regions are not available — meeting exactly the active-active requirement.",
+      "hint": "Think about the native resource of DynamoDB specifically designed for multi-region replication with local reading and writing in each region, without the need for external replication tools.",
+      "optionRationales": [
+        "The DynamoDB Global Tables offers multi-region and multi-active replication: writings made in any replica are propagated to all other replicas (possibly consistency), and applications in each region can read and write locally with full availability, even if other regions are not available — meeting exactly the active-active requirement.",
+        "The DAX is a layer of CACHE in memory that accelerates LEITURAS of a table in a SINGLE Region; it does not replicate the underlying table to other Regions, does not offer the ability to ESCRITA location in Europe/Asia, and a break in us-east-1 would make the table unavailable everywhere.",
+        "The Aurora Global Database has A primary cluster (read-write) and even 5 secondary regions read only; it does not support simultaneous active-active writings from multiple regions, which the requirement requires.",
+        "The AWS DMS is designed for migration/replication (typically one-way or with limited bi-way support) between databases, and is not the native mechanism recommended by AWS for multi-region replication active-active of DynamoDB; o DynamoDB Global Tables is the native resource specifically designed for this purpose."
+      ]
+    },
+    "saa-avc-077": {
+      "text": "A company uses AWS Backup to create daily volume backups EBS and databases RDS in us-east-1. By regulatory requirement of disaster recovery, copies of these backups should also be stored in us-west-2, so that resources can be restored in us-west-2 even if we-east-1 (including your backups) is completely unavailable. Which configuration meets this requirement in an automated way?",
+      "options": [
+        "Configure the backup box in us-east-1 with replication between regions enabled, similar to the Cross-Region Replication of the S3.",
+        "Enable Multi-Region mode of AWS Backup at account level, which automatically mirrors all backup vaults to a secondary region.",
+        "Create manual snapshots of volumes EBS and instances RDS and use the console of EC2/RDS to manually copy each snapshot to us-west-2 after each backup.",
+        "Configure the backup plan of the AWS Backup with a copy to destination rule (copy rule) that automatically copies each recovery point created in us-east-1 for a backup vault (backup vault) in us-west-2."
+      ],
+      "explanation": "The copy rules of AWS Backup, defined within the backup plan, automatically copy each recovery point to a safe in another Region as soon as backup is completed, ensuring that there are independent copies in the DR region without the need for recurring manual actions.",
+      "hint": "Think of what element of a configuration PLANO backup (not from the vault) allows you to automatically copy recovery points to another region.",
+      "optionRationales": [
+        "The copy rules of AWS Backup, defined within the backup plan, automatically copy each recovery point to a safe in another Region as soon as backup is completed, ensuring that there are independent copies in the DR region without the need for recurring manual actions.",
+        "The safes of the AWS Backup do not have an automatic replication feature in style S3 CRR at the vault level; copies between regions are configured by copy rules/copy actions within the backup plan itself, not by replicating the vault.",
+        "The manual copy of snapshots, resource by resource, is operationally unfeasible and prone to errors for a recurring DR requirement; the copy rules of AWS Backup automates this process as part of the regular backup plan.",
+        "The AWS Backup does not have a single alternator ('Multi-Region mode') at the account level that mirrors all the vaults automatically; the copy between regions must be explicitly configured by copy rules in each backup plane."
+      ]
+    },
+    "saa-avc-078": {
+      "text": "An order processing flow uses the AWS Step Functions to orchestrate multiple functions Lambda. One of the functions occasionally fails due to the throttling of a downstream service (transitional error). The architecture team wants the state machine to try this step again automatically with exponential backoff a few times before giving up, and that if all attempts fail, the execution is directed to a separate branch of 'manual revision' instead of failing the entire flow. Step Functions meets this requirement?",
+      "options": [
+        "Configure the function's own asynchronous invocation retry settings Lambda (2 auto-tests), since Step Functions invokes the Lambda asynchronous by pattern.",
+        "Use a row SQS with a redirection policy (redrive policy) between each state of Step Functions to deal with the attempts.",
+        "Configure a 'Retry' field in the relevant state with ErrorEquals corresponding to the exception of throttling, IntervalSeconds, BackoffRate and MaxAttempts appropriate for exponential backoff; and additionally a 'Catch' field in the same state that directs to the 'manual revision' state if attempts are exhausted.",
+        "Envelope function code Lambda in a try/catch block with a custom retry loop using thread() delays, and do the Step Functions Invoke her only once."
+      ],
+      "explanation": "Retry and Catch are native resources of Amazon States Language: 'Retry' allows you to set automatic attempts with configurable exponential backoff for specific errors, and 'Catch' allows you to capture the remaining error (after attempts run out) and direct the execution to an alternative state (manual revision), all of this visible in the running history of the Step Functions.",
+      "hint": "Think of the two fields of Amazon States Language designed specifically for the treatment of declaratory errors within a state machine state, without additional code.",
+      "optionRationales": [
+        "Retry and Catch are native resources of Amazon States Language: 'Retry' allows you to set automatic attempts with configurable exponential backoff for specific errors, and 'Catch' allows you to capture the remaining error (after attempts run out) and direct the execution to an alternative state (manual revision), all of this visible in the running history of the Step Functions.",
+        "Implement the retry logic within the code of Lambda consumes execution time (and cost) of the function during the waits, does not offer native visibility of the Step Functions on attempts in the execution history, and does not support in a clean way the requirement to 'direct for manual revision after exhausting attempts' in the orchestration layer.",
+        "The Step Functions invokes the Lambda by default (waiting for response), does not asynchronize; therefore, the asynchronous invocation retry configurations of the Lambda do not apply — attempts must be configured in the state machine definition itself.",
+        "Enter rows SQS between states adds unnecessary complexity and latency; the Step Functions already natively supports the Retry and Catch fields directly in the definition of Amazon States Language, no need for external line infrastructure."
+      ]
+    },
+    "saa-avc-079": {
+      "text": "A media company stores end-to-end and unchangeable video assets in a pocket S3 in us-east-1. For disaster recovery, it is necessary to keep an automatic copy of each new object in a pocket on eu-west-1, preserving the same storage class transitions and encryption configurations, so that if we use-east-1 be unavailable, copy in eu-west-1 can serve as a source for recovery. Which configuration meets this requirement?",
+      "options": [
+        "Configure Replication Between Regions (CRR) of the Amazon S3 of the pocket in us-east-1 for a bucket in me-west-1, with versioning enabled in both pockets (pre-requirement of the CRR) and a replication rule that includes the desired objects, storage class and encryption (including appropriate permissions of KMS key in the destination, if SSE-KMS for use).",
+        "Use AWS DataSync to make a single copy (one-time) of the bulk content for eu-west-1.",
+        "Configure a Lifecycle Rule from S3 to transition objects to the storage class S3 Glacier in me-west-1 after 30 days.",
+        "Enable S3 Transfer Acceleration in us-east pocket-1 to accelerate access from eu-west-1."
+      ],
+      "explanation": "The Cross-Region Replication of S3 automatically keeps a copy of new and updated objects in a pocket from another Region, preserving settings such as storage class and encryption (with the appropriate key setting KMS in destination); versioning is a prerequisite both in origin and in destination.",
+      "hint": "Think about the native resource of S3 designed to keep continuous and automatic copies of objects in a pocket from another region, preserving storage and encryption settings.",
+      "optionRationales": [
+        "The Cross-Region Replication of S3 automatically keeps a copy of new and updated objects in a pocket from another Region, preserving settings such as storage class and encryption (with the appropriate key setting KMS in destination); versioning is a prerequisite both in origin and in destination.",
+        "The Acceleration Transfer accelerates UPLOADS for the S3 from geographically distant customers using edge locations of the CloudFront; it does not create or maintain a replicated copy of the objects in another pocket/region.",
+        "Lifecycle Rules of the S3 transition objects between storage classes DENTRO of the same bucket/region; they cannot move or copy objects to a bucket in another region.",
+        "A single copy of the DataSync would not automatically replicate NOVOS objects added after the initial copy; a CRR provides continuous and automatic replication of new and updated objects as required."
+      ]
+    },
+    "saa-avc-080": {
+      "text": "An order processing system uses a row SQS consumed by a function Lambda. Occasionally, a malformed message ('poison message') does the function Lambda fail repeatedly, and the SQS continues to redirect this same message to the function, consuming invocations of the Lambda and delaying the processing of other valid messages behind her in the queue. The team wants poisonous messages to be automatically isolated after some failed attempts, without blocking the processing of subsequent valid messages. What configuration meets this requirement?",
+      "options": [
+        "Reduce line visibility timeout SQS for 0 seconds, so that failed messages are immediately reprocessed.",
+        "Increase reserved competition in the function Lambda for more instances to process messages in parallel, reducing the impact of the message.",
+        "Configure queue message retention period SQS for 1 minute, so that problematic messages quickly expire.",
+        "Configure a dead-letter queue (DLQ) for the row SQS of origin, with a redive policy specifying maxReceiveCount (ex.: 3)."
+      ],
+      "explanation": "With a DLQ and maxReceiveCount configured, after a message is received (and fails in processing) the number of times specified, the SQS automatically moves to the DLQ, removing it from the source row; this unlocks the processing of subsequent valid messages and allows monitoring/inspecting the DLQ separately.",
+      "hint": "Think of the mechanism of SQS which automatically isolates messages that fail repeatedly after a configurable number of attempts, separating them from the main row.",
+      "optionRationales": [
+        "With a DLQ and maxReceiveCount configured, after a message is received (and fails in processing) the number of times specified, the SQS automatically moves to the DLQ, removing it from the source row; this unlocks the processing of subsequent valid messages and allows monitoring/inspecting the DLQ separately.",
+        "A visibility timeout of 0 it would make the message immediately visible to other consumers after each attempt fails, potentially causing an even faster retentative loop in the poisonous message, consuming invocations of the Lambda more quickly, without isolating it.",
+        "Increasing competition allows processing more valid messages in parallel, but does not prevent the poison message itself from continuing to be redirected and reprocessed indefinitely, continuing to consume invocations.",
+        "Reduce retention to 1 minute would make TODAS messages (including valid still unprocessed) are deleted after only one minute, which may cause loss of valid messages before they are processed — an excessively aggressive measure and not specifically directed to poisonous messages."
+      ]
+    },
+    "saa-avc-081": {
+      "text": "An application uses the Amazon ElasiCache for Redis as session storage. The architecture team requires that if the primary node of the Redis replication group fails (for example, due to an AZ interruption), a replica is automatically promoted to the primary with minimal disruption, without the application needing to be reconfigured with a new endpoint.?",
+      "options": [
+        "Create two independent ElastiCache for Redis clusters in different AZs and set up the application to write on both simultaneously.",
+        "Perform manual snapshots of the Redis cluster every few minutes and restore from the latest snapshot in a new cluster if the primary fails.",
+        "Enable Multi-AZ with Automatic Failover in the ElastiCache for Redis replication group, with at least one read replica in another Availability Zone.",
+        "Use ElastiCache for Memcached instead of Redis, since Memcached natively supports multi-no replication with automatic failover."
+      ],
+      "explanation": "With Multi-AZ and Automatic Failover enabled, ElastiCache automatically detects the failure of the primary node and promotes a replica to the primary, updating the record DNS from the primary endpoint of the replication group to point to the new primary — the application continues to use the same configured endpoint, without manual reconfiguration.",
+      "hint": "Think about the specific feature of ElastiCache for Redis that allows automatic replication promotion to primary in case of failure, preserving the endpoint used by the application.",
+      "optionRationales": [
+        "With Multi-AZ and Automatic Failover enabled, ElastiCache automatically detects the failure of the primary node and promotes a replica to the primary, updating the record DNS from the primary endpoint of the replication group to point to the new primary — the application continues to use the same configured endpoint, without manual reconfiguration.",
+        "Memcached is a cache distributed in memory SEM replication or embedded persistence; it does not have the concept of primary node/replicator or automatic failure, making it inadequate for this requirement — it is the Redis (with replication groups) that supports Multi-AZ and automatic failure.",
+        "Writing in two independent clusters from the application introduces complexity and potential data inconsistency between the caches, and is not how ElastiCache's native multi-AZ failover was designed to work; this approach shifts the logic of failover to application unnecessarily.",
+        "Manual snapshot followed by restoration would result in significant data loss (since the last snapshot) and a RTO high (time to provide a new cluster and restore), in addition to requiring manual intervention — unlike the automatic Multi-AZ failover, which is almost immediate and automated."
+      ]
+    },
+    "saa-avc-082": {
+      "text": "A company uses Amazon EFS for shared file storage of an executed application in instances EC2 in us-east-1. To disaster recovery, you need to keep a replica of the file system in us-west-2, continuously updated with low RPO, which can be quickly promoted read-write case us-east-1 What approach meets this requirement?",
+      "options": [
+        "Use Amazon EFS Replication to configure replication between regions from the source file system in us-east-1 for a new replica file system read only in us-west-2; in a DR event, promote the replica of reading-writing.",
+        "Mount the same file system EFS directly in fora EC2 located in us-west-2.",
+        "Use AWS DataSync to make a single copy (one-time) of the file system EFS for a new file system EFS in us-west-2.",
+        "Using Lifecycle Management (Lifecycle Management) EFS to move files to the storage class EFS Infrequent Access in us-west-2."
+      ],
+      "explanation": "The EFS Replication maintains continuous and managed replication between regions, with low RPO, automatically creating a read-only replica in the destination; in case of disaster recovery, this replica can be promoted to an independent read-write file system, meeting exactly the requirement.",
+      "hint": "Think about the native resource of EFS, released specifically to keep continuously synchronized copies of one file system in another region.",
+      "optionRationales": [
+        "The EFS Replication maintains continuous and managed replication between regions, with low RPO, automatically creating a read-only replica in the destination; in case of disaster recovery, this replica can be promoted to an independent read-write file system, meeting exactly the requirement.",
+        "A single copy does not keep the replica up to date with the continuous changes made to the source file system after the initial copy; the lower requirement RPO requires continuous replication, not a one-time copy.",
+        "File systems EFS and its mount targets are regional resources; it is not possible to mount directly, between regions, the same file system from instances in another region without using a replication feature like the EFS Replication.",
+        "Lifecycle Management EFS move files between storage classes DENTRO of the same file system/Region; it does not copy or replicate files to a different file system in another Region."
+      ]
+    },
+    "saa-avc-083": {
+      "text": "An application maintains a large number of persistent connections to a bank Amazon RDS for MySQL in Multi-AZ mode. During a Multi-AZ failure, the application faces connection errors and takes a long time to reconnect and recover, causing unavailability perceived by users. Which approach reduces the unavailability time perceived by the application during the failure, without rewriting the logic of reconnection of the application?",
+      "options": [
+        "Enable connection drainage (deregistration delay) in a Application Load Balancer positioned in front of the database.",
+        "Place the Amazon RDS Proxy in front of the instance RDS, maintaining a managed connection pool.",
+        "Configure the application to use a Read Replica as the primary connection endpoint.",
+        "Increase the database instance class to a larger type, with more vCPUs and memory."
+      ],
+      "explanation": "The RDS Proxy maintains a pool of connections to the database and, during a Multi-AZ failover, automatically redirects connections to the new primary instance, significantly reducing the failure time perceived by the application without requiring changes in the application retry logic.",
+      "hint": "Think about the managed service of AWS acting as a pool of connections between the application and RDS, designed specifically to reduce the impact of failureovers on the connection time.",
+      "optionRationales": [
+        "The RDS Proxy maintains a pool of connections to the database and, during a Multi-AZ failover, automatically redirects connections to the new primary instance, significantly reducing the failure time perceived by the application without requiring changes in the application retry logic.",
+        "A larger instance does not improve the treatment of connections during failover; failover time is related to the spread of DNS and the re-establishment of connections, not the processing capacity of the instance.",
+        "Read Replicas are intended to download traffic from LEITURA; writing operations need to go to the primary instance, so using a read replica as the primary connection endpoint would not support writing and would not resolve the treatment of failure.",
+        "ALBs do not stand in front of database connections (databanks use connections TCP direct, no HTTP); connection drainage is a resource of ELB for listeners HTTP/TCP directed to web application targets, does not apply to direct connections with the bank."
+      ]
+    },
+    "saa-avc-084": {
+      "text": "A company is choosing a disaster recovery strategy for a critical workload.: RTO of a few minutes, RPO of a few minutes, and the company is willing to pay for a pre-provided infrastructure, but reduced (scaled-down), in the DR region, avoiding the cost of keeping a copy on a full scale of the production running continuously.?",
+      "options": [
+        "Backup and restore — perform regular backups and restore infrastructure from them during a disaster.",
+        "Multi-site active/active — keep both regions running full production traffic simultaneously.",
+        "Warm standby — maintain a functional, but reduced (scaled-down) copy of the continuously running production environment in the DR region, scaling it to full capacity during a disaster.",
+        "Pilot light — keep only the essential infrastructure (e.g. a replica database) running in the DR region, providing the other components only during a disaster."
+      ],
+      "explanation": "Warm standby keeps all the components of architecture running, but on a small scale, in the DR region; during a disaster, it is enough to scale this infrastructure to total capacity, achieving RTO/RPO from the order of minutes to a moderate cost — exactly the equilibrium sought.",
+      "hint": "Think of the DR strategy that keeps all the components of the architecture running, but in reduced capacity, balancing cost and recovery speed.",
+      "optionRationales": [
+        "Warm standby keeps all the components of architecture running, but on a small scale, in the DR region; during a disaster, it is enough to scale this infrastructure to total capacity, achieving RTO/RPO from the order of minutes to a moderate cost — exactly the equilibrium sought.",
+        "In the pilot light, computational/application components need to be provided and configured from zero during the disaster, which usually results in RTO more than a few minutes; does not meet the requirement of RTO of minutes as the warm standby, which already keeps these components in reduced execution.",
+        "Backup and restore is the lowest cost strategy, but typically presents the largest RTO/RPO, measured in hours, as the entire infrastructure needs to be built from backups during the disaster — does not meet the requirement of RTO minutes.",
+        "Multi-site active/active offers the best RTO/RPO (close to zero), but at the highest cost, demanding infrastructure in total production capacity running continuously in both regions; the company explicitly seeks a pre-provided 'reduced' infrastructure, indicating that it is not willing to pay for the total cost of the asset/asset."
+      ]
+    },
+    "saa-avc-085": {
+      "text": "A company has VMware on-premises servers running critical applications. It wants a DR solution that continuously replicates these servers (at block level) to AWS, allowing fast failover — launching recovery instances in AWS in a few minutes — in the event of an on-premises disaster, with minimal continuous changes in the source servers. AWS meets this requirement?",
+      "options": [
+        "AWS Elastic Disaster Recovery (AWS DRS).",
+        "AWS Storage Gateway (Volume Gateway) to replicate VM disks on-premises for the S3, manually creating instances EC2 from these volumes during a disaster.",
+        "AWS Database Migration Service (DMS).",
+        "AWS Server Migration Service (SMS)."
+      ],
+      "explanation": "The AWS DRS performs continuous replication at block level of on-premises servers (or other clouds) to a low cost staging area at AWS; in case of disaster, DRS Automatically launches recovery instances from replicated data in a few minutes, providing low RTO/RPO for DR type lift-and-shift.",
+      "hint": "Think of the service of AWS developed from continuous block-level replication technology, specifically designed for lift-and-shift DR of on-premises or other cloud servers.",
+      "optionRationales": [
+        "The AWS DRS performs continuous replication at block level of on-premises servers (or other clouds) to a low cost staging area at AWS; in case of disaster, DRS Automatically launches recovery instances from replicated data in a few minutes, providing low RTO/RPO for DR type lift-and-shift.",
+        "The DMS specifically replicates data from BANCO OF DADOS, no full server images (including operating system, applications and settings); is a database migration/replication tool, not a full server DR solution.",
+        "The SMS performs periodic and incremental replication of VM snapshots (less frequent than continuous replication at block level), was designed mainly for single migration, is discontinued and does not offer the RPO low with continuous replication nor automated failure in minutes than the AWS DRS offers.",
+        "The Gateway Volume replicates VOLUMES for the S3 as snapshots, but reconstructing complete servers (operational system, applications, configurations) from raw volume snapshots during a disaster is a manual process, slow and prone to errors, not a ready-made DR orchestration solution like the AWS DRS."
+      ]
+    }
+  }
+}

@@ -1,0 +1,44 @@
+name: Validar catálogo visual EN da CloudArena
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - 'locales/pt-BR/cloudarena-literals.json'
+      - 'locales/en/cloudarena-literals.json'
+      - 'scripts/translation_integrity.py'
+      - 'scripts/validate_i18n.py'
+      - 'js/i18n-cloudarena.js'
+      - 'cloudarena.html'
+      - '.github/workflows/generate-cloudarena-literals.yml'
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'locales/pt-BR/cloudarena-literals.json'
+      - 'locales/en/cloudarena-literals.json'
+      - 'scripts/translation_integrity.py'
+      - 'scripts/validate_i18n.py'
+      - 'js/i18n-cloudarena.js'
+      - 'cloudarena.html'
+      - '.github/workflows/generate-cloudarena-literals.yml'
+  workflow_dispatch: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validar catálogo visual curado
+        run: |
+          python3 -m py_compile scripts/translation_integrity.py
+          python3 -m py_compile scripts/validate_i18n.py
+          python3 scripts/validate_i18n.py
+      - name: Validar adapter visual da CloudArena
+        run: node --check js/i18n-cloudarena.js
