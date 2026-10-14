@@ -4288,10 +4288,10 @@
       "explanation": "Correto. O CloudFront armazena conteúdo em cache em edge locations próximas aos usuários, servindo requisições repetidas dos mesmos ativos populares a partir do cache da CDN em vez de buscar no S3 a cada vez — isso reduz tanto o número de requisições GET QUANTO a transferência de dados de SAÍDA do S3 (a transferência de dados do S3 para o CloudFront não tem custo), além de reduzir a latência para usuários finais globais via cache em edge.",
       "hint": "Pense em qual serviço atua como camada de cache entre os usuários finais e o S3, reduzindo requisições repetidas ao bucket para os mesmos objetos populares e a transferência de dados de saída associada.",
       "optionRationales": [
-        "Correto. O CloudFront armazena conteúdo em cache em edge locations próximas aos usuários, servindo requisições repetidas dos mesmos ativos populares a partir do cache da CDN em vez de buscar no S3 a cada vez — isso reduz tanto o número de requisições GET QUANTO a transferência de dados de SAÍDA do S3 (a transferência de dados do S3 para o CloudFront não tem custo), além de reduzir a latência para usuários finais globais via cache em edge.",
-        "Incorreto. O Transfer Acceleration otimiza a velocidade de UPLOAD para o S3 via a rede de edge do CloudFront para clientes geograficamente distantes que enviam dados — não faz cache nem reduz requisições GET repetidas/custos de transferência de dados para o DOWNLOAD do mesmo conteúdo popular por muitos usuários finais; trata um problema diferente (aceleração de upload, não cache/redução de custo de download).",
-        "Incorreto. O Intelligent-Tiering otimiza o custo de ARMAZENAMENTO movendo objetos entre camadas de acesso com base em padrões de acesso, mas não reduz o custo de REQUISIÇÕES GET ou TRANSFERÊNCIA DE DADOS DE SAÍDA para usuários finais de objetos populares e frequentemente acessados — esses custos são independentes da classe de armazenamento.",
-        "Incorreto. O Requester Pays transfere os custos de transferência de dados e requisições para o SOLICITANTE (quem faz a requisição GET) em vez do proprietário do bucket — para uma empresa de mídia servindo SEU PRÓPRIO conteúdo para SEUS PRÓPRIOS usuários finais (não contas de terceiros), isso significaria cobrar custos de usuários finais anônimos, o que não é um mecanismo viável para um caso de uso de entrega de conteúdo público, e não reduz o custo GERAL de servir requisições repetidas do mesmo conteúdo."
+        "Requester Pays transfere o custo para quem baixa — inviável para conteúdo público servido a usuários finais.",
+        "Transfer Acceleration acelera UPLOADS via edge — não cacheia nem reduz o custo de saída das leituras repetidas.",
+        "É a mais próxima porque o Intelligent-Tiering otimiza custo de fato — mas só o de ARMAZENAMENTO por padrão de acesso; NÃO reduz as requisições GET nem a transferência de SAÍDA repetida dos ativos populares, nem melhora a latência global; cache na borda que corta GET/egress e acelera é o CloudFront.",
+        "Correto. O CloudFront armazena conteúdo em cache em edge locations próximas aos usuários, servindo requisições repetidas dos mesmos ativos populares a partir do cache da CDN em vez de buscar no S3 a cada vez — isso reduz tanto o número de requisições GET QUANTO a transferência de dados de SAÍDA do S3 (a transferência de dados do S3 para o CloudFront não tem custo), além de reduzir a latência para usuários finais globais via cache em edge."
       ],
       "topics": [
         "s3-storage",
@@ -4313,10 +4313,10 @@
       "explanation": "Correto. As Scheduled Actions permitem definir mudanças de capacidade recorrentes (baseadas em cron), escalando automaticamente os ambientes para zero instâncias (eliminando cobranças por hora de instância EC2) durante os ~75% da semana em que não são usados, e voltando a escalar automaticamente antes do início do horário comercial.",
       "hint": "Pense em qual recurso do Auto Scaling permite definir, em um cronograma recorrente, a redução da capacidade para zero instâncias fora do horário de uso e o retorno automático à capacidade normal.",
       "optionRationales": [
-        "Correto. As Scheduled Actions permitem definir mudanças de capacidade recorrentes (baseadas em cron), escalando automaticamente os ambientes para zero instâncias (eliminando cobranças por hora de instância EC2) durante os ~75% da semana em que não são usados, e voltando a escalar automaticamente antes do início do horário comercial.",
-        "Incorreto. Os Savings Plans fornecem um desconto sobre o uso computacional por hora EM TROCA de um compromisso, mas as instâncias continuariam rodando (e gerando cobranças com desconto) 24/7 — isso reduz a TAXA, mas não elimina o custo durante os ~75% do tempo ocioso; escalar para zero elimina o custo por completo nesses horários, o que é muito mais impactante para um recurso usado apenas 25% da semana.",
-        "Incorreto. Migrar ambientes completos de desenvolvimento/QA baseados em EC2 (provavelmente stacks de aplicação/servidores completos) para o modelo de execução baseado em funções do Lambda exigiria uma reestruturação completa dos ambientes — um esforço muito maior do que configurar escalonamento agendado para a infraestrutura existente.",
-        "Incorreto. Assim como os Savings Plans, as Reserved Instances fornecem desconto para uso CONTÍNUO E COMPROMETIDO (geralmente mais econômico para workloads ~24/7) — comprometer-se com RIs para instâncias necessárias apenas 25% da semana (que precisariam continuar rodando para 'aproveitar' a RI, ou ficar ociosas mas ainda sendo cobradas) não resolve o problema central de pagar por capacidade não utilizada em noites/fins de semana/feriados."
+        "Migrar dev/QA para Lambda reescreve o ambiente — não é 'eliminar o gasto fora do horário' dos EC2 existentes.",
+        "É a mais próxima porque Reserved Instances reduzem a taxa horária de fato — mas você PAGA pelas instâncias mesmo à noite e no fim de semana (75% da semana ociosa): só baixa o preço do desperdício, não o elimina; zerar a capacidade fora do horário é o Scheduled Action escalando para 0.",
+        "Compute Savings Plans reduzem o preço por hora — mas seguem cobrando as horas ociosas do fim de semana.",
+        "Correto. As Scheduled Actions permitem definir mudanças de capacidade recorrentes (baseadas em cron), escalando automaticamente os ambientes para zero instâncias (eliminando cobranças por hora de instância EC2) durante os ~75% da semana em que não são usados, e voltando a escalar automaticamente antes do início do horário comercial."
       ],
       "topics": [
         "ec2-compute",
@@ -4337,10 +4337,10 @@
       "explanation": "Correto. A Hibernação salva o conteúdo da RAM no volume raiz EBS ao hibernar e restaura a RAM exatamente ao retomar — enquanto hibernada, a instância está em estado de cobrança 'parada' (sem cobranças de computação, apenas armazenamento EBS do volume raiz, levemente maior para acomodar o dump de RAM), e retomar restaura o estado em memória exato sem reinicialização, diferentemente de um stop/start normal, que descarta o conteúdo da RAM.",
       "hint": "Pense em qual recurso do EC2 salva o conteúdo da memória RAM em disco ao parar a instância e o restaura exatamente ao retomar, evitando reinicialização da aplicação.",
       "optionRationales": [
-        "Correto. A Hibernação salva o conteúdo da RAM no volume raiz EBS ao hibernar e restaura a RAM exatamente ao retomar — enquanto hibernada, a instância está em estado de cobrança 'parada' (sem cobranças de computação, apenas armazenamento EBS do volume raiz, levemente maior para acomodar o dump de RAM), e retomar restaura o estado em memória exato sem reinicialização, diferentemente de um stop/start normal, que descarta o conteúdo da RAM.",
-        "Incorreto. Um stop normal descarta o conteúdo da RAM (memória da instância); ao iniciar novamente, o SO inicializa do zero e a aplicação/dataset precisa ser recarregado na memória, levando os mais de 30 minutos que a equipe quer evitar — a Hibernação preserva especificamente o conteúdo da RAM através do stop, o que um stop normal não faz.",
-        "Incorreto. Os Savings Plans reduzem a TAXA por hora para uso contínuo, mas a instância continuaria rodando (e gerando cobranças, ainda que com desconto) durante noites/fins de semana sem uso; a equipe quer EVITAR pagar durante períodos ociosos preservando o estado, o que a Hibernação alcança ao não executar computação alguma enquanto preserva o estado de memória no EBS.",
-        "Incorreto. Restaurar a partir de um snapshot EBS recria o estado do DISCO no momento do snapshot, mas NÃO restaura o conteúdo da RAM/processos em execução — o SO ainda inicializaria do zero e a aplicação precisaria reinicializar e recarregar dados na memória, a mesma limitação de um stop normal."
+        "Snapshot do volume raiz salva o DISCO — não a RAM nem os processos abertos; a reconstrução do estado continua necessária.",
+        "É a mais próxima porque o stop/start normal também para de cobrar computação nos períodos sem uso — mas ele DESLIGA a instância: a RAM é perdida, e retomar exige recarregar o dataset e reconstruir o estado (>30 min); preservar o conteúdo da RAM e retomar de onde parou é a Hibernação.",
+        "Savings Plans reduzem o custo de manter tudo rodando 24/7 — não pausam nada nem preservam o estado.",
+        "Correto. A Hibernação salva o conteúdo da RAM no volume raiz EBS ao hibernar e restaura a RAM exatamente ao retomar — enquanto hibernada, a instância está em estado de cobrança 'parada' (sem cobranças de computação, apenas armazenamento EBS do volume raiz, levemente maior para acomodar o dump de RAM), e retomar restaura o estado em memória exato sem reinicialização, diferentemente de um stop/start normal, que descarta o conteúdo da RAM."
       ],
       "topics": [
         "ec2-compute",
@@ -4361,10 +4361,10 @@
       "explanation": "Correto. Funções Lambda executadas em processadores Graviton2 (arm64) oferecem até 34% de melhoria no custo-benefício em comparação ao x86_64, com preço menor por GB-segundo tanto para duração quanto para Provisioned Concurrency; para funções com runtimes/dependências compatíveis com arm64 (sem dependência de binários compilados específicos de x86), essa é tipicamente uma mudança simples de configuração de arquitetura, sem alterações de código para runtimes gerenciados (pode exigir recompilação para dependências/imagens de container compiladas).",
       "hint": "Pense em qual configuração de arquitetura de processador do Lambda oferece melhor custo por GB-segundo sem exigir mudanças de memória, timeout ou lógica de acionamento.",
       "optionRationales": [
+        "Provisioned Concurrency reduz cold start e AUMENTA custo — não é economia por GB-segundo.",
+        "É a mais próxima porque reduzir a memória de fato baixa o custo por GB-segundo — mas o enunciado VETA alterar a memória, e cortar para 128 MB reduz também a CPU proporcional, degradando funções CPU-bound; a mudança simples que baixa o preço por GB-segundo sem mexer em memória/timeout/lógica é passar para arm64.",
         "Correto. Funções Lambda executadas em processadores Graviton2 (arm64) oferecem até 34% de melhoria no custo-benefício em comparação ao x86_64, com preço menor por GB-segundo tanto para duração quanto para Provisioned Concurrency; para funções com runtimes/dependências compatíveis com arm64 (sem dependência de binários compilados específicos de x86), essa é tipicamente uma mudança simples de configuração de arquitetura, sem alterações de código para runtimes gerenciados (pode exigir recompilação para dependências/imagens de container compiladas).",
-        "Incorreto. Reduzir a memória abaixo do que uma função realmente precisa pode AUMENTAR o custo total (e a latência), pois o faturamento de duração do Lambda é GB-segundos = memória x duração; se uma função precisa de mais memória para concluir rapidamente, reduzi-la pode aumentar o tempo de execução desproporcionalmente, aumentando os GB-segundos totais e potencialmente o custo total — não é uma redução de custo segura sem testes de performance, diferentemente de mudar para Graviton2, que é uma melhoria de custo-benefício na MESMA configuração de memória.",
-        "Incorreto. O Provisioned Concurrency REDUZ a latência de cold start, mas AUMENTA o custo (paga-se pela concorrência provisionada independentemente de ser invocada ou não) — não é uma medida de REDUÇÃO de custo; é tipicamente usado para melhorar latência a um custo adicional, o oposto do objetivo declarado.",
-        "Incorreto. Migrar do modelo orientado a eventos e pay-per-invocation do Lambda para o modelo de containers continuamente em execução do Fargate é uma mudança arquitetural significativa (modelo de cobrança diferente, exige gerenciar task definitions/clusters, custos potenciais de ociosidade) — não é uma 'mudança simples de configuração', e o Fargate não é inerentemente mais barato para workloads Lambda esporádicos/orientados a eventos."
+        "Migrar para Fargate reescreve o modelo de execução — não é uma simples troca de configuração da função."
       ],
       "topics": [
         "serverless",
@@ -4386,10 +4386,10 @@
       "explanation": "Correto. O modo On-Demand acomoda instantaneamente o workload conforme ele aumenta ou diminui, cobrando por requisição em vez de capacidade provisionada, SEM necessidade de planejamento de capacidade; para workloads de dev/teste ALTAMENTE IMPREVISÍVEIS com períodos ociosos e picos sem aviso, o On-Demand elimina tanto o custo de capacidade provisionada ociosa durante períodos ociosos QUANTO o risco de throttling durante picos inesperados — apesar do preço por requisição mais alto, o custo total para workloads esporádicos, imprevisíveis e de baseline baixo é tipicamente menor do que manter capacidade provisionada dimensionada para o pior caso.",
       "hint": "Pense em qual modo de capacidade do DynamoDB elimina completamente o planejamento de capacidade, cobrando apenas pelo que é consumido, adequado para tráfego imprevisível com picos sem aviso prévio.",
       "optionRationales": [
+        "Capacidade fixa alta paga o pico o tempo todo — desperdício enorme nos dias sem tráfego.",
+        "DAX é cache de LEITURA — não absorve picos de ESCRITA nem substitui o dimensionamento de capacidade da tabela.",
         "Correto. O modo On-Demand acomoda instantaneamente o workload conforme ele aumenta ou diminui, cobrando por requisição em vez de capacidade provisionada, SEM necessidade de planejamento de capacidade; para workloads de dev/teste ALTAMENTE IMPREVISÍVEIS com períodos ociosos e picos sem aviso, o On-Demand elimina tanto o custo de capacidade provisionada ociosa durante períodos ociosos QUANTO o risco de throttling durante picos inesperados — apesar do preço por requisição mais alto, o custo total para workloads esporádicos, imprevisíveis e de baseline baixo é tipicamente menor do que manter capacidade provisionada dimensionada para o pior caso.",
-        "Incorreto. O Auto Scaling ajusta a capacidade provisionada de forma reativa, com base em tendências de utilização observadas, e as ações de aumento levam alguns minutos; para picos SÚBITOS e SEM AVISO (50x o baseline sem aviso), o Auto Scaling pode não reagir rápido o suficiente para evitar throttling durante o pico inicial, e a tabela ainda incorreria em cobranças por alguma capacidade provisionada de baseline durante períodos ociosos — o On-Demand lida com picos instantâneos sem necessidade de provisionamento.",
-        "Incorreto. Provisionar para o PIOR CASO de pico (50x o baseline) significa pagar por essa capacidade alta continuamente, incluindo durante os dias sem tráfego algum — o oposto de econômico para um workload ocioso na maior parte do tempo.",
-        "Incorreto. O DAX é uma camada de cache de LEITURA que reduz a latência/carga de leitura na tabela para leituras repetidas, mas não trata as necessidades de capacidade de ESCRITA nem elimina o problema subjacente de planejamento de capacidade de uma tabela cuja capacidade PROVISIONADA (leitura E escrita) está desalinhada com um workload altamente variável — é um mecanismo não relacionado a esse problema de custo/throttling."
+        "É a mais próxima porque Provisionado com Auto Scaling ajusta a capacidade automaticamente — mas ele REAGE à métrica e leva minutos para escalar: contra picos de 50x SEM AVISO, chega tarde e ainda causa throttling; para tráfego imprevisível e esporádico, o On-Demand absorve o pico instantaneamente e cobra por requisição."
       ],
       "topics": [
         "databases"
@@ -4409,10 +4409,10 @@
       "explanation": "Correto. O S3 One Zone-IA oferece preços de acesso infrequente (mais baixos que o Standard-IA) armazenando dados em uma ÚNICA Zona de Disponibilidade em vez de replicar entre múltiplas AZs — essa durabilidade reduzida em caso de falha de AZ é um trade-off ACEITÁVEL para dados FACIL e BARATAMENTE REPRODUZÍVEIS (a fonte original permanece armazenada de forma durável em outro lugar), tornando o One Zone-IA a classe de armazenamento mais econômica para este caso de uso específico.",
       "hint": "O dado é facilmente reproduzível e a perda por falha de uma única AZ é um risco aceitável — pense em qual classe de armazenamento sacrifica a replicação multi-AZ em troca do menor custo de acesso infrequente.",
       "optionRationales": [
+        "Glacier Instant Retrieval cobra retrieval e mira dados de arquivamento — mais caro do que o necessário para semanas.",
         "Correto. O S3 One Zone-IA oferece preços de acesso infrequente (mais baixos que o Standard-IA) armazenando dados em uma ÚNICA Zona de Disponibilidade em vez de replicar entre múltiplas AZs — essa durabilidade reduzida em caso de falha de AZ é um trade-off ACEITÁVEL para dados FACIL e BARATAMENTE REPRODUZÍVEIS (a fonte original permanece armazenada de forma durável em outro lugar), tornando o One Zone-IA a classe de armazenamento mais econômica para este caso de uso específico.",
-        "Incorreto. O Standard-IA replica dados entre múltiplas AZs (maior durabilidade) a um custo maior que o One Zone-IA; como os dados são facilmente reproduzíveis e o cenário de perda de uma AZ é um risco aceitável para ESTES dados específicos, pagar o prêmio de durabilidade multi-AZ do Standard-IA é um custo adicional desnecessário.",
-        "Incorreto. O Glacier Instant Retrieval tem preços voltados para dados de arquivo acessados aproximadamente a cada trimestre, com premissas de retenção de longo prazo, e inclui cobrança de duração mínima de armazenamento (90 dias) — para arquivos retidos apenas 'algumas semanas' com acesso regular durante esse período, as cobranças de duração mínima e o modelo de precificação de arquivamento não se alinham bem com esse padrão de curta duração; o One Zone-IA (mínimo de 30 dias) é mais adequado.",
-        "Incorreto. O Intelligent-Tiering move automaticamente objetos entre camadas de acesso com base em padrões de acesso observados ao longo de 30+ dias, com taxas de monitoramento/automação por objeto — para arquivos intermediários de curta duração (algumas semanas), os objetos podem ser excluídos antes que as transições de camada do Intelligent-Tiering sequer entrem em vigor, tornando-o menos econômico do que escolher diretamente o One Zone-IA desde o início para dados já conhecidos como infrequentes e reproduzíveis."
+        "É a mais próxima porque o Standard-IA também é barato para acesso infrequente — mas mantém a durabilidade em MÚLTIPLAS AZs, cujo custo você paga sem precisar: os arquivos são facilmente REGENERÁVEIS a partir da fonte; para dados reproduzíveis e pouco acessados, o mais barato é One Zone-IA (uma AZ).",
+        "Intelligent-Tiering adiciona taxa de monitoramento por objeto e mantém a durabilidade multi-AZ — desnecessário aqui."
       ],
       "topics": [
         "s3-storage"
@@ -4433,9 +4433,9 @@
       "hint": "Pense em qual recurso de gerenciamento de custos da AWS permite definir regras customizadas para agrupar custos vindos de tags, contas e serviços distintos em categorias nomeadas para relatórios, sem reetiquetar recursos.",
       "optionRationales": [
         "Correto. As Cost Categories permitem criar regras para organizar custos de fontes heterogêneas (tags, contas, serviços) em agrupamentos customizados e consistentes para relatórios de alocação/chargeback de custo no Cost Explorer e no CUR, mesmo quando os recursos subjacentes têm tags inconsistentes ou são compartilhados entre equipes — atendendo ao requisito de atribuição de custo heterogênea sem reetiquetar tudo.",
-        "Incorreto. Embora as tags de alocação de custo sejam fundamentais, o cenário envolve explicitamente recursos COMPARTILHADOS (ex.: um cluster EKS compartilhado) e recursos sem tags em muitas contas, onde uma atribuição baseada em uma ÚNICA tag não mapeia de forma limpa para chargeback por unidade de negócio — o agrupamento baseado em regras das Cost Categories trata esses cenários de atribuição mais complexos e heterogêneos, que o etiquetamento simples por si só não consegue.",
-        "Incorreto. Reestruturar TODA a estrutura de contas para alinhar 1:1 com unidades de negócio é uma mudança organizacional/operacional importante, não uma solução na camada de relatórios — e não resolve a necessidade imediata de categorizar custos de recursos/contas EXISTENTES e compartilhados para relatórios de chargeback.",
-        "Incorreto. O AWS Budgets monitora gastos em relação a limites e envia alertas, mas não fornece o mecanismo subjacente para ATRIBUIR/CATEGORIZAR custos heterogêneos (de recursos compartilhados, múltiplas tags, múltiplas contas) em agrupamentos por unidade de negócio em primeiro lugar — as Cost Categories fornecem essa categorização, que o Budgets poderia então opcionalmente utilizar."
+        "Budgets monitora gasto contra um teto — não CATEGORIZA custos heterogêneos em agrupamentos nomeados para chargeback.",
+        "É a mais próxima porque tags consistentes + filtro no Cost Explorer também agrupam custo por equipe — mas o cenário tem recursos COMPARTILHADOS sem tag e o requisito é NÃO reetiquetar cada recurso manualmente; agrupar por regras (tags + conta + serviço + tipo) em categorias nomeadas, sem reetiquetar, é o Cost Categories.",
+        "Conta por unidade de negócio exige reestruturar tudo e não resolve o cluster EKS COMPARTILHADO entre equipes."
       ],
       "topics": [
         "cost",
@@ -4456,10 +4456,10 @@
       "explanation": "Correto. As AWS Budgets Actions permitem definir respostas automatizadas (aplicar políticas IAM/SCP restritivas, ou executar um runbook de Automação do SSM) acionadas quando limites de orçamento são ultrapassados, fornecendo remediação automática sem intervenção manual, além dos alertas de notificação padrão.",
       "hint": "O requisito é uma ação de remediação automática (não apenas um alerta) acionada quando um limite de gastos é ultrapassado — pense em qual recurso do AWS Budgets vai além da notificação.",
       "optionRationales": [
-        "Correto. As AWS Budgets Actions permitem definir respostas automatizadas (aplicar políticas IAM/SCP restritivas, ou executar um runbook de Automação do SSM) acionadas quando limites de orçamento são ultrapassados, fornecendo remediação automática sem intervenção manual, além dos alertas de notificação padrão.",
-        "Incorreto. As notificações via SNS alertam a equipe (uma pessoa) sobre a violação do limite, mas exigem que um HUMANO então tome a ação de remediação manualmente (ex.: parar instâncias) — o requisito exige explicitamente uma ação de remediação AUTOMÁTICA sem intervenção humana, o que orçamentos baseados apenas em notificação não fornecem; são necessárias as Budgets ACTIONS (não apenas alertas).",
-        "Incorreto. O Cost Anomaly Detection identifica padrões de gastos ESTATISTICAMENTE INCOMUNS (usando ML) em comparação a baselines históricos, útil para detectar anomalias, mas é um mecanismo de ALERTA (não de remediação/aplicação automática) e não impõe um LIMITE definido com mudanças automáticas de política IAM.",
-        "Incorreto. Esta é uma solução válida, porém customizada e construída manualmente (regra do Config + Lambda customizada + integração com EventBridge), exigindo desenvolvimento e manutenção, enquanto as AWS Budgets Actions fornecem essa capacidade de remediação automatizada baseada em limite como um recurso gerenciado e integrado, sem código customizado."
+        "Cost Anomaly Detection identifica gastos anômalos e alerta — não impõe limite mensal nem remedia automaticamente.",
+        "É a mais próxima porque o AWS Budgets com alerta SNS reage ao limite de custo — mas ele só NOTIFICA: não aplica política IAM nem para recursos automaticamente; a remediação automática sem intervenção humana é a Budget Action anexada ao orçamento.",
+        "Regra do Config avalia CONFIGURAÇÃO de recursos (contagem de EC2), não o GASTO acumulado contra um limite de custo.",
+        "Correto. As AWS Budgets Actions permitem definir respostas automatizadas (aplicar políticas IAM/SCP restritivas, ou executar um runbook de Automação do SSM) acionadas quando limites de orçamento são ultrapassados, fornecendo remediação automática sem intervenção manual, além dos alertas de notificação padrão."
       ],
       "topics": [
         "iam",
@@ -4481,10 +4481,10 @@
       "explanation": "Correto. As Reserved Instances do RDS fornecem um desconto significativo (até aproximadamente 60-70% em relação ao On-Demand, dependendo do prazo e opção de pagamento) em troca de um compromisso com uma configuração de instância específica por 1 ou 3 anos — ideal para um banco de dados de produção ESTÁVEL, PREVISÍVEL e de longa duração sem mudanças planejadas, reduzindo diretamente os custos desse workload de estado estável.",
       "hint": "O workload é estável, previsível e de longa duração sem mudanças planejadas — pense em qual mecanismo de desconto específico do RDS recompensa exatamente esse perfil de uso.",
       "optionRationales": [
-        "Correto. As Reserved Instances do RDS fornecem um desconto significativo (até aproximadamente 60-70% em relação ao On-Demand, dependendo do prazo e opção de pagamento) em troca de um compromisso com uma configuração de instância específica por 1 ou 3 anos — ideal para um banco de dados de produção ESTÁVEL, PREVISÍVEL e de longa duração sem mudanças planejadas, reduzindo diretamente os custos desse workload de estado estável.",
-        "Incorreto. O modelo de cobrança por ACU do Aurora Serverless v2 é mais econômico para workloads VARIÁVEIS/INTERMITENTES; para um banco de dados com utilização ESTÁVEL, previsível e continuamente alta, o preço por ACU do Serverless v2 provavelmente custaria MAIS do que uma Reserved Instance em Aurora/RDS provisionado, já que não há capacidade ociosa para 'economizar' ao escalar para baixo — Reserved Instances são mais adequadas para workloads de estado estável.",
-        "Incorreto. Remover o Multi-AZ reduziria custos, mas às custas da ALTA DISPONIBILIDADE (sem failover automático para um standby em outra AZ) de um banco de dados de PRODUÇÃO — isso troca um requisito de resiliência por economia de custo, o que não é apropriado sem uma decisão de negócio explícita aceitando esse risco de disponibilidade; as Reserved Instances reduzem o custo preservando a configuração Multi-AZ existente.",
-        "Incorreto. Os Compute Savings Plans se aplicam ao uso computacional de EC2, Fargate e Lambda; eles NÃO cobrem os custos de instância de banco de dados do Amazon RDS — o RDS tem seu próprio mecanismo de Reserved Instances específico para RDS, que é o mecanismo de desconto correto para este serviço."
+        "É a mais próxima porque Savings Plans dão desconto por compromisso de uso — mas os Compute Savings Plans cobrem EC2, Fargate e Lambda, NÃO o RDS; para descontar uma instância RDS estável e previsível, o instrumento é a Reserved Instance do RDS, correspondente à classe/Multi-AZ/engine.",
+        "Aurora Serverless v2 é para carga VARIÁVEL — para um workload estável e constante ele não é o mais econômico.",
+        "Single-AZ reduz custo às custas da alta disponibilidade — o requisito é economizar, não abrir mão do Multi-AZ.",
+        "Correto. As Reserved Instances do RDS fornecem um desconto significativo (até aproximadamente 60-70% em relação ao On-Demand, dependendo do prazo e opção de pagamento) em troca de um compromisso com uma configuração de instância específica por 1 ou 3 anos — ideal para um banco de dados de produção ESTÁVEL, PREVISÍVEL e de longa duração sem mudanças planejadas, reduzindo diretamente os custos desse workload de estado estável."
       ],
       "topics": [
         "databases",
@@ -4507,9 +4507,9 @@
       "hint": "A aplicação tolera interrupções de instâncias — pense em qual configuração do Auto Scaling Group combina uma base garantida de On-Demand com capacidade adicional de Spot diversificada entre tipos de instância para minimizar o impacto de interrupções.",
       "optionRationales": [
         "Correto. Uma Mixed Instances Policy permite que o ASG lance um baseline definido de instâncias On-Demand para disponibilidade garantida, enquanto atende capacidade adicional com Spot Instances a desconto significativo; a estratégia 'capacity-optimized' seleciona pools de Spot com menor probabilidade de interrupção entre os tipos de instância diversificados especificados, reduzindo o impacto de interrupções para essa camada web stateless tolerante a interrupções.",
-        "Incorreto. Usar um ÚNICO tipo de instância concentra toda a capacidade em um único pool de Spot, aumentando a probabilidade de interrupções simultâneas em toda a frota se a capacidade desse pool ficar restrita; a estratégia 'lowest-price' não considera a frequência de interrupção, diferentemente da 'capacity-optimized'. Além disso, não ter nenhuma base On-Demand significa que a aplicação poderia perder TODA a capacidade simultaneamente durante uma escassez de Spot, sem mínimo garantido.",
-        "Incorreto. As Reserved Instances fornecem desconto para CAPACIDADE COMPROMETIDA, mas comprometem um número FIXO de instâncias independentemente das necessidades reais de escalonamento — para um Auto Scaling Group que escala dinamicamente, super-provisionar RIs para o tamanho máximo da frota desperdiça o desconto durante períodos de menor demanda, e não aproveita os descontos muito maiores (até ~90%) disponíveis via Spot para um workload tolerante a interrupções.",
-        "Incorreto. Mudar para instâncias Graviton (arm64) pode melhorar o custo-benefício (assumindo compatibilidade da aplicação), mas é uma otimização INCREMENTAL (tipicamente até ~20% de melhoria) em comparação ao desconto SIGNIFICATIVO (frequentemente 70-90%) disponível ao incorporar Spot Instances para um workload stateless tolerante a interrupções — não atende ao objetivo de 'reduzir significativamente os custos' tão efetivamente quanto uma Mixed Instances Policy com Spot."
+        "É a mais próxima porque um Spot Fleet lowest-price também usa Spot para baratear a frota — mas com um ÚNICO tipo de instância concentra o risco (uma interrupção de Spot naquele tipo derruba muita coisa) e NÃO garante uma base On-Demand mínima; base garantida + diversificação capacity-optimized é a Mixed Instances Policy.",
+        "Reserved Instances para 100% da frota fixa capacidade e não aproveita o Spot barato — economia menor.",
+        "Graviton em On-Demand melhora o custo-benefício, mas segue pagando On-Demand em toda a frota — sem a economia do Spot."
       ],
       "topics": [
         "ec2-compute",
@@ -4531,10 +4531,10 @@
       "explanation": "Correto. A AWS cobra uma taxa horária por endereços Elastic IP ALOCADOS, mas NÃO associados a uma instância em execução (um EIP 'ocioso'), como forma de incentivar o uso eficiente do espaço limitado de endereços IPv4; liberar EIPs não utilizados elimina essa cobrança. (Um EIP associado a uma instância EM EXECUÇÃO, sendo o IP público primário dela, não recebe essa cobrança de ociosidade.)",
       "hint": "Pense em qual ação elimina diretamente a cobrança por hora que a AWS aplica a endereços IP públicos alocados, mas não associados a uma instância em execução.",
       "optionRationales": [
-        "Correto. A AWS cobra uma taxa horária por endereços Elastic IP ALOCADOS, mas NÃO associados a uma instância em execução (um EIP 'ocioso'), como forma de incentivar o uso eficiente do espaço limitado de endereços IPv4; liberar EIPs não utilizados elimina essa cobrança. (Um EIP associado a uma instância EM EXECUÇÃO, sendo o IP público primário dela, não recebe essa cobrança de ociosidade.)",
-        "Incorreto. Embora a AWS incentive a adoção de IPv6 e endereços IPv6 não tenham a mesma cobrança de ociosidade, 'converter' um Elastic IP (um recurso IPv4 público) para IPv6 não é uma operação real — IPv4 e IPv6 são famílias de endereços diferentes; isso não é uma remediação válida para o problema declarado de cobranças de EIP ocioso em EIPs IPv4 EXISTENTES.",
-        "Incorreto. Anexar um EIP a um NAT Gateway de fato o utiliza, mas a equipe provavelmente NÃO PRECISA de NAT Gateways adicionais para esses IPs específicos não utilizados — isso trocaria um custo (cobrança de EIP ocioso) por outro (cobranças por hora de NAT Gateway, geralmente mais caras), sem resolver o problema raiz de ter EIPs não utilizados desnecessários.",
-        "Incorreto. Elastic IPs e Reserved Instances são construtos da AWS não relacionados (um é um endereço IP público estático, o outro é um desconto de faturamento para capacidade computacional) — não existe mecanismo para 'mover um EIP para uma RI', e isso não trataria a cobrança de EIP ocioso."
+        "EIP não se 'move para uma Reserved Instance' — RI é modelo de preço de computação, não de endereço IP.",
+        "É a mais próxima porque anexar os EIPs a NAT Gateways de fato os deixa 'associados' e para a cobrança de ocioso — mas cria NAT Gateways que você não precisa (com custo próprio maior): trocaria uma cobrança por outra pior; o correto para EIPs sobrando é LIBERAR os que não servem instância alguma.",
+        "Não se 'converte' EIP em IPv6 — são recursos distintos; e o cenário é sobre remover endereços ociosos.",
+        "Correto. A AWS cobra uma taxa horária por endereços Elastic IP ALOCADOS, mas NÃO associados a uma instância em execução (um EIP 'ocioso'), como forma de incentivar o uso eficiente do espaço limitado de endereços IPv4; liberar EIPs não utilizados elimina essa cobrança. (Um EIP associado a uma instância EM EXECUÇÃO, sendo o IP público primário dela, não recebe essa cobrança de ociosidade.)"
       ],
       "topics": [
         "vpc",
@@ -4556,10 +4556,10 @@
       "explanation": "Correto. Com o Requester Pays habilitado, a conta AWS que faz uma requisição GET/download (o solicitante) é cobrada pelos custos de transferência de dados e de requisição, em vez do proprietário do bucket; os solicitantes devem incluir parâmetros/cabeçalhos específicos reconhecendo que serão cobrados, e devem ser contas AWS autenticadas (buckets Requester Pays não podem ser acessados anonimamente) — transferindo diretamente o ônus do custo de transferência de dados para as contas AWS dos pesquisadores externos, enquanto a organização continua pagando apenas pelo armazenamento.",
       "hint": "Pense em qual configuração do S3 transfere a cobrança pelos custos de transferência de dados e requisições do proprietário do bucket para a conta AWS de quem faz o download.",
       "optionRationales": [
+        "S3 on Outposts é armazenamento local em hardware no seu site — não muda quem paga a transferência dos downloads públicos.",
+        "Transfer Acceleration acelera transferências (e ADICIONA custo) — não repassa o custo aos solicitantes.",
         "Correto. Com o Requester Pays habilitado, a conta AWS que faz uma requisição GET/download (o solicitante) é cobrada pelos custos de transferência de dados e de requisição, em vez do proprietário do bucket; os solicitantes devem incluir parâmetros/cabeçalhos específicos reconhecendo que serão cobrados, e devem ser contas AWS autenticadas (buckets Requester Pays não podem ser acessados anonimamente) — transferindo diretamente o ônus do custo de transferência de dados para as contas AWS dos pesquisadores externos, enquanto a organização continua pagando apenas pelo armazenamento.",
-        "Incorreto. O Transfer Acceleration otimiza a VELOCIDADE de transferência via edge locations do CloudFront, com uma taxa adicional sobre os custos padrão de transferência — não muda QUEM paga pela transferência de dados; na verdade, ADICIONARIA custo (taxas de transfer acceleration) sobre os custos de transferência de dados existentes que a organização está tentando evitar pagar.",
-        "Incorreto. Assumir uma role dentro da AWS Organization da conta proprietária do bucket não transfere o faturamento PARA as próprias contas AWS dos pesquisadores externos — todo o uso sob uma role assumida na conta da organização continua sendo faturado para a organização; isso não atinge o objetivo de 'os solicitantes pagam seus próprios custos de transferência de dados'.",
-        "Incorreto. O S3 on Outposts exige que a organização implante hardware físico do Outposts em locais específicos — é uma extensão on-premises do S3 para acesso LOCAL de BAIXA LATÊNCIA, não um mecanismo para transferir custos de saída de dados para pesquisadores externos baseados na internet que baixam de um bucket S3 padrão."
+        "É a mais próxima porque restringir por IAM role controla o acesso — mas SCP/IAM regulam PERMISSÃO, não FATURAMENTO: não transferem o custo de transferência para quem baixa, e complicam o acesso público dos pesquisadores; fazer o solicitante pagar transferência e requisições é o S3 Requester Pays."
       ],
       "topics": [
         "s3-storage",
@@ -4581,9 +4581,9 @@
       "hint": "Pense em qual tipo de volume EBS fornece IOPS e throughput de baseline independentes do tamanho provisionado, a um custo por GB menor que o gp2.",
       "optionRationales": [
         "Correto. Os volumes gp3 fornecem um baseline de 3.000 IOPS e 125 MB/s de throughput INDEPENDENTEMENTE do tamanho do volume (com a possibilidade de provisionar IOPS adicionais até 16.000 e throughput até 1.000 MB/s por custo adicional, separadamente do tamanho), a um preço por GB MENOR que o gp2 — permitindo que a equipe ajuste os volumes ao tamanho real de armazenamento necessário enquanto configura IOPS/throughput de forma independente conforme os requisitos do workload, tipicamente reduzindo os custos totais em comparação a volumes gp2 superdimensionados.",
-        "Incorreto. O io2/io2 Block Express fornece IOPS muito altas e duráveis (até 256.000 no io2 Block Express) com SLA de durabilidade de 99,999%, mas a um custo POR IOPS PROVISIONADA SIGNIFICATIVAMENTE MAIOR que o gp3 — para workloads que precisam apenas de IOPS moderadas desacopladas do tamanho do volume (não IOPS extremas ou a maior camada de durabilidade), o gp3 atinge o objetivo de redução de custo de forma mais eficaz do que o preço premium do io2.",
-        "Incorreto. O st1 é projetado para workloads grandes e sequenciais (big data, processamento de logs) com performance baseada em throughput, NÃO para workloads de uso geral que exigem performance sensível a IOPS em capacidades menores — o st1 tem um tamanho MÍNIMO de volume (500 GiB) e não é adequado para ajustar volumes menores que precisam de IOPS.",
-        "Incorreto. A proporção de IOPS por GB do gp2 (3 IOPS/GB, com burst, máximo de 16.000 IOPS a partir de 5.334+ GB) é uma característica fixa do tipo de volume gp2, não uma service quota que pode ser aumentada via solicitação de suporte — desacoplar IOPS do tamanho exige migrar para gp3 (ou família io), não ajustar quotas no gp2."
+        "É a mais próxima porque io2 Block Express também desacopla IOPS do tamanho e entrega IOPS altas — mas é da família premium, mais cara do que o necessário para IOPS moderadas: o cenário quer AJUSTAR o armazenamento ao real e economizar; gp3 desacopla IOPS/throughput do tamanho pelo menor custo.",
+        "gp2 não tem 'quota de mais IOPS por GB' — a relação 3 IOPS/GB é fixa; aumentar IOPS no gp2 exige aumentar o tamanho.",
+        "st1 é HDD para throughput sequencial — baixa IOPS aleatória; inadequado para workloads que precisam de IOPS."
       ],
       "topics": [
         "s3-storage"
@@ -4603,10 +4603,10 @@
       "explanation": "Correto. O Fargate Spot fornece capacidade computacional do Fargate com até 70% de desconto em relação ao preço On-Demand do Fargate, usando capacidade ociosa da AWS que pode ser reivindicada com 2 minutos de aviso de interrupção; para tasks de lote stateless, tolerantes a reexecução e sem urgência de tempo, o Fargate Spot fornece economia significativa de custo preservando o modelo operacional serverless de containers do Fargate (sem instâncias/clusters EC2 para gerenciar).",
       "hint": "Os jobs são stateless, tolerantes a reexecução e sem urgência de tempo — pense em qual opção de capacidade do Fargate oferece desconto significativo aproveitando capacidade ociosa, sem abandonar o modelo serverless.",
       "optionRationales": [
+        "É a mais próxima porque ECS em EC2 com Spot via Capacity Providers realmente barateia com Spot — mas reintroduz o GERENCIAMENTO de instâncias/cluster EC2, e o requisito é MANTER a simplicidade do Fargate; carga em lote tolerante a interrupção barata SEM gerir instâncias é o Fargate Spot.",
         "Correto. O Fargate Spot fornece capacidade computacional do Fargate com até 70% de desconto em relação ao preço On-Demand do Fargate, usando capacidade ociosa da AWS que pode ser reivindicada com 2 minutos de aviso de interrupção; para tasks de lote stateless, tolerantes a reexecução e sem urgência de tempo, o Fargate Spot fornece economia significativa de custo preservando o modelo operacional serverless de containers do Fargate (sem instâncias/clusters EC2 para gerenciar).",
-        "Incorreto. Spot em EC2 via Capacity Providers também pode fornecer economia significativa, mas reintroduz o overhead operacional de gerenciar um cluster ECS baseado em EC2 (tipos de instância, AMIs, escalonamento, patching) — contradizendo o requisito de MANTER a simplicidade operacional do Fargate (sem gerenciamento de instâncias/cluster); o Fargate Spot atinge níveis de desconto semelhantes sem esse overhead.",
-        "Incorreto. Os Compute Savings Plans fornecem desconto para uso do Fargate em troca de um compromisso, mas o desconto (tipicamente até ~50% para compromissos de 3 anos) geralmente é MENOR que o desconto do Fargate Spot (até 70%) para workloads que toleram interrupções — para workloads em lote especificamente TOLERANTES A INTERRUPÇÃO, o Fargate Spot fornece economia mais profunda sem compromisso financeiro de longo prazo.",
-        "Incorreto. Reduzir a alocação de recursos abaixo do que as tasks realmente precisam pode fazer com que executem mais lentamente ou falhem (OOM kills), potencialmente AUMENTANDO o custo total (execuções mais longas) ou causando falhas que exigem reexecuções — é um risco de performance/correção, não uma estratégia confiável de redução de custo em comparação a aproveitar o preço com desconto do Fargate Spot para workloads tolerantes a interrupção."
+        "Reduzir vCPU/memória ao mínimo pode nem caber no job e não é 'reduzir significativamente' o custo por natureza da carga.",
+        "Compute Savings Plans dão desconto sobre o uso — economia menor que o Fargate Spot para carga interruptível."
       ],
       "topics": [
         "containers",
@@ -4628,10 +4628,10 @@
       "explanation": "Correto. Posicionar uma réplica de cache em CADA AZ e rotear o tráfego de LEITURA para a réplica LOCAL evita cobranças de transferência de dados entre AZs para o tráfego de leitura de alto volume (que permanece dentro da mesma AZ), enquanto ESCRITAS no primário (volume menor) ainda podem cruzar AZs, e a resiliência Multi-AZ é preservada pelas múltiplas réplicas distribuídas entre AZs.",
       "hint": "Pense em como posicionar réplicas de cache em cada AZ e direcionar o tráfego de leitura de alto volume para a réplica local, mantendo a resiliência multi-AZ apenas para escritas/failover.",
       "optionRationales": [
+        "É a mais próxima porque concentrar tudo numa AZ ELIMINA o tráfego entre AZs de fato — mas destrói a resiliência Multi-AZ que o requisito manda MANTER: uma falha de AZ derruba aplicação e cache juntos; reduzir o cross-AZ preservando o Multi-AZ é rotear a leitura para a réplica de cache da AZ local.",
         "Correto. Posicionar uma réplica de cache em CADA AZ e rotear o tráfego de LEITURA para a réplica LOCAL evita cobranças de transferência de dados entre AZs para o tráfego de leitura de alto volume (que permanece dentro da mesma AZ), enquanto ESCRITAS no primário (volume menor) ainda podem cruzar AZs, e a resiliência Multi-AZ é preservada pelas múltiplas réplicas distribuídas entre AZs.",
-        "Incorreto. Eliminar o tráfego entre AZs executando tudo em UMA AZ remove o custo de transferência de dados entre AZs, mas também elimina a ALTA DISPONIBILIDADE Multi-AZ (uma falha de AZ derrubaria toda a arquitetura) — o requisito exige explicitamente MANTER a resiliência Multi-AZ, que essa abordagem sacrifica.",
-        "Incorreto. O Cross-Zone Load Balancing afeta como o LOAD BALANCER distribui requisições entrantes para instâncias de aplicação entre AZs — não afeta o padrão de transferência de dados entre as INSTÂNCIAS DE APLICAÇÃO e a CAMADA DE CACHE, que é a origem das cobranças entre AZs descritas; é uma configuração não relacionada ao problema de custo declarado.",
-        "Incorreto. Migrar toda a arquitetura de cache de ElastiCache para DynamoDB+DAX é uma reestruturação importante (modelo de dados, API e bibliotecas de cliente diferentes) — e clusters DAX também podem se estender por múltiplas AZs com tráfego entre AZs para requisições não locais, portanto isso não resolve fundamentalmente o problema de custo de tráfego entre AZs sem considerações de roteamento com consciência de AZ semelhantes, exigindo um esforço de engenharia muito maior."
+        "Trocar ElastiCache por DynamoDB+DAX reescreve a camada de cache — muda a arquitetura, não é otimização do tráfego atual.",
+        "Cross-Zone Load Balancing distribui o tráfego do ALB entre AZs — pode até AUMENTAR o cross-AZ, não reduz o do cache."
       ],
       "topics": [
         "databases",
@@ -4652,10 +4652,10 @@
       "explanation": "Correto. As verificações de Cost Optimization do Trusted Advisor incluem 'Idle Load Balancers' (ALB/CLB/NLB sem requisições por 7 dias), 'Underutilized Amazon EBS Volumes' (não anexados ou com atividade muito baixa), 'Low Utilization Amazon EC2 Instances' (CPU abaixo de um limite por 14 dias), e verificações de 'Amazon Redshift Reserved Node Optimization'/utilização, entre outras — fornecendo uma análise rápida, automatizada e sem configuração das oportunidades comuns de otimização de custo em toda a conta.",
       "hint": "Pense em qual ferramenta da AWS já vem com verificações prontas, categorizadas como 'otimização de custo', que sinalizam recursos ociosos ou subutilizados sem configuração adicional.",
       "optionRationales": [
-        "Correto. As verificações de Cost Optimization do Trusted Advisor incluem 'Idle Load Balancers' (ALB/CLB/NLB sem requisições por 7 dias), 'Underutilized Amazon EBS Volumes' (não anexados ou com atividade muito baixa), 'Low Utilization Amazon EC2 Instances' (CPU abaixo de um limite por 14 dias), e verificações de 'Amazon Redshift Reserved Node Optimization'/utilização, entre outras — fornecendo uma análise rápida, automatizada e sem configuração das oportunidades comuns de otimização de custo em toda a conta.",
-        "Incorreto. Os conformance packs do AWS Config são projetados para avaliação de regras de COMPLIANCE/CONFIGURAÇÃO (ex.: 'a criptografia está habilitada', 'as tags exigidas estão presentes') — embora algumas regras do Config possam ser relacionadas a custo, esse não é o mecanismo desenhado especificamente para identificar recursos ociosos/subutilizados para otimização de custo, e exigiria construir regras customizadas — mais esforço do que as verificações integradas do Trusted Advisor.",
-        "Incorreto. O Cost Anomaly Detection identifica PADRÕES DE GASTO INCOMUNS em comparação a baselines históricos (ex.: um pico súbito de custo) — não identifica recursos ESTRUTURALMENTE ociosos/subutilizados (como um volume EBS que SEMPRE esteve não anexado, o que não apareceria como uma 'anomalia' de gasto já que seu padrão de custo é consistente) — as verificações do Trusted Advisor visam especificamente esse tipo de subutilização persistente.",
-        "Incorreto. Analisar logs do CloudTrail para padrões de chamadas de API a fim de inferir o uso de recursos exigiria análise/ferramentas customizadas significativas de logs, e o CloudTrail registra principalmente CHAMADAS DE API (plano de gerenciamento), não necessariamente MÉTRICAS contínuas como utilização de CPU ou contagem de requisições de load balancer necessárias para identificar recursos 'ociosos'/'subutilizados' — o Trusted Advisor fornece essas verificações específicas prontas para uso."
+        "Conformance packs do Config avaliam CONFORMIDADE de configuração — não identificam recursos ociosos por custo.",
+        "É a mais próxima porque o Cost Anomaly Detection também é ferramenta de custo gerenciada — mas ele detecta ANOMALIAS de GASTO (variações incomuns), não recursos ociosos/subutilizados específicos (LB sem requisições, EBS não anexado, EC2 de baixa CPU); a lista pronta dessas oportunidades comuns é o Trusted Advisor (Cost Optimization).",
+        "CloudTrail registra chamadas de API — descobrir recursos não usados por ele exigiria scripts, o que se quer evitar.",
+        "Correto. As verificações de Cost Optimization do Trusted Advisor incluem 'Idle Load Balancers' (ALB/CLB/NLB sem requisições por 7 dias), 'Underutilized Amazon EBS Volumes' (não anexados ou com atividade muito baixa), 'Low Utilization Amazon EC2 Instances' (CPU abaixo de um limite por 14 dias), e verificações de 'Amazon Redshift Reserved Node Optimization'/utilização, entre outras — fornecendo uma análise rápida, automatizada e sem configuração das oportunidades comuns de otimização de custo em toda a conta."
       ],
       "topics": [
         "cost",
@@ -4677,10 +4677,10 @@
       "explanation": "Correto. As configurações de retenção do CloudWatch Logs excluem automática e permanentemente eventos de log mais antigos que o período de retenção configurado, reduzindo diretamente o volume de dados de log armazenados (e os custos de armazenamento associados) ao longo do tempo, enquanto retém uma janela definida de logs recentes para depuração — isso pode ser configurado por log group (manualmente, via CLI/IaC, ou em massa via um script que itera sobre os log groups).",
       "hint": "Pense em qual configuração nativa dos log groups do CloudWatch Logs exclui automaticamente eventos de log mais antigos que um período definido, sem exclusão manual.",
       "optionRationales": [
+        "É a mais próxima porque exportar para o S3 e apagar os log groups reduz o custo do CloudWatch de fato — mas é manual, quebra a depuração recente (os logs saem do CloudWatch) e não impede o acúmulo futuro; expirar automaticamente mantendo 30-90 dias no lugar é a Retention Policy dos log groups.",
+        "Migrar para OpenSearch adiciona um serviço a operar (e custo) — não é a redução simples do armazenamento de logs.",
         "Correto. As configurações de retenção do CloudWatch Logs excluem automática e permanentemente eventos de log mais antigos que o período de retenção configurado, reduzindo diretamente o volume de dados de log armazenados (e os custos de armazenamento associados) ao longo do tempo, enquanto retém uma janela definida de logs recentes para depuração — isso pode ser configurado por log group (manualmente, via CLI/IaC, ou em massa via um script que itera sobre os log groups).",
-        "Incorreto. Exportar para o S3 poderia reduzir os custos de armazenamento do CloudWatch Logs, mas o S3 TAMBÉM tem custos de armazenamento (embora potencialmente menores com políticas de lifecycle), e 'excluir os log groups originais' também excluiria logs FUTUROS recebidos, a menos que reconfigurado — essa é uma migração mais complexa, manual e única, em vez de uma política de retenção automática contínua; configurar retenção diretamente nos log groups é o mecanismo mais simples e desenhado para esse fim.",
-        "Incorreto. Reduzir a verbosidade dos logs reduz o volume FUTURO de logs, mas não trata os terabytes de dados de log antigos JÁ acumulados no CloudWatch Logs — e reduzir níveis de log tem o trade-off de reduzir a visibilidade de depuração para TODOS os períodos, não apenas dados antigos; políticas de retenção especificamente eliminam dados ANTIGOS preservando logs detalhados recentes.",
-        "Incorreto. Migrar o armazenamento de logs para o OpenSearch Service é uma mudança arquitetural significativa (pipeline de ingestão diferente, interface de consulta diferente) que introduz SEUS PRÓPRIOS custos de infraestrutura (computação/armazenamento de domínio OpenSearch) — não trata diretamente 'reduzir os custos de armazenamento do CloudWatch Logs' via uma mudança de configuração, e pode não ser mais econômico no geral."
+        "Baixar o nível de log gera menos logs NOVOS — não elimina os terabytes de logs antigos já acumulados."
       ],
       "topics": [
         "monitoring",
@@ -4702,9 +4702,9 @@
       "hint": "O workflow tem milhões de execuções breves por dia e não depende de garantias exactly-once nem de histórico de execução de longo prazo — pense em qual tipo de Step Functions tem um modelo de precificação baseado em execução/duração em vez de por transição de estado.",
       "optionRationales": [
         "Correto. Os Express Workflows são precificados com base no NÚMERO DE EXECUÇÕES, sua DURAÇÃO e consumo de memória (similar ao modelo de precificação do Lambda), em vez de por transição de estado como nos Standard Workflows — para workflows de ALTO VOLUME e CURTA DURAÇÃO (milhões de execuções breves), os Express Workflows são significativamente mais econômicos; o trade-off é execução 'at-least-once' (em vez de 'exactly-once' do Standard) e retenção de histórico de execução mais curta (baseada no CloudWatch Logs, não no histórico completo do console do Step Functions) — aceitável para este caso de uso de alto volume e curta duração que não depende dessas garantias específicas do Standard.",
-        "Incorreto. Remover o Step Functions completamente eliminaria os custos de orquestração, mas também remove os BENEFÍCIOS de usar o Step Functions (definição visual do workflow, tratamento de erros/retries integrado, gerenciamento de estado) — essa é uma mudança arquitetural muito mais invasiva do que simplesmente trocar o TIPO de workflow dentro do Step Functions, o que trata diretamente o problema de custo por transição de estado para esse perfil de execução.",
-        "Incorreto. Reduzir o NÚMERO de estados poderia reduzir um pouco o custo por execução (menos transições = menor custo por execução sob a precificação por transição do Standard), mas não muda fundamentalmente o MODELO DE PRECIFICAÇÃO — para milhões de execuções diárias, o modelo de precificação baseado em execução dos Express Workflows é fundamentalmente mais adequado, independentemente de quantos estados permanecerem, sem exigir uma redesenho da lógica do workflow.",
-        "Incorreto. O agrupamento (batching) poderia reduzir o NÚMERO de execuções, mas introduz LATÊNCIA (esperar para acumular um lote) para workflows descritos como concluindo 'em menos de poucos segundos' por evento (implicando que o processamento por evento é desejado) — e adiciona complexidade na lógica de divisão de lotes dentro do workflow; mudar para Express Workflows trata o problema de custo diretamente sem alterar o modelo de execução por evento."
+        "É a mais próxima porque reduzir estados de fato diminui as transições cobradas — mas segue no modelo STANDARD (caro por transição) e ainda paga por milhões de execuções; para workflow de alto volume e curta duração que não precisa de histórico de 90 dias nem exactly-once, o modelo barato é o Express Workflows.",
+        "Remover a orquestração (Lambda-para-Lambda direto) joga fora o Step Functions — perde tratamento de erro/estado do fluxo.",
+        "Agrupar eventos numa execução muda a semântica do pipeline por evento — e complica retry/observabilidade."
       ],
       "topics": [
         "app-integration",
@@ -4725,10 +4725,10 @@
       "explanation": "Correto. O S3 Intelligent-Tiering monitora os padrões de acesso de cada objeto individualmente e o move automaticamente entre os níveis de acesso (sem impacto de performance e sem taxa de recuperação entre Frequent e Infrequent Access), cobrando apenas uma pequena taxa de monitoramento por objeto. Isso resolve exatamente o cenário de padrões de acesso imprevisíveis e não correlacionados com a idade do objeto, eliminando a necessidade de regras de ciclo de vida baseadas em idade.",
       "hint": "Pense em qual mecanismo do S3 monitora o comportamento real de acesso de cada objeto, em vez de assumir que a idade prevê a frequência de uso.",
       "optionRationales": [
+        "One Zone-IA reduz durabilidade (uma AZ) e cobra retrieval — inadequado para conteúdo de usuário que pode voltar a ser quente.",
+        "É a mais próxima porque a lifecycle para Standard-IA/Glacier também otimiza custo — mas é regra por IDADE, e o cenário diz que NÃO há correlação entre idade e acesso: objetos antigos ainda quentes pagariam taxa de RECUPERAÇÃO a cada leitura; otimizar pelo acesso REAL sem regra de idade nem retrieval é o Intelligent-Tiering.",
         "Correto. O S3 Intelligent-Tiering monitora os padrões de acesso de cada objeto individualmente e o move automaticamente entre os níveis de acesso (sem impacto de performance e sem taxa de recuperação entre Frequent e Infrequent Access), cobrando apenas uma pequena taxa de monitoramento por objeto. Isso resolve exatamente o cenário de padrões de acesso imprevisíveis e não correlacionados com a idade do objeto, eliminando a necessidade de regras de ciclo de vida baseadas em idade.",
-        "Incorreto. Regras de ciclo de vida baseadas em idade pressupõem uma correlação entre idade e frequência de acesso (objetos mais antigos seriam menos acessados). O cenário explicitamente afirma que essa correlação NÃO existe — um objeto pode permanecer popular por meses (gerando taxas de recuperação do IA) ou se tornar frio imediatamente (permanecendo em Standard sem necessidade até os 30 dias). Isso viola o requisito de otimização baseada em padrão de acesso real, não em idade.",
-        "Incorreto. O S3 Standard-IA tem custo de armazenamento menor, mas cobra uma taxa de recuperação por GB acessado. Para o subconjunto de objetos que permanecem frequentemente acessados (conforme descrito no cenário), essas taxas de recuperação podem tornar o custo total maior do que mantê-los em S3 Standard. Aplicar Standard-IA uniformemente a um conjunto de dados com padrões de acesso mistos e imprevisíveis arrisca aumentar o custo total.",
-        "Incorreto. O S3 One Zone-IA reduz o custo de armazenamento ao armazenar dados em uma única Zona de Disponibilidade (com trade-off de durabilidade), mas não resolve a otimização baseada em padrão de ACESSO descrita no cenário — além disso, também cobra taxas de recuperação como o Standard-IA, o que penalizaria objetos frequentemente acessados."
+        "Standard-IA desde o upload cobra retrieval e mínimo por objeto — ruim para os objetos intensamente acessados nos primeiros dias."
       ],
       "topics": [
         "s3-storage",
@@ -4749,10 +4749,10 @@
       "explanation": "Correto. As classes de instância RDS/Aurora baseadas em AWS Graviton (db.*6g) oferecem até ~20% de melhor relação preço-desempenho em comparação às classes equivalentes baseadas em Intel (m5/r5), para as mesmas engines (PostgreSQL, MySQL, MariaDB, Aurora), sem exigir alterações na versão da engine, no código da aplicação ou nos drivers de conexão para workloads padrão — uma simples modificação de classe de instância em uma janela de manutenção.",
       "hint": "Considere qual mudança de classe de instância, sem alterar engine ou aplicação, é amplamente reconhecida por melhorar a relação preço-desempenho em bancos de dados gerenciados.",
       "optionRationales": [
+        "Performance Insights ajuda a otimizar queries — não reduz o custo de computação migrando de família de instância.",
         "Correto. As classes de instância RDS/Aurora baseadas em AWS Graviton (db.*6g) oferecem até ~20% de melhor relação preço-desempenho em comparação às classes equivalentes baseadas em Intel (m5/r5), para as mesmas engines (PostgreSQL, MySQL, MariaDB, Aurora), sem exigir alterações na versão da engine, no código da aplicação ou nos drivers de conexão para workloads padrão — uma simples modificação de classe de instância em uma janela de manutenção.",
-        "Incorreto. O Aurora Serverless v2 é mais econômico para workloads VARIÁVEIS ou intermitentes, mas para workloads ESTÁVEIS e continuamente utilizadas (como sugerido pelo uso de m5/r5), instâncias provisionadas com desconto podem ser mais econômicas do que o custo por ACU do Serverless v2. Afirmar que é 'sempre' mais econômico é uma generalização incorreta, e essa opção não atende diretamente ao pedido de mudar para uma família de instâncias com melhor preço-desempenho.",
-        "Incorreto. Ajustar queries lentas PODE reduzir o consumo de recursos, mas é uma otimização no nível de aplicação/query com economia incerta e dependente da carga de trabalho — não corresponde diretamente ao pedido de 'mudar para uma família de instâncias com melhor preço-desempenho', que é uma mudança de infraestrutura direta (Graviton). É uma otimização válida, porém complementar e de natureza diferente.",
-        "Incorreto. As Reserved Instances oferecem desconto na fatura, mas não alteram a relação PREÇO-DESEMPENHO da própria família de instância. O cenário pede especificamente uma mudança para uma família com melhor preço-desempenho (Graviton), o que é uma otimização complementar (e combinável) às Reserved Instances, mas aborda uma alavanca de custo diferente."
+        "Aurora Serverless v2 é para carga VARIÁVEL — 'sempre mais econômico' é falso para instâncias de uso constante.",
+        "É a mais próxima porque Reserved Instances das m5/r5 realmente cortam o custo — mas por COMPROMISSO de preço na MESMA família Intel: não é a família de melhor relação preço-desempenho pedida; migrar para Graviton (m6g/r6g), com a mesma engine e drivers padrão, entrega o ganho estrutural."
       ],
       "topics": [
         "databases",
@@ -4774,9 +4774,9 @@
       "hint": "Pense em uma combinação de uma ferramenta de identificação de recursos subutilizados com uma ferramenta de automação de ciclo de vida de snapshots baseada em política.",
       "optionRationales": [
         "Correto. Combinar o Trusted Advisor (identificação de volumes não anexados) com o Amazon Data Lifecycle Manager (políticas automatizadas de retenção e exclusão de snapshots) endereça tanto o acúmulo EXISTENTE (via revisão contra uma política de retenção definida antes da exclusão) quanto previne o acúmulo FUTURO (via exclusão automática baseada em retenção) — uma abordagem sistemática e orientada por política, em vez de exclusão ad-hoc.",
-        "Incorreto. Excluir indiscriminadamente com base apenas em idade/status de anexação, SEM primeiro estabelecer qual retenção é realmente necessária (por exemplo, requisitos de compliance podem exigir manter certos snapshots por anos), arrisca a EXCLUSÃO PERMANENTE de recursos ainda necessários para recuperação — exatamente o risco que o cenário pede para evitar. Uma revisão orientada por política deve ocorrer primeiro.",
-        "Incorreto. Snapshots do EBS não são objetos S3 padrão que o cliente possa 'mover' diretamente entre classes de armazenamento S3 via políticas de ciclo de vida — eles são armazenados de forma incremental em um sistema gerenciado pela AWS, sem acesso direto do cliente para transição de classe de armazenamento. Essa operação não está disponível.",
-        "Incorreto. Embora um snapshot de um volume geralmente seja mais barato de armazenar do que o próprio volume (snapshots são incrementais e comprimidos), simplesmente converter volumes em snapshots sem antes determinar se os dados são NECESSÁRIOS não resolve a questão central de 'quais são candidatos à limpeza' — e não estabelece a política de retenção sistemática necessária para evitar que o mesmo problema de acúmulo se repita, agora com snapshots em vez de volumes."
+        "É a mais próxima porque excluir snapshots antigos e volumes não anexados de fato reduz o custo — mas fazê-lo às cegas por script (tudo >30 dias) arrisca apagar recuperação ainda necessária, o que o requisito veta; o correto é IDENTIFICAR candidatos (Trusted Advisor) e gerir retenção por política (DLM/AWS Backup), revisando antes de excluir.",
+        "Não se 'move snapshot EBS para o Glacier Deep Archive' — snapshots têm seu próprio armazenamento; a premissa é falsa.",
+        "Converter volumes em snapshots reduz um pouco o custo, mas não é a abordagem sistemática de identificar e reter o necessário."
       ],
       "topics": [
         "s3-storage",
@@ -4798,10 +4798,10 @@
       "explanation": "Correto. O AWS Lambda Power Tuning automatiza o teste da função em uma faixa de configurações de memória, executando-a múltiplas vezes em cada configuração e produzindo uma curva de trade-off custo x duração, identificando a configuração de memória que minimiza o custo (ou otimiza para velocidade ou um equilíbrio) — automatizando exatamente o teste manual e trabalhoso descrito no cenário.",
       "hint": "Pense em uma ferramenta que testa empiricamente várias configurações de memória e mapeia a curva de custo versus duração, em vez de basear-se apenas em histórico ou suposições.",
       "optionRationales": [
-        "Correto. O AWS Lambda Power Tuning automatiza o teste da função em uma faixa de configurações de memória, executando-a múltiplas vezes em cada configuração e produzindo uma curva de trade-off custo x duração, identificando a configuração de memória que minimiza o custo (ou otimiza para velocidade ou um equilíbrio) — automatizando exatamente o teste manual e trabalhoso descrito no cenário.",
-        "Incorreto. O Compute Optimizer fornece recomendações de memória para o Lambda com base em métricas históricas de utilização do CloudWatch (uma ferramenta válida e complementar), mas ele analisa o histórico de invocações PASSADAS para sugerir UMA recomendação, em vez de testar empiricamente uma FAIXA de configurações para mapear toda a curva de trade-off custo/duração, como faz o Lambda Power Tuning — para explorar todo o espaço de configurações, o Power Tuning é a abordagem mais direta para este cenário.",
-        "Incorreto. Maximizar a memória maximiza a alocação de CPU e provavelmente minimiza a DURAÇÃO, mas o CUSTO é duração × memória (GB-segundos) — uma função que executa duas vezes mais rápido com 4x mais memória pode, na verdade, custar aproximadamente o DOBRO, não menos. 'Execução mais rápida' não equivale a 'menor custo'; a relação é específica de cada workload e deve ser determinada empiricamente, não assumida ao maximizar a memória.",
-        "Incorreto. O Provisioned Concurrency resolve a latência de COLD START mantendo ambientes de execução pré-inicializados, mas não altera a relação entre ALOCAÇÃO DE MEMÓRIA e DURAÇÃO/CUSTO DE EXECUÇÃO do processamento da função — é uma preocupação ortogonal (cold starts) à otimização memória-vs-custo descrita no cenário, e adiciona seu próprio custo extra."
+        "É a mais próxima porque o Compute Optimizer TEM recomendações de memória para Lambda de fato — mas dá um valor sugerido a partir do histórico, sem EXECUTAR a função em várias configurações e gerar a curva custo×duração para escolher o ótimo desta função; esse teste automatizado com visualização é o Lambda Power Tuning.",
+        "Memória no máximo (10.240 MB) nem sempre minimiza o custo — pode ficar mais caro se a duração não cair o bastante.",
+        "Provisioned Concurrency trata cold start — não descobre a configuração de memória de menor custo.",
+        "Correto. O AWS Lambda Power Tuning automatiza o teste da função em uma faixa de configurações de memória, executando-a múltiplas vezes em cada configuração e produzindo uma curva de trade-off custo x duração, identificando a configuração de memória que minimiza o custo (ou otimiza para velocidade ou um equilíbrio) — automatizando exatamente o teste manual e trabalhoso descrito no cenário."
       ],
       "topics": [
         "serverless",
@@ -4824,9 +4824,9 @@
       "hint": "Pense em uma funcionalidade do S3 projetada especificamente para observar e relatar a relação entre idade dos objetos e frequência de acesso, antes de definir transições de ciclo de vida.",
       "optionRationales": [
         "Correto. O S3 Storage Class Analysis observa os padrões de acesso ao longo de um período (normalmente 30+ dias) e fornece relatórios/visualizações mostrando em que ponto os objetos deste bucket específico passam de 'frequentemente acessados' para 'raramente acessados', fornecendo a base orientada por dados para definir regras de ciclo de vida com prazos apropriados, em vez de adivinhação.",
-        "Incorreto. Os logs de acesso do S3 contêm dados em nível de requisição que PODERIAM ser analisados, mas isso exige esforço manual significativo (habilitar logging, esperar acúmulo de dados, desenvolver queries/views no Athena para correlacionar idade do objeto com frequência de acesso em milhões de objetos). O S3 Storage Class Analysis fornece essa análise específica de idade-vs-frequência como um relatório nativo e pronto, sem necessidade de desenvolvimento de queries customizadas.",
-        "Incorreto. O Intelligent-Tiering é uma alternativa válida que evita a necessidade de analisar padrões previamente (ele se adapta automaticamente), mas o cenário pede especificamente uma ferramenta para coletar EVIDÊNCIAS antes de definir regras de CICLO DE VIDA (implicando que a equipe deseja transições tradicionais, possivelmente por razões arquiteturais específicas). O Storage Class Analysis é a ferramenta projetada para INFORMAR decisões de regras de ciclo de vida, que é o que está sendo solicitado.",
-        "Incorreto. O Cost Explorer mostra tendências de CUSTO por classe de armazenamento (útil para acompanhar o IMPACTO de mudanças já realizadas), mas não mostra dados de padrão de acesso em nível de OBJETO (quais objetos/prefixos/idades são acessados com que frequência) necessários para determinar os limiares apropriados de transição de ciclo de vida antes de fazer mudanças — é uma ferramenta de relatório de custo, não de análise de padrão de acesso."
+        "Habilitar o Intelligent-Tiering age automaticamente — mas o requisito é obter EVIDÊNCIA antes de definir regras de lifecycle, não delegar a decisão.",
+        "Cost Explorer mostra CUSTO por classe ao longo do tempo — não a correlação entre idade do objeto e frequência de acesso.",
+        "É a mais próxima porque Server Access Logging + Athena TAMBÉM revela padrões de acesso reais — mas exige montar e manter logging, consultas e análise à mão para relacionar idade×frequência; a ferramenta nativa que observa o acesso ao longo do tempo e já entrega esse relatório é o S3 Storage Class Analysis."
       ],
       "topics": [
         "s3-storage",
@@ -4847,10 +4847,10 @@
       "explanation": "Correto. As listener rules do ALB suportam roteamento para diferentes target groups com base em padrões de caminho (path patterns), cabeçalho Host, headers, etc., permitindo que MÚLTIPLOS microsserviços compartilhem um ÚNICO ALB (e sua cobrança por hora), cada um com seu próprio target group e health checks independentes — reduzindo significativamente o número de ALBs necessários e os custos associados, mantendo o roteamento por caminho/host exigido.",
       "hint": "Pense em um recurso de roteamento de Camada 7 que permite a um único load balancer direcionar requisições para diferentes target groups com base no conteúdo da requisição.",
       "optionRationales": [
+        "NLB opera em camada 4 (TCP) — não roteia por caminho/host de requisição HTTP, que é o requisito.",
         "Correto. As listener rules do ALB suportam roteamento para diferentes target groups com base em padrões de caminho (path patterns), cabeçalho Host, headers, etc., permitindo que MÚLTIPLOS microsserviços compartilhem um ÚNICO ALB (e sua cobrança por hora), cada um com seu próprio target group e health checks independentes — reduzindo significativamente o número de ALBs necessários e os custos associados, mantendo o roteamento por caminho/host exigido.",
-        "Incorreto. O Network Load Balancer opera na Camada 4 (TCP/UDP) e NÃO suporta regras de roteamento baseadas em caminho ou host (Camada 7/HTTP) para direcionar tráfego a diferentes target groups com base na URL ou no cabeçalho Host. Isso não permitiria rotear diferentes microsserviços com base em caminho/host conforme exigido; o ALB (Camada 7) é o tipo apropriado para esse requisito de roteamento.",
-        "Incorreto. O roteamento ponderado distribui tráfego PROPORCIONALMENTE entre múltiplos endpoints (ex.: para implantações canário ou distribuição de carga entre backends IDÊNTICOS), mas não REDUZ o número de ALBs (todos os 10 continuariam existindo e gerando cobranças) — e não é projetado para ROTEAR REQUISIÇÕES DIFERENTES para SERVIÇOS DIFERENTES com base em caminho/host (isso é roteamento baseado em conteúdo, não distribuição ponderada).",
-        "Incorreto. Embora o CloudFront possa rotear para diferentes origens com base em padrões de caminho (cache behaviors), isso ainda exigiria que todos os 10 ALBs EXISTISSEM e continuassem gerando suas cobranças por hora como origens do CloudFront — adiciona uma camada de CDN sem reduzir o número/custo de ALBs subjacentes, que é o objetivo declarado; consolidar em um único ALB com listener rules reduz diretamente o número de ALBs."
+        "Route 53 weighted distribui entre os ALBs — mantém os 10 e não roteia por caminho/host da requisição.",
+        "É a mais próxima porque o CloudFront TAMBÉM roteia por padrão de caminho — mas ele encaminharia para os 10 ALBs de origem, que CONTINUAM existindo e cobrando por hora; o objetivo é REDUZIR o número de load balancers, e isso é consolidar tudo atrás de UM ALB com listener rules por caminho/host."
       ],
       "topics": [
         "high-availability"
@@ -4870,10 +4870,10 @@
       "explanation": "Correto. O EFS Lifecycle Management move automaticamente arquivos que não foram acessados durante o período configurado para a classe EFS-IA, de custo mais baixo, enquanto os arquivos permanecem no MESMO namespace/interface do sistema de arquivos (acessíveis de forma transparente, com uma taxa de acesso por GB para arquivos em IA, mas sem um processo de 'restore' separado como o Glacier) — atendendo exatamente ao padrão de acesso descrito sem gerenciamento manual de arquivos.",
       "hint": "Pense em um recurso do EFS que move automaticamente arquivos para uma classe de armazenamento mais barata com base no histórico de acesso, mantendo-os no mesmo namespace.",
       "optionRationales": [
+        "É a mais próxima porque um segundo EFS para arquivos frios também reduziria custo — mas exige que a aplicação DECIDA e MOVA arquivos manualmente entre os dois sistemas, e eles ficam em interfaces separadas; transicionar por acesso, sem mover à mão e na MESMA interface, é o EFS Lifecycle Management para EFS-IA.",
+        "Mover para Glacier via FUSE quebra a interface única do EFS e adiciona um processo de recuperação separado.",
         "Correto. O EFS Lifecycle Management move automaticamente arquivos que não foram acessados durante o período configurado para a classe EFS-IA, de custo mais baixo, enquanto os arquivos permanecem no MESMO namespace/interface do sistema de arquivos (acessíveis de forma transparente, com uma taxa de acesso por GB para arquivos em IA, mas sem um processo de 'restore' separado como o Glacier) — atendendo exatamente ao padrão de acesso descrito sem gerenciamento manual de arquivos.",
-        "Incorreto. Isso exigiria identificar e migrar arquivos individuais PARA FORA do EFS para o S3 (um processo de migração manual/customizado), e o S3 Glacier exige um processo explícito de RESTORE antes que os arquivos fiquem acessíveis (latência de horas) — contradizendo o requisito de que arquivos raramente acessados permaneçam disponíveis pela MESMA interface, sem processo de recuperação separado; o EFS-IA mantém os arquivos no namespace do EFS com acesso padrão (apenas levemente mais lento).",
-        "Incorreto. O modo Max I/O é uma configuração de PERFORMANCE (otimizada para níveis mais altos de throughput/IOPS agregados, com latência por operação levemente maior), não uma otimização de CUSTO DE ARMAZENAMENTO — não move dados para uma camada de armazenamento mais barata e não está relacionado ao objetivo de redução de custo baseado em padrão de acesso descrito.",
-        "Incorreto. Isso exigiria que a APLICAÇÃO fosse modificada para determinar, NO MOMENTO DA GRAVAÇÃO, qual sistema de arquivos usar com base em uma frequência de acesso PREVISTA (o que o cenário sugere não ser conhecido de forma confiável antecipadamente, já que o padrão de acesso emerge ao longo do tempo). O EFS Lifecycle Management trata essa transição automaticamente com base no acesso OBSERVADO ao longo do tempo, sem exigir que a aplicação preveja padrões de acesso no momento da gravação."
+        "Max I/O muda o modo de PERFORMANCE — não reduz o custo de armazenamento dos arquivos raramente acessados."
       ],
       "topics": [
         "s3-storage",
@@ -4894,10 +4894,10 @@
       "explanation": "Correto. Esse redesenho elimina a necessidade de instâncias EC2 em execução contínua dedicadas ao polling; o AWS Lambda é invocado (e cobrado) apenas quando há de fato um item para processar, eliminando custos de computação durante períodos ociosos entre chegadas esporádicas de itens — atendendo diretamente ao objetivo de 'pagar apenas quando há trabalho'.",
       "hint": "Pense em uma arquitetura na qual o processamento só é invocado (e cobrado) quando um evento real ocorre, eliminando completamente a computação ociosa entre eventos.",
       "optionRationales": [
+        "É a mais próxima porque reduzir a frota para 1 instância corta parte do custo — mas essa instância CONTINUA em polling contínuo 24/7, gastando computação nas horas sem nada para processar; eliminar o custo do polling é ir para arquitetura ORIENTADA A EVENTOS (SQS/Streams/S3 events → Lambda), que só roda quando chega item.",
         "Correto. Esse redesenho elimina a necessidade de instâncias EC2 em execução contínua dedicadas ao polling; o AWS Lambda é invocado (e cobrado) apenas quando há de fato um item para processar, eliminando custos de computação durante períodos ociosos entre chegadas esporádicas de itens — atendendo diretamente ao objetivo de 'pagar apenas quando há trabalho'.",
-        "Incorreto. Usar tipos de instância menores reduz o custo POR HORA, mas não elimina o problema fundamental de pagar por TEMPO DE COMPUTAÇÃO durante longos períodos ociosos sem nada para processar — é uma redução incremental de custo, não a eliminação do custo de computação ociosa que uma arquitetura orientada a eventos alcança.",
-        "Incorreto. Reduzir para um MÍNIMO DE 1 instância ainda significa que pelo menos uma instância permanece em execução 24 horas por dia (continuando a gerar custo) para realizar o polling — reduz o custo SOMENTE em relação a executar várias instâncias, mas não elimina o custo de computação de polling contínuo, diferentemente de uma arquitetura totalmente orientada a eventos, onde não há computação em execução entre chegadas esporádicas de itens.",
-        "Incorreto. Mover a lógica de polling para DENTRO do banco de dados (via job agendado) não elimina o consumo contínuo de recursos — apenas transfere ONDE o polling contínuo ocorre (de EC2 para o motor do banco de dados), e instâncias RDS também geram cobranças contínuas de computação; não atinge o modelo orientado a eventos, com pagamento apenas durante o processamento, que SQS+Lambda oferece."
+        "pg_cron no RDS apenas MOVE o polling para o banco — o polling contínuo (e seu custo) permanece.",
+        "Instâncias menores baratas seguem rodando polling 24/7 — reduz um pouco, mas não elimina o custo ocioso."
       ],
       "topics": [
         "serverless",
@@ -4919,10 +4919,10 @@
       "explanation": "Correto. O Capacity Rebalancing utiliza o sinal de 'rebalance recommendation' do EC2 Spot — emitido quando a AWS detecta que a instância está em risco elevado de interrupção, geralmente bem antes do aviso de 2 minutos — para lançar proativamente uma instância de substituição, podendo o ASG iniciar o dreno/desregistro da instância em risco assim que a substituição estiver saudável. Isso fornece mais tempo de antecedência do que o aviso de 2 minutos isoladamente, mantendo o custo reduzido do Spot.",
       "hint": "Pense em um recurso do Auto Scaling que reage a um sinal de risco de interrupção emitido pelo EC2 ANTES do aviso formal de 2 minutos.",
       "optionRationales": [
-        "Correto. O Capacity Rebalancing utiliza o sinal de 'rebalance recommendation' do EC2 Spot — emitido quando a AWS detecta que a instância está em risco elevado de interrupção, geralmente bem antes do aviso de 2 minutos — para lançar proativamente uma instância de substituição, podendo o ASG iniciar o dreno/desregistro da instância em risco assim que a substituição estiver saudável. Isso fornece mais tempo de antecedência do que o aviso de 2 minutos isoladamente, mantendo o custo reduzido do Spot.",
-        "Incorreto. Isso elimina o risco de interrupção, mas também elimina o desconto do Spot (até 90% de economia), contradizendo diretamente o objetivo de 'manter o uso de Spot para economia de custos' — resolve o problema de confiabilidade abandonando a otimização de custo que motivou a escolha do Spot.",
-        "Incorreto. Aumentar o grace period dá mais tempo para uma NOVA instância (lançada APÓS a interrupção) passar pelos health checks, mas não resolve a questão central: a equipe quer ser notificada e iniciar a substituição ANTES/MAIS CEDO do que o aviso padrão de 2 minutos — não fornece um sinal mais antecipado, apenas mais paciência depois que uma substituição já está sendo lançada.",
-        "Incorreto. Essa é uma abordagem manual e operacionalmente pesada que duplica a infraestrutura (mantendo pools Spot E On-Demand simultaneamente) — não fornece a substituição proativa e automatizada baseada em aviso antecipado que o Capacity Rebalancing oferece nativamente, e manter um pool On-Demand standby continuamente adiciona custo."
+        "É a mais próxima porque o grace period dá 'mais tempo' — mas para a SAÚDE de instâncias recém-lançadas, não para antecipar a interrupção do Spot: ele não age antes do aviso de 2 minutos; substituir proativamente ao sinal de rebalance recommendation é o Capacity Rebalancing.",
+        "Migrar tudo para On-Demand elimina o Spot — perde a economia que o requisito manda manter.",
+        "Um pool On-Demand com troca manual é operacionalmente pesado e reativo — não é a substituição proativa automática pedida.",
+        "Correto. O Capacity Rebalancing utiliza o sinal de 'rebalance recommendation' do EC2 Spot — emitido quando a AWS detecta que a instância está em risco elevado de interrupção, geralmente bem antes do aviso de 2 minutos — para lançar proativamente uma instância de substituição, podendo o ASG iniciar o dreno/desregistro da instância em risco assim que a substituição estiver saudável. Isso fornece mais tempo de antecedência do que o aviso de 2 minutos isoladamente, mantendo o custo reduzido do Spot."
       ],
       "topics": [
         "ec2-compute",
@@ -4945,9 +4945,9 @@
       "hint": "Pense em para qual cenário geográfico o Transfer Acceleration foi projetado para trazer benefício de velocidade, e o que acontece quando clientes já estão na mesma região do bucket.",
       "optionRationales": [
         "Correto. O Transfer Acceleration funciona roteando uploads através de localizações de borda do CloudFront para alcançar o ponto de presença AWS mais próximo, o que traz benefícios de velocidade principalmente para clientes GEOGRAFICAMENTE DISTANTES da região do bucket. Para clientes já na MESMA região do bucket, esse roteamento por borda não traz benefício de velocidade relevante (o caminho direto já é ótimo), mas AINDA GERA a taxa por GB do Transfer Acceleration sobre a transferência de dados normal — desabilitá-lo para clientes da mesma região elimina essa taxa desnecessária sem qualquer perda de desempenho.",
-        "Incorreto. O Multipart Upload É uma boa prática válida para objetos grandes (melhora throughput e resiliência a erros de rede via upload paralelo de partes) e não tem a taxa do Transfer Acceleration, mas aborda uma otimização DIFERENTE (paralelização de uploads de objetos grandes) da questão descrita (pagar pelo benefício de roteamento por borda do Transfer Acceleration que clientes da mesma região não precisam) — a correção direta para o custo descrito é desabilitar o Transfer Acceleration, independentemente de também usar Multipart Upload.",
-        "Incorreto. O S3 One Zone-IA reduz o custo de ARMAZENAMENTO (com trade-off de durabilidade), mas não resolve a taxa desnecessária do TRANSFER ACCELERATION sendo cobrada para transferências que não obtêm benefício de velocidade — misturar uma mudança de classe de armazenamento para 'compensar' uma taxa de transferência evitável e não relacionada não resolve a causa raiz.",
-        "Incorreto. Essa afirmação é factualmente incorreta — o Transfer Acceleration não é 'obrigatório' para Direct Connect; são mecanismos independentes. Além disso, trocar de Direct Connect para VPN geralmente REDUZIRIA o desempenho/confiabilidade da rede sem resolver o problema real (uma taxa desnecessária de Transfer Acceleration para transferências dentro da mesma região)."
+        "É a mais próxima porque mexer no bucket para conter custo parece razoável — mas mudar a classe de armazenamento não corrige a CAUSA: o Transfer Acceleration cobra sem beneficiar clientes da MESMA região (a aceleração via edge só ajuda quem está longe); a correção é DESABILITAR o Transfer Acceleration nesse caso.",
+        "O Transfer Acceleration não é obrigatório para Direct Connect — trocar DX por VPN é retrocesso sem relação com o custo.",
+        "Multipart Upload é ortogonal ao Transfer Acceleration — não corrige a cobrança extra de aceleração intra-região."
       ],
       "topics": [
         "s3-storage",
@@ -4969,10 +4969,10 @@
       "explanation": "Correto. O nível de cold storage do AWS Backup oferece custo de armazenamento por GB significativamente menor que o armazenamento padrão (quente), enquanto ainda atende ao tempo de recuperação de várias horas considerado aceitável para os backups mais antigos raramente necessários — e o AWS Backup impõe um período mínimo de 90 dias em cold storage antes da exclusão. Isso alinha diretamente o custo de armazenamento ao objetivo real de tempo de recuperação dos backups antigos, mantendo o requisito regulatório de retenção de 7 anos.",
       "hint": "Pense em um recurso nativo do AWS Backup que move pontos de recuperação mais antigos para um nível de armazenamento mais barato sem removê-los do catálogo de backups.",
       "optionRationales": [
-        "Correto. O nível de cold storage do AWS Backup oferece custo de armazenamento por GB significativamente menor que o armazenamento padrão (quente), enquanto ainda atende ao tempo de recuperação de várias horas considerado aceitável para os backups mais antigos raramente necessários — e o AWS Backup impõe um período mínimo de 90 dias em cold storage antes da exclusão. Isso alinha diretamente o custo de armazenamento ao objetivo real de tempo de recuperação dos backups antigos, mantendo o requisito regulatório de retenção de 7 anos.",
-        "Incorreto. Reduzir a retenção abaixo da exigência regulatória (7 anos) criaria uma VIOLAÇÃO DE COMPLIANCE; o cenário afirma explicitamente que a retenção de 7 anos é uma exigência regulatória e não pode simplesmente ser reduzida para diminuir custos.",
-        "Incorreto. Isso exigiria construir e manter um processo CUSTOMIZADO de exportação/migração fora do gerenciamento de ciclo de vida nativo do AWS Backup, E removeria esses backups do catálogo unificado de pontos de recuperação/fluxo de restauração do AWS Backup — a transição nativa para cold storage do AWS Backup atinge a redução de custo sem ferramentas customizadas e sem perder a interface unificada de gerenciamento de backups.",
-        "Incorreto. Alterar a FREQUÊNCIA de backup para dados ANTIGOS não faz sentido (os backups já existem; não é possível reduzir retroativamente a frequência de backups passados), e reduzir a frequência futura não resolve o CUSTO DO NÍVEL DE ARMAZENAMENTO dos backups já acumulados, que é o fator de custo descrito — é uma alavanca diferente (e parcialmente incoerente) da que está sendo solicitada."
+        "Backups semanais após 90 dias reduzem pontos de recuperação — mas alteram a granularidade de recuperação exigida no compliance.",
+        "Reduzir a retenção para 90 dias viola a exigência regulatória de 7 anos.",
+        "É a mais próxima porque copiar os backups antigos para o Glacier Deep Archive baratearia o armazenamento — mas exige SCRIPT customizado, tira os pontos de recuperação da gestão do AWS Backup e complica a restauração/compliance; o nativo é a lifecycle do plano transicionando para o cold storage após 90 dias, mantendo a retenção de 7 anos.",
+        "Correto. O nível de cold storage do AWS Backup oferece custo de armazenamento por GB significativamente menor que o armazenamento padrão (quente), enquanto ainda atende ao tempo de recuperação de várias horas considerado aceitável para os backups mais antigos raramente necessários — e o AWS Backup impõe um período mínimo de 90 dias em cold storage antes da exclusão. Isso alinha diretamente o custo de armazenamento ao objetivo real de tempo de recuperação dos backups antigos, mantendo o requisito regulatório de retenção de 7 anos."
       ],
       "topics": [
         "s3-storage",
@@ -4995,9 +4995,9 @@
       "hint": "Pense em qual configuração do RDS dobra aproximadamente o custo da instância para fornecer um nível de disponibilidade que ambientes não-produtivos podem não precisar.",
       "optionRationales": [
         "Correto. Implantações Multi-AZ aproximadamente dobram o custo da instância RDS (executando e replicando sincronamente para um standby em uma segunda AZ) para fornecer failover automático para requisitos de ALTA DISPONIBILIDADE; como staging e desenvolvimento explicitamente não exigem o mesmo SLA de disponibilidade da produção (indisponibilidade breve é aceitável), desabilitar o Multi-AZ nesses ambientes não-produtivos remove o custo da instância standby, enquanto a produção mantém sua proteção Multi-AZ — alinhando diretamente a configuração de infraestrutura ao requisito real de disponibilidade de cada ambiente.",
-        "Incorreto. O Aurora Serverless v2 SUPORTA Multi-AZ, mas isso introduz uma MIGRAÇÃO DE ENGINE de banco de dados (de RDS for MySQL para Aurora MySQL) como mecanismo de redução de custo, o que é uma mudança muito maior (testes de compatibilidade, esforço de migração) do que simplesmente desabilitar o Multi-AZ na engine existente — e MANTÉM o Multi-AZ (o fator de custo identificado) em vez de removê-lo para ambientes que não precisam dele.",
-        "Incorreto. As Reserved Instances oferecem um desconto na fatura sobre a configuração de instância contratada, mas não eliminam a duplicação fundamental de recursos que o Multi-AZ exige (a reserva cobriria tanto a instância primária QUANTO a standby, com desconto, mas ainda pagando por duas instâncias) — reduz o custo parcialmente, mas não resolve a ineficiência raiz de manter réplicas standby desnecessárias para ambientes que não precisam de alta disponibilidade.",
-        "Incorreto. Parar as instâncias fora do horário comercial REDUZ algum custo (sem cobrança de computação enquanto paradas), mas instâncias RDS Multi-AZ continuam incorrendo no custo duplicado (primária + standby) durante as horas em que ESTÃO em execução, que é justamente quando o custo desnecessário de alta disponibilidade ocorre — é uma otimização complementar (reduzir horas de execução), mas não resolve o descompasso de configuração Multi-AZ em si."
+        "É a mais próxima porque parar staging/dev fora do horário também corta custo de fato — mas ENQUANTO rodam eles seguem em Multi-AZ (pagando a standby síncrona que não precisam); como uma indisponibilidade breve é aceitável nesses ambientes, o corte direto é DESABILITAR o Multi-AZ deles (podendo somar com o stop fora do horário).",
+        "Reserved Instances descontam a taxa — mas continuam pagando a instância Multi-AZ desnecessária nesses ambientes.",
+        "Migrar staging/dev para Aurora Serverless v2 mantendo Multi-AZ é reengenharia — não é a redução simples pedida."
       ],
       "topics": [
         "databases",
@@ -5019,10 +5019,10 @@
       "explanation": "Correto. Usar as métricas reais de ConsumedCapacity fornece a base orientada por dados para dimensionar corretamente a capacidade provisionada sem adivinhação, evitando diretamente tanto o superprovisionamento (custo desperdiçado) quanto o subprovisionamento (throttling) — e habilitar o Auto Scaling daqui para frente ajusta automaticamente a capacidade dentro de limites definidos com base no tráfego real.",
       "hint": "Pense em quais métricas do CloudWatch revelam o consumo REAL de capacidade de uma tabela DynamoDB, permitindo comparar com o que está provisionado antes de qualquer mudança.",
       "optionRationales": [
-        "Correto. Usar as métricas reais de ConsumedCapacity fornece a base orientada por dados para dimensionar corretamente a capacidade provisionada sem adivinhação, evitando diretamente tanto o superprovisionamento (custo desperdiçado) quanto o subprovisionamento (throttling) — e habilitar o Auto Scaling daqui para frente ajusta automaticamente a capacidade dentro de limites definidos com base no tráfego real.",
-        "Incorreto. O modo On-Demand É uma alternativa válida que remove a necessidade de gerenciar capacidade provisionada, mas para uma tabela com tráfego ESTÁVEL e PREVISÍVEL (o que a análise das métricas de Consumed revelaria), a capacidade Provisionada (especialmente com Reserved Capacity ou Auto Scaling) costuma ser SIGNIFICATIVAMENTE MAIS BARATA por requisição do que o On-Demand — mudar para On-Demand sem primeiro analisar o padrão de consumo (o cenário pede 'confirmar com dados antes') ignora a etapa de análise e pode não ser a escolha mais econômica para workloads estáveis.",
-        "Incorreto. Reduzir a capacidade PRIMEIRO e monitorar o throttling DEPOIS é uma abordagem reativa e arriscada que pode causar throttling/erros em produção para usuários finais antes que a equipe perceba e corrija — o cenário pede explicitamente 'confirmar com dados ANTES de reduzir', ou seja, a análise deve preceder a mudança de capacidade, não seguir.",
-        "Incorreto. O DAX é uma camada de cache em memória que pode reduzir a carga de LEITURA que chega à tabela DynamoDB para workloads de leitura intensa com itens acessados repetidamente, mas ADICIONA seu próprio custo de infraestrutura (nós do cluster DAX) e não responde diretamente à pergunta de se os valores ATUAIS de RCU/WCU provisionados já estão superprovisionados em relação à demanda real — é uma otimização diferente (cache), não o dimensionamento correto da capacidade provisionada com base em dados de consumo."
+        "É a mais próxima porque reduzir a capacidade é o objetivo final — mas cortar 50% às cegas é justamente o oposto de 'confirmar com DADOS antes': arrisca throttling se o pico real exceder o novo valor; o correto é analisar o consumo no CloudWatch e ajustar ao pico observado (com margem) e/ou Auto Scaling.",
+        "DAX reduz leitura repetida — não confirma superprovisionamento nem ajusta a capacidade de escrita.",
+        "Mudar para On-Demand troca o modelo de cobrança sem CONFIRMAR o dimensionamento — e pode até custar mais para uso constante.",
+        "Correto. Usar as métricas reais de ConsumedCapacity fornece a base orientada por dados para dimensionar corretamente a capacidade provisionada sem adivinhação, evitando diretamente tanto o superprovisionamento (custo desperdiçado) quanto o subprovisionamento (throttling) — e habilitar o Auto Scaling daqui para frente ajusta automaticamente a capacidade dentro de limites definidos com base no tráfego real."
       ],
       "topics": [
         "databases",
@@ -5044,10 +5044,10 @@
       "explanation": "Correto. O Direct Connect fornece uma conexão de rede dedicada com taxas de transferência de dados SAÍDA significativamente MENORES por GB do que as taxas padrão de transferência via internet, além de fornecer throughput de rede mais consistente e menor latência do que uma VPN baseada em internet — para um padrão de transferência híbrida ESTÁVEL e de ALTO VOLUME (50 TB/mês), o preço reduzido de saída via Direct Connect tipicamente gera economia substancial em comparação com a saída via internet, além da melhoria de confiabilidade/throughput.",
       "hint": "Pense em qual tipo de conexão dedicada entre on-premises e AWS é projetado para reduzir o custo por GB de transferências de saída recorrentes e de alto volume.",
       "optionRationales": [
+        "É a mais próxima porque o Transfer Acceleration acelera transferências com o S3 de fato — mas por rota de edge para uploads de clientes DISTANTES, e ADICIONA custo por GB; não reduz o custo de egress nem dá banda dedicada confiável para a transferência híbrida consistente de 50 TB/mês; conexão dedicada de baixo custo por GB é o Direct Connect.",
         "Correto. O Direct Connect fornece uma conexão de rede dedicada com taxas de transferência de dados SAÍDA significativamente MENORES por GB do que as taxas padrão de transferência via internet, além de fornecer throughput de rede mais consistente e menor latência do que uma VPN baseada em internet — para um padrão de transferência híbrida ESTÁVEL e de ALTO VOLUME (50 TB/mês), o preço reduzido de saída via Direct Connect tipicamente gera economia substancial em comparação com a saída via internet, além da melhoria de confiabilidade/throughput.",
-        "Incorreto. O Transfer Acceleration otimiza a velocidade de UPLOAD para o S3 via localizações de borda do CloudFront (para dados entrando na AWS), mas a preocupação de custo do cenário é sobre transferência de dados SAÍDA da AWS para on-premises — o Transfer Acceleration não se aplica nem reduz custos de transferência de saída (egress), e ainda adiciona sua própria taxa para as transferências de entrada que acelera.",
-        "Incorreto. A preocupação de custo descrita é sobre custos de TRANSFERÊNCIA DE DADOS (egress) para um fluxo recorrente de 50 TB/mês, não sobre o custo de ARMAZENAMENTO de dados no S3 — mover os dados para o Glacier primeiro adicionaria tempo/taxas de recuperação antes mesmo que a transferência pudesse ocorrer, e não aborda em nada o preço de transferência de saída por GB.",
-        "Incorreto. O Snowball é projetado para transferências em massa ÚNICAS ou INFREQUENTES (ex.: migrações iniciais), nas quais o volume de dados torna a transferência via rede impraticável; usá-lo em uma base MENSAL RECORRENTE para o fluxo operacional contínuo introduz uma sobrecarga operacional significativa (logística de dispositivos, manuseio) em comparação com um link Direct Connect persistente, que é projetado exatamente para conectividade híbrida sustentada e recorrente com menor custo por GB."
+        "Snowball é para migração pontual/offline — operar carrinhos físicos mensalmente para 50 TB recorrentes é inviável e lento.",
+        "Glacier Deep Archive é classe de armazenamento frio — não tem relação com o custo/throughput da conectividade híbrida."
       ],
       "topics": [
         "s3-storage",
@@ -5069,10 +5069,10 @@
       "explanation": "Correto. O S3 Batch Operations foi projetado especificamente para executar uma operação especificada (incluindo transições de classe de armazenamento) em uma lista grande e definida de objetos EXISTENTES, em um único job rastreável (com relatórios de conclusão), fornecendo um mecanismo controlado e auditável para transicionar retroativamente objetos existentes — separado de (e complementar a) regras de Lifecycle contínuas que tratam objetos NOVOS a partir de agora.",
       "hint": "Pense em qual recurso do S3 foi projetado para executar uma operação em massa, rastreável e com relatório de conclusão, sobre uma lista de objetos já existentes.",
       "optionRationales": [
+        "`aws s3 cp --recursive` copiando cada objeto sobre si é frágil em 200 milhões de itens — sem rastreio de job, retomada ou relatório.",
         "Correto. O S3 Batch Operations foi projetado especificamente para executar uma operação especificada (incluindo transições de classe de armazenamento) em uma lista grande e definida de objetos EXISTENTES, em um único job rastreável (com relatórios de conclusão), fornecendo um mecanismo controlado e auditável para transicionar retroativamente objetos existentes — separado de (e complementar a) regras de Lifecycle contínuas que tratam objetos NOVOS a partir de agora.",
-        "Incorreto. Embora regras de Lifecycle do S3 SE APLIQUEM a objetos existentes que já atendam ao critério de idade (o S3 avalia e transiciona, geralmente em torno de um dia após a criação da regra, não instantaneamente), o cenário pede especificamente um processo CONTROLADO e RASTREÁVEL para 200 milhões de objetos — a avaliação de regras de Lifecycle para um backlog massivo de objetos existentes não fornece o mesmo nível de relatório de conclusão/rastreamento/retry granular que um job dedicado do S3 Batch Operations, que é a abordagem recomendada pela AWS para operações retroativas em larga escala.",
-        "Incorreto. Embora tecnicamente isso PUDESSE alterar a classe de armazenamento via operação de cópia, executar isso contra 200 milhões de objetos via CLI seria extremamente lento (paralelismo sequencial/limitado), não possui os mecanismos de rastreamento de job/relatórios de conclusão/retry do S3 Batch Operations, e não é uma abordagem escalável ou recomendada pela AWS para operações nessa escala.",
-        "Incorreto. Habilitar o Intelligent-Tiering como classe de armazenamento para objetos NOVOS não altera retroativamente a classe de armazenamento de objetos EXISTENTES já armazenados como S3 Standard — o Intelligent-Tiering precisa ser explicitamente DEFINIDO como a classe de armazenamento dos objetos (objetos existentes mantêm sua classe atual a menos que sejam explicitamente transicionados), portanto isso não resolve a necessidade declarada de migrar 200 milhões de objetos Standard existentes."
+        "Intelligent-Tiering otimiza por acesso futuro — não aplica uma transição retroativa dirigida ao Glacier Flexible Retrieval.",
+        "É a mais próxima porque a regra de Lifecycle REALMENTE se aplica a objetos existentes — mas ela é dirigida pelo TEMPO DE AVALIAÇÃO e por idade, não é um job controlado/rastreável, e o '48 horas retroativo garantido' é impreciso; para transicionar 200 milhões de objetos existentes de forma controlada, rastreável e retroativa, é o S3 Batch Operations por manifesto."
       ],
       "topics": [
         "s3-storage",
@@ -5094,9 +5094,9 @@
       "hint": "Pense em uma funcionalidade do Redshift que interrompe a cobrança de computação preservando a configuração e os dados do cluster, sem exigir recriação ou mudança de endpoint.",
       "optionRationales": [
         "Correto. Enquanto um cluster Redshift está pausado, as cobranças de computação (nós) PARAM de ser geradas (apenas as cobranças de armazenamento continuam), e a configuração, os dados e o endpoint do cluster são PRESERVADOS para quando ele for retomado — eliminando diretamente o custo de computação durante os períodos ociosos sem perder a configuração ou os dados, e isso pode ser automatizado via ações agendadas do Redshift.",
-        "Incorreto. Redimensionar para nós menores reduz a taxa POR HORA, mas não resolve o fato de que ~118 das 168 horas semanais têm ZERO uso ativo — pagar uma taxa reduzida por 168 horas ainda é mais do que pagar a taxa integral por apenas as ~50 horas realmente necessárias; é uma redução incremental, não a eliminação do custo do tempo ocioso.",
-        "Incorreto. Excluir e restaurar a partir de snapshot PARA as cobranças de computação durante o período 'excluído' (benefício de custo semelhante ao pause), mas restaurar um cluster a partir de um snapshot é uma operação muito MAIS LENTA (potencialmente dezenas de minutos a horas, dependendo do volume de dados) comparada a retomar um cluster pausado (tipicamente mais rápido), E o ENDPOINT do cluster muda após a restauração (exigindo atualização de strings de conexão) — pause/resume preserva o endpoint e é o mecanismo nativo de menor sobrecarga para exatamente este caso de uso.",
-        "Incorreto. O Redshift Serverless É uma alternativa válida de pagamento por uso, mas migrar o workload de dev/teste de um cluster PROVISIONADO existente para Serverless é uma MUDANÇA mais ampla (modelo de cobrança/configuração diferente, baseado em RPUs, possíveis diferenças de característica de performance de consultas) do que simplesmente habilitar o agendamento de pause/resume no cluster EXISTENTE — pause/resume é a solução direta e de mínima mudança para o problema de custo de tempo ocioso descrito em um cluster provisionado existente."
+        "É a mais próxima porque snapshot + excluir + restaurar também para de cobrar computação na ociosidade — mas RECRIA o cluster a cada manhã (restore demorado, risco operacional), e o requisito é NÃO recriar; suspender e retomar preservando tudo é o pause/resume nativo do Redshift.",
+        "Redimensionar para menos nós reduz a taxa — mas o cluster segue rodando (e cobrando) 24/7 nas ~118h ociosas.",
+        "Redshift Serverless elimina o cluster — mas é MIGRAÇÃO do workload; o cenário quer manter o cluster com sua config e dados."
       ],
       "topics": [
         "analytics",
@@ -5118,7 +5118,14 @@
       "topics": [
         "analytics",
         "s3-storage"
-      ]
+      ],
+      "optionRationales": [
+        "A) Correta: Job Bookmarks fazem o Glue rastrear o estado do que já foi processado (arquivos/partições), tornando cada execução incremental. B) Incorreta: mais DPUs aceleram o reprocessamento, mas não evitam que ele aconteça — custo continua crescendo. C) Incorreta: crawler cataloga metadados; não controla o que o job já processou. D) Incorreta: versionamento protege objetos contra sobrescrita; não influencia o escopo do job.",
+        "Mais DPUs acelera/encarece o reprocessamento total — não evita reprocessar o histórico.",
+        "É a mais próxima porque um crawler TAMBÉM lida com dados novos no prefixo — mas ele apenas ATUALIZA o catálogo (schema/partições); não faz o JOB processar só o incremental: sem marcar o que já foi lido, cada execução reprocessa tudo; o processamento incremental do job é o Job Bookmarks.",
+        "Versionamento do S3 guarda versões de objetos — não controla quais arquivos o job já processou."
+      ],
+      "hint": "Diferencie descoberta de schema (crawler) de estado de processamento incremental do próprio job."
     },
     {
       "id": "saa-avc-214",
@@ -5135,7 +5142,14 @@
       "topics": [
         "serverless",
         "analytics"
-      ]
+      ],
+      "optionRationales": [
+        "É a mais próxima porque propõe uma limitação e um substituto concretos — mas a premissa é falsa (o Lambda ACESSA o S3 normalmente) e o substituto EC2 nem é serverless; a limitação DECISIVA é o timeout de 15 min do Lambda contra um job de 50 min, e o substituto serverless é o AWS Glue (Spark).",
+        "A) Incorreta: Lambda acessa S3 normalmente via SDK. B) Correta: 50 minutos ultrapassa o teto de 15 minutos por invocação do Lambda; o Glue executa Spark serverless sem limite prático para jobs de ETL dessa duração. C) Incorreta: Lambda suporta Python; Redshift é warehouse, não engine de ETL Spark. D) Incorreta: VPC é opcional no Lambda; Lightsail não é serviço de ETL.",
+        "O Lambda suporta Python nativamente — a premissa é falsa; e Redshift é data warehouse, não motor de ETL Spark.",
+        "O Lambda não 'exige VPC' — a premissa é falsa; e Lightsail é VPS gerenciada, não ETL serverless."
+      ],
+      "hint": "Compare a duração estimada do ETL com o limite máximo de execução de uma função Lambda."
     },
     {
       "id": "saa-avc-215",
@@ -5155,7 +5169,7 @@
       "optionRationales": [
         "Spectrum consulta tabelas externas e não amplia por si só a concorrência das consultas locais descritas.",
         "Elastic Resize altera a capacidade principal e exige planejamento; não fornece o overflow automático por fila solicitado.",
-        "Concurrency Scaling acrescenta capacidade temporária para consultas elegíveis quando necessário, com créditos e cobrança conforme o uso.",
+        "Spectrum consulta tabelas externas e não amplia por si só a concorrência das consultas locais descritas. Elastic Resize altera a capacidade principal e exige planejamento; não fornece o overflow automático por fila solicitado. Concurrency Scaling acrescenta capacidade temporária para consultas elegíveis quando necessário, com créditos e cobrança conforme o uso. Athena exigiria mover ou disponibilizar os dados no S3 e adaptar o BI, contrariando a preservação do desenho atual.",
         "Athena exigiria mover ou disponibilizar os dados no S3 e adaptar o BI, contrariando a preservação do desenho atual."
       ],
       "hint": "Diferencie ampliar o cluster principal de acrescentar capacidade transitória para consultas concorrentes."
@@ -5175,7 +5189,14 @@
       "topics": [
         "analytics",
         "serverless"
-      ]
+      ],
+      "optionRationales": [
+        "Nós reservados por 3 anos são compromisso de capacidade contínua — o oposto de uso esporádico com semanas ociosas.",
+        "A) Incorreta: reservar capacidade por 3 anos para uso esporádico desperdiça dinheiro — reservas servem para uso constante. B) Correta: o Redshift Serverless dimensiona automaticamente e cobra por RPU-hora somente enquanto há processamento — perfeito para uso intermitente. C) Incorreta: depender de pause manual gera custo por esquecimento e atrito operacional. D) Incorreta: RDS é OLTP; não é a ferramenta para cargas analíticas de warehouse.",
+        "É a mais próxima porque um cluster dc2 com pause manual também corta custo na ociosidade — mas exige ADMINISTRAR o cluster e lembrar de pausar/retomar, e paga por hora quando ligado; para uso esporádico e imprevisível pagando só o processamento consumido, sem administrar cluster, é o Redshift Serverless.",
+        "RDS PostgreSQL é banco transacional — não é data warehouse analítico dimensionado para essas cargas."
+      ],
+      "hint": "Procure o modelo de data warehouse que escala sob demanda e cobra somente quando há processamento."
     },
     {
       "id": "saa-avc-217",
@@ -5192,7 +5213,14 @@
       "topics": [
         "analytics",
         "s3-storage"
-      ]
+      ],
+      "optionRationales": [
+        "A) Correta: a cópia automática de snapshots entre Regiões dá RPO de horas com custo apenas de armazenamento — e o cluster só é criado na Região de DR se o desastre ocorrer (estratégia backup & restore). B) Incorreta: cluster permanente duplicado atende, mas viola o requisito de custo mínimo. C) Incorreta: processo manual e frágil; snapshots automatizados já resolvem. D) Incorreta: Multi-AZ protege contra falha de AZ — um desastre REGIONAL derruba todas as AZs da Região.",
+        "Segundo cluster sempre ativo na outra região atende o DR — mas com custo alto contínuo, o que o requisito quer evitar.",
+        "UNLOAD manual para CSV a cada hora é processo frágil e trabalhoso — não é a estratégia de DR gerenciada do Redshift.",
+        "É a mais próxima porque o Multi-AZ dá resiliência e soa como proteção de desastre — mas ele protege contra falha de AZ DENTRO de uma região, não contra um desastre REGIONAL; recuperar em OUTRA região com custo mínimo é copiar snapshots cross-region e restaurar quando preciso."
+      ],
+      "hint": "O requisito combina DR entre Regiões, RPO de horas e ausência de infraestrutura secundária permanente."
     },
     {
       "id": "saa-avc-218",
@@ -5209,7 +5237,14 @@
       "topics": [
         "analytics",
         "serverless"
-      ]
+      ],
+      "optionRationales": [
+        "É a mais próxima porque long polling reduz chamadas vazias em outros serviços — mas o Kinesis Data Streams não tem esse modelo de leitura, e ele não daria throughput DEDICADO por consumidor nem os ~70 ms de push; taxa dedicada por consumidor com baixa latência é o Enhanced Fan-Out.",
+        "A) Incorreta: long polling é conceito de SQS, não de Kinesis. B) Correta: com Enhanced Fan-Out, cada consumidor registrado recebe uma via dedicada de 2 MB/s por shard com entrega push em ~70 ms — elimina a competição sem resharding. C) Incorreta: batch menor pode até aumentar a sobrecarga; não cria throughput dedicado. D) Incorreta: retenção afeta por quanto tempo os dados podem ser relidos, não o throughput.",
+        "Reduzir o batch size ajusta o tamanho da leitura — não dá throughput dedicado nem elimina a competição pelos 2 MB/s.",
+        "Aumentar a retenção guarda os dados por mais tempo — não muda a taxa de leitura compartilhada por shard."
+      ],
+      "hint": "Identifique o modo de consumo que dá throughput de leitura isolado para cada consumidor do Kinesis."
     },
     {
       "id": "saa-avc-219",
@@ -5226,7 +5261,14 @@
       "topics": [
         "monitoring",
         "serverless"
-      ]
+      ],
+      "optionRationales": [
+        "Logs de CloudWatch por Lambda trazem detalhe textual — não montam o grafo de dependências da requisição.",
+        "A) Incorreta: os logs mostram cada função isoladamente — correlacionar a jornada manualmente é lento e sujeito a erro. B) Correta: o Service Map desenha o grafo completo da requisição (nós e arestas) com latência média, percentis e erros por componente — o caminho mais rápido para achar o gargalo. C) Incorreta: CloudTrail audita chamadas de API de gerenciamento, não latência de requisições da aplicação. D) Incorreta: Duration mostra o tempo de cada função, mas não a visão de ponta a ponta nem as dependências.",
+        "CloudTrail Lake audita chamadas de API — não traça a latência da requisição pela cadeia de serviços.",
+        "É a mais próxima porque a métrica Duration do Lambda mostra latência por função de fato — mas isolada, por serviço, SEM o grafo da cadeia inteira: não revela qual NÓ da sequência concentra o atraso nem as dependências; a visão de dependências com latência/erro por nó é o Service Map do X-Ray."
+      ],
+      "hint": "Busque a visualização do X-Ray que representa dependências e métricas entre os serviços de uma requisição."
     },
     {
       "id": "saa-avc-220",
@@ -5242,7 +5284,14 @@
       "explanation": "A) Incorreta: rolling mistura versões durante o deploy — parte das instâncias responde com a versão antiga e parte com a nova. B) Incorreta: também opera com versões mistas durante a transição. C) Correta: no blue/green, a nova versão sobe em ambiente separado; a troca de CNAME move 100% do tráfego de uma vez e o rollback é outra troca de DNS — sem mistura de versões. D) Incorreta: all at once causa downtime e o rollback exige novo deploy.",
       "topics": [
         "ec2-compute"
-      ]
+      ],
+      "optionRationales": [
+        "Rolling 25% também atualiza em lotes no mesmo ambiente — versões mistas durante o deploy.",
+        "É a mais próxima porque 'rolling with additional batch' preserva a capacidade durante o deploy — mas ainda atualiza as instâncias em LOTES no MESMO ambiente: durante a transição, versão antiga e nova servem tráfego juntas (versões mistas), o que o requisito proíbe; ambiente separado com troca de CNAME é o Blue/green.",
+        "A) Incorreta: rolling mistura versões durante o deploy — parte das instâncias responde com a versão antiga e parte com a nova. B) Incorreta: também opera com versões mistas durante a transição. C) Correta: no blue/green, a nova versão sobe em ambiente separado; a troca de CNAME move 100% do tráfego de uma vez e o rollback é outra troca de DNS — sem mistura de versões. D) Incorreta: all at once causa downtime e o rollback exige novo deploy.",
+        "All at once derruba tudo e sobe a nova versão — causa indisponibilidade e não dá rollback imediato por DNS."
+      ],
+      "hint": "A solução deve trocar todo o tráfego entre ambientes completos por DNS, sem batches de versões mistas."
     },
     {
       "id": "saa-avc-221",
@@ -5258,7 +5307,14 @@
       "explanation": "A) Incorreta: um único HSM é ponto único de falha — a AWS recomenda explicitamente contra isso em produção. B) Correta: clusters CloudHSM sincronizam as chaves automaticamente entre HSMs em múltiplas AZs e balanceiam as requisições — o desenho de alta disponibilidade recomendado. C) Incorreta: mesma AZ não protege contra falha da própria AZ. D) Incorreta: chaves do CloudHSM não são replicáveis para o KMS — são domínios criptográficos distintos.",
       "topics": [
         "security-services"
-      ]
+      ],
+      "optionRationales": [
+        "Um único HSM é ponto único de falha — backup semanal não dá a alta disponibilidade das operações.",
+        "A) Incorreta: um único HSM é ponto único de falha — a AWS recomenda explicitamente contra isso em produção. B) Correta: clusters CloudHSM sincronizam as chaves automaticamente entre HSMs em múltiplas AZs e balanceiam as requisições — o desenho de alta disponibilidade recomendado. C) Incorreta: mesma AZ não protege contra falha da própria AZ. D) Incorreta: chaves do CloudHSM não são replicáveis para o KMS — são domínios criptográficos distintos.",
+        "É a mais próxima porque dois HSMs já dão redundância — mas na MESMA AZ: uma falha de AZ derruba os dois juntos; alta disponibilidade de produção exige o cluster com HSMs em pelo menos DUAS AZs, com sincronização e balanceamento automáticos das chaves.",
+        "O KMS não é 'réplica de contingência' do CloudHSM — são serviços distintos; e as chaves precisam ficar no HSM single-tenant."
+      ],
+      "hint": "Pense na recomendação de produção do CloudHSM para tolerar a perda de uma Zona de Disponibilidade."
     },
     {
       "id": "saa-avc-222",
@@ -5278,7 +5334,7 @@
       ],
       "optionRationales": [
         "Cached mantém apenas parte dos dados localmente e usa a AWS como armazenamento principal.",
-        "Stored mantém o dataset completo local e produz snapshots incrementais para recuperação na AWS.",
+        "Cached mantém apenas parte dos dados localmente e usa a AWS como armazenamento principal. Stored mantém o dataset completo local e produz snapshots incrementais para recuperação na AWS. File Gateway oferece arquivos sobre objetos S3, não o volume de blocos primário integralmente local descrito. Tape Gateway emula fitas para backup; não fornece o volume de aplicação pedido.",
         "File Gateway oferece arquivos sobre objetos S3, não o volume de blocos primário integralmente local descrito.",
         "Tape Gateway emula fitas para backup; não fornece o volume de aplicação pedido."
       ],
@@ -5299,7 +5355,14 @@
       "topics": [
         "migration",
         "databases"
-      ]
+      ],
+      "optionRationales": [
+        "Snapshot de storage + restore não converte Oracle→PostgreSQL (migração HETEROGÊNEA) — incompatível.",
+        "A) Incorreta: snapshot de storage Oracle não é restaurável em Aurora PostgreSQL (engines diferentes). B) Correta: migração HETEROGÊNEA = SCT converte schema e objetos; DMS faz a carga completa e depois replica as mudanças (CDC) continuamente — o cutover vira só o apontamento da aplicação, com minutos de indisponibilidade. C) Incorreta: dump/import de 2 TB com escrita contínua gera horas de downtime e perda das mudanças ocorridas durante a importação. D) Incorreta: DataSync copia ARQUIVOS; arquivos de dados do Oracle não funcionam no Aurora.",
+        "É a mais próxima porque exportar um dump e importar no Aurora migra os dados de fato — mas é carga ÚNICA: o banco recebe escrita CONTÍNUA, e o dump ficaria desatualizado no cutover (downtime de horas, não minutos); converter o schema (SCT) e replicar continuamente (DMS full load + CDC) até virar é a migração quase sem downtime.",
+        "DataSync copia ARQUIVOS — não converte nem replica transações de um banco Oracle para o Aurora PostgreSQL."
+      ],
+      "hint": "Migração heterogênea exige converter schema; pouco downtime exige replicar mudanças até o cutover."
     },
     {
       "id": "saa-avc-224",
@@ -5317,7 +5380,14 @@
         "s3-storage",
         "serverless",
         "analytics"
-      ]
+      ],
+      "optionRationales": [
+        "É a mais próxima porque uma Lambda mascarando os objetos produz o resultado certo — mas gravando numa CÓPIA replicada: duplica os dados num segundo bucket, exatamente o que o requisito veta; mascarar na LEITURA, sem duplicar nem alterar o original, é o S3 Object Lambda.",
+        "Confiar no mascaramento no cliente entrega os dados de PII crus pela rede — não protege nada de fato.",
+        "A) Incorreta: duplica os dados (dobra custo de storage e cria problema de sincronização) — o que o requisito proíbe. B) Incorreta: mascaramento no cliente não é controle: o dado bruto chega à aplicação. C) Correta: o S3 Object Lambda intercepta o GET e aplica a função de transformação em tempo real — a aplicação recebe o objeto mascarado, sem cópia e sem alterar o original. D) Incorreta: CTAS materializa uma cópia (duplicação) e adiciona defasagem diária.",
+        "CTAS diário do Athena materializa uma tabela nova (cópia) — duplica dados e fica defasado até o próximo run."
+      ],
+      "hint": "O dado original não pode mudar nem ser copiado: a transformação deve acontecer quando o objeto é lido."
     },
     {
       "id": "saa-avc-225",
@@ -5341,7 +5411,16 @@
         "high-availability",
         "databases",
         "edge-dns"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: o Route 53 direciona os usuários à Região saudável/mais próxima e tira uma Região do ar automaticamente via health checks.",
+        "Incorreta: ALBs são regionais — não existe ALB entre Regiões.",
+        "Correta: a camada de dados precisa de replicação multi-Região nativa (Global Tables/Aurora Global).",
+        "Incorreta: peering conecta redes; não distribui usuários nem replica dados.",
+        "Correta: cada Região precisa da sua pilha completa e independente de computação.",
+        "Incorreta: um ASG não atravessa Regiões — é um recurso regional."
+      ],
+      "hint": "A base ativo-ativo precisa de roteamento global, dados replicados e uma pilha independente em cada Região."
     },
     {
       "id": "saa-avc-226",
@@ -5361,7 +5440,15 @@
       "explanation": "A) Correta: o WAF filtra padrões maliciosos (regras gerenciadas) e as rate-based rules limitam IPs abusivos automaticamente — tudo na borda, antes da origem. B) Incorreta: escalar a origem absorve mais ataque em vez de bloqueá-lo — e custa caro. C) Incorreta: mudar a Região não afeta ataques que seguem o DNS. D) Correta: o Shield Advanced adiciona detecção/mitigação DDoS avançada (L3/L4/L7), o Shield Response Team e proteção de custos. E) Incorreta: bloquear 443 derruba o próprio site.",
       "topics": [
         "security-services"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: o WAF filtra padrões maliciosos (regras gerenciadas) e as rate-based rules limitam IPs abusivos automaticamente — tudo na borda, antes da origem.",
+        "Incorreta: escalar a origem absorve mais ataque em vez de bloqueá-lo — e custa caro.",
+        "Incorreta: mudar a Região não afeta ataques que seguem o DNS.",
+        "Correta: o Shield Advanced adiciona detecção/mitigação DDoS avançada (L3/L4/L7), o Shield Response Team e proteção de custos.",
+        "Incorreta: bloquear 443 derruba o próprio site."
+      ],
+      "hint": "Escolha controles que bloqueiem SQL injection e limitem requisições antes que atinjam a origem."
     },
     {
       "id": "saa-avc-227",
@@ -5381,7 +5468,15 @@
       "explanation": "A) Correta: formato colunar permite ler apenas as colunas usadas na consulta, com compressão — reduções de 90%+ no escaneado são comuns. B) Incorreta: a quantidade de buckets não influencia o volume escaneado por consulta. C) Correta: com particionamento estilo Hive + filtro WHERE na partição, o Athena lê somente as pastas relevantes (partition pruning). D) Incorreta: mover logs de data lake para um banco OLTP inverte a arquitetura e multiplica custos. E) Incorreta: MFA Delete é proteção contra exclusão, sem efeito em consulta.",
       "topics": [
         "analytics"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: formato colunar permite ler apenas as colunas usadas na consulta, com compressão — reduções de 90%+ no escaneado são comuns.",
+        "Incorreta: a quantidade de buckets não influencia o volume escaneado por consulta.",
+        "Correta: com particionamento estilo Hive + filtro WHERE na partição, o Athena lê somente as pastas relevantes (partition pruning).",
+        "Incorreta: mover logs de data lake para um banco OLTP inverte a arquitetura e multiplica custos.",
+        "Incorreta: MFA Delete é proteção contra exclusão, sem efeito em consulta."
+      ],
+      "hint": "Ataque as duas fontes de leitura desnecessária do Athena: formato de arquivo e poda de dados por filtro."
     },
     {
       "id": "saa-avc-228",
@@ -5402,7 +5497,15 @@
       "topics": [
         "vpc",
         "serverless"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: a saída para a internet a partir de sub-redes privadas exige um NAT Gateway (que vive na sub-rede pública).",
+        "Incorreta: não é possível anexar Elastic IP a uma função Lambda.",
+        "Correta: sem a rota padrão apontando ao NAT, o tráfego de internet não tem caminho — as duas peças (NAT + rota) são necessárias.",
+        "Incorreta: Lambdas em VPC usam ENIs que não recebem IP público — sub-rede pública não resolve.",
+        "Incorreta: Gateway Endpoints existem apenas para S3 e DynamoDB, não para APIs externas."
+      ],
+      "hint": "Uma Lambda em sub-rede privada precisa de um dispositivo de saída e de uma rota para alcançá-lo."
     },
     {
       "id": "saa-avc-229",
@@ -5423,7 +5526,15 @@
       "topics": [
         "databases",
         "analytics"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: chave de alta cardinalidade distribui o tráfego uniformemente entre partições — a correção estrutural.",
+        "Incorreta: itens maiores consomem MAIS capacidade, agravando o limite.",
+        "Correta: quando a chave natural é de baixa cardinalidade, o write sharding com sufixo espalha as escritas do mesmo valor lógico entre N partições.",
+        "Incorreta: PITR é recuperação de dados, sem relação com throughput.",
+        "Incorreta: LSIs compartilham a capacidade da partição da tabela — não absorvem hot partitions."
+      ],
+      "hint": "O problema é concentração de escrita em uma única chave física, não a capacidade total da tabela."
     },
     {
       "id": "saa-avc-230",
@@ -5446,7 +5557,16 @@
       "topics": [
         "governance",
         "monitoring"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: SCPs definem o teto de permissões da organização — a condição aws:RequestedRegion bloqueia Regiões não homologadas em TODAS as identidades das contas-membro.",
+        "Incorreta: cópia manual não é governança — deriva e não limita admins locais.",
+        "Correta: a organization trail registra as chamadas de API de todas as contas em um ponto central.",
+        "Incorreta: GuardDuty DETECTA ameaças usando logs; quem registra a auditoria é o CloudTrail.",
+        "Correta: o Config avalia continuamente a conformidade das configurações, com visão agregada da organização.",
+        "Incorreta: impedir contas novas não é um controle de conformidade."
+      ],
+      "hint": "Associe cada objetivo a seu controle: limite de permissões, trilha de auditoria e avaliação de configuração."
     },
     {
       "id": "saa-avc-231",
@@ -5467,7 +5587,15 @@
       "topics": [
         "ec2-compute",
         "s3-storage"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: nós task só processam — se o Spot for tomado, o YARN reexecuta as tasks em outro nó; core e primary ficam protegidos em On-Demand.",
+        "Incorreta: perder o primary em Spot derruba o cluster inteiro; core em Spot arrisca dados do HDFS.",
+        "Correta: com dados no S3 (EMRFS), o cluster vira descartável: paga-se apenas pelas horas do job.",
+        "Incorreta: cluster 24/7 para job noturno é o desperdício que se quer eliminar.",
+        "Incorreta: nós maiores aumentam o custo — o oposto do objetivo."
+      ],
+      "hint": "Separe os nós que podem ser interrompidos dos que guardam dados, e considere clusters descartáveis com S3."
     },
     {
       "id": "saa-avc-232",
@@ -5487,7 +5615,15 @@
       "explanation": "A) Correta: o modo compliance impede exclusão/alteração por QUALQUER usuário, incluindo root, até o fim da retenção — o WORM regulatório. B) Incorreta: no modo governance, usuários com permissões especiais (s3:BypassGovernanceRetention) PODEM remover a proteção. C) Correta: o Object Lock exige versionamento habilitado no bucket — os dois andam juntos. D) Incorreta: bucket policies sempre podem ser alteradas por quem tem permissão (inclusive root) — não é imutabilidade real. E) Incorreta: criptografia protege confidencialidade, não impede exclusão.",
       "topics": [
         "s3-storage"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: o modo compliance impede exclusão/alteração por QUALQUER usuário, incluindo root, até o fim da retenção — o WORM regulatório.",
+        "Incorreta: no modo governance, usuários com permissões especiais (s3:BypassGovernanceRetention) PODEM remover a proteção.",
+        "Correta: o Object Lock exige versionamento habilitado no bucket — os dois andam juntos.",
+        "Incorreta: bucket policies sempre podem ser alteradas por quem tem permissão (inclusive root) — não é imutabilidade real.",
+        "Incorreta: criptografia protege confidencialidade, não impede exclusão."
+      ],
+      "hint": "A retenção deve resistir inclusive ao root; versionamento é um pré-requisito do mecanismo WORM do S3."
     },
     {
       "id": "saa-avc-233",
@@ -5508,7 +5644,15 @@
       "topics": [
         "serverless",
         "databases"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: Provisioned Concurrency mantém ambientes de execução pré-inicializados — a latência do primeiro acesso desaparece.",
+        "Incorreta: timeout maior só permite esperar mais; não reduz latência.",
+        "Incorreta: MENOS memória = menos CPU = inicialização e execução mais LENTAS.",
+        "Correta: o DAX é o cache nativo do DynamoDB — leituras repetidas passam a responder em microssegundos, aliviando a tabela nos picos.",
+        "Incorreta: o tipo de API não resolve cold start nem cache de dados."
+      ],
+      "hint": "Um serviço mantém execuções da Lambda prontas; o outro é o cache de leitura nativo do DynamoDB."
     },
     {
       "id": "saa-avc-234",
@@ -5531,7 +5675,16 @@
       "topics": [
         "analytics",
         "s3-storage"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: o Firehose ingere, converte para Parquet e entrega no S3 sem servidores.",
+        "Incorreta: Kafka em EC2 é o MAIOR esforço operacional possível para o mesmo papel.",
+        "Correta: o Glue descobre e mantém o catálogo (schemas/partições) que o Athena usa.",
+        "Incorreta: EC2 + cron viola o requisito serverless e adiciona manutenção.",
+        "Correta: o Athena fecha o pipeline: SQL serverless direto no S3, pagando por consulta.",
+        "Incorreta: Neptune é banco de grafos — nada a ver com o cenário."
+      ],
+      "hint": "Mapeie ingestão e conversão, catálogo e consulta SQL para três serviços serverless distintos."
     },
     {
       "id": "saa-avc-235",
@@ -5551,7 +5704,15 @@
       "explanation": "A) Correta: um segundo DX em location distinta elimina o ponto único de falha físico — a opção de maior resiliência. B) Correta: a VPN Site-to-Site como backup dá um caminho independente (internet), criptografado, com failover automático via BGP — o desenho recomendado de custo equilibrado. C) Incorreta: mais VIFs no MESMO link caem junto com o link. D) Incorreta: peering conecta VPCs entre si — não conecta o datacenter. E) Incorreta: abandonar o DX reduz a qualidade da conectividade em vez de torná-la resiliente.",
       "topics": [
         "hybrid-networking"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: um segundo DX em location distinta elimina o ponto único de falha físico — a opção de maior resiliência.",
+        "Correta: a VPN Site-to-Site como backup dá um caminho independente (internet), criptografado, com failover automático via BGP — o desenho recomendado de custo equilibrado.",
+        "Incorreta: mais VIFs no MESMO link caem junto com o link.",
+        "Incorreta: peering conecta VPCs entre si — não conecta o datacenter.",
+        "Incorreta: abandonar o DX reduz a qualidade da conectividade em vez de torná-la resiliente."
+      ],
+      "hint": "A redundância física do DX elimina o ponto único; o caminho de backup deve usar a internet com BGP e criptografia."
     },
     {
       "id": "saa-avc-236",
@@ -5573,7 +5734,15 @@
         "vpc",
         "s3-storage",
         "databases"
-      ]
+      ],
+      "optionRationales": [
+        "Correta: o Gateway Endpoint do S3 é GRATUITO e roteia o tráfego diretamente ao serviço pela rede da AWS — todo esse volume sai do NAT.",
+        "Correta: o DynamoDB é o outro serviço com Gateway Endpoint gratuito — mesma economia.",
+        "Incorreta: mais NATs dividem o tráfego, mas a cobrança por GB processado continua igual (ou maior, pelas horas extras).",
+        "Incorreta: expor as instâncias publicamente troca custo por risco de segurança.",
+        "Incorreta: compressão reduz um pouco o volume, mas mantém a arquitetura cara — os endpoints zeram esse custo."
+      ],
+      "hint": "S3 e DynamoDB são os dois serviços com Gateway Endpoints que evitam a passagem pelo NAT Gateway."
     }
   ]
 }
