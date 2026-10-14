@@ -697,7 +697,7 @@
             if (!canvas.isConnected) return;
             canvas.style.display = 'none';
             const img = $('#enemySprite');
-            if (img) img.style.display = '';
+            if (img) setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
         });
     }
     function playPreviewEnemy(state, loop = false) {
@@ -1213,7 +1213,7 @@
         }, 320);
         setTimeout(() => {
             wrap.classList.remove('enemy-attacking');
-            if (!(previewEnemyEnabled() && playPreviewEnemy('idle', true))) {
+            if (!previewEnemyEnabled() || !activeEnemySprite || !activeEnemySprite.isReady) {
                 setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
             }
             if (callout) callout.classList.remove('show');
@@ -1437,8 +1437,8 @@
             </div>`;
 
         initHeroCanvas();
-        setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         if (previewEnemyEnabled()) startPreviewEnemy();
+        else setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
 
         // Toggle lista/blocos: troca só a classe (sem re-render, para não
