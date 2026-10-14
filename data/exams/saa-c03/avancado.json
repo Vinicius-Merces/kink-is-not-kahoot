@@ -1248,19 +1248,19 @@
       "domain": "secure-architectures",
       "text": "Uma exigência de compliance determina que TODAS as conexões entre servidores de aplicação (EC2) e um banco de dados Amazon RDS para PostgreSQL devem ser criptografadas em trânsito (TLS), e que o banco de dados REJEITE ativamente qualquer tentativa de conexão não criptografada. Qual configuração atende a esse requisito?",
       "options": [
-        "Usar o AWS Certificate Manager para emitir um certificado TLS público e instalá-lo manualmente na instância RDS.",
-        "Configurar o parameter group do RDS para exigir SSL/TLS (definindo rds.force_ssl=1 para PostgreSQL) e fazer com que as aplicações se conectem usando o pacote de certificados da Autoridade Certificadora do RDS para validar o certificado do servidor.",
-        "Habilitar a criptografia de armazenamento (encryption at rest) na instância RDS.",
-        "Colocar a instância RDS em uma sub-rede privada e confiar no isolamento de rede da VPC para proteger os dados em trânsito."
+        "Importar um certificado ACM para o endpoint RDS e manter o parâmetro de SSL sem exigência.",
+        "Configurar rds.force_ssl=1 e clientes com verificação de hostname e confiança na CA do RDS.",
+        "Habilitar criptografia KMS no armazenamento e conectar os clientes usando sslmode=disable.",
+        "Restringir o Security Group ao aplicativo e manter conexões PostgreSQL sem exigência de TLS."
       ],
       "correct": 1,
-      "explanation": "Definir rds.force_ssl=1 no parameter group faz com que a instância RDS para PostgreSQL rejeite conexões não criptografadas; as aplicações usam o certificado da CA do RDS (fornecido pela AWS) para validar a identidade do servidor durante o handshake TLS, atendendo tanto à exigência de criptografia obrigatória quanto à rejeição de conexões não criptografadas.",
-      "hint": "Pense na configuração do motor de banco de dados que força a rejeição de conexões não criptografadas, e no mecanismo pelo qual o cliente valida o certificado do servidor gerenciado.",
+      "explanation": "O RDS administra os certificados do servidor; não se instala manualmente um certificado ACM na instância gerenciada. rds.force_ssl exige TLS; verificar a cadeia e o hostname com a CA RDS autentica o servidor. Criptografia em repouso não rejeita conexões sem TLS. Sub-rede privada restringe alcance, não cifra o protocolo PostgreSQL.",
+      "hint": "O servidor precisa rejeitar texto claro e o cliente precisa validar com quem está se conectando.",
       "optionRationales": [
-        "Definir rds.force_ssl=1 no parameter group faz com que a instância RDS para PostgreSQL rejeite conexões não criptografadas; as aplicações usam o certificado da CA do RDS (fornecido pela AWS) para validar a identidade do servidor durante o handshake TLS, atendendo tanto à exigência de criptografia obrigatória quanto à rejeição de conexões não criptografadas.",
-        "O isolamento de rede (sub-redes privadas, Security Groups) controla quem pode alcançar o banco de dados, mas não criptografa os dados transmitidos entre o cliente e o motor do banco; uma instância comprometida na mesma sub-rede ainda poderia capturar tráfego não criptografado.",
-        "Criptografia em repouso protege os dados armazenados em disco e em snapshots, mas não tem relação com a criptografia da conexão de rede entre o cliente e o banco de dados, que é o que o requisito de 'em trânsito' exige.",
-        "Não é possível instalar certificados TLS customizados em instâncias RDS gerenciadas; o RDS já fornece seus próprios certificados emitidos por sua Autoridade Certificadora, e a exigência de TLS é aplicada via configuração do parameter group, não pela instalação manual de certificados do ACM."
+        "O RDS administra os certificados do servidor; não se instala manualmente um certificado ACM na instância gerenciada.",
+        "rds.force_ssl exige TLS; verificar a cadeia e o hostname com a CA RDS autentica o servidor.",
+        "Criptografia em repouso não rejeita conexões sem TLS.",
+        "Sub-rede privada restringe alcance, não cifra o protocolo PostgreSQL."
       ],
       "topics": [
         "databases",
@@ -1272,19 +1272,19 @@
       "domain": "secure-architectures",
       "text": "Em uma organização com 30 contas AWS, o Amazon GuardDuty gera um finding indicando que uma instância EC2 está fazendo chamadas de API anormais, sugerindo possível comprometimento de credenciais. A equipe de segurança precisa investigar a causa raiz — visualizando findings relacionados, histórico de chamadas de API e relacionamentos entre recursos ao longo do tempo — em múltiplas contas, sem correlacionar manualmente dados de CloudTrail, VPC Flow Logs e GuardDuty em ferramentas separadas. Qual serviço foi projetado especificamente para essa investigação?",
       "options": [
-        "Consultar manualmente o CloudTrail Lake, os VPC Flow Logs via Athena e os findings do GuardDuty separadamente, correlacionando os resultados em uma planilha.",
-        "Usar apenas o AWS Security Hub para investigar a causa raiz do finding.",
-        "Usar o AWS Config para visualizar o histórico de configuração da instância EC2 afetada.",
-        "Amazon Detective, habilitado com fontes de dados em nível de organização e administrador delegado, que ingere e correlaciona automaticamente dados do GuardDuty, CloudTrail e VPC Flow Logs em visualizações interativas para investigação de causa raiz entre contas."
+        "Consultar CloudTrail Lake e Flow Logs no Athena e construir correlações em um painel próprio.",
+        "Agregar GuardDuty no Security Hub e usar apenas os controles de conformidade do painel.",
+        "Consultar a linha do tempo Config da instância e comparar snapshots de configuração.",
+        "Usar Detective com administração organizacional e fontes de dados habilitadas para investigação."
       ],
       "correct": 3,
-      "explanation": "O Amazon Detective foi projetado especificamente para investigação de segurança: ele ingere e correlaciona automaticamente dados do GuardDuty, CloudTrail e VPC Flow Logs, construindo gráficos de comportamento e linhas do tempo interativas que permitem à equipe de segurança identificar a causa raiz de um finding entre múltiplas contas, sem correlação manual.",
-      "hint": "Pense no serviço cujo propósito principal é correlacionar automaticamente múltiplas fontes de dados de segurança em gráficos visuais para acelerar investigações de causa raiz.",
+      "explanation": "Consultas separadas são possíveis, mas exigem montar a correlação manualmente. Security Hub centraliza postura e findings, sem substituir o grafo investigativo especializado do Detective. Config registra mudanças de configuração, não toda a correlação comportamental pedida. Detective reúne dados suportados em grafos e visualizações investigativas; fontes e contas devem estar habilitadas.",
+      "hint": "Diferencie um finding, o estado de configuração e a investigação das relações de um incidente.",
       "optionRationales": [
-        "O Amazon Detective foi projetado especificamente para investigação de segurança: ele ingere e correlaciona automaticamente dados do GuardDuty, CloudTrail e VPC Flow Logs, construindo gráficos de comportamento e linhas do tempo interativas que permitem à equipe de segurança identificar a causa raiz de um finding entre múltiplas contas, sem correlação manual.",
-        "O Security Hub agrega findings de múltiplos serviços em um formato padronizado e calcula pontuações de conformidade, mas não fornece a visualização de gráficos de comportamento, linha do tempo e correlação profunda entre CloudTrail, VPC Flow Logs e GuardDuty que o Amazon Detective oferece para investigação de causa raiz.",
-        "Esse é exatamente o processo manual, demorado e propenso a erros que a equipe quer evitar; o Amazon Detective automatiza essa correlação entre as três fontes de dados.",
-        "O AWS Config rastreia o histórico de alterações de configuração de recursos ao longo do tempo, mas não correlaciona findings de segurança, atividade de API e tráfego de rede para investigação de ameaças."
+        "Consultas separadas são possíveis, mas exigem montar a correlação manualmente.",
+        "Security Hub centraliza postura e findings, sem substituir o grafo investigativo especializado do Detective.",
+        "Config registra mudanças de configuração, não toda a correlação comportamental pedida.",
+        "Detective reúne dados suportados em grafos e visualizações investigativas; fontes e contas devem estar habilitadas."
       ],
       "topics": [
         "vpc",
@@ -1295,21 +1295,21 @@
     {
       "id": "saa-avc-054",
       "domain": "secure-architectures",
-      "text": "Em um ambiente híbrido, servidores DNS on-premises precisam resolver nomes hospedados em uma Route 53 private hosted zone associada a uma VPC, e recursos dentro dessa VPC precisam resolver nomes hospedados nos servidores DNS on-premises (ex.: corp.exemplo.internal) — tudo isso através de uma conexão Direct Connect ou VPN existente, sem expor o DNS publicamente. Qual configuração atende a AMBAS as direções de resolução?",
+      "text": "Em um ambiente híbrido, servidores DNS on-premises precisam resolver nomes hospedados em uma Route 53 private hosted zone associada a uma VPC, e recursos dentro dessa VPC precisam resolver nomes hospedados nos servidores DNS on-premises (ex.: corp.exemplo.internal) — tudo isso através de uma conexão Direct Connect ou VPN existente, sem expor o DNS publicamente. Sem operar servidores DNS próprios na AWS, qual configuração atende a AMBAS as direções de resolução?",
       "options": [
-        "Implantar Route 53 Resolver inbound endpoints (para que servidores DNS on-premises encaminhem consultas da private hosted zone para a VPC) e Route 53 Resolver outbound endpoints com regras de encaminhamento (para que recursos da VPC encaminhem consultas de domínios on-premises para os servidores DNS on-premises), ambos sobre a conexão Direct Connect/VPN existente.",
-        "Implantar um servidor DNS customizado (como BIND) em uma instância EC2 na VPC, configurado como forwarder condicional para ambas as direções.",
-        "Tornar a private hosted zone pública, permitindo que os servidores DNS on-premises a consultem pela internet.",
-        "Configurar apenas um Route 53 Resolver inbound endpoint para lidar com a resolução DNS bidirecional entre on-premises e a VPC."
+        "Criar endpoints Resolver inbound e outbound, com encaminhamentos condicionais nos dois lados.",
+        "Operar servidores BIND em EC2 com encaminhamento condicional para a VPC e o data center.",
+        "Publicar os registros das duas zonas em uma hosted zone pública com entradas de IP privado.",
+        "Criar apenas endpoints Resolver inbound e encaminhar todas as consultas nos dois sentidos a eles."
       ],
       "correct": 0,
-      "explanation": "Inbound endpoints do Route 53 Resolver permitem que consultas DNS originadas fora da VPC (como servidores on-premises) sejam resolvidas pelo resolver da VPC, incluindo registros de private hosted zones; outbound endpoints com regras de encaminhamento permitem que recursos da VPC encaminhem consultas de domínios específicos (como corp.exemplo.internal) para servidores DNS on-premises. Juntos, sobre a conexão híbrida existente, atendem à resolução bidirecional sem expor DNS publicamente.",
-      "hint": "Pense nos dois tipos de endpoint do Route 53 Resolver: um para consultas que entram na VPC vindas de fora, e outro para consultas que saem da VPC em direção a servidores externos.",
+      "explanation": "Inbound recebe consultas da rede externa; outbound com regras envia consultas aos resolvedores externos. BIND pode atender, mas exige operar servidores DNS, contrariando a preferência explícita por endpoints gerenciados. Uma zona pública expõe nomes e não cria resolução privada bidirecional. Inbound não encaminha as consultas da VPC aos servidores on-premises sem a configuração de saída.",
+      "hint": "Inbound e outbound são definidos em relação à VPC que hospeda os endpoints.",
       "optionRationales": [
-        "Inbound endpoints do Route 53 Resolver permitem que consultas DNS originadas fora da VPC (como servidores on-premises) sejam resolvidas pelo resolver da VPC, incluindo registros de private hosted zones; outbound endpoints com regras de encaminhamento permitem que recursos da VPC encaminhem consultas de domínios específicos (como corp.exemplo.internal) para servidores DNS on-premises. Juntos, sobre a conexão híbrida existente, atendem à resolução bidirecional sem expor DNS publicamente.",
-        "Converter a zona para pública exporia registros DNS internos à internet, violando o requisito de não expor o DNS publicamente, e ainda não resolveria a direção inversa (recursos da VPC resolvendo nomes on-premises).",
-        "Inbound endpoints lidam apenas com consultas que chegam à VPC vindas de fora; a resolução de domínios on-premises a partir de recursos dentro da VPC requer outbound endpoints com regras de encaminhamento — um único inbound endpoint não cobre ambas as direções.",
-        "Essa solução customizada exige operação e manutenção de um servidor DNS próprio, reimplementando com esforço significativo uma funcionalidade que o Route 53 Resolver já oferece de forma nativa, gerenciada e altamente disponível através de seus endpoints de entrada e saída."
+        "Inbound recebe consultas da rede externa; outbound com regras envia consultas aos resolvedores externos.",
+        "BIND pode atender, mas exige operar servidores DNS, contrariando a preferência explícita por endpoints gerenciados.",
+        "Uma zona pública expõe nomes e não cria resolução privada bidirecional.",
+        "Inbound não encaminha as consultas da VPC aos servidores on-premises sem a configuração de saída."
       ],
       "topics": [
         "hybrid-networking",
@@ -1322,19 +1322,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa padronizou o uso de um appliance de firewall virtual de terceiros (disponível no AWS Marketplace) para inspeção profunda de pacotes, e precisa inserir esse appliance de forma transparente no fluxo de tráfego de múltiplas VPCs através de uma VPC de inspeção centralizada, com escalonamento automático conforme o volume de tráfego e garantindo que o tráfego de retorno de um fluxo passe pela MESMA instância do appliance (roteamento simétrico). Qual arquitetura atende a esse requisito?",
       "options": [
-        "Usar o AWS Gateway Load Balancer (GWLB) para distribuir o tráfego entre uma frota de instâncias do appliance de firewall de terceiros na VPC de inspeção centralizada, com Gateway Load Balancer Endpoints (GWLBe) nas VPCs spoke (ou via Transit Gateway) direcionando o tráfego transparentemente aos appliances.",
-        "Usar um Application Load Balancer para distribuir o tráfego entre as instâncias do appliance de firewall.",
-        "Implantar o appliance de firewall em uma única instância EC2 de grande capacidade em cada VPC, roteando todo o tráfego para ela através de entradas na tabela de rotas.",
-        "Usar o AWS Network Firewall para executar o appliance de firewall de terceiros do AWS Marketplace dentro da VPC de inspeção centralizada."
+        "Usar GWLB, endpoints e uma frota Auto Scaling de appliances compatíveis, com rotas simétricas.",
+        "Usar ALB interno e um target group de appliances, distribuindo todo o tráfego IP por HTTP.",
+        "Usar um appliance EC2 central de grande porte e rotas estáticas em cada VPC consumidora.",
+        "Importar a AMI do appliance para Network Firewall e escalar os endpoints gerenciados."
       ],
       "correct": 0,
-      "explanation": "O Gateway Load Balancer foi projetado especificamente para inserir appliances de terceiros (firewalls, IDS/IPS) de forma transparente no fluxo de tráfego, operando na camada 3 com encapsulamento GENEVE; ele garante 'flow stickiness' (roteamento simétrico, mantendo um fluxo na mesma instância do appliance) e escala automaticamente a frota de appliances conforme o volume de tráfego, atendendo a todos os requisitos.",
-      "hint": "Pense no tipo de load balancer projetado especificamente para inserir appliances de terceiros de forma transparente no caminho do tráfego, com garantia de que o tráfego de um mesmo fluxo sempre retorne à mesma instância.",
+      "explanation": "GWLB distribui fluxos para appliances compatíveis com GENEVE, com afinidade; ASG escala a frota e as rotas devem preservar simetria. ALB termina HTTP/HTTPS; não fornece inserção transparente de appliances para pacotes IP arbitrários. Uma instância central não oferece a frota elástica e resiliente requerida. Network Firewall é um serviço de firewall gerenciado, não um host para executar a imagem de um appliance de terceiros.",
+      "hint": "A inserção transparente precisa preservar o fluxo sem transformar cada conexão em uma requisição de aplicação.",
       "optionRationales": [
-        "O Gateway Load Balancer foi projetado especificamente para inserir appliances de terceiros (firewalls, IDS/IPS) de forma transparente no fluxo de tráfego, operando na camada 3 com encapsulamento GENEVE; ele garante 'flow stickiness' (roteamento simétrico, mantendo um fluxo na mesma instância do appliance) e escala automaticamente a frota de appliances conforme o volume de tráfego, atendendo a todos os requisitos.",
-        "O AWS Network Firewall é o serviço de firewall gerenciado da própria AWS (baseado em Suricata) e não permite executar appliances virtuais de terceiros do AWS Marketplace dentro dele; ele não atende ao requisito de usar o appliance específico já padronizado pela empresa.",
-        "O Application Load Balancer opera na camada 7 (HTTP/HTTPS) e termina as conexões, o que é inadequado para inspeção de tráfego de rede em camada 3/4 por um appliance de firewall, além de não preservar os cabeçalhos originais necessários para a inspeção e não oferecer roteamento simétrico de fluxos.",
-        "Uma única instância representa um ponto único de falha e um limite de escalabilidade fixo, sem o escalonamento automático, verificação de saúde e roteamento simétrico de fluxos que o Gateway Load Balancer fornece nativamente para frotas de appliances."
+        "GWLB distribui fluxos para appliances compatíveis com GENEVE, com afinidade; ASG escala a frota e as rotas devem preservar simetria.",
+        "ALB termina HTTP/HTTPS; não fornece inserção transparente de appliances para pacotes IP arbitrários.",
+        "Uma instância central não oferece a frota elástica e resiliente requerida.",
+        "Network Firewall é um serviço de firewall gerenciado, não um host para executar a imagem de um appliance de terceiros."
       ],
       "topics": [
         "vpc",
@@ -1345,21 +1345,21 @@
     {
       "id": "saa-avc-056",
       "domain": "secure-architectures",
-      "text": "A equipe de segurança suspeita que uma instância EC2 comprometida está exfiltrando grandes volumes de dados para um endereço IP externo desconhecido, ao longo de vários meses. Eles precisam analisar dados históricos de fluxo de rede de todas as VPCs para identificar padrões anormais de transferência de dados de saída (ex.: contagem de bytes sustentada para um destino específico), de forma econômica, sem custos elevados de armazenamento/consulta para um histórico de vários meses. Qual abordagem atende a esse requisito?",
+      "text": "A equipe de segurança suspeita que uma instância EC2 comprometida está exfiltrando grandes volumes de dados para um endereço IP externo desconhecido, ao longo de vários meses. Os Flow Logs já são coletados desde antes do período investigado. Eles precisam analisar dados históricos de fluxo de rede de todas as VPCs para identificar padrões anormais de transferência de dados de saída (ex.: contagem de bytes sustentada para um destino específico), por consultas ocasionais, de forma econômica, sem custos elevados de armazenamento/consulta para um histórico de vários meses. Qual abordagem atende a esse requisito?",
       "options": [
-        "Usar eventos de dados (data events) do AWS CloudTrail para S3 e EC2 para identificar a exfiltração, já que o CloudTrail registra todo o tráfego de rede.",
-        "Garantir que os VPC Flow Logs estejam habilitados e sejam entregues a um bucket Amazon S3 (em formato Parquet, particionado por data), e usar o Amazon Athena para executar consultas SQL sobre os dados históricos de flow logs, filtrando e agregando por bytes transferidos, IPs de origem/destino e intervalo de tempo.",
-        "Habilitar os VPC Flow Logs entregues apenas ao Amazon CloudWatch Logs, e usar o CloudWatch Logs Insights para consultar vários meses de dados históricos.",
-        "Habilitar o Amazon GuardDuty e confiar exclusivamente em seus findings para identificar o fluxo específico de exfiltração e o IP de destino, sem analisar os flow logs."
+        "Consultar CloudTrail data events e agregar os tamanhos das chamadas API por endereço de destino.",
+        "Armazenar Flow Logs em S3 com Parquet e partições e consultar os períodos necessários no Athena.",
+        "Manter todos os Flow Logs em CloudWatch Logs e varrer meses completos com Logs Insights.",
+        "Consultar apenas os findings GuardDuty e somar seus campos para reconstruir cada fluxo histórico."
       ],
       "correct": 1,
-      "explanation": "Entregar VPC Flow Logs ao S3 em formato Parquet particionado reduz significativamente o custo de armazenamento e o volume de dados escaneado por consulta; o Amazon Athena permite consultas SQL ad-hoc sobre meses de dados históricos, filtrando por bytes transferidos e IPs específicos, de forma econômica e escalável — ideal para identificar padrões de exfiltração ao longo do tempo.",
-      "hint": "Pense na combinação de um destino de armazenamento de baixo custo para dados históricos de fluxo de rede em formato colunar e um serviço de consulta SQL sob demanda.",
+      "explanation": "CloudTrail registra chamadas API, não todo o volume de bytes das conexões EC2. S3 com Parquet e partições favorece retenção e consultas ocasionais que leem apenas o intervalo relevante. Logs Insights pode consultar logs, mas retenção e varredura de meses podem ser menos adequadas ao padrão econômico e esporádico informado. Findings não substituem um histórico consultável de todos os fluxos para investigar bytes por destino.",
+      "hint": "O dado precisa existir antes da investigação; escolha o formato e a consulta para o padrão de retenção.",
       "optionRationales": [
-        "Entregar VPC Flow Logs ao S3 em formato Parquet particionado reduz significativamente o custo de armazenamento e o volume de dados escaneado por consulta; o Amazon Athena permite consultas SQL ad-hoc sobre meses de dados históricos, filtrando por bytes transferidos e IPs específicos, de forma econômica e escalável — ideal para identificar padrões de exfiltração ao longo do tempo.",
-        "Manter vários meses de flow logs de alto volume no CloudWatch Logs tem custo de armazenamento significativamente maior do que no S3, e consultas do CloudWatch Logs Insights sobre grandes volumes de dados históricos tendem a ser mais lentas e caras do que consultas Athena sobre dados particionados em formato colunar no S3.",
-        "O GuardDuty pode gerar um finding relevante (ex.: volume anormal de tráfego), mas para uma análise forense detalhada de padrões históricos de fluxo (bytes ao longo do tempo, IPs/portas específicas durante meses), é necessária a análise direta dos flow logs, que o GuardDuty não substitui.",
-        "O CloudTrail registra chamadas de API (eventos de gerenciamento e de dados de serviços suportados), não tráfego de rede bruto entre endereços IP; ele não capturaria uma instância comprometida exfiltrando dados via um socket de rede diretamente para um IP externo arbitrário."
+        "CloudTrail registra chamadas API, não todo o volume de bytes das conexões EC2.",
+        "S3 com Parquet e partições favorece retenção e consultas ocasionais que leem apenas o intervalo relevante.",
+        "Logs Insights pode consultar logs, mas retenção e varredura de meses podem ser menos adequadas ao padrão econômico e esporádico informado.",
+        "Findings não substituem um histórico consultável de todos os fluxos para investigar bytes por destino."
       ],
       "topics": [
         "vpc",
@@ -1372,19 +1372,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa precisa garantir que TODO objeto enviado para um bucket S3 específico seja criptografado com uma CMK do KMS designada, e que uploads que não especifiquem essa criptografia sejam REJEITADOS no momento do upload — independentemente das permissões IAM concedidas ao usuário que está fazendo o upload (defesa em profundidade). Qual configuração atende a esse requisito?",
       "options": [
-        "Habilitar a criptografia padrão (Default Encryption) do bucket com SSE-KMS usando a CMK designada, sem nenhuma política de bucket adicional.",
-        "Criar uma regra do AWS Config ('s3-bucket-server-side-encryption-enabled') com remediação automática que re-criptografe objetos não conformes após o upload.",
-        "Anexar a cada usuário IAM uma política que exija o cabeçalho de criptografia em chamadas s3:PutObject.",
-        "Criar uma política de bucket com uma instrução Deny para a ação s3:PutObject quando a condição 's3:x-amz-server-side-encryption-aws-kms-key-id' não corresponder ao ARN da CMK designada (ou o cabeçalho de criptografia não for 'aws:kms')."
+        "Configurar SSE-KMS padrão com a chave exigida e permitir uploads sem cabeçalhos de criptografia.",
+        "Avaliar criptografia no Config e regravar objetos não conformes com a chave exigida.",
+        "Anexar políticas condicionais apenas às roles de upload conhecidas e manter a bucket policy atual.",
+        "Usar Deny no bucket para algoritmo ausente/incorreto e para ARN de chave ausente/incorreto."
       ],
       "correct": 3,
-      "explanation": "Uma política de bucket com Deny explícito é avaliada independentemente das permissões IAM do principal que faz a requisição; condicionar essa negação ao cabeçalho de criptografia (e ao ID da CMK específica) garante que qualquer upload que não especifique a criptografia correta seja rejeitado no nível do recurso, mesmo que o usuário tenha permissões IAM amplas de s3:PutObject.",
-      "hint": "Pense no tipo de política aplicada diretamente ao recurso (não à identidade) que pode negar uma ação com base em condições sobre os cabeçalhos da própria requisição, independentemente de quem a faça.",
+      "explanation": "Default encryption aplica um padrão, mas não rejeita a ausência explícita dos cabeçalhos exigidos. Config atua depois do upload; não é um bloqueio preventivo PutObject. Políticas nas identidades não criam uma barreira uniforme do bucket contra outros principais autorizados. Declarações Deny separadas devem rejeitar algoritmo ausente/incorreto e ARN da chave ausente/incorreto; combinar condições em AND pode deixar lacunas.",
+      "hint": "Uma criptografia padrão não equivale à rejeição de uma solicitação sem a declaração exigida.",
       "optionRationales": [
-        "Uma política de bucket com Deny explícito é avaliada independentemente das permissões IAM do principal que faz a requisição; condicionar essa negação ao cabeçalho de criptografia (e ao ID da CMK específica) garante que qualquer upload que não especifique a criptografia correta seja rejeitado no nível do recurso, mesmo que o usuário tenha permissões IAM amplas de s3:PutObject.",
-        "A criptografia padrão aplica automaticamente a criptografia especificada a objetos que não especificam explicitamente uma configuração de criptografia, mas não REJEITA uploads que especifiquem explicitamente uma criptografia diferente (ou nenhuma, dependendo da configuração do cliente); ela não atua como um controle de rejeição.",
-        "Uma restrição apenas na política IAM do usuário não protegeria contra uploads feitos por outras identidades (como roles administrativas) cuja política IAM não inclua essa restrição, não atendendo ao requisito de que a rejeição ocorra independentemente das permissões IAM do solicitante.",
-        "Essa abordagem é detectiva e reativa: o objeto é primeiro aceito sem a criptografia correta e só depois corrigido, o que não atende ao requisito de REJEIÇÃO no momento do upload."
+        "Default encryption aplica um padrão, mas não rejeita a ausência explícita dos cabeçalhos exigidos.",
+        "Config atua depois do upload; não é um bloqueio preventivo PutObject.",
+        "Políticas nas identidades não criam uma barreira uniforme do bucket contra outros principais autorizados.",
+        "Declarações Deny separadas devem rejeitar algoritmo ausente/incorreto e ARN da chave ausente/incorreto; combinar condições em AND pode deixar lacunas."
       ],
       "topics": [
         "security-services",
@@ -1397,19 +1397,19 @@
       "domain": "secure-architectures",
       "text": "Instâncias EC2 em sub-redes privadas (sem NAT Gateway ou Internet Gateway) executam uma aplicação que faz chamadas frequentes a kms:Decrypt e kms:GenerateDataKey para descriptografar dados no lado do cliente. A equipe de segurança exige que TODAS essas chamadas de API ao KMS permaneçam dentro da rede privada da AWS, sem qualquer dependência de conectividade com a internet. Qual configuração atende a esse requisito?",
       "options": [
-        "Provisionar um NAT Gateway em uma sub-rede pública e rotear o tráfego de saída das sub-redes privadas para a internet através dele.",
-        "Usar o AWS Encryption SDK para fazer cache local das data keys, eliminando a necessidade de chamadas ao KMS.",
-        "Criar um Gateway VPC Endpoint para o AWS KMS nas sub-redes privadas.",
-        "Criar um VPC Interface Endpoint (powered by AWS PrivateLink) para o AWS KMS nas sub-redes privadas, permitindo que as instâncias EC2 façam chamadas de API ao KMS através de conectividade privada, sem necessidade de acesso à internet."
+        "Criar NAT Gateway e restringir sua saída aos endereços publicados dos endpoints KMS.",
+        "Usar cache de data keys no Encryption SDK e manter as sub-redes sem rota para o KMS.",
+        "Adicionar um gateway endpoint KMS às tabelas de rotas das sub-redes privadas.",
+        "Criar interface endpoint KMS com DNS privado e permitir HTTPS a partir da aplicação."
       ],
       "correct": 3,
-      "explanation": "O AWS KMS oferece suporte a VPC Interface Endpoints via PrivateLink, permitindo que chamadas de API como kms:Decrypt e kms:GenerateDataKey sejam feitas inteiramente através da rede privada da AWS, sem depender de um NAT Gateway, Internet Gateway ou qualquer rota para a internet pública.",
-      "hint": "Pense no tipo específico de VPC Endpoint que o KMS suporta, baseado na tecnologia que fornece conectividade privada a serviços da AWS através de uma interface de rede na sub-rede.",
+      "explanation": "NAT não atende à ausência de dependência de conectividade pública especificada. Cache reduz chamadas, mas novas chaves e misses continuam exigindo comunicação KMS. KMS utiliza endpoint de interface, não gateway endpoint. Interface endpoint com DNS privado e regras de segurança adequadas permite chamar KMS pela rede privada.",
+      "hint": "Verifique o tipo de endpoint suportado pelo serviço, além das permissões KMS.",
       "optionRationales": [
-        "O AWS KMS oferece suporte a VPC Interface Endpoints via PrivateLink, permitindo que chamadas de API como kms:Decrypt e kms:GenerateDataKey sejam feitas inteiramente através da rede privada da AWS, sem depender de um NAT Gateway, Internet Gateway ou qualquer rota para a internet pública.",
-        "O AWS KMS não oferece suporte a Gateway VPC Endpoints — esse tipo de endpoint está disponível apenas para Amazon S3 e Amazon DynamoDB; para o KMS, o tipo de endpoint suportado é o Interface Endpoint via PrivateLink.",
-        "Embora um NAT Gateway permita que as instâncias alcancem o endpoint público do KMS, isso faz com que as chamadas dependam de conectividade com a internet (mesmo que dentro do backbone da AWS), violando o requisito explícito de nenhuma dependência de internet, além de incorrer em custos de processamento de dados do NAT Gateway.",
-        "O cache de data keys reduz a frequência de chamadas ao KMS, mas não elimina completamente a necessidade de chamadas periódicas (quando o cache expira) nem estabelece, por si só, conectividade privada para essas chamadas — não resolve o requisito de caminho de rede."
+        "NAT não atende à ausência de dependência de conectividade pública especificada.",
+        "Cache reduz chamadas, mas novas chaves e misses continuam exigindo comunicação KMS.",
+        "KMS utiliza endpoint de interface, não gateway endpoint.",
+        "Interface endpoint com DNS privado e regras de segurança adequadas permite chamar KMS pela rede privada."
       ],
       "topics": [
         "vpc",
@@ -1420,21 +1420,21 @@
     {
       "id": "saa-avc-059",
       "domain": "secure-architectures",
-      "text": "Em uma auditoria de segurança, a equipe precisa verificar, em uma arquitetura complexa com múltiplas tabelas de rotas, NACLs, Security Groups, conexões de peering e anexos de Transit Gateway, se existe algum caminho de rede não intencional que permita acesso vindo da internet (via Internet Gateway) até um conjunto de bancos de dados internos sensíveis — mesmo que esse caminho nunca tenha sido efetivamente utilizado. Qual serviço identifica automaticamente TODOS os caminhos possíveis que correspondem a esse padrão de acesso indesejado em toda a configuração de rede?",
+      "text": "Uma auditoria precisa descobrir caminhos potenciais da internet a um conjunto de recursos sensíveis, mesmo sem tráfego observado. Todos os componentes estão dentro da cobertura documentada da ferramenta, na conta e Região analisadas. Qual recurso permite descrever esse padrão e procurar os caminhos correspondentes na configuração?",
       "options": [
-        "AWS Network Access Analyzer, definindo um Network Access Scope que descreve o padrão de acesso indesejado (ex.: de um Internet Gateway até recursos com a tag 'sensitive'), gerando findings para todos os caminhos de rede que correspondem a esse escopo.",
-        "Usar as verificações de segurança do AWS Trusted Advisor para identificar Security Groups com regras abertas.",
-        "Analisar os VPC Flow Logs com Amazon Athena para identificar tráfego originado da internet em direção aos bancos de dados internos.",
-        "VPC Reachability Analyzer, testando a conectividade entre um par específico de origem e destino."
+        "Definir um Network Access Scope no Network Access Analyzer e analisar os caminhos correspondentes.",
+        "Executar verificações Trusted Advisor para portas abertas nos Security Groups dos bancos.",
+        "Consultar Flow Logs no Athena e procurar origens externas que já acessaram os bancos.",
+        "Executar Reachability Analyzer somente para um par de ENIs conhecido de aplicação e banco."
       ],
       "correct": 0,
-      "explanation": "O AWS Network Access Analyzer foi projetado para analisar toda a configuração de rede (tabelas de rotas, NACLs, Security Groups, peering, Transit Gateway, etc.) em busca de caminhos que correspondam a um Network Access Scope definido pelo usuário, identificando proativamente caminhos de acesso não intencionais — mesmo que nunca tenham sido utilizados — sem exigir testes ponto a ponto manuais.",
-      "hint": "Pense no serviço que permite definir formalmente um 'escopo de acesso' indesejado e varre toda a configuração de rede em busca de qualquer caminho possível que o satisfaça, mesmo que nunca tenha sido usado.",
+      "explanation": "Network Access Analyzer encontra caminhos que correspondem ao escopo dentro dos recursos e configurações suportados. Uma verificação de Security Group isolada não analisa todos os componentes do caminho. Flow Logs só contém tráfego observado; ausência de registros não prova ausência de caminho. Reachability Analyzer é adequado à análise de um par especificado, não à descoberta abrangente solicitada por escopo.",
+      "hint": "O objetivo é descobrir acesso potencial por um escopo, não apenas observar tráfego ou testar um par.",
       "optionRationales": [
-        "O AWS Network Access Analyzer foi projetado para analisar toda a configuração de rede (tabelas de rotas, NACLs, Security Groups, peering, Transit Gateway, etc.) em busca de caminhos que correspondam a um Network Access Scope definido pelo usuário, identificando proativamente caminhos de acesso não intencionais — mesmo que nunca tenham sido utilizados — sem exigir testes ponto a ponto manuais.",
-        "O Reachability Analyzer testa conectividade ponto a ponto entre uma origem e um destino específicos, sendo útil para diagnosticar um problema de conectividade conhecido; ele não foi projetado para escanear toda a rede em busca de TODOS os caminhos que correspondam a um padrão geral de acesso indesejado entre muitos recursos.",
-        "Os VPC Flow Logs mostram o tráfego efetivamente observado, não caminhos potenciais que poderiam existir na configuração mas nunca foram utilizados; essa análise não identificaria um caminho não intencional que ainda não foi explorado.",
-        "O Trusted Advisor oferece verificações gerais de boas práticas (como Security Groups com portas abertas), mas não realiza uma análise de caminhos de rede de ponta a ponta através de múltiplos componentes (rotas, NACLs, peering, Transit Gateway) para identificar um escopo de acesso indesejado específico."
+        "Network Access Analyzer encontra caminhos que correspondem ao escopo dentro dos recursos e configurações suportados.",
+        "Uma verificação de Security Group isolada não analisa todos os componentes do caminho.",
+        "Flow Logs só contém tráfego observado; ausência de registros não prova ausência de caminho.",
+        "Reachability Analyzer é adequado à análise de um par especificado, não à descoberta abrangente solicitada por escopo."
       ],
       "topics": [
         "vpc"
@@ -1445,19 +1445,19 @@
       "domain": "secure-architectures",
       "text": "Uma arquitetura orientada a eventos usa filas Amazon SQS e tópicos Amazon SNS para transmitir mensagens contendo dados sensíveis de clientes (PII) entre microsserviços desacoplados. Uma exigência de compliance determina que o corpo dessas mensagens seja criptografado EM REPOUSO enquanto estiver na fila/tópico, usando uma chave sob controle da empresa (rotacionável e auditável). Qual configuração atende a esse requisito com o menor esforço de implementação?",
       "options": [
-        "Confiar apenas na criptografia em trânsito (TLS) das chamadas de API ao SQS e SNS, já que as mensagens permanecem na fila/tópico por pouco tempo.",
-        "Substituir o SQS e o SNS por armazenamento das mensagens em buckets S3 com SSE-KMS, já que o S3 suporta nativamente criptografia com KMS.",
-        "Criptografar o corpo das mensagens na camada de aplicação usando uma chave AES fixa embutida no código, antes de publicá-las no SQS/SNS.",
-        "Habilitar a criptografia do lado do servidor (SSE) nas filas SQS e nos tópicos SNS usando uma CMK gerenciada pelo cliente no AWS KMS, garantindo que produtores e consumidores tenham as permissões kms:GenerateDataKey e kms:Decrypt necessárias."
+        "Exigir HTTPS nas políticas de SQS e SNS e manter apenas a proteção do canal de transporte.",
+        "Usar chaves pertencentes ou gerenciadas pela AWS para armazenar as mensagens dos dois serviços.",
+        "Implementar criptografia envelope em produtores e consumidores e distribuir data keys pela aplicação.",
+        "Habilitar SSE-KMS nas filas e tópicos com chave do cliente e permissões KMS para cada integração."
       ],
       "correct": 3,
-      "explanation": "Tanto o SQS quanto o SNS suportam nativamente criptografia do lado do servidor (SSE) usando uma CMK do cliente; isso criptografa o corpo das mensagens em repouso enquanto permanecem na fila/tópico, com a chave sendo totalmente controlada, rotacionável e auditável (via CloudTrail) pela empresa, exigindo apenas a configuração da SSE e das permissões de KMS para produtores/consumidores.",
-      "hint": "Tanto as filas quanto os tópicos de mensagens dessa arquitetura possuem suporte nativo a um tipo específico de criptografia em repouso usando chaves gerenciadas pelo cliente — não é necessário reinventar isso na camada de aplicação.",
+      "explanation": "TLS protege trânsito, não armazenamento das mensagens. SSE gerenciada pelo serviço protege armazenamento, mas não fornece a chave administrada pela empresa. Criptografia na aplicação pode atender com bom gerenciamento, mas exige implementação e operação extras. SSE-KMS com chave gerenciada pelo cliente protege mensagens em repouso. Autorizações KMS devem ser ajustadas ao produtor, consumidor e integração, sem conceder ações desnecessárias.",
+      "hint": "A alternativa precisa combinar proteção em repouso, controle da chave e baixo esforço de implementação.",
       "optionRationales": [
-        "Tanto o SQS quanto o SNS suportam nativamente criptografia do lado do servidor (SSE) usando uma CMK do cliente; isso criptografa o corpo das mensagens em repouso enquanto permanecem na fila/tópico, com a chave sendo totalmente controlada, rotacionável e auditável (via CloudTrail) pela empresa, exigindo apenas a configuração da SSE e das permissões de KMS para produtores/consumidores.",
-        "A criptografia em trânsito (TLS) protege os dados durante a transmissão para/do serviço, mas não atende ao requisito explícito de que o corpo da mensagem esteja criptografado EM REPOUSO enquanto armazenado na fila ou tópico, nem fornece uma chave sob controle/auditoria da empresa para esses dados armazenados.",
-        "Essa abordagem introduz um ônus significativo de gerenciamento de chaves (armazenamento seguro, rotação, auditoria de uma chave customizada) que o KMS já resolve nativamente; criptografar com uma chave fixa embutida no código também é uma prática de segurança ruim em comparação com a SSE nativa baseada em CMK.",
-        "Substituir filas e tópicos por armazenamento em S3 mudaria fundamentalmente a arquitetura de desacoplamento orientada a eventos (filas/pub-sub) para um modelo de armazenamento de objetos, uma mudança desnecessária já que tanto o SQS quanto o SNS suportam nativamente SSE com CMKs do cliente."
+        "TLS protege trânsito, não armazenamento das mensagens.",
+        "SSE gerenciada pelo serviço protege armazenamento, mas não fornece a chave administrada pela empresa.",
+        "Criptografia na aplicação pode atender com bom gerenciamento, mas exige implementação e operação extras.",
+        "SSE-KMS com chave gerenciada pelo cliente protege mensagens em repouso. Autorizações KMS devem ser ajustadas ao produtor, consumidor e integração, sem conceder ações desnecessárias."
       ],
       "topics": [
         "serverless",
@@ -1469,19 +1469,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa SaaS expõe um serviço através de um AWS PrivateLink VPC Endpoint Service. Ela quer garantir que SOMENTE uma lista específica de IDs de contas AWS (seus clientes pagantes) consiga criar Interface VPC Endpoints conectando-se a esse serviço — requisições de conexão de qualquer outra conta AWS devem ser automaticamente rejeitadas — e que novos clientes sejam adicionados à lista sem exigir aprovação manual individual para cada tentativa de conexão. Qual configuração atende a esse requisito?",
       "options": [
-        "Restringir o acesso usando um Security Group no Network Load Balancer por trás do serviço, permitindo apenas os blocos CIDR das VPCs dos clientes.",
-        "Habilitar 'Acceptance required' no VPC Endpoint Service, e ter um membro da equipe aprovando manualmente cada solicitação de conexão à medida que chega.",
-        "Configurar o VPC Endpoint Service com a opção 'Acceptance required' desabilitada, e adicionar os ARNs de principal das contas AWS permitidas (clientes pagantes) à lista de principals permitidos do serviço (via ModifyVpcEndpointServicePermissions).",
-        "Usar uma política baseada em recurso em uma IAM role para controlar quais contas podem criar o VPC Endpoint Service."
+        "Restringir o Security Group do NLB aos CIDRs dos clientes e manter principals abertos.",
+        "Habilitar Acceptance required e aprovar individualmente cada conexão dos clientes.",
+        "Configurar allowed principals para os clientes e desabilitar Acceptance required.",
+        "Permitir CreateVpcEndpointServiceConfiguration às contas clientes por uma role IAM."
       ],
       "correct": 2,
-      "explanation": "A lista de 'allowed principals' de um VPC Endpoint Service determina quais contas AWS podem criar Interface VPC Endpoints para o serviço; com 'Acceptance required' desabilitado, conexões de contas presentes nessa lista são estabelecidas automaticamente (sem aprovação manual), enquanto tentativas de contas fora da lista são automaticamente rejeitadas — atendendo a ambos os requisitos.",
-      "hint": "Pense na configuração do próprio VPC Endpoint Service que define, de forma autosserviço, quais contas AWS têm permissão para se conectar, sem exigir aprovação manual a cada nova solicitação.",
+      "explanation": "Filtros de rede controlam tráfego, não quais contas podem estabelecer a conexão ao endpoint service. Acceptance required exige aceitação por solicitação, contrariando o fluxo pedido. Allowed principals restringe quem pode conectar; desabilitar aceitação manual permite conexão automática somente aos autorizados. Permissões para criar o endpoint service não são a lista de consumidores autorizados a conectar ao serviço existente.",
+      "hint": "Autorização do consumidor e aceitação de uma conexão são controles separados.",
       "optionRationales": [
-        "A lista de 'allowed principals' de um VPC Endpoint Service determina quais contas AWS podem criar Interface VPC Endpoints para o serviço; com 'Acceptance required' desabilitado, conexões de contas presentes nessa lista são estabelecidas automaticamente (sem aprovação manual), enquanto tentativas de contas fora da lista são automaticamente rejeitadas — atendendo a ambos os requisitos.",
-        "Essa abordagem contraria diretamente o requisito de que novos clientes sejam adicionados sem exigir aprovação manual individual para cada tentativa de conexão, além de não escalar operacionalmente conforme o número de clientes cresce.",
-        "Em conexões via PrivateLink, os blocos CIDR das VPCs dos clientes não são diretamente visíveis ou relevantes para os Security Groups do provedor da forma necessária para um allowlist por conta AWS, além de CIDRs de clientes poderem se sobrepor ou serem desconhecidos pelo provedor; o controle de acesso ao serviço é feito pela lista de principals permitidos, não por Security Groups.",
-        "O controle de quais contas AWS podem se conectar a um VPC Endpoint Service é feito através da lista de 'allowed principals' configurada diretamente no próprio serviço (ModifyVpcEndpointServicePermissions), não através de políticas baseadas em recurso de IAM roles."
+        "Filtros de rede controlam tráfego, não quais contas podem estabelecer a conexão ao endpoint service.",
+        "Acceptance required exige aceitação por solicitação, contrariando o fluxo pedido.",
+        "Allowed principals restringe quem pode conectar; desabilitar aceitação manual permite conexão automática somente aos autorizados.",
+        "Permissões para criar o endpoint service não são a lista de consumidores autorizados a conectar ao serviço existente."
       ],
       "topics": [
         "vpc"
@@ -1492,19 +1492,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa está passando por uma auditoria SOC 2 e PCI DSS, e o auditor externo solicita relatórios de compliance da própria AWS (como relatórios SOC e certificações ISO) e a revisão/aceite de acordos como o Business Associate Addendum (BAA), como evidência de que a infraestrutura subjacente da AWS atende aos padrões relevantes. Onde a equipe pode obter rapidamente esses relatórios e acordos, em regime de autoatendimento, sem abrir um chamado de suporte?",
       "options": [
-        "Conformance Packs do AWS Config, que geram automaticamente os relatórios de certificação SOC e PCI DSS da AWS.",
-        "AWS Trusted Advisor, que fornece relatórios de compliance da infraestrutura da AWS específicos para a conta do cliente.",
-        "AWS Audit Manager, que coleta automaticamente as certificações SOC e PCI DSS da AWS para anexar aos relatórios de auditoria do cliente.",
-        "AWS Artifact, um portal de autoatendimento que fornece acesso sob demanda aos relatórios de compliance da AWS (SOC, PCI DSS, certificações ISO) e permite revisar e aceitar acordos como o BAA e NDAs."
+        "Usar Conformance Packs do Config para obter os relatórios SOC e acordos da AWS.",
+        "Usar Trusted Advisor para baixar as certificações e aceitar o BAA da infraestrutura.",
+        "Usar Audit Manager para gerar as certificações da AWS e assinar seus acordos.",
+        "Usar AWS Artifact para acessar relatórios de compliance e revisar os acordos disponíveis."
       ],
       "correct": 3,
-      "explanation": "O AWS Artifact foi projetado especificamente como um portal de autoatendimento para download dos relatórios de auditoria e certificações de compliance da própria AWS (SOC 1/2/3, PCI DSS, ISO 27001, entre outros), além de permitir a revisão e aceitação online de acordos como o Business Associate Addendum, atendendo exatamente à necessidade da auditoria.",
-      "hint": "Pense no portal de autoatendimento criado especificamente para fornecer aos clientes os relatórios de auditoria de terceiros sobre a própria infraestrutura da AWS e acordos legais relacionados a compliance.",
+      "explanation": "Config avalia recursos do cliente; não publica os relatórios de auditoria da AWS. Trusted Advisor verifica boas práticas do ambiente, não é o portal de acordos. Audit Manager organiza evidências do cliente; não substitui o portal de relatórios e aceite da AWS. Artifact oferece acesso aos relatórios e acordos disponíveis, sujeito às permissões e termos aplicáveis.",
+      "hint": "A evidência solicitada é da infraestrutura da AWS, não uma avaliação dos recursos do cliente.",
       "optionRationales": [
-        "O AWS Artifact foi projetado especificamente como um portal de autoatendimento para download dos relatórios de auditoria e certificações de compliance da própria AWS (SOC 1/2/3, PCI DSS, ISO 27001, entre outros), além de permitir a revisão e aceitação online de acordos como o Business Associate Addendum, atendendo exatamente à necessidade da auditoria.",
-        "O Trusted Advisor fornece recomendações específicas sobre os recursos da própria conta do cliente (custo, segurança, performance, limites), não os relatórios de auditoria de terceiros sobre a infraestrutura global da AWS exigidos por um auditor SOC 2/PCI DSS.",
-        "Conformance Packs do AWS Config avaliam a CONFIGURAÇÃO DOS RECURSOS DO CLIENTE em relação a um framework de compliance, mas não geram nem fornecem os relatórios de auditoria de terceiros sobre a infraestrutura da própria AWS.",
-        "O AWS Audit Manager ajuda o cliente a coletar evidências sobre o USO QUE ELE FAZ da AWS para apoiar suas próprias auditorias; os relatórios de auditoria de terceiros sobre a infraestrutura da AWS em si são obtidos através do AWS Artifact."
+        "Config avalia recursos do cliente; não publica os relatórios de auditoria da AWS.",
+        "Trusted Advisor verifica boas práticas do ambiente, não é o portal de acordos.",
+        "Audit Manager organiza evidências do cliente; não substitui o portal de relatórios e aceite da AWS.",
+        "Artifact oferece acesso aos relatórios e acordos disponíveis, sujeito às permissões e termos aplicáveis."
       ],
       "topics": [
         "monitoring"
@@ -1515,19 +1515,19 @@
       "domain": "secure-architectures",
       "text": "Várias instâncias EC2, distribuídas em múltiplas AZs, montam um sistema de arquivos Amazon EFS compartilhado contendo registros financeiros sensíveis. Uma exigência de compliance determina que o sistema de arquivos seja criptografado EM REPOUSO e que todo o tráfego NFS entre as instâncias EC2 e o EFS seja criptografado EM TRÂNSITO, com a menor complexidade de configuração possível no lado do cliente. Qual abordagem atende a AMBOS os requisitos?",
       "options": [
-        "Criar o sistema de arquivos EFS com criptografia em repouso habilitada (usando uma CMK do KMS, definida no momento da criação) e montá-lo nas instâncias EC2 usando o EFS mount helper (amazon-efs-utils) com a opção 'tls', que estabelece automaticamente um túnel TLS para o tráfego NFS.",
-        "Habilitar a criptografia em repouso em um sistema de arquivos EFS existente e não criptografado através da opção 'Modify' no console.",
-        "Confiar apenas na criptografia em repouso, já que o tráfego do EFS permanece dentro da rede da AWS e não precisa de criptografia adicional em trânsito.",
-        "Configurar um túnel VPN IPsec entre cada instância EC2 e os mount targets do EFS."
+        "Criar EFS criptografado e montar com amazon-efs-utils usando a opção tls.",
+        "Modificar um EFS não criptografado para ativar KMS e manter montagens NFS comuns.",
+        "Criar EFS criptografado e restringir NFS por Security Group, sem habilitar TLS.",
+        "Criar EFS sem criptografia e terminar túneis IPsec diretamente em seus mount targets."
       ],
       "correct": 0,
-      "explanation": "A criptografia em repouso do EFS é definida no momento da criação do sistema de arquivos usando uma CMK do KMS; o EFS mount helper com a opção 'tls' estabelece automaticamente (via stunnel) um túnel criptografado para todo o tráfego NFS entre o cliente e o EFS, atendendo a ambos os requisitos com configuração mínima no lado do cliente.",
-      "hint": "Para ambos os requisitos (em repouso e em trânsito), pense em quando cada tipo de criptografia deve ser definida e em qual utilitário de montagem já oferece suporte nativo a uma dessas proteções com uma simples opção.",
+      "explanation": "Criptografia na criação protege o armazenamento e o mount helper com tls protege o canal NFS. Não é possível simplesmente ligar criptografia em repouso in-place em um EFS criado sem ela. Isolamento de rede não equivale à criptografia do NFS. Mount targets não terminam túneis IPsec customizados como proposto; o mount helper resolve o requisito TLS.",
+      "hint": "Trate criptografia do sistema de arquivos e proteção da montagem como controles independentes.",
       "optionRationales": [
-        "A criptografia em repouso do EFS é definida no momento da criação do sistema de arquivos usando uma CMK do KMS; o EFS mount helper com a opção 'tls' estabelece automaticamente (via stunnel) um túnel criptografado para todo o tráfego NFS entre o cliente e o EFS, atendendo a ambos os requisitos com configuração mínima no lado do cliente.",
-        "Assim como ocorre com o RDS, a criptografia em repouso do EFS só pode ser definida no momento da criação do sistema de arquivos; não é possível habilitá-la posteriormente em um sistema de arquivos existente e não criptografado — seria necessário criar um novo sistema de arquivos criptografado e migrar os dados (por exemplo, com o AWS DataSync).",
-        "Permanecer dentro da rede da AWS não atende a uma exigência explícita de criptografia em trânsito; o tráfego NFS não é criptografado por padrão, e a opção 'tls' do mount helper é necessária para satisfazer esse requisito explícito de compliance.",
-        "O EFS não exige nem é projetado para usar túneis VPN IPsec para criptografia em trânsito; o mecanismo suportado e simples para isso é a opção 'tls' embutida no EFS mount helper, baseada em stunnel."
+        "Criptografia na criação protege o armazenamento e o mount helper com tls protege o canal NFS.",
+        "Não é possível simplesmente ligar criptografia em repouso in-place em um EFS criado sem ela.",
+        "Isolamento de rede não equivale à criptografia do NFS.",
+        "Mount targets não terminam túneis IPsec customizados como proposto; o mount helper resolve o requisito TLS."
       ],
       "topics": [
         "security-services",
@@ -1540,19 +1540,19 @@
       "domain": "secure-architectures",
       "text": "Uma organização quer que eventos relevantes de segurança (como findings do GuardDuty e alterações de políticas IAM detectadas via CloudTrail) gerados em dezenas de contas-membro sejam roteados automaticamente, em tempo quase real, para um barramento de eventos customizado em uma conta central de segurança, onde fluxos de resposta automatizada (Step Functions, Lambda) são acionados — usando uma arquitetura orientada a eventos e fracamente acoplada, sem polling. Qual configuração atende a esse requisito?",
       "options": [
-        "Configurar cada conta-membro para publicar eventos em um tópico SNS na conta central, e ter uma função Lambda na conta de segurança fazendo polling do GuardDuty em cada conta periodicamente.",
-        "Na conta central de segurança, criar um barramento de eventos customizado do Amazon EventBridge com uma política baseada em recurso que permita PutEvents das contas-membro (usando a condição aws:PrincipalOrgID); em cada conta-membro, criar regras do EventBridge que correspondam aos eventos relevantes e tenham o barramento central como destino entre contas.",
-        "Usar um AWS Config aggregator na conta de segurança para receber findings do GuardDuty e alterações de políticas IAM das contas-membro.",
-        "Configurar consultas agendadas no CloudTrail Lake da conta de segurança para recuperar periodicamente eventos relevantes das contas-membro."
+        "Executar Lambda agendada para consultar GuardDuty em cada conta e publicar resultados em SNS.",
+        "Configurar regras EventBridge entre contas, roles emissoras e policy do barramento central por organização.",
+        "Agregar as contas no Config e usar o aggregator como destino direto de findings e eventos CloudTrail.",
+        "Agendar consultas CloudTrail Lake e copiar seus resultados para o fluxo central de resposta."
       ],
       "correct": 1,
-      "explanation": "Um barramento de eventos customizado do EventBridge com política de recurso permitindo PutEvents de toda a organização (via aws:PrincipalOrgID) permite que regras do EventBridge em cada conta-membro encaminhem eventos relevantes (como findings do GuardDuty, disponíveis no barramento de eventos padrão) diretamente para o barramento central como destino entre contas, em tempo quase real e sem polling.",
-      "hint": "Pense no serviço de roteamento de eventos que permite que regras em contas-membro enviem eventos diretamente para um barramento customizado em outra conta, controlado por uma política baseada em recurso.",
+      "explanation": "Polling contraria o requisito de roteamento orientado a eventos. EventBridge pode encaminhar a barramento de outra conta: regras e roles emissoras, mais a resource policy do destino, precisam autorizar PutEvents. Config aggregator não é o barramento de findings e eventos CloudTrail solicitado. Consultas agendadas são polling e exigem processamento customizado posterior.",
+      "hint": "O produtor precisa de permissão para enviar e o barramento central precisa aceitar a origem.",
       "optionRationales": [
-        "Um barramento de eventos customizado do EventBridge com política de recurso permitindo PutEvents de toda a organização (via aws:PrincipalOrgID) permite que regras do EventBridge em cada conta-membro encaminhem eventos relevantes (como findings do GuardDuty, disponíveis no barramento de eventos padrão) diretamente para o barramento central como destino entre contas, em tempo quase real e sem polling.",
-        "Fazer polling periódico da API do GuardDuty em dezenas de contas introduz latência, não escala bem e é exatamente o padrão baseado em polling que a arquitetura orientada a eventos busca evitar, em contraste com o roteamento por regras e barramentos do EventBridge.",
-        "Aggregators do AWS Config agregam dados de configuração e conformidade de recursos entre contas, não findings do GuardDuty nem eventos arbitrários detectados via CloudTrail; não é o mecanismo adequado para rotear esses eventos específicos.",
-        "O CloudTrail Lake permite consultar eventos históricos via SQL, mas consultas agendadas representam um modelo de polling periódico, não um mecanismo de roteamento orientado a eventos em tempo quase real, comparável aos barramentos e regras do EventBridge entre contas."
+        "Polling contraria o requisito de roteamento orientado a eventos.",
+        "EventBridge pode encaminhar a barramento de outra conta: regras e roles emissoras, mais a resource policy do destino, precisam autorizar PutEvents.",
+        "Config aggregator não é o barramento de findings e eventos CloudTrail solicitado.",
+        "Consultas agendadas são polling e exigem processamento customizado posterior."
       ],
       "topics": [
         "iam",
@@ -1565,19 +1565,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa usa o AWS Backup para gerenciar centralmente backups de instâncias RDS, volumes EBS e tabelas DynamoDB em múltiplas contas via AWS Organizations. Uma nova exigência regulatória determina que esses backups sejam imutáveis por um período mínimo de retenção — NEM MESMO um administrador da conta com permissões totais no AWS Backup deve conseguir excluir pontos de recuperação ou reduzir o período de retenção antes de seu término, como proteção contra ransomware. Qual configuração atende a esse requisito?",
       "options": [
-        "Habilitar o AWS Backup Vault Lock no modo Compliance no cofre de backup, com um período de retenção mínimo definido.",
-        "Habilitar o AWS Backup Vault Lock no modo Governance no cofre de backup, com um período de retenção mínimo definido.",
-        "Criar uma política IAM que negue a ação backup:DeleteRecoveryPoint para todas as roles, exceto uma role designada 'backup-admin'.",
-        "Habilitar o S3 Object Lock no armazenamento S3 subjacente usado pelo AWS Backup."
+        "Aplicar Vault Lock Compliance com retenção mínima e concluir o período de carência do lock.",
+        "Aplicar Vault Lock Governance com retenção mínima e conceder administração integral ao operador.",
+        "Negar DeleteRecoveryPoint por IAM, excetuando a role que administra o cofre.",
+        "Aplicar Object Lock ao bucket interno usado pelo serviço AWS Backup para persistir o cofre."
       ],
       "correct": 0,
-      "explanation": "O AWS Backup Vault Lock no modo Compliance impede que qualquer usuário — incluindo administradores com permissões totais no AWS Backup e o usuário root — exclua pontos de recuperação ou reduza períodos de retenção antes do término definido; além disso, o próprio Vault Lock não pode ser removido durante o período de compliance, garantindo imutabilidade total.",
-      "hint": "Pense no mecanismo de imutabilidade específico do serviço de backup gerenciado da AWS, equivalente em conceito ao Object Lock do S3, mas aplicado a cofres de backup.",
+      "explanation": "Compliance torna o lock irremovível após o período de carência; então a retenção protegida não pode ser contornada por administradores. Governance permite que identidades autorizadas removam o lock. Uma política com exceção administrativa permite exatamente a exclusão que deve ser impedida. O cliente não administra um bucket S3 subjacente ao cofre para aplicar Object Lock diretamente.",
+      "hint": "Compare possibilidade de remover o lock e o efeito do período de carência.",
       "optionRationales": [
-        "O AWS Backup Vault Lock no modo Compliance impede que qualquer usuário — incluindo administradores com permissões totais no AWS Backup e o usuário root — exclua pontos de recuperação ou reduza períodos de retenção antes do término definido; além disso, o próprio Vault Lock não pode ser removido durante o período de compliance, garantindo imutabilidade total.",
-        "No modo Governance, usuários com permissões específicas ainda podem excluir pontos de recuperação ou remover o vault lock antes do término do período de retenção, não atendendo ao requisito de que NEM MESMO um administrador consiga fazer isso.",
-        "A própria role 'backup-admin' (ou qualquer pessoa com permissão para alterar políticas IAM) ainda poderia excluir pontos de recuperação ou modificar essa política, não oferecendo a garantia de imutabilidade fornecida pelo Vault Lock no modo Compliance.",
-        "O AWS Backup armazena pontos de recuperação em seu próprio armazenamento gerenciado, não em um bucket S3 acessível pelo cliente onde o Object Lock possa ser configurado diretamente; o mecanismo de imutabilidade equivalente para o AWS Backup é o Vault Lock."
+        "Compliance torna o lock irremovível após o período de carência; então a retenção protegida não pode ser contornada por administradores.",
+        "Governance permite que identidades autorizadas removam o lock.",
+        "Uma política com exceção administrativa permite exatamente a exclusão que deve ser impedida.",
+        "O cliente não administra um bucket S3 subjacente ao cofre para aplicar Object Lock diretamente."
       ],
       "topics": [
         "dr-backup",
@@ -1590,19 +1590,19 @@
       "domain": "secure-architectures",
       "text": "Uma aplicação multi-tenant criptografa dados de diferentes clientes usando a MESMA CMK do AWS KMS através de chamadas kms:Encrypt/kms:Decrypt. A equipe de segurança quer uma camada adicional de integridade e auditoria de modo que: (a) um ciphertext criptografado para o 'tenant A' NÃO possa ser descriptografado com sucesso se apresentado com o contexto do 'tenant B', mesmo usando a mesma CMK; e (b) os logs do CloudTrail mostrem claramente a qual tenant pertence cada chamada de criptografia/descriptografia ao KMS. Qual recurso do KMS atende a AMBOS os requisitos?",
       "options": [
-        "Embutir o ID do tenant como um prefixo nos dados em texto claro antes da criptografia, e validar esse prefixo na camada de aplicação após a descriptografia.",
-        "Usar um encryption context (um conjunto de pares chave-valor, ex.: {\"tenant_id\": \"A\"}) em toda chamada kms:Encrypt e kms:Decrypt; o KMS o utiliza como dados autenticados adicionais (AAD) — a descriptografia falha se o contexto não corresponder exatamente ao usado na criptografia — e o encryption context é registrado em texto claro no CloudTrail para cada chamada de API do KMS.",
-        "Confiar na rotação automática anual da CMK para garantir que dados de tenants diferentes nunca sejam descriptografados com o material de chave incorreto.",
-        "Aplicar tags de recurso na CMK identificando cada tenant que a utiliza."
+        "Incluir tenant_id no texto claro e conferir o prefixo somente após descriptografar o conteúdo.",
+        "Informar tenant_id em encryption context nas chamadas KMS e restringir seu uso por políticas.",
+        "Ativar rotação automática da chave e separar as gravações por data de geração do material.",
+        "Aplicar tags tenant_id à chave KMS compartilhada e atualizar as tags antes de cada chamada."
       ],
       "correct": 1,
-      "explanation": "O encryption context do KMS funciona como dados autenticados adicionais (AAD): se o contexto fornecido na chamada kms:Decrypt não corresponder exatamente ao usado durante kms:Encrypt, a operação falha criptograficamente, mesmo usando a mesma CMK — atendendo ao requisito (a); além disso, o KMS registra o encryption context em texto claro nos eventos do CloudTrail, permitindo identificar a qual tenant cada chamada se refere — atendendo ao requisito (b).",
-      "hint": "Pense no parâmetro opcional que pode ser passado em chamadas de criptografia/descriptografia do KMS, que atua como dado autenticado adicional e também aparece nos registros de auditoria de cada chamada.",
+      "explanation": "Um prefixo cifrado pode ser validado pela aplicação, mas não aparece como contexto auditável e autenticado pelo KMS. Encryption context é AAD e precisa corresponder na descriptografia; aparece em logs e não deve conter segredos. Autorização por tenant também precisa ser imposta. Rotação troca material da chave, não separa tenants que usam a mesma chave. Tags identificam o recurso chave, não vinculam cada ciphertext ao contexto do tenant.",
+      "hint": "O contexto deve ser autenticado junto ao ciphertext, mas pode ser registrado em texto claro.",
       "optionRationales": [
-        "O encryption context do KMS funciona como dados autenticados adicionais (AAD): se o contexto fornecido na chamada kms:Decrypt não corresponder exatamente ao usado durante kms:Encrypt, a operação falha criptograficamente, mesmo usando a mesma CMK — atendendo ao requisito (a); além disso, o KMS registra o encryption context em texto claro nos eventos do CloudTrail, permitindo identificar a qual tenant cada chamada se refere — atendendo ao requisito (b).",
-        "Essa validação ocorre apenas na camada de aplicação, APÓS a descriptografia já ter sido bem-sucedida pelo KMS independentemente do tenant; o KMS não recusaria a operação para um contexto incorreto, e essa abordagem não gera nenhum registro por tenant nos logs do CloudTrail das chamadas ao KMS.",
-        "Tags de recurso na CMK são metadados aplicados à chave como um todo (úteis para organização, alocação de custos ou ABAC sobre a própria chave), mas não vinculam um ciphertext específico a um tenant nem aparecem como contexto por chamada nos logs do CloudTrail de operações individuais de criptografia/descriptografia.",
-        "A rotação automática de chaves gera periodicamente novo material criptográfico, mas o material anterior é retido para descriptografar dados antigos; essa rotação não vincula um ciphertext específico ao contexto de um tenant nem impede a descriptografia cruzada entre tenants que compartilham a mesma CMK."
+        "Um prefixo cifrado pode ser validado pela aplicação, mas não aparece como contexto auditável e autenticado pelo KMS.",
+        "Encryption context é AAD e precisa corresponder na descriptografia; aparece em logs e não deve conter segredos. Autorização por tenant também precisa ser imposta.",
+        "Rotação troca material da chave, não separa tenants que usam a mesma chave.",
+        "Tags identificam o recurso chave, não vinculam cada ciphertext ao contexto do tenant."
       ],
       "topics": [
         "security-services",
@@ -1614,19 +1614,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa SaaS armazena dados de centenas de clientes (tenants) em uma tabela compartilhada do Amazon DynamoDB e em um bucket S3 compartilhado. Um novo cliente corporativo exige 'isolamento criptográfico de tenant': a capacidade de revogar de forma independente o acesso APENAS aos dados desse cliente (desabilitando ou agendando a exclusão de uma chave), sem afetar os demais tenants, e a garantia de que os dados desse cliente foram criptografados com uma chave dedicada, não compartilhada com outros tenants. Qual abordagem atende a esse requisito?",
       "options": [
-        "Usar SSE-S3 (AES-256 com chaves de propriedade da AWS) para os dados de cada tenant, já que o AES-256 já oferece criptografia forte por objeto.",
-        "Particionar os tenants em tabelas DynamoDB e prefixos S3 separados, dependendo de condições de política IAM para isolamento, sem envolver o KMS.",
-        "Usar criptografia envelope com uma CMK do AWS KMS dedicada por tenant; os itens/objetos de cada tenant são criptografados usando data keys geradas a partir da CMK específica daquele tenant, permitindo desabilitar ou agendar a exclusão da CMK de um tenant individual para revogar criptograficamente o acesso apenas aos dados dele.",
-        "Usar uma única CMK compartilhada para todos os tenants, aplicando políticas IAM diferentes por role de aplicação de cada tenant."
+        "Usar SSE-S3 nos objetos e criptografia padrão da tabela, com prefixos e chaves por tenant.",
+        "Separar tabelas e prefixos por tenant e aplicar autorização IAM, mantendo a chave compartilhada.",
+        "Aplicar envelope na aplicação com chave KMS por tenant e gerenciamento controlado de data keys.",
+        "Manter uma chave KMS comum e atribuir uma role e uma política de acesso para cada tenant."
       ],
       "correct": 2,
-      "explanation": "Com uma CMK dedicada por tenant, desabilitar ou excluir a chave de um tenant específico torna seus dados criptograficamente inacessíveis (mesmo que o item/objeto ainda exista no armazenamento compartilhado), sem afetar os data keys derivados das CMKs de outros tenants, atendendo precisamente ao requisito de isolamento e revogação criptográfica por tenant.",
-      "hint": "Pense em como a criptografia envelope, combinada com uma chave gerenciada pelo cliente por entidade, permite tornar dados especificos criptograficamente inacessíveis sem afetar outros dados que compartilham o mesmo armazenamento físico.",
+      "explanation": "SSE-S3 não oferece uma chave administrável separada por tenant. Separação lógica e IAM não comprovam uso de uma chave dedicada por cliente. Envelope com chave KMS por tenant separa proteção das data keys; bloquear a chave não apaga plaintext ou invalida imediatamente data keys já em cache. Políticas por role sobre uma chave compartilhada não atendem ao requisito de material dedicado por tenant.",
+      "hint": "O isolamento exigido é de chave criptográfica, não apenas de identidade ou namespace.",
       "optionRationales": [
-        "Com uma CMK dedicada por tenant, desabilitar ou excluir a chave de um tenant específico torna seus dados criptograficamente inacessíveis (mesmo que o item/objeto ainda exista no armazenamento compartilhado), sem afetar os data keys derivados das CMKs de outros tenants, atendendo precisamente ao requisito de isolamento e revogação criptográfica por tenant.",
-        "Com uma CMK compartilhada, desabilitar essa chave afetaria TODOS os tenants simultaneamente; não há como revogar criptograficamente o acesso aos dados de um único tenant de forma independente quando o material de chave subjacente é compartilhado por todos.",
-        "O SSE-S3 usa chaves de propriedade da AWS sem separação por chave para cada tenant e sem possibilidade de o cliente desabilitar uma chave para um tenant específico; oferece confidencialidade, mas não revogação criptográfica em nível de tenant.",
-        "O particionamento baseado em controle de acesso (IAM) oferece isolamento lógico de acesso, mas não isolamento CRIPTOGRÁFICO; uma credencial comprometida ou uma política mal configurada ainda poderia expor os dados, e essa abordagem não oferece o mecanismo de revogação via chave exigido pelo cliente."
+        "SSE-S3 não oferece uma chave administrável separada por tenant.",
+        "Separação lógica e IAM não comprovam uso de uma chave dedicada por cliente.",
+        "Envelope com chave KMS por tenant separa proteção das data keys; bloquear a chave não apaga plaintext ou invalida imediatamente data keys já em cache.",
+        "Políticas por role sobre uma chave compartilhada não atendem ao requisito de material dedicado por tenant."
       ],
       "topics": [
         "security-services",
@@ -1639,19 +1639,19 @@
       "domain": "secure-architectures",
       "text": "Um aplicativo móvel usa Amazon Cognito Identity Pools para fornecer credenciais temporárias tanto a usuários autenticados (via User Pool) quanto a usuários não autenticados ('guest', que navegam por conteúdo público antes de se cadastrarem). A equipe de segurança está preocupada que a role IAM atribuída a identidades não autenticadas possa estar com permissões excessivas, permitindo que usuários guest acessem recursos destinados apenas a usuários autenticados. Qual é a prática recomendada para mitigar esse risco sem eliminar a experiência de 'navegar como guest'?",
       "options": [
-        "Usar uma única role IAM compartilhada para identidades autenticadas e não autenticadas, confiando na lógica da aplicação para impedir que guests chamem APIs sensíveis.",
-        "Conceder à role não autenticada a política gerenciada AmazonS3ReadOnlyAccess, já que 'somente leitura' é considerado inerentemente seguro para usuários guest.",
-        "Configurar duas roles IAM SEPARADAS no Identity Pool — uma para identidades autenticadas e outra para identidades não autenticadas — com a role não autenticada restrita estritamente às permissões mínimas de leitura/conteúdo público (least privilege), e revisar periodicamente essa política.",
-        "Desabilitar completamente o acesso não autenticado no Identity Pool, exigindo que todos os usuários, incluindo guests navegando por conteúdo público, façam login via User Pool primeiro."
+        "Compartilhar a role autenticada com guest e filtrar os recursos apenas na interface do aplicativo.",
+        "Usar AmazonS3ReadOnlyAccess na role guest para permitir leitura em todos os buckets autorizados.",
+        "Usar roles separadas e restringir guest ao conteúdo público, com trust policy para o pool e estado.",
+        "Desativar identidades não autenticadas e exigir login para todo acesso ao conteúdo público."
       ],
       "correct": 2,
-      "explanation": "O Cognito Identity Pool permite associar roles IAM distintas para identidades autenticadas e não autenticadas; restringir a role não autenticada ao mínimo necessário (somente recursos públicos de leitura) garante que credenciais de guest nunca consigam acessar ações ou recursos reservados a usuários autenticados, preservando a experiência de navegação como guest com least privilege.",
-      "hint": "Lembre-se de que o Identity Pool permite atribuir roles IAM diferentes para cada tipo de identidade — o problema está no escopo da política da role específica, não na funcionalidade de acesso não autenticado em si.",
+      "explanation": "Controle no cliente pode ser contornado com as credenciais temporárias obtidas. ReadOnly amplo pode expor dados privados; leitura não é automaticamente segura. Roles separadas com menor privilégio limitam guest ao conteúdo público; trust policies devem restringir pool e estado de autenticação. Desabilitar guest remove a experiência que precisa ser mantida.",
+      "hint": "Considere o que alguém consegue fazer chamando as APIs diretamente com a credencial guest.",
       "optionRationales": [
-        "O Cognito Identity Pool permite associar roles IAM distintas para identidades autenticadas e não autenticadas; restringir a role não autenticada ao mínimo necessário (somente recursos públicos de leitura) garante que credenciais de guest nunca consigam acessar ações ou recursos reservados a usuários autenticados, preservando a experiência de navegação como guest com least privilege.",
-        "Desabilitar o acesso não autenticado eliminaria a experiência legítima de 'navegar como guest' antes do cadastro que o aplicativo requer, sendo uma correção excessiva em vez de simplesmente restringir corretamente as permissões da role não autenticada.",
-        "Depender de lógica do lado do cliente para controle de autorização é inseguro, pois um usuário malicioso poderia contornar o aplicativo e usar as credenciais de guest diretamente para chamar qualquer ação permitida pela role compartilhada, incluindo ações destinadas a usuários autenticados.",
-        "A política AmazonS3ReadOnlyAccess concede acesso de leitura a TODOS os buckets e objetos S3 da conta, não apenas aos destinados a conteúdo público, o que poderia expor buckets privados a usuários não autenticados, violando o princípio de menor privilégio."
+        "Controle no cliente pode ser contornado com as credenciais temporárias obtidas.",
+        "ReadOnly amplo pode expor dados privados; leitura não é automaticamente segura.",
+        "Roles separadas com menor privilégio limitam guest ao conteúdo público; trust policies devem restringir pool e estado de autenticação.",
+        "Desabilitar guest remove a experiência que precisa ser mantida."
       ],
       "topics": [
         "iam"
@@ -1660,21 +1660,21 @@
     {
       "id": "saa-avc-069",
       "domain": "secure-architectures",
-      "text": "Uma empresa quer que logs de acesso de Application Load Balancers, snapshots do AWS Config e outros logs/exportações gerados por dezenas de contas de seu AWS Organizations sejam entregues a um bucket S3 centralizado em uma conta de logging — sem precisar listar individualmente cada um dos IDs de conta na política do bucket, o que seria difícil de manter conforme contas são adicionadas ou removidas da organização. Qual configuração na política do bucket centralizado atende a esse requisito de forma escalável?",
+      "text": "ALBs de contas atuais e futuras da organização entregam access logs pelo principal logdelivery.elasticloadbalancing.amazonaws.com a um bucket central da mesma Região. Sem manter uma lista de IDs de conta, como limitar a entrega aos ALBs dessa organização, seguindo o padrão de bucket policy suportado pelo serviço?",
       "options": [
-        "Conceder as permissões necessárias (ex.: s3:PutObject) a principals na política do bucket usando uma condição com aws:PrincipalOrgID correspondente ao ID da organização, de modo que qualquer conta atual ou futura dentro da organização seja automaticamente autorizada a entregar logs.",
-        "Criar um bucket S3 separado em cada conta e usar S3 Cross-Region Replication para replicar os logs para o bucket central.",
-        "Listar individualmente cada um dos IDs de conta das dezenas de contas como principals permitidos no elemento Principal da política do bucket.",
-        "Usar uma SCP para forçar todas as contas a gravar logs apenas no bucket centralizado."
+        "Permitir ao serviço de entrega gravar logs, condicionando SourceOrgId e SourceArn às origens autorizadas.",
+        "Permitir ao serviço de entrega gravar logs somente quando PrincipalOrgID tiver o ID da organização.",
+        "Permitir a gravação incluindo cada conta cliente individualmente no elemento Principal do bucket.",
+        "Aplicar uma SCP que permita PutObject no bucket central a todas as contas da organização."
       ],
       "correct": 0,
-      "explanation": "A condição global aws:PrincipalOrgID permite restringir o acesso a qualquer principal que pertença à organização especificada, sem precisar enumerar IDs de conta individuais; novas contas adicionadas à organização são automaticamente cobertas pela condição, e contas removidas automaticamente perdem o acesso, sem exigir atualizações manuais na política do bucket.",
-      "hint": "Pense na condição global de política do IAM que faz referência à organização inteira do AWS Organizations, em vez de IDs de conta individuais.",
+      "explanation": "O principal é o serviço de entrega; SourceOrgId restringe a organização de origem e SourceArn restringe o tipo de origem. O bucket deve autorizar o prefixo de logs apropriado. PrincipalOrgID identifica organização de um principal IAM, não a origem organizacional da chamada do service principal. Listar contas funciona em certos padrões, mas não satisfaz a inclusão automática sem manutenção solicitada. SCP não concede ao serviço permissão de gravação no bucket.",
+      "hint": "Quando quem chama é um serviço AWS, diferencie sua identidade da conta do recurso em nome do qual ele atua.",
       "optionRationales": [
-        "A condição global aws:PrincipalOrgID permite restringir o acesso a qualquer principal que pertença à organização especificada, sem precisar enumerar IDs de conta individuais; novas contas adicionadas à organização são automaticamente cobertas pela condição, e contas removidas automaticamente perdem o acesso, sem exigir atualizações manuais na política do bucket.",
-        "Essa abordagem é operacionalmente frágil: a cada conta adicionada ou removida da organização, a política do bucket precisaria ser manualmente atualizada, e políticas de recurso da AWS têm um limite máximo de tamanho que poderia ser atingido com muitos ARNs de conta listados.",
-        "Essa abordagem adiciona infraestrutura desnecessária (um bucket por conta) e configuração/custo de replicação, quando um único bucket centralizado com uma condição em nível de organização é uma solução muito mais simples.",
-        "SCPs restringem ou permitem quais ações os principals PODEM realizar, mas não concedem, por si só, à política de recurso do bucket centralizado a permissão para RECEBER gravações dessas contas; a política do bucket ainda precisa autorizar explicitamente o acesso entre contas."
+        "O principal é o serviço de entrega; SourceOrgId restringe a organização de origem e SourceArn restringe o tipo de origem. O bucket deve autorizar o prefixo de logs apropriado.",
+        "PrincipalOrgID identifica organização de um principal IAM, não a origem organizacional da chamada do service principal.",
+        "Listar contas funciona em certos padrões, mas não satisfaz a inclusão automática sem manutenção solicitada.",
+        "SCP não concede ao serviço permissão de gravação no bucket."
       ],
       "topics": [
         "s3-storage",
@@ -1686,19 +1686,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa mantém uma hierarquia de Autoridade Certificadora privada (CA raiz + CA subordinada) no AWS Certificate Manager Private CA, em uma conta central de segurança, usada para emitir certificados TLS privados para serviços internos. Múltiplas contas de aplicação precisam emitir certificados a partir dessa MESMA hierarquia de CA — para que todos os certificados internos encadeiem até a mesma raiz confiável distribuída aos clientes internos — sem que cada conta crie sua própria CA separada (o que exigiria distribuir múltiplas raízes confiáveis). Qual abordagem atende a esse requisito?",
       "options": [
-        "Criar uma hierarquia independente do ACM Private CA em cada conta de aplicação, distribuindo o certificado raiz separado de cada conta para todos os clientes internos.",
-        "Compartilhar a CA subordinada do ACM Private CA da conta de segurança com as contas de aplicação usando o AWS Resource Access Manager (RAM); as contas de aplicação podem então solicitar certificados via ACM emitidos por essa CA compartilhada, todos encadeando até a mesma raiz.",
-        "Exportar a chave privada da CA da conta de segurança e importá-la no ACM Private CA de cada conta de aplicação.",
-        "Usar um administrador delegado do AWS Organizations para o ACM Private CA, de modo que as contas de aplicação herdem automaticamente uma cópia da CA."
+        "Criar CAs independentes por conta e distribuir todas as raízes para os clientes internos.",
+        "Compartilhar a CA subordinada via RAM e autorizar emissão de certificados pelas contas participantes.",
+        "Exportar a chave privada da CA e importar uma cópia em cada conta de aplicação.",
+        "Designar um administrador delegado e aguardar que a hierarquia seja clonada nas contas-membro."
       ],
       "correct": 1,
-      "explanation": "O AWS RAM permite compartilhar uma CA do ACM Private CA entre contas; as contas de aplicação que recebem o compartilhamento podem solicitar certificados ao ACM usando essa CA subordinada compartilhada, garantindo que todos os certificados emitidos, em qualquer conta, encadeiem até a mesma hierarquia raiz, sem duplicar CAs.",
-      "hint": "Pense no serviço usado para compartilhar recursos da AWS (incluindo CAs privadas) entre contas sem duplicá-los.",
+      "explanation": "Hierarquias independentes exigem novas raízes confiáveis, contrariando o requisito. RAM permite compartilhar uma CA suportada; as contas autorizadas emitem certificados encadeados à mesma hierarquia. Não se exporta a chave privada de uma CA gerenciada para cloná-la dessa forma. Delegação no Organizations não distribui automaticamente cópias da CA.",
+      "hint": "Compartilhar a capacidade de emissão não exige copiar o material privado da autoridade.",
       "optionRationales": [
-        "O AWS RAM permite compartilhar uma CA do ACM Private CA entre contas; as contas de aplicação que recebem o compartilhamento podem solicitar certificados ao ACM usando essa CA subordinada compartilhada, garantindo que todos os certificados emitidos, em qualquer conta, encadeiem até a mesma hierarquia raiz, sem duplicar CAs.",
-        "O AWS Certificate Manager Private CA não permite exportar a chave privada da CA por motivos de segurança; essa operação não é suportada e não é uma forma viável de replicar a CA entre contas.",
-        "Essa abordagem multiplica o número de certificados raiz confiáveis que precisam ser distribuídos e gerenciados em todos os clientes internos, aumentando a complexidade operacional e contrariando o objetivo de uma única hierarquia de confiança compartilhada.",
-        "O ACM Private CA não possui um modelo de administrador delegado do Organizations que replique automaticamente uma CA para contas-membro; o uso entre contas de uma única hierarquia de CA é obtido através do compartilhamento via AWS RAM."
+        "Hierarquias independentes exigem novas raízes confiáveis, contrariando o requisito.",
+        "RAM permite compartilhar uma CA suportada; as contas autorizadas emitem certificados encadeados à mesma hierarquia.",
+        "Não se exporta a chave privada de uma CA gerenciada para cloná-la dessa forma.",
+        "Delegação no Organizations não distribui automaticamente cópias da CA."
       ],
       "topics": [
         "security-services",
@@ -1708,21 +1708,21 @@
     {
       "id": "saa-avc-071",
       "domain": "secure-architectures",
-      "text": "A equipe de segurança quer que o Permission Set 'AdministratorAccess' do IAM Identity Center, usado para acesso de emergência ('break-glass'), gere credenciais que expirem após no máximo 1 hora, forçando re-autenticação para qualquer trabalho privilegiado contínuo; já o Permission Set 'ReadOnlyAccess', usado para monitoramento rotineiro, pode ter sessões mais longas (8 horas) por conveniência. Qual configuração atende a essa diferenciação?",
+      "text": "Uma organização quer limitar cada sessão de acesso à conta emitida pelo permission set administrativo do Identity Center a uma hora, e cada sessão do permission set de leitura a oito horas. A duração da sessão de autenticação no portal e a exigência de novo MFA serão tratadas separadamente. Qual configuração diferencia as sessões de conta?",
       "options": [
-        "Usar o AWS STS GetSessionToken com o parâmetro DurationSeconds definido manualmente por cada usuário ao assumir o Permission Set AdministratorAccess.",
-        "Anexar uma SCP que revogue automaticamente qualquer sessão com mais de 1 hora para principals usando o Permission Set AdministratorAccess.",
-        "Configurar uma única definição de duração máxima de sessão no nível de conta do IAM, aplicada igualmente a todos os Permission Sets do IAM Identity Center.",
-        "Configurar a 'duração da sessão' (session duration) de forma independente em cada Permission Set do IAM Identity Center — definindo 1 hora para o Permission Set AdministratorAccess e 8 horas para o Permission Set ReadOnlyAccess."
+        "Definir DurationSeconds em GetSessionToken quando cada usuário abrir o permission set.",
+        "Aplicar uma SCP que encerre automaticamente sessões administrativas após uma hora.",
+        "Usar uma duração de sessão única para todas as roles e permission sets da conta.",
+        "Definir uma hora no permission set administrativo e oito horas no de leitura."
       ],
       "correct": 3,
-      "explanation": "No IAM Identity Center, a duração da sessão é uma configuração definida individualmente por Permission Set; cada Permission Set controla por quanto tempo as credenciais obtidas através dele permanecem válidas, permitindo exatamente a diferenciação desejada (1 hora para administração de emergência, 8 horas para acesso de leitura rotineiro).",
-      "hint": "Pense em qual nível de granularidade o IAM Identity Center permite configurar o tempo de vida das credenciais — por conta inteira ou por conjunto de permissões individual.",
+      "explanation": "GetSessionToken não é o mecanismo de obtenção de sessões de permission sets no Identity Center. SCP não implementa um cronômetro que revoga automaticamente sessões por esse critério. Uma duração global única não diferencia os permission sets. Cada permission set define a duração da sessão de conta; isso não força novo login/MFA se a sessão do portal ainda autoriza obter outras credenciais.",
+      "hint": "A sessão da conta e a sessão de autenticação do portal são controles distintos.",
       "optionRationales": [
-        "No IAM Identity Center, a duração da sessão é uma configuração definida individualmente por Permission Set; cada Permission Set controla por quanto tempo as credenciais obtidas através dele permanecem válidas, permitindo exatamente a diferenciação desejada (1 hora para administração de emergência, 8 horas para acesso de leitura rotineiro).",
-        "A duração da sessão no IAM Identity Center é configurada por Permission Set, não como uma configuração única em nível de conta; uma configuração global não poderia fornecer durações diferentes (1h vs. 8h) para Permission Sets diferentes.",
-        "Permitir que os próprios usuários escolham a duração de sua sessão não garante o limite máximo obrigatório de 1 hora; a duração deve ser configurada centralmente no Permission Set por um administrador, não deixada à escolha do usuário.",
-        "SCPs não possuem um mecanismo para rastrear a idade de uma sessão e revogar sessões ativas com base no tempo decorrido; a expiração da sessão é determinada pela duração configurada da credencial, definida no próprio Permission Set."
+        "GetSessionToken não é o mecanismo de obtenção de sessões de permission sets no Identity Center.",
+        "SCP não implementa um cronômetro que revoga automaticamente sessões por esse critério.",
+        "Uma duração global única não diferencia os permission sets.",
+        "Cada permission set define a duração da sessão de conta; isso não força novo login/MFA se a sessão do portal ainda autoriza obter outras credenciais."
       ],
       "topics": [
         "iam"
@@ -1733,19 +1733,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa conecta VPCs de produção e de não-produção (distribuídas em múltiplas contas) a um único AWS Transit Gateway compartilhado. O requisito de segurança é que VPCs de produção possam se comunicar entre si e com uma VPC de serviços compartilhados, mas VPCs de não-produção NUNCA devem conseguir rotear tráfego de/para VPCs de produção, enquanto VPCs de não-produção podem se comunicar livremente entre si e com a VPC de serviços compartilhados. Todas as VPCs compartilham o mesmo Transit Gateway. Qual arquitetura atende a esse requisito?",
       "options": [
-        "Criar dois Transit Gateways separados — um para produção e outro para não-produção — e um terceiro para a VPC de serviços compartilhados, sem peering entre eles.",
-        "Confiar em Security Groups em cada VPC para bloquear tráfego entre os intervalos CIDR de produção e não-produção, mantendo todos os anexos na tabela de rotas padrão do Transit Gateway.",
-        "Criar tabelas de rotas separadas no Transit Gateway (uma 'produção' e outra 'não-produção'), associar cada anexo de VPC à tabela apropriada, e propagar rotas de modo que a tabela de produção só tenha rotas para VPCs de produção e a VPC de serviços compartilhados, e a tabela de não-produção só tenha rotas para VPCs de não-produção e a VPC de serviços compartilhados.",
-        "Usar Network ACLs nas sub-redes dos anexos do Transit Gateway para negar tráfego entre os intervalos CIDR de produção e não-produção."
+        "Criar TGWs separados para cada ambiente e para serviços, sem interconectá-los.",
+        "Manter a tabela TGW única e usar Security Groups para negar a comunicação entre ambientes.",
+        "Separar tabelas TGW por ambiente, controlar propagação e configurar retorno dos serviços compartilhados.",
+        "Manter a tabela TGW única e filtrar os CIDRs dos ambientes com NACLs nos attachments."
       ],
       "correct": 2,
-      "explanation": "O Transit Gateway permite associar cada anexo de VPC a uma tabela de rotas específica e controlar quais rotas são propagadas para cada tabela; criando tabelas separadas para produção e não-produção, cada uma contendo apenas as rotas apropriadas (incluindo a VPC de serviços compartilhados em ambas, mas nunca rotas entre produção e não-produção), obtém-se segmentação de rede completa dentro de um único Transit Gateway.",
-      "hint": "Pense no recurso do Transit Gateway que permite controlar, por anexo de VPC, quais destinos são visíveis/roteáveis — sem precisar de múltiplos Transit Gateways.",
+      "explanation": "Múltiplos TGWs sem conectividade não atendem ao único TGW nem aos serviços compartilhados. Security Groups podem filtrar pacotes, mas mantêm as rotas cuja ausência é exigida. Tabelas separadas e propagação controlada segregam rotas. O attachment de serviços compartilhados precisa de rotas de retorno aos dois conjuntos, sem virar um trânsito entre eles. NACL filtra tráfego, mas não implementa a segmentação das tabelas TGW solicitada.",
+      "hint": "A tabela associada ao attachment determina a decisão de roteamento do tráfego que entra por ele.",
       "optionRationales": [
-        "O Transit Gateway permite associar cada anexo de VPC a uma tabela de rotas específica e controlar quais rotas são propagadas para cada tabela; criando tabelas separadas para produção e não-produção, cada uma contendo apenas as rotas apropriadas (incluindo a VPC de serviços compartilhados em ambas, mas nunca rotas entre produção e não-produção), obtém-se segmentação de rede completa dentro de um único Transit Gateway.",
-        "A VPC de serviços compartilhados precisa ser alcançável tanto por produção quanto por não-produção, o que exigiria anexá-la a ambos os Transit Gateways (maior complexidade e custo) ou estabelecer peering entre eles; uma única Transit Gateway com múltiplas tabelas de rotas atinge a segmentação de forma mais simples e econômica.",
-        "A tabela de rotas padrão propagaria rotas entre todos os anexos, tornando VPCs de produção e não-produção roteáveis entre si na camada de rede; depender apenas de Security Groups (que filtram no nível de instância/ENI, não no nível de roteamento do Transit Gateway) deixa o caminho de roteamento subjacente aberto, não sendo a abordagem de segmentação recomendada.",
-        "Anexos de Transit Gateway não possuem NACLs associadas diretamente (NACLs se aplicam a sub-redes dentro de uma VPC); essa abordagem não forneceria a segmentação em nível de roteamento entre anexos de VPC que tabelas de rotas separadas do Transit Gateway proporcionam."
+        "Múltiplos TGWs sem conectividade não atendem ao único TGW nem aos serviços compartilhados.",
+        "Security Groups podem filtrar pacotes, mas mantêm as rotas cuja ausência é exigida.",
+        "Tabelas separadas e propagação controlada segregam rotas. O attachment de serviços compartilhados precisa de rotas de retorno aos dois conjuntos, sem virar um trânsito entre eles.",
+        "NACL filtra tráfego, mas não implementa a segmentação das tabelas TGW solicitada."
       ],
       "topics": [
         "vpc",
@@ -1757,19 +1757,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa possui um banco de dados crítico Amazon RDS for PostgreSQL. Em caso de falha do nó primário (por exemplo, devido a uma interrupção em sua Zona de Disponibilidade), os requisitos são: failover automático sem intervenção manual, RPO próximo de zero (replicação síncrona) e a aplicação deve continuar usando o MESMO endpoint/DNS após o failover. Qual configuração atende a TODOS esses requisitos com a menor complexidade?",
       "options": [
-        "Amazon ElastiCache como cache write-through na frente do RDS, para mascarar interrupções do banco primário.",
-        "Implantação RDS Multi-AZ, com replicação síncrona para uma instância em standby em outra Zona de Disponibilidade.",
-        "Backups automatizados do RDS (snapshots) com restauração a partir do snapshot mais recente em outra Zona de Disponibilidade durante uma interrupção.",
-        "Uma Read Replica em outra Zona de Disponibilidade, promovida manualmente a instância independente durante uma interrupção."
+        "Usar ElastiCache write-through e manter uma única instância RDS na AZ principal.",
+        "Usar RDS Multi-AZ com standby em outra AZ e reconexão dos clientes pelo mesmo endpoint.",
+        "Manter snapshots frequentes e restaurar outra instância RDS ao detectar falha da AZ.",
+        "Criar read replica em outra AZ e promovê-la manualmente quando o primário falhar."
       ],
       "correct": 1,
-      "explanation": "O RDS Multi-AZ replica os dados de forma síncrona para uma instância em standby em outra AZ; em caso de falha do primário, o RDS realiza failover automático para o standby, atualizando o registro CNAME do endpoint para apontar para a nova instância primária — a aplicação continua usando o mesmo endpoint, sem intervenção manual, e o RPO é próximo de zero graças à replicação síncrona.",
-      "hint": "Pense no recurso do RDS projetado especificamente para failover automático com replicação síncrona e preservação do endpoint, em contraste com réplicas usadas para escalabilidade de leitura.",
+      "explanation": "Um cache não promove o banco nem garante preservação de todas as gravações. Multi-AZ com standby usa replicação síncrona e failover automático, mantendo o nome do endpoint; clientes precisam reconectar e respeitar DNS. Restauração de backup exige criar outro banco e envolve RPO e RTO maiores. Uma read replica assíncrona promovida manualmente não cumpre failover automático e RPO síncrono.",
+      "hint": "Endpoint estável não significa que conexões já abertas sobreviverão ao failover.",
       "optionRationales": [
-        "O RDS Multi-AZ replica os dados de forma síncrona para uma instância em standby em outra AZ; em caso de falha do primário, o RDS realiza failover automático para o standby, atualizando o registro CNAME do endpoint para apontar para a nova instância primária — a aplicação continua usando o mesmo endpoint, sem intervenção manual, e o RPO é próximo de zero graças à replicação síncrona.",
-        "Read Replicas usam replicação ASSÍNCRONA, o que pode resultar em perda de dados (RPO maior que zero) em caso de falha do primário; além disso, a promoção é uma ação MANUAL que exige intervenção do operador e normalmente requer atualização do endpoint usado pela aplicação, aumentando o RTO.",
-        "Restaurar a partir de um snapshot tem RPO igual ao intervalo entre backups (potencialmente horas de dados perdidos) e RTO elevado (tempo para provisionar uma nova instância a partir do snapshot), muito superior ao failover quase imediato e automático do Multi-AZ.",
-        "Camadas de cache atendem requisições de LEITURA com dados em cache, mas não conseguem atender operações de ESCRITA durante uma interrupção do banco de dados primário, e não fornecem failover automático do próprio banco de dados subjacente."
+        "Um cache não promove o banco nem garante preservação de todas as gravações.",
+        "Multi-AZ com standby usa replicação síncrona e failover automático, mantendo o nome do endpoint; clientes precisam reconectar e respeitar DNS.",
+        "Restauração de backup exige criar outro banco e envolve RPO e RTO maiores.",
+        "Uma read replica assíncrona promovida manualmente não cumpre failover automático e RPO síncrono."
       ],
       "topics": [
         "databases",
@@ -1781,19 +1781,19 @@
       "domain": "resilient-architectures",
       "text": "Um Auto Scaling Group está associado a um Application Load Balancer. As instâncias EC2 estão passando nas verificações de status do EC2 (hardware/hypervisor OK), mas a aplicação em execução nelas travou e está retornando HTTP 500 no health check do ALB. Mesmo assim, o Auto Scaling Group não está substituindo essas instâncias não saudáveis. Qual mudança de configuração resolve esse problema?",
       "options": [
-        "Diminuir o 'healthy threshold count' do ALB para que as instâncias sejam marcadas como saudáveis mais rapidamente.",
-        "Substituir o Application Load Balancer por um Network Load Balancer, que realiza health checks mais confiáveis.",
-        "Aumentar o período de carência (health check grace period) do Auto Scaling Group para dar mais tempo à aplicação para se recuperar.",
-        "Alterar o tipo de health check do Auto Scaling Group de 'EC2' para 'ELB' (ou habilitar ambos), para que o ASG considere os resultados do health check do ALB."
+        "Diminuir healthy threshold no ALB e manter o ASG usando apenas status checks EC2.",
+        "Trocar o ALB por NLB e manter o tipo de health check do ASG como EC2.",
+        "Aumentar health check grace period e manter o ASG usando somente checks EC2.",
+        "Habilitar ELB health checks no ASG para considerar a saúde reportada pelo ALB."
       ],
       "correct": 3,
-      "explanation": "Quando o tipo de health check do ASG é apenas 'EC2', o ASG ignora o resultado dos health checks do ALB e considera saudável qualquer instância que passe nas verificações de status do EC2 (nível de hardware/hypervisor); alterar para 'ELB' (ou habilitar ambos) faz o ASG considerar falhas de nível de aplicação detectadas pelo ALB (como HTTP 500) e substituir automaticamente as instâncias não saudáveis.",
-      "hint": "Considere a diferença entre o que o Auto Scaling Group verifica por padrão (status da instância) e o que o load balancer verifica (saúde da aplicação) — e como o ASG pode ser configurado para considerar ambos.",
+      "explanation": "Healthy threshold altera a volta ao estado saudável no ALB, não os sinais consumidos pelo ASG. Trocar o balanceador não habilita o consumo dos health checks pelo ASG. Aumentar grace period adia a avaliação; não acrescenta os checks do ALB. Habilitar ELB health checks no ASG permite considerar a falha da aplicação e substituir a instância, respeitando carência e demais configurações.",
+      "hint": "O balanceador deixar de enviar tráfego não implica que o ASG tenha recebido a ordem de substituição.",
       "optionRationales": [
-        "Quando o tipo de health check do ASG é apenas 'EC2', o ASG ignora o resultado dos health checks do ALB e considera saudável qualquer instância que passe nas verificações de status do EC2 (nível de hardware/hypervisor); alterar para 'ELB' (ou habilitar ambos) faz o ASG considerar falhas de nível de aplicação detectadas pelo ALB (como HTTP 500) e substituir automaticamente as instâncias não saudáveis.",
-        "O grace period apenas atrasa QUANDO os health checks começam a ser avaliados após o lançamento da instância; ele não resolve o problema de o ASG não DETECTAR falhas em nível de aplicação, já que o tipo de health check configurado é apenas 'EC2'.",
-        "Reduzir o limite de verificações saudáveis não resolve a causa raiz, que é o ASG não estar consultando os resultados do health check do ALB devido à configuração do tipo de health check; o ALB continuaria marcando a instância como não saudável (HTTP 500), mas o ASG simplesmente não age sobre essa informação.",
-        "O NLB opera na camada 4 e seus health checks não detectariam de forma melhor uma aplicação retornando HTTP 500 (uma falha de camada 7); o problema central é a configuração do TIPO de health check do ASG, não o tipo de load balancer utilizado."
+        "Healthy threshold altera a volta ao estado saudável no ALB, não os sinais consumidos pelo ASG.",
+        "Trocar o balanceador não habilita o consumo dos health checks pelo ASG.",
+        "Aumentar grace period adia a avaliação; não acrescenta os checks do ALB.",
+        "Habilitar ELB health checks no ASG permite considerar a falha da aplicação e substituir a instância, respeitando carência e demais configurações."
       ],
       "topics": [
         "high-availability",
@@ -1805,19 +1805,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa executa sua pilha de aplicação primária em us-east-1 e mantém uma pilha secundária (standby) em us-west-2. Os requisitos são: o Amazon Route 53 deve rotear automaticamente os usuários para us-west-2 SOMENTE quando us-east-1 ficar indisponível (detectado via health check em um endpoint da aplicação), e voltar a rotear para us-east-1 automaticamente quando essa região se recuperar — sem intervenção manual em nenhum dos dois casos. Qual configuração do Route 53 atende a esse requisito?",
       "options": [
-        "Política de roteamento Weighted com peso 100% para us-east-1 e 0% para us-west-2, alterando os pesos manualmente durante uma interrupção.",
-        "Política de roteamento Multivalue Answer com health checks em ambos os registros.",
-        "Política de roteamento Latency-based com registros para ambas as regiões.",
-        "Política de roteamento Failover, com um registro PRIMARY apontando para o endpoint em us-east-1 associado a um health check do Route 53, e um registro SECONDARY apontando para o endpoint em us-west-2."
+        "Usar Weighted com mudança manual dos pesos quando a Região primária falhar.",
+        "Usar Multivalue Answer com ambos os endpoints regionais e health checks.",
+        "Usar Latency-based com health checks para selecionar a Região mais próxima.",
+        "Usar Failover com registros PRIMARY e SECONDARY e avaliação de saúde."
       ],
       "correct": 3,
-      "explanation": "Na política de roteamento Failover, o Route 53 retorna o registro PRIMARY enquanto seu health check estiver íntegro; se o health check falhar, o Route 53 passa a retornar automaticamente o registro SECONDARY (us-west-2), e volta a retornar o PRIMARY automaticamente quando o health check voltar a passar — atendendo a ambos os requisitos sem intervenção manual.",
-      "hint": "Pense na política de roteamento do Route 53 que define explicitamente papéis de 'primário' e 'secundário', vinculados a health checks.",
+      "explanation": "A mudança manual de pesos viola a exigência de operação automática. Multivalue pode devolver ambos os destinos saudáveis, não reserva uma Região como standby. Latência pode escolher a secundária mesmo com a primária saudável. Failover PRIMARY/SECONDARY com saúde configurada implementa o modelo ativo-passivo; caches DNS podem atrasar convergência.",
+      "hint": "O critério é prioridade fixa entre Regiões, não divisão de tráfego ou menor latência.",
       "optionRationales": [
-        "Na política de roteamento Failover, o Route 53 retorna o registro PRIMARY enquanto seu health check estiver íntegro; se o health check falhar, o Route 53 passa a retornar automaticamente o registro SECONDARY (us-west-2), e volta a retornar o PRIMARY automaticamente quando o health check voltar a passar — atendendo a ambos os requisitos sem intervenção manual.",
-        "Alterar pesos manualmente durante uma interrupção exige que um operador humano detecte a falha e atualize os registros DNS, o que não atende ao requisito de roteamento AUTOMÁTICO baseado em health checks.",
-        "O roteamento por latência sempre direciona os usuários para a região com menor latência para eles, INDEPENDENTEMENTE de a região primária estar saudável ou não; ele não fornece o comportamento de failover vinculado a uma região primária designada que o requisito exige.",
-        "Multivalue Answer retorna até 8 registros saudáveis aleatoriamente aos clientes (para distribuição básica de carga/disponibilidade); ela não designa um registro como primário e outro como secundário/standby com o comportamento estruturado de failover-ao-falhar exigido."
+        "A mudança manual de pesos viola a exigência de operação automática.",
+        "Multivalue pode devolver ambos os destinos saudáveis, não reserva uma Região como standby.",
+        "Latência pode escolher a secundária mesmo com a primária saudável.",
+        "Failover PRIMARY/SECONDARY com saúde configurada implementa o modelo ativo-passivo; caches DNS podem atrasar convergência."
       ],
       "topics": [
         "edge-dns",
@@ -1827,21 +1827,21 @@
     {
       "id": "saa-avc-076",
       "domain": "resilient-architectures",
-      "text": "Uma aplicação global de jogos precisa que jogadores na América do Norte, Europa e Ásia leiam E ESCREVAM em uma tabela 'perfil de jogador' com baixa latência a partir de suas respectivas regiões, com alterações feitas em uma região propagadas automaticamente para as demais (multi-região ativo-ativo). A aplicação deve continuar com capacidade total de leitura e escrita em qualquer região mesmo que outra região fique indisponível. Qual abordagem atende a esse requisito?",
+      "text": "Uma aplicação global de jogos precisa que jogadores na América do Norte, Europa e Ásia leiam E ESCREVAM em uma tabela 'perfil de jogador' com baixa latência a partir de suas respectivas regiões, com alterações feitas em uma região propagadas automaticamente para as demais (multi-região ativo-ativo). A aplicação aceita consistência eventual entre Regiões e trata atualizações concorrentes. A aplicação deve continuar com capacidade total de leitura e escrita em qualquer região mesmo que outra região fique indisponível. Qual abordagem atende a esse requisito?",
       "options": [
-        "Usar Amazon DynamoDB Global Tables, configurando tabelas de réplica em cada uma das três Regiões.",
-        "Usar Amazon Aurora Global Database, configurando os clusters da Ásia e da Europa como escritores primários.",
-        "Implantar tabelas DynamoDB independentes em cada Região e usar o AWS DMS para replicar continuamente as alterações de forma bidirecional entre as três tabelas.",
-        "Usar uma única tabela DynamoDB em uma Região (ex.: us-east-1) com clusters do DynamoDB Accelerator (DAX) implantados na Europa e na Ásia."
+        "Usar DynamoDB Global Tables MREC com réplicas de leitura e escrita nas três Regiões.",
+        "Usar Aurora Global Database com todos os clusters regionais gravando como primários.",
+        "Usar tabelas regionais independentes com replicação bidirecional desenvolvida sobre Streams.",
+        "Usar uma tabela DynamoDB regional e caches DAX para servir os jogadores das demais Regiões."
       ],
       "correct": 0,
-      "explanation": "O DynamoDB Global Tables oferece replicação multi-região e multi-ativa: escritas feitas em qualquer réplica são propagadas para todas as outras réplicas (consistência eventual), e aplicações em cada região podem ler e escrever localmente com disponibilidade total, mesmo que outras regiões fiquem indisponíveis — atendendo exatamente ao requisito ativo-ativo.",
-      "hint": "Pense no recurso nativo do DynamoDB projetado especificamente para replicação multi-região com leitura e escrita local em cada região, sem necessidade de ferramentas de replicação externas.",
+      "explanation": "Global Tables MREC oferece réplicas com leitura e escrita locais e replicação assíncrona; conflitos precisam ser considerados pela aplicação. Aurora Global Database não torna simultaneamente múltiplos clusters escritores independentes. Tabelas independentes com replicação customizada exigem resolver conflitos e recuperação que o serviço gerenciado já organiza. DAX não transforma uma tabela regional em armazenamento multi-Region ativo-ativo.",
+      "hint": "Cache regional não equivale a uma réplica que aceita gravações de forma independente.",
       "optionRationales": [
-        "O DynamoDB Global Tables oferece replicação multi-região e multi-ativa: escritas feitas em qualquer réplica são propagadas para todas as outras réplicas (consistência eventual), e aplicações em cada região podem ler e escrever localmente com disponibilidade total, mesmo que outras regiões fiquem indisponíveis — atendendo exatamente ao requisito ativo-ativo.",
-        "O DAX é uma camada de CACHE em memória que acelera LEITURAS de uma tabela em uma ÚNICA Região; ele não replica a tabela subjacente para outras Regiões, não oferece capacidade de ESCRITA local na Europa/Ásia, e uma interrupção em us-east-1 tornaria a tabela indisponível em todos os lugares.",
-        "O Aurora Global Database possui UM cluster primário (leitura-escrita) e até 5 regiões secundárias somente leitura; ele não suporta escritas ativo-ativo simultâneas a partir de múltiplas regiões, o que o requisito exige.",
-        "O AWS DMS é projetado para migração/replicação (tipicamente unidirecional ou com suporte limitado a bidirecional) entre bancos de dados, e não é o mecanismo nativo recomendado pela AWS para replicação multi-região ativo-ativo do DynamoDB; o DynamoDB Global Tables é o recurso nativo projetado especificamente para esse fim."
+        "Global Tables MREC oferece réplicas com leitura e escrita locais e replicação assíncrona; conflitos precisam ser considerados pela aplicação.",
+        "Aurora Global Database não torna simultaneamente múltiplos clusters escritores independentes.",
+        "Tabelas independentes com replicação customizada exigem resolver conflitos e recuperação que o serviço gerenciado já organiza.",
+        "DAX não transforma uma tabela regional em armazenamento multi-Region ativo-ativo."
       ],
       "topics": [
         "databases"
