@@ -181,10 +181,10 @@
       "domain": "cost-optimized-architectures",
       "text": "Uma empresa executa cargas de trabalho de processamento em lote (batch) que podem ser pausadas e retomadas, distribuídas em milhares de instâncias EC2 de diversos tipos, com o objetivo de minimizar custo. Qual abordagem combina economia e resiliência a interrupções?",
       "options": [
-        "Usar exclusivamente instâncias On-Demand de um único tipo",
-        "Usar o EC2 Auto Scaling com uma combinação de Spot Instances de múltiplos tipos e Instâncias On-Demand como fallback (estratégia de alocação 'capacity-optimized')",
-        "Usar apenas Reserved Instances de 3 anos",
-        "Migrar a carga de trabalho para AWS Lambda sem ajustes"
+        "Executar o processamento em instâncias On-Demand diversificadas entre tipos e zonas, com Auto Scaling para adequar a capacidade à fila.",
+        "Combinar instâncias Spot de vários tipos e zonas com estratégia capacity-optimized e capacidade On-Demand complementar no Auto Scaling.",
+        "Adquirir Reserved Instances para a capacidade máxima prevista e distribuir os lotes entre instâncias reservadas de diferentes famílias.",
+        "Executar os lotes em funções Lambda disparadas por eventos, dividindo o processamento em tarefas independentes de curta duração."
       ],
       "correct": 1,
       "explanation": "Combinar Spot Instances de múltiplos tipos/AZs com a estratégia 'capacity-optimized' e um fallback On-Demand reduz custos significativamente para cargas tolerantes a interrupções, mantendo resiliência.",
@@ -5065,10 +5065,10 @@
       "domain": "high-performing-architectures",
       "text": "Dashboards de BI conectados a um cluster Amazon Redshift ficam lentos apenas nas manhãs de segunda-feira, quando centenas de analistas executam consultas simultaneamente. No restante da semana o cluster atende bem, e o time NÃO quer pagar por um cluster maior o tempo todo. Qual recurso resolve os picos de concorrência?",
       "options": [
-        "Redshift Spectrum",
-        "Elastic Resize permanente para o dobro de nós",
-        "Concurrency Scaling, adicionando capacidade transitória automática durante os picos de consultas simultâneas",
-        "Migrar as consultas para o Athena"
+        "Habilitar Redshift Spectrum para consultar dados externos no S3 e aliviar consultas que dependem dessas tabelas externas.",
+        "Executar Elastic Resize para ampliar os nós do cluster antes dos picos e reduzi-los após o período de maior demanda.",
+        "Habilitar Concurrency Scaling para adicionar capacidade temporária de consulta automaticamente quando a concorrência aumentar.",
+        "Migrar as consultas de BI para o Athena, executando SQL sobre os dados no S3 sem manter capacidade de cluster provisionada."
       ],
       "correct": 2,
       "explanation": "A) Incorreta: Spectrum estende consultas ao S3; não adiciona capacidade de concorrência ao cluster. B) Incorreta: dobrar o cluster permanentemente é exatamente o custo fixo que se quer evitar. C) Correta: o Concurrency Scaling adiciona clusters transitórios automáticos nos picos de concorrência e os remove depois — com créditos gratuitos diários que costumam cobrir o uso. D) Incorreta: migrar o BI para Athena muda a arquitetura inteira para resolver um problema pontual de concorrência.",
@@ -5181,10 +5181,10 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa usa o Storage Gateway em modo Volume Gateway para servidores on-premises. O requisito é: TODOS os dados devem permanecer armazenados localmente (primário on-premises) por exigência de latência, e a nuvem deve guardar apenas backups pontuais (snapshots EBS) para recuperação. Qual modo do Volume Gateway atende?",
       "options": [
-        "Cached volumes",
-        "Stored volumes, mantendo o dataset completo local e enviando snapshots assíncronos para a AWS",
-        "File Gateway",
-        "Tape Gateway"
+        "Usar Cached Volumes para manter em cache local os blocos mais acessados, com o conjunto de dados principal armazenado na AWS.",
+        "Usar Stored Volumes para manter o conjunto de dados principal nos discos locais e enviar snapshots incrementais para a AWS.",
+        "Usar File Gateway com compartilhamentos NFS ou SMB locais e objetos armazenados no Amazon S3 como destino principal.",
+        "Usar Tape Gateway para apresentar bibliotecas virtuais de fitas ao software de backup e arquivar cópias na AWS."
       ],
       "correct": 1,
       "explanation": "A) Incorreta: no modo cached, o dado primário fica no S3 e só o cache é local — o inverso do requisito. B) Correta: no modo stored, o volume completo reside on-premises (latência local total) e o gateway envia snapshots incrementais para a AWS como backup — exatamente o cenário. C) Incorreta: File Gateway expõe NFS/SMB sobre S3, não volumes iSCSI. D) Incorreta: Tape Gateway emula fitas para software de backup.",
