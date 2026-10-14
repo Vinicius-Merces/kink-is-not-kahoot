@@ -542,20 +542,31 @@
         constructor(canvas) {
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
-            this.states = {};
-            this.timer = null;
-            this.token = 0;
+            this.images = {};
             this.ready = false;
+            this.state = 'idle';
+            this.frameIndex = 0;
+            this.lastTime = 0;
+            this.raf = null;
+            this.sequence = { idle: [0, 1, 2, 3, 2, 1], attack: [0, 1, 2, 3], hurt: [0, 1, 2, 3], death: [0, 1, 2, 3] };
+            this.fps = { idle: 6, attack: 7, hurt: 6, death: 5 };
         }
         async load() {
             const base = 'images/arena/enemies/secure-architectures/';
             try {
-                await Promise.all(['idle','attack','hurt','death'].map(async state => {
-                    const image = new Image();
-                    image.src = base + state + '.png';
-                    await image.decode();
-                    this.states[state] = image;
-                }));
+                await Promise.all(['idle', 'attack', 'hurt', 'death'].map(state => new Promise((ok, fail) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        if (img.naturalWidth !== 1800 || img.naturalHeight !== 450) {
+                            fail(new Error('Spritesheet inválido para ' + state + ': esperado 1800x450'));
+                            return;
+                        }
+                        this.images[state] = img;
+                        ok();
+                    };
+                    img.onerror = () => fail(new Error('Não carregou ' + base + state + '.png'));
+                    img.src = base + state + '.png';
+                })));
                 this.ready = true;
                 this.play('idle', true);
             } catch (err) {
@@ -565,21 +576,47 @@
                 console.warn('[CloudArena] Sentinela sem sprites:', err);
             }
         }
-        stop() { clearTimeout(this.timer); ++this.token; }
+        stop() {
+            if (this.raf !== null) cancelAnimationFrame(this.raf);
+            this.raf = null;
+        }
+        draw() {
+            const seq = this.sequence[this.state];
+            const frame = seq[this.frameIndex];
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            // Cada frame pertence exclusivamente a uma célula 450x450.
+            // A posição do personagem no canvas permanece fixa no loop.
+            this.ctx.drawImage(this.images[this.state], frame * 450, 0, 450, 450, 0, 0, this.canvas.width, this.canvas.height);
+        }
         play(state, loop = false) {
-            if (!this.ready || !this.states[state]) return;
+            if (!this.ready || !this.images[state]) return;
             this.stop();
-            const token = this.token;
-            const img = this.states[state];
-            const draw = frame => {
-                if (token !== this.token || !document.body.contains(this.canvas)) return;
-                const ctx = this.ctx;
-                ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
-                // 4 celulas exatas de 450px, cada uma com margem transparente de 50px.
-                ctx.drawImage(img, frame*450, 0, 450, 450, 22, 3, 136, 136);
-                if (frame < 3 || loop) this.timer = setTimeout(() => draw((frame+1)%4), state === 'attack' ? 160 : 240);
+            this.state = state;
+            this.frameIndex = 0;
+            this.lastTime = 0;
+            this.draw();
+            const advance = now => {
+                if (!this.canvas.isConnected) {
+                    this.stop();
+                    return;
+                }
+                if (!this.lastTime) this.lastTime = now;
+                const duration = 1000 / this.fps[state];
+                if (now - this.lastTime >= duration) {
+                    this.lastTime = now - (now - this.lastTime) % duration;
+                    if (this.frameIndex < this.sequence[state].length - 1) {
+                        this.frameIndex++;
+                    } else if (loop) {
+                        this.frameIndex = 0;
+                    } else {
+                        this.raf = null;
+                        return;
+                    }
+                    this.draw();
+                }
+                this.raf = requestAnimationFrame(advance);
             };
-            draw(0);
+            this.raf = requestAnimationFrame(advance);
         }
     }
     function previewEnemyEnabled() {
