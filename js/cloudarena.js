@@ -404,18 +404,18 @@
     // ════════════════════════════════════════════════════════════════════
     // Sprites — herói animado por atlas, inimigos estáticos (spec 6 e 13)
     // ════════════════════════════════════════════════════════════════════
-    // Herói: images/arena/hero/<masculino|feminino>/ com 5 spritesheets
+    // Herói legado: images/arena/hero/<masculino|feminino>/ com 5 spritesheets
     // (idle/attack/hurt/victory/death.png, 6 frames cada) + atlas.json com
     // recorte (x, w) e âncora (anchorX, anchorY) POR FRAME — os frames têm
     // larguras desiguais e o alinhamento é pela âncora dos pés, não pela
     // borda do quadro (ver CLOUDARENA-HEROI-ANIMACAO.md). O atlas do
     // personagem não-referência traz o campo raiz "scale" para normalizar
     // o tamanho visual entre os dois heróis.
-    // Inimigo: images/arena/enemies/<domain>-idle.png / -attack.png e
+    // Inimigos legados: images/arena/enemies/<domain>-idle.png / -attack.png e
     // -boss-idle/-boss-attack (CLF numa subpasta clf/). Enquanto os PNGs
     // dos inimigos não existem, o loader cai num placeholder (emoji).
     const HERO_STATES = ['idle', 'attack', 'hurt', 'victory', 'death'];
-    // Velocidade por estado (6 frames cada): idle/hurt/morte em ciclo de ~2s
+    // Velocidade legado (6 frames cada): idle/hurt/morte em ciclo de ~2s
     // (3 fps), vitória ~2,4s (2,5 fps), ataque em ~1s (6 fps) — o golpe
     // precisa ser ágil.
     const HERO_STATE_FPS = { idle: 3, hurt: 3, death: 3, victory: 2.5, attack: 6 };
@@ -527,114 +527,191 @@
         }
     }
 
+
+    // Spritesheet mestre 4x4: usa o tamanho REAL da imagem, sem assumir 450px.
+    // Todos os frames são desenhados a partir de um Image pré-carregado no
+    // mesmo canvas. A integração antiga por atlas continua como fallback.
+    class FourByFourSprite {
+        constructor(url, fallback = null) {
+            this.url = url;
+            this.fallback = fallback;
+            this.fallbackActive = false;
+            this.image = null;
+            this.canvas = null;
+            this.ctx = null;
+            this._loading = null;
+            this._raf = null;
+            this._generation = 0;
+            this._states = { idle: 0, attack: 1, hurt: 2, death: 3, victory: 0 };
+        }
+
+        load() {
+            if (this._loading) return this._loading;
+            this._loading = (async () => {
+                try {
+                    const image = new Image();
+                    image.src = this.url;
+                    await image.decode();
+                    if (image.naturalWidth < 100 || image.naturalHeight < 100) {
+                        throw new Error('Spritesheet incompleto: ' + this.url);
+                    }
+                    this.image = image;
+                    this.fallbackActive = false;
+                    return this;
+                } catch (error) {
+                    if (!this.fallback) throw error;
+                    console.warn('[CloudArena] spritesheet novo indisponível; mantendo herói anterior:', error.message);
+                    await this.fallback.load();
+                    this.fallbackActive = true;
+                    return this;
+                }
+            })().catch(err => {
+                this._loading = null;
+                throw err;
+            });
+            return this._loading;
+        }
+
+        get isReady() {
+            return !!this.image || !!(this.fallbackActive && this.fallback && this.fallback.isReady);
+        }
+
+        attach(canvas) {
+            this.stop();
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.ctx.imageSmoothingEnabled = true;
+            if (this.fallback) this.fallback.attach(canvas);
+        }
+
+        stop() {
+            this._generation++;
+            if (this._raf !== null) cancelAnimationFrame(this._raf);
+            this._raf = null;
+            if (this.fallback) this.fallback.stop();
+        }
+
+        drawFrame(state, frame) {
+            if (!this.image || !this.canvas || !this.ctx) return;
+            const image = this.image;
+            const row = this._states[state] ?? 0;
+            // Limites com arredondamento evitam deslocamento cumulativo quando
+            // largura/altura não são múltiplos exatos de 4.
+            const x0 = Math.round(frame * image.naturalWidth / 4);
+            const x1 = Math.round((frame + 1) * image.naturalWidth / 4);
+            const y0 = Math.round(row * image.naturalHeight / 4);
+            const y1 = Math.round((row + 1) * image.naturalHeight / 4);
+            const insetX = Math.min(15, Math.floor((x1 - x0 - 1) / 4));
+            const insetTop = Math.min(20, Math.floor((y1 - y0 - 1) / 4));
+            const sx = x0 + insetX;
+            const sy = y0 + insetTop;
+            const sw = x1 - x0 - insetX * 2;
+            const sh = y1 - y0 - insetTop;
+            const side = Math.floor(Math.min(this.canvas.width, this.canvas.height) * 0.84);
+            const dx = Math.floor((this.canvas.width - side) / 2);
+            const dy = Math.floor((this.canvas.height - side) / 2 + 7);
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(image, sx, sy, sw, sh, dx, dy, side, side);
+        }
+
+        play(state, { loop = false, onFrame = null, onComplete = null } = {}) {
+            if (!this.isReady || !this.canvas) return false;
+            if (this.fallbackActive) return this.fallback.play(state, { loop, onFrame, onComplete });
+            this.stop();
+            const generation = this._generation;
+            const duration = state === 'idle' ? 1000 : 500;
+            let started = null, previous = -1;
+            const tick = time => {
+                if (generation !== this._generation || !this.canvas || !this.canvas.isConnected) {
+                    this._raf = null;
+                    return;
+                }
+                if (started === null) started = time;
+                const elapsed = time - started;
+                const complete = elapsed >= duration;
+                const frame = complete && !loop ? 3 :
+                    Math.min(3, Math.floor(((elapsed % duration) / duration) * 4));
+                if (frame !== previous) {
+                    previous = frame;
+                    this.drawFrame(state, frame);
+                    if (onFrame) onFrame(frame, 4);
+                }
+                if (complete && !loop) {
+                    this._raf = null; // death mantém o último frame
+                    if (onComplete) onComplete();
+                    return;
+                }
+                this._raf = requestAnimationFrame(tick);
+            };
+            // Exibe a primeira pose imediatamente, sem esperar a próxima tela.
+            this.drawFrame(state, 0);
+            this._raf = requestAnimationFrame(tick);
+            return true;
+        }
+    }
+
     const heroSpriteCache = {};   // choice -> HeroSprite
     function getHeroSprite() {
         const choice = state.heroChoice || 'masculino';
-        if (!heroSpriteCache[choice]) heroSpriteCache[choice] = new HeroSprite(choice);
+        if (!heroSpriteCache[choice]) {
+            heroSpriteCache[choice] = choice === 'masculino'
+                ? new FourByFourSprite('images/arena/hero/masculino/cloudarena-sheet.png', new HeroSprite(choice))
+                : new HeroSprite(choice);
+        }
         return heroSpriteCache[choice];
     }
 
 
-    // CloudArena art preview: quatro frames por estado, sem alterar inimigos não migrados.
-    // Os PNGs ficam em images/arena/enemies/secure-architectures/{idle,attack,hurt,death}.png
-    const previewEnemySprites = new Map();
-    class AnimatedArenaEnemy {
+    // Inimigo SAA-C03 secure-architectures: Sentinela da Fortaleza.
+    // PNG único 4x4 aprovado. Os outros inimigos usam os arquivos anteriores.
+    let activeEnemySprite = null;
+    class AnimatedArenaEnemy extends FourByFourSprite {
         constructor(canvas) {
-            this.canvas = canvas;
-            this.ctx = canvas.getContext('2d');
-            this.images = {};
-            this.ready = false;
-            this.state = 'idle';
-            this.frameIndex = 0;
-            this.lastTime = 0;
-            this.raf = null;
-            this.sequence = { idle: [0, 1, 2, 3, 2, 1], attack: [0, 1, 2, 3], hurt: [0, 1, 2, 3], death: [0, 1, 2, 3] };
-            this.fps = { idle: 6, attack: 7, hurt: 6, death: 5 };
+            super('images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png');
+            this.attach(canvas);
         }
         async load() {
-            const base = 'images/arena/enemies/secure-architectures/';
-            try {
-                await Promise.all(['idle', 'attack', 'hurt', 'death'].map(state => new Promise((ok, fail) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        if (img.naturalWidth !== 1800 || img.naturalHeight !== 450) {
-                            fail(new Error('Spritesheet inválido para ' + state + ': esperado 1800x450'));
-                            return;
-                        }
-                        this.images[state] = img;
-                        ok();
-                    };
-                    img.onerror = () => fail(new Error('Não carregou ' + base + state + '.png'));
-                    img.src = base + state + '.png';
-                })));
-                this.ready = true;
-                this.play('idle', true);
-            } catch (err) {
-                this.canvas.style.display = 'none';
-                const fallback = this.canvas.nextElementSibling;
-                if (fallback) fallback.style.display = 'flex';
-                console.warn('[CloudArena] Sentinela sem sprites:', err);
-            }
-        }
-        stop() {
-            if (this.raf !== null) cancelAnimationFrame(this.raf);
-            this.raf = null;
-        }
-        draw() {
-            const seq = this.sequence[this.state];
-            const frame = seq[this.frameIndex];
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            // Cada frame pertence exclusivamente a uma célula 450x450.
-            // A posição do personagem no canvas permanece fixa no loop.
-            this.ctx.drawImage(this.images[this.state], frame * 450, 0, 450, 450, 0, 0, this.canvas.width, this.canvas.height);
-        }
-        play(state, loop = false) {
-            if (!this.ready || !this.images[state]) return;
-            this.stop();
-            this.state = state;
-            this.frameIndex = 0;
-            this.lastTime = 0;
-            this.draw();
-            const advance = now => {
-                if (!this.canvas.isConnected) {
-                    this.stop();
-                    return;
-                }
-                if (!this.lastTime) this.lastTime = now;
-                const duration = 1000 / this.fps[state];
-                if (now - this.lastTime >= duration) {
-                    this.lastTime = now - (now - this.lastTime) % duration;
-                    if (this.frameIndex < this.sequence[state].length - 1) {
-                        this.frameIndex++;
-                    } else if (loop) {
-                        this.frameIndex = 0;
-                    } else {
-                        this.raf = null;
-                        return;
-                    }
-                    this.draw();
-                }
-                this.raf = requestAnimationFrame(advance);
-            };
-            this.raf = requestAnimationFrame(advance);
+            await super.load();
+            if (!this.canvas.isConnected) return this;
+            this.canvas.style.display = '';
+            const img = $('#enemySprite');
+            if (img) img.style.display = 'none';
+            const fallback = this.canvas.parentElement.querySelector('.sprite-fallback');
+            if (fallback) fallback.style.display = 'none';
+            this.play('idle', { loop: true });
+            return this;
         }
     }
     function previewEnemyEnabled() {
-        return battle && battle.certId === 'saa-c03'
-            && battle.domain === 'secure-architectures' && !battle.boss;
+        return battle && battle.certId === 'saa-c03' &&
+            battle.domain === 'secure-architectures' && !battle.boss;
     }
     function startPreviewEnemy() {
         const canvas = $('#enemyCanvas');
         if (!canvas) return;
+        if (activeEnemySprite) activeEnemySprite.stop();
         const anim = new AnimatedArenaEnemy(canvas);
-        previewEnemySprites.set(canvas, anim);
-        anim.load();
+        activeEnemySprite = anim;
+        anim.load().catch(error => {
+            console.warn('[CloudArena] Sentinela sem spritesheet novo; mantendo fallback:', error.message);
+            if (!canvas.isConnected) return;
+            canvas.style.display = 'none';
+            const img = $('#enemySprite');
+            if (img) img.style.display = '';
+        });
     }
     function playPreviewEnemy(state, loop = false) {
         const canvas = $('#enemyCanvas');
-        const anim = canvas && previewEnemySprites.get(canvas);
-        if (anim && anim.ready) anim.play(state, loop);
-        return !!(anim && anim.ready);
+        const anim = activeEnemySprite;
+        if (!canvas || !anim || anim.canvas !== canvas || !anim.isReady) return false;
+        return anim.play(state, {
+            loop,
+            onComplete: !loop && state !== 'death' ? () => {
+                if (activeEnemySprite === anim && canvas.isConnected) {
+                    anim.play('idle', { loop: true });
+                }
+            } : null,
+        });
     }
 
     function enemySpriteUrl(certId, domain, pose, boss) {
@@ -1102,7 +1179,7 @@
     function animateEnemyHurt() {
         if (previewEnemyEnabled()) {
             playPreviewEnemy(battle.enemyHp <= 0 ? 'death' : 'hurt');
-            if (battle.enemyHp > 0) setTimeout(() => playPreviewEnemy('idle', true), 850);
+
         }
         const wrap = $('#enemyWrap');
         if (!wrap) return;
@@ -1126,8 +1203,9 @@
             callout.textContent = `${info.name} ataca com ${battle.attackName}!`;
             callout.classList.add('show');
         }
-        if (previewEnemyEnabled()) playPreviewEnemy('attack');
-        else setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
+        if (!(previewEnemyEnabled() && playPreviewEnemy('attack'))) {
+            setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
+        }
         wrap.classList.add('enemy-attacking'); // desloca em direção ao herói via CSS
         setTimeout(() => {
             animateHero(heroDies ? 'death' : 'hurt');
@@ -1135,8 +1213,9 @@
         }, 320);
         setTimeout(() => {
             wrap.classList.remove('enemy-attacking');
-            if (previewEnemyEnabled()) playPreviewEnemy('idle', true);
-            else setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
+            if (!(previewEnemyEnabled() && playPreviewEnemy('idle', true))) {
+                setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
+            }
             if (callout) callout.classList.remove('show');
             // se o herói morreu, espera a animação de morte (~2s) terminar
             if (done) setTimeout(done, heroDies ? 1700 : 80);
@@ -1327,16 +1406,15 @@
                 <div class="battle-field">
                     <div class="attack-callout" id="attackCallout"></div>
                     <div class="fighter" id="heroWrap">
-                        <canvas id="heroCanvas" class="sprite" width="180" height="150" style="display:none"></canvas>
+                        <canvas id="heroCanvas" class="sprite ${state.heroChoice === 'masculino' ? 'sprite-sheet' : ''}" width="180" height="${state.heroChoice === 'masculino' ? 180 : 150}" style="display:none"></canvas>
                         <div class="sprite-fallback">${state.heroChoice === 'feminino' ? '👩‍🚀' : '🧑‍🚀'}</div>
                         <div class="fighter-name">Você · nv. ${heroLevel(a)}</div>
                         ${hpBarHtml('heroHp', a.heroCurrentHp, heroMaxHp(a), '#2dd4bf')}
                     </div>
                     <div class="vs">VS</div>
                     <div class="fighter ${battle.boss ? 'is-boss' : ''}" id="enemyWrap">
-                        ${certId === 'saa-c03' && battle.domain === 'secure-architectures' && !battle.boss
-                            ? '<canvas id="enemyCanvas" class="sprite" width="180" height="150"></canvas>'
-                            : `<img id="enemySprite" class="sprite" alt="${esc(info.name)}">`}
+                        ${previewEnemyEnabled() ? '<canvas id="enemyCanvas" class="sprite sprite-sheet" width="180" height="180" style="display:none"></canvas>' : ''}
+                        <img id="enemySprite" class="sprite" alt="${esc(info.name)}">
                         <div class="sprite-fallback">${info.emoji}</div>
                         <div class="fighter-name">${esc(info.name)}${battle.boss ? ' 👑' : ''}</div>
                         ${hpBarHtml('enemyHp', battle.enemyHp, battle.enemyMaxHp, '#ff6b6b')}
@@ -1359,8 +1437,8 @@
             </div>`;
 
         initHeroCanvas();
+        setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         if (previewEnemyEnabled()) startPreviewEnemy();
-        else setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
 
         // Toggle lista/blocos: troca só a classe (sem re-render, para não
