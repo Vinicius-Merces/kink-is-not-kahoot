@@ -532,8 +532,10 @@
     // Todos os frames são desenhados a partir de um Image pré-carregado no
     // mesmo canvas. A integração antiga por atlas continua como fallback.
     class FourByFourSprite {
-        constructor(url, fallback = null) {
+        constructor(url, fallback = null, victoryUrl = null) {
             this.url = url;
+            this.victoryUrl = victoryUrl;
+            this.victoryImage = null;
             this.fallback = fallback;
             this.fallbackActive = false;
             this.image = null;
@@ -556,6 +558,19 @@
                         throw new Error('Spritesheet incompleto: ' + this.url);
                     }
                     this.image = image;
+                    if (this.victoryUrl) {
+                        try {
+                            const victory = new Image();
+                            victory.src = this.victoryUrl;
+                            await victory.decode();
+                            if (victory.naturalWidth < 4 || victory.naturalHeight < 1) throw new Error('Spritesheet de vitória inválido');
+                            this.victoryImage = victory;
+                        } catch (error) {
+                            // Vitória opcional: não bloqueia outras animações.
+                            console.warn('[CloudArena] spritesheet de vitória indisponível:', error.message);
+                            this.victoryImage = null;
+                        }
+                    }
                     this.fallbackActive = false;
                     return this;
                 } catch (error) {
@@ -593,14 +608,16 @@
 
         drawFrame(state, frame) {
             if (!this.image || !this.canvas || !this.ctx) return;
-            const image = this.image;
-            const row = this._states[state] ?? 0;
+            const separateVictory = state === 'victory' && !!this.victoryImage;
+            const image = separateVictory ? this.victoryImage : this.image;
+            const row = separateVictory ? 0 : (this._states[state] ?? 0);
+            const totalRows = separateVictory ? 1 : 4;
             // Limites com arredondamento evitam deslocamento cumulativo quando
             // largura/altura não são múltiplos exatos de 4.
             const x0 = Math.round(frame * image.naturalWidth / 4);
             const x1 = Math.round((frame + 1) * image.naturalWidth / 4);
-            const y0 = Math.round(row * image.naturalHeight / 4);
-            const y1 = Math.round((row + 1) * image.naturalHeight / 4);
+            const y0 = Math.round(row * image.naturalHeight / totalRows);
+            const y1 = Math.round((row + 1) * image.naturalHeight / totalRows);
             const insetX = Math.min(15, Math.floor((x1 - x0 - 1) / 4));
             const insetTop = Math.min(20, Math.floor((y1 - y0 - 1) / 4));
             const sx = x0 + insetX;
@@ -619,7 +636,7 @@
             if (this.fallbackActive) return this.fallback.play(state, { loop, onFrame, onComplete });
             this.stop();
             const generation = this._generation;
-            const duration = state === 'idle' ? 1000 : 500;
+            const duration = state === 'idle' || state === 'victory' ? 1000 : 500;
             let started = null, previous = -1;
             const tick = time => {
                 if (generation !== this._generation || !this.canvas || !this.canvas.isConnected) {
@@ -655,7 +672,11 @@
         const choice = state.heroChoice || 'masculino';
         if (!heroSpriteCache[choice]) {
             heroSpriteCache[choice] = choice === 'masculino'
-                ? new FourByFourSprite('images/arena/hero/masculino/cloudarena-sheet.png', new HeroSprite(choice))
+                ? new FourByFourSprite(
+                    'images/arena/hero/masculino/cloudarena-sheet.png',
+                    new HeroSprite(choice),
+                    'images/arena/hero/masculino/victory.png'
+                )
                 : new HeroSprite(choice);
         }
         return heroSpriteCache[choice];
