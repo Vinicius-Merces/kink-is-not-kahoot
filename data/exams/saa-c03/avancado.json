@@ -5140,7 +5140,7 @@
     {
       "id": "saa-avc-215",
       "domain": "high-performing-architectures",
-      "text": "Dashboards de BI conectados a um cluster Amazon Redshift ficam lentos apenas nas manhãs de segunda-feira, quando centenas de analistas executam consultas simultaneamente. No restante da semana o cluster atende bem, e o time NÃO quer pagar por um cluster maior o tempo todo. Qual recurso resolve os picos de concorrência?",
+      "text": "Dashboards executam consultas elegíveis sobre tabelas locais Redshift. Em picos imprevisíveis, as consultas aguardam vagas nas filas WLM; fora deles o cluster atende bem. A equipe quer absorver automaticamente esse excesso sem agendar resize nem migrar dados ou clientes. Qual recurso é mais adequado?",
       "options": [
         "Habilitar Redshift Spectrum para consultar dados externos no S3 e aliviar consultas que dependem dessas tabelas externas.",
         "Executar Elastic Resize para ampliar os nós do cluster antes dos picos e reduzi-los após o período de maior demanda.",
@@ -5148,10 +5148,17 @@
         "Migrar as consultas de BI para o Athena, executando SQL sobre os dados no S3 sem manter capacidade de cluster provisionada."
       ],
       "correct": 2,
-      "explanation": "A) Incorreta: Spectrum estende consultas ao S3; não adiciona capacidade de concorrência ao cluster. B) Incorreta: dobrar o cluster permanentemente é exatamente o custo fixo que se quer evitar. C) Correta: o Concurrency Scaling adiciona clusters transitórios automáticos nos picos de concorrência e os remove depois — com créditos gratuitos diários que costumam cobrir o uso. D) Incorreta: migrar o BI para Athena muda a arquitetura inteira para resolver um problema pontual de concorrência.",
+      "explanation": "Spectrum consulta tabelas externas e não amplia por si só a concorrência das consultas locais descritas. Elastic Resize altera a capacidade principal e exige planejamento; não fornece o overflow automático por fila solicitado. Concurrency Scaling acrescenta capacidade temporária para consultas elegíveis quando necessário, com créditos e cobrança conforme o uso. Athena exigiria mover ou disponibilizar os dados no S3 e adaptar o BI, contrariando a preservação do desenho atual.",
       "topics": [
         "analytics"
-      ]
+      ],
+      "optionRationales": [
+        "Spectrum consulta tabelas externas e não amplia por si só a concorrência das consultas locais descritas.",
+        "Elastic Resize altera a capacidade principal e exige planejamento; não fornece o overflow automático por fila solicitado.",
+        "Concurrency Scaling acrescenta capacidade temporária para consultas elegíveis quando necessário, com créditos e cobrança conforme o uso.",
+        "Athena exigiria mover ou disponibilizar os dados no S3 e adaptar o BI, contrariando a preservação do desenho atual."
+      ],
+      "hint": "Diferencie ampliar o cluster principal de acrescentar capacidade transitória para consultas concorrentes."
     },
     {
       "id": "saa-avc-216",
@@ -5264,11 +5271,18 @@
         "Usar Tape Gateway para apresentar bibliotecas virtuais de fitas ao software de backup e arquivar cópias na AWS."
       ],
       "correct": 1,
-      "explanation": "A) Incorreta: no modo cached, o dado primário fica no S3 e só o cache é local — o inverso do requisito. B) Correta: no modo stored, o volume completo reside on-premises (latência local total) e o gateway envia snapshots incrementais para a AWS como backup — exatamente o cenário. C) Incorreta: File Gateway expõe NFS/SMB sobre S3, não volumes iSCSI. D) Incorreta: Tape Gateway emula fitas para software de backup.",
+      "explanation": "Cached mantém apenas parte dos dados localmente e usa a AWS como armazenamento principal. Stored mantém o dataset completo local e produz snapshots incrementais para recuperação na AWS. File Gateway oferece arquivos sobre objetos S3, não o volume de blocos primário integralmente local descrito. Tape Gateway emula fitas para backup; não fornece o volume de aplicação pedido.",
       "topics": [
         "s3-storage",
         "migration"
-      ]
+      ],
+      "optionRationales": [
+        "Cached mantém apenas parte dos dados localmente e usa a AWS como armazenamento principal.",
+        "Stored mantém o dataset completo local e produz snapshots incrementais para recuperação na AWS.",
+        "File Gateway oferece arquivos sobre objetos S3, não o volume de blocos primário integralmente local descrito.",
+        "Tape Gateway emula fitas para backup; não fornece o volume de aplicação pedido."
+      ],
+      "hint": "Identifique onde reside o dataset principal e qual interface a aplicação utiliza."
     },
     {
       "id": "saa-avc-223",
