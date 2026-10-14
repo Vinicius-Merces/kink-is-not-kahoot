@@ -3639,19 +3639,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa serve uma aplicação web através do CloudFront, com ativos baseados em texto (HTML, CSS, JavaScript, respostas de API em JSON) representando uma parcela significativa do total de bytes transferidos para os usuários finais. O servidor de origem atualmente não comprime essas respostas, e a equipe quer reduzir o tamanho dos dados transferidos para os usuários finais (melhorando os tempos de carregamento de página, especialmente em conexões mais lentas) sem modificar o servidor de origem para adicionar lógica de compressão.",
       "options": [
-        "Configurar o servidor de origem para comprimir as respostas usando Gzip antes de enviá-las ao CloudFront",
-        "Usar o Lambda@Edge para comprimir os corpos das respostas no evento 'viewer response' antes de retorná-las aos clientes",
-        "Habilitar o recurso de compressão automática do CloudFront (Compress Objects Automatically) nos cache behaviors relevantes",
-        "Aumentar o TTL de cache do CloudFront para esses objetos, reduzindo o número de vezes que precisam ser buscados e transferidos"
+        "Adicionar gzip no servidor de origem.",
+        "Comprimir corpos com Lambda@Edge em viewer response.",
+        "Habilitar Compress Objects Automatically no behavior CloudFront.",
+        "Aumentar TTL para reduzir bytes de cada resposta."
       ],
       "correct": 2,
-      "explanation": "Correto. O CloudFront pode comprimir automaticamente conteúdo elegível baseado em texto (ex.: text/html, text/css, application/javascript, application/json) usando Gzip ou Brotli (com base no cabeçalho Accept-Encoding do cliente) antes de servi-lo a partir do cache/borda, reduzindo os bytes transferidos para clientes compatíveis sem exigir nenhuma alteração no servidor de origem.",
-      "hint": "Pense em um recurso nativo do CloudFront que reduz o tamanho de conteúdo baseado em texto antes da entrega, sem exigir nenhuma alteração na origem.",
+      "explanation": "Comprimir na origem atende, mas viola a restrição de não alterá-la. Lambda@Edge para comprimir corpos acrescenta custo/limites e não é necessário. CloudFront pode comprimir objetos textuais elegíveis quando viewer suporta, sem mudar origem. TTL reduz buscas à origem, não os bytes de uma resposta entregue ao viewer.",
+      "hint": "Cache e compressão resolvem problemas diferentes.",
       "optionRationales": [
-        "Correto. O CloudFront pode comprimir automaticamente conteúdo elegível baseado em texto (ex.: text/html, text/css, application/javascript, application/json) usando Gzip ou Brotli (com base no cabeçalho Accept-Encoding do cliente) antes de servi-lo a partir do cache/borda, reduzindo os bytes transferidos para clientes compatíveis sem exigir nenhuma alteração no servidor de origem.",
-        "Incorreto. Embora a compressão no lado da origem também seja uma abordagem válida, o cenário especifica que a equipe quer evitar modificar o servidor de origem; a compressão automática do CloudFront alcança o mesmo benefício para o usuário final (respostas comprimidas) sem exigir alterações na origem, sendo a opção mais adequada à restrição declarada.",
-        "Incorreto. Aumentar o TTL reduz a FREQUÊNCIA com que os objetos são buscados/transferidos da origem (menos cache misses), mas não reduz o TAMANHO de cada resposta individual entregue aos usuários finais — é uma otimização diferente (reduzir a frequência de transferência) da redução do TAMANHO da transferência (compressão).",
-        "Incorreto. Embora tecnicamente possível, implementar lógica de compressão customizada via Lambda@Edge adiciona custo/overhead de execução do Lambda por requisição e complexidade operacional, quando o recurso de compressão automática nativo do CloudFront já fornece essa funcionalidade (Gzip/Brotli, sensível ao content-type e ao Accept-Encoding) sem nenhum código customizado."
+        "Comprimir na origem atende, mas viola a restrição de não alterá-la.",
+        "Lambda@Edge para comprimir corpos acrescenta custo/limites e não é necessário.",
+        "CloudFront pode comprimir objetos textuais elegíveis quando viewer suporta, sem mudar origem.",
+        "TTL reduz buscas à origem, não os bytes de uma resposta entregue ao viewer."
       ],
       "topics": [
         "edge-dns"
@@ -3662,19 +3662,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa executa consultas analíticas em um cluster Amazon Redshift contra uma grande tabela 'sales_fact' (bilhões de linhas) que é frequentemente unida (JOIN) a uma tabela menor 'dim_store' por 'store_id', e as consultas frequentemente filtram/fazem range scan por 'sale_date'. O desempenho das consultas é ruim — JOINs entre sales_fact e dim_store causam movimentação significativa de dados (redistribuição) entre os nós de computação durante a execução, e filtros de intervalo de data percorrem muito mais blocos de dados do que o necessário.",
       "options": [
-        "Definir o DISTSTYLE de 'sales_fact' como KEY em 'store_id' (co-localizando-a com 'dim_store', que pode usar ALL ou também ser distribuída pela mesma chave de join), e definir um SORTKEY em 'sale_date' para 'sales_fact'",
-        "Aumentar o número de nós do cluster (adicionar mais nós de computação) para paralelizar as operações de JOIN e filtro entre mais nós",
-        "Definir o DISTSTYLE como EVEN para ambas as tabelas, garantindo uma distribuição de dados perfeitamente balanceada entre todos os nós de computação",
-        "Criar um Global Secondary Index em 'store_id' e 'sale_date' para acelerar tanto o JOIN quanto o filtro de data"
+        "Usar DISTKEY store_id no fato e DISTSTYLE/SORTKEY compatíveis nas dimensões e sale_date.",
+        "Aumentar nós sem alterar chaves de distribuição ou sort.",
+        "Usar DISTSTYLE EVEN em ambas as tabelas.",
+        "Criar GSI em store_id e sale_date."
       ],
       "correct": 0,
-      "explanation": "Correto. Distribuir ambas as tabelas pela chave de join ('store_id') garante que as linhas correspondentes fiquem co-localizadas no mesmo nó de computação, eliminando a redistribuição de dados entre nós durante o JOIN; ordenar por 'sale_date' permite que os zone maps do Redshift ignorem blocos fora do intervalo de data consultado, reduzindo drasticamente o I/O para consultas filtradas por data.",
-      "hint": "Pense em dois mecanismos distintos do Redshift: um que controla onde as linhas de cada tabela são fisicamente armazenadas entre os nós (para JOINs), e outro que controla a ordem física das linhas dentro de cada nó (para filtros de intervalo).",
+      "explanation": "A distribuição por chave de join e ordenação por data reduz redistribuição e blocos lidos; a escolha final depende de cardinalidade/tamanho e deve ser medida. Mais nós pode ajudar, mas não corrige o layout que provoca movimentos e scans excessivos. EVEN equilibra dados, mas pode exigir redistribuir ambos os lados do join. Redshift não usa GSI nesse modelo.",
+      "hint": "Escolha física de dados afeta tanto join quanto range scan.",
       "optionRationales": [
-        "Correto. Distribuir ambas as tabelas pela chave de join ('store_id') garante que as linhas correspondentes fiquem co-localizadas no mesmo nó de computação, eliminando a redistribuição de dados entre nós durante o JOIN; ordenar por 'sale_date' permite que os zone maps do Redshift ignorem blocos fora do intervalo de data consultado, reduzindo drasticamente o I/O para consultas filtradas por data.",
-        "Incorreto. A distribuição EVEN distribui as linhas em round-robin, independentemente de qualquer valor de coluna, o que é bom para o balanceamento geral de armazenamento, mas NÃO co-localiza chaves de join correspondentes entre tabelas — JOINs entre tabelas distribuídas como EVEN em 'store_id' ainda exigiriam redistribuição significativa de dados entre nós durante a execução.",
-        "Incorreto. 'Global Secondary Index' é um conceito do DynamoDB, não do Redshift; os mecanismos de otimização de desempenho do Redshift para esses padrões de acesso são DISTKEY/DISTSTYLE (para co-localização de join) e SORTKEY (para eliminação de blocos via zone maps em filtros de intervalo), não índices secundários.",
-        "Incorreto. Adicionar mais nós aumenta a capacidade geral de processamento paralelo, mas se o DISTSTYLE não co-localiza as chaves de join, MAIS nós podem na verdade significar MAIS tráfego de redistribuição de dados entre nós durante o JOIN (mais saltos de rede entre mais nós); isso não resolve o problema fundamental de layout de dados que causa a redistribuição e os scans de blocos desnecessários."
+        "A distribuição por chave de join e ordenação por data reduz redistribuição e blocos lidos; a escolha final depende de cardinalidade/tamanho e deve ser medida.",
+        "Mais nós pode ajudar, mas não corrige o layout que provoca movimentos e scans excessivos.",
+        "EVEN equilibra dados, mas pode exigir redistribuir ambos os lados do join.",
+        "Redshift não usa GSI nesse modelo."
       ],
       "topics": [
         "analytics"
@@ -3685,19 +3685,19 @@
       "domain": "high-performing-architectures",
       "text": "Um banco de dados OLTP de missão crítica no Amazon RDS for Oracle processa um volume de transações consistentemente muito alto (dezenas de milhares de IOPS sustentadas, 24/7) com requisitos estritos de desempenho de I/O consistente e previsível e variância mínima de latência — mesmo breves quedas nas IOPS disponíveis durante períodos de pico causam timeouts de transação no nível da aplicação. A equipe está avaliando opções de armazenamento EBS para essa instância RDS.",
       "options": [
-        "Usar armazenamento General Purpose SSD (gp3) e provisionar o máximo de IOPS disponível (16.000)",
-        "Usar armazenamento Provisioned IOPS SSD (io1 ou io2) para a instância RDS, provisionando IOPS para atender (com margem) o requisito sustentado de dezenas de milhares de IOPS",
-        "Usar armazenamento Magnetic (standard) para economia de custo, já que o RDS armazenará automaticamente os dados quentes em cache na memória para compensar o disco mais lento",
-        "Habilitar o Multi-AZ do RDS para distribuir a carga de I/O entre a instância primária e a standby"
+        "Usar gp3 no limite disponível para a instância RDS.",
+        "Usar PIOPS io1/io2 compatível com RDS e provisionar margem de IOPS.",
+        "Usar Magnetic e depender de cache de memória.",
+        "Habilitar Multi-AZ para distribuir I/O normal entre primário e standby."
       ],
       "correct": 1,
-      "explanation": "Correto. O armazenamento Provisioned IOPS é projetado para fornecer desempenho de IOPS consistente e previsível, com variância mínima de latência, especificamente para cargas de trabalho transacionais intensivas em I/O e sensíveis à latência, onde desempenho consistente sob carga sustentada alta é crítico — exatamente os requisitos desse banco OLTP.",
-      "hint": "Pense em qual classe de armazenamento EBS do RDS é projetada especificamente para fornecer IOPS consistentes e previsíveis, com variância mínima de latência, para cargas transacionais muito exigentes.",
+      "explanation": "gp3 é econômico, mas pode não fornecer a margem/consistência de IOPS extrema solicitada. PIOPS fornece IOPS provisionadas adequadas a OLTP sustentado; limites variam por engine/classe e devem ser verificados. Magnetic não atende latência previsível nem IOPS sustentadas. Multi-AZ replica para disponibilidade, não reparte leituras/escritas normais entre primário e standby.",
+      "hint": "Resiliência Multi-AZ não é uma técnica de scale-out de I/O do writer.",
       "optionRationales": [
-        "Correto. O armazenamento Provisioned IOPS é projetado para fornecer desempenho de IOPS consistente e previsível, com variância mínima de latência, especificamente para cargas de trabalho transacionais intensivas em I/O e sensíveis à latência, onde desempenho consistente sob carga sustentada alta é crítico — exatamente os requisitos desse banco OLTP.",
-        "Incorreto. O máximo de IOPS provisionadas do gp3 (16.000) pode ser suficiente para 'dezenas de milhares' apenas na extremidade inferior, e mais importante, o gp3 é projetado para uma ampla gama de cargas de trabalho com 'desempenho de baseline consistente', mas geralmente posicionado para cargas transacionais com requisitos MODERADOS de I/O; para as cargas OLTP mais exigentes, sensíveis à variância de latência, com IOPS sustentadas muito altas, o Provisioned IOPS (io1/io2) é a classe de armazenamento recomendada pela AWS especificamente para consistência sob essa carga.",
-        "Incorreto. O armazenamento Magnetic fornece as IOPS mais BAIXAS e menos consistentes entre as opções de armazenamento do RDS, completamente inadequado para uma carga de trabalho que exige dezenas de milhares de IOPS sustentadas com variância mínima de latência; o RDS usa um buffer cache, mas uma carga transacional sustentada de alta IOPS ainda geraria I/O de disco substancial que o armazenamento Magnetic não consegue suportar.",
-        "Incorreto. No Multi-AZ padrão do RDS, a instância standby NÃO é usada para atender tráfego de leitura ou escrita (é uma réplica síncrona apenas para failover); não distribui nem aumenta a capacidade de I/O disponível para a instância primária lidar com o volume de transações — o Multi-AZ aborda disponibilidade/durabilidade, não throughput/consistência de I/O."
+        "gp3 é econômico, mas pode não fornecer a margem/consistência de IOPS extrema solicitada.",
+        "PIOPS fornece IOPS provisionadas adequadas a OLTP sustentado; limites variam por engine/classe e devem ser verificados.",
+        "Magnetic não atende latência previsível nem IOPS sustentadas.",
+        "Multi-AZ replica para disponibilidade, não reparte leituras/escritas normais entre primário e standby."
       ],
       "topics": [
         "s3-storage",
@@ -3709,19 +3709,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa tem uma função AWS Lambda baseada em Java (usando um framework de dependências grande, como Spring Boot) que atende requisições síncronas via API Gateway. Os cold starts dessa função levam vários segundos (devido à inicialização da JVM e do framework), causando picos de latência inaceitáveis para usuários finais durante eventos de scale-out ou após períodos de inatividade. A equipe quer reduzir drasticamente a latência de cold start especificamente para essa função Java, idealmente sem pagar por Provisioned Concurrency para manter ambientes constantemente 'aquecidos'.",
       "options": [
-        "Habilitar o AWS Lambda SnapStart para a função Java",
-        "Reescrever a função em outro runtime (ex.: Node.js), que tem cold starts mais rápidos",
-        "Configurar Reserved Concurrency para a função para garantir slots de execução disponíveis",
-        "Aumentar a alocação de memória da função para o máximo, para acelerar o tempo de inicialização da JVM"
+        "Habilitar Lambda SnapStart na versão publicada compatível da função Java.",
+        "Reescrever a função Java em outro runtime.",
+        "Configurar Reserved Concurrency no pico esperado.",
+        "Aumentar memória ao máximo para eliminar cold starts."
       ],
       "correct": 0,
-      "explanation": "Correto. O SnapStart pré-inicializa a função (executando toda a inicialização, incluindo o início da JVM e o carregamento do framework) UMA VEZ quando uma nova versão é publicada, tira um snapshot do estado de memória/disco do ambiente de execução já inicializado e o armazena em cache; em cold starts subsequentes, o Lambda retoma a partir desse snapshot em cache em vez de executar a inicialização do zero, reduzindo a latência de cold start de segundos para tipicamente sub-segundo, sem o custo contínuo do Provisioned Concurrency.",
-      "hint": "Pense em um recurso do Lambda que tira um snapshot do ambiente de execução já totalmente inicializado e o reutiliza em cold starts subsequentes, sem custo contínuo de capacidade pré-aquecida.",
+      "explanation": "SnapStart reduz tempo de inicialização restaurando snapshot de estado inicializado para runtimes suportados, com compatibilidades a testar. Reescrever runtime pode ajudar, mas exige mudança de código não necessária. Reserved concurrency limita concorrência, não pré-inicializa ambientes. Memória pode reduzir init, mas não trata a inicialização Java pesada como SnapStart.",
+      "hint": "Uma técnica reduz a inicialização sem manter ambientes provisionados continuamente.",
       "optionRationales": [
-        "Correto. O SnapStart pré-inicializa a função (executando toda a inicialização, incluindo o início da JVM e o carregamento do framework) UMA VEZ quando uma nova versão é publicada, tira um snapshot do estado de memória/disco do ambiente de execução já inicializado e o armazena em cache; em cold starts subsequentes, o Lambda retoma a partir desse snapshot em cache em vez de executar a inicialização do zero, reduzindo a latência de cold start de segundos para tipicamente sub-segundo, sem o custo contínuo do Provisioned Concurrency.",
-        "Incorreto. Aumentar a memória (e a CPU proporcional) pode acelerar um pouco a inicialização da JVM e o carregamento de classes, mas para uma aplicação pesada em framework (ex.: Spring Boot) com cold starts de vários segundos, isso normalmente traz apenas melhoria marginal — não elimina fundamentalmente o trabalho repetido de inicialização da forma que a abordagem de snapshot-e-retomada do SnapStart faz.",
-        "Incorreto. Reescrever em outra linguagem é um esforço considerável (reimplementar a lógica de negócio, potencialmente perdendo acesso a bibliotecas/frameworks específicos de Java dos quais a equipe depende) e não é uma solução equivalente quando o requisito é reduzir cold starts 'especificamente para essa função Java' — o SnapStart resolve o problema de cold start do Java diretamente, sem exigir reescrita.",
-        "Incorreto. O Reserved Concurrency garante uma ALOCAÇÃO/TETO de concorrência para a função (evitando que seja prejudicada por outras funções, e evitando que exceda um limite), mas NÃO pré-inicializa nem 'aquece' ambientes de execução — não resolve a latência de cold start de forma alguma."
+        "SnapStart reduz tempo de inicialização restaurando snapshot de estado inicializado para runtimes suportados, com compatibilidades a testar.",
+        "Reescrever runtime pode ajudar, mas exige mudança de código não necessária.",
+        "Reserved concurrency limita concorrência, não pré-inicializa ambientes.",
+        "Memória pode reduzir init, mas não trata a inicialização Java pesada como SnapStart."
       ],
       "topics": [
         "serverless"
@@ -3732,19 +3732,19 @@
       "domain": "high-performing-architectures",
       "text": "Um banco de dados Amazon Aurora MySQL atende tanto uma aplicação OLTP de alto volume (muitas consultas transacionais pequenas e rápidas) QUANTO consultas analíticas/de relatório ocasionais que realizam agregações em tabela inteira (ex.: SUM/COUNT/AVG em centenas de milhões de linhas). Essas consultas analíticas atualmente demoram muito porque são processadas inteiramente pela camada de computação da instância do banco (execução single-threaded por consulta, varrendo grandes volumes de dados pelo buffer pool), e durante essas consultas, a CPU da instância se torna um gargalo, impactando também a responsividade da carga OLTP.",
       "options": [
-        "Migrar a carga analítica para o Amazon Redshift Spectrum, consultando os dados do Aurora diretamente via consultas federadas",
-        "Adicionar um Global Secondary Index cobrindo as colunas usadas nas agregações analíticas",
-        "Habilitar o Aurora Parallel Query para essas consultas analíticas no cluster Aurora MySQL",
-        "Criar uma réplica de leitura e executar todas as consultas analíticas contra ela em vez do primário"
+        "Migrar relatórios a Redshift Spectrum consultando Aurora diretamente.",
+        "Criar índice para toda agregação de tabela inteira.",
+        "Habilitar Aurora Parallel Query para consultas e versão compatíveis.",
+        "Executar os relatórios em read replica sem usar Parallel Query."
       ],
       "correct": 2,
-      "explanation": "Correto. O Parallel Query empurra operações de filtragem e agregação para a camada de armazenamento distribuída e multi-nó do Aurora, executando partes da consulta em paralelo em muitos nós de armazenamento (em vez da camada de computação de uma única instância), acelerando drasticamente scans/agregações analíticos grandes e reduzindo a carga de CPU na camada de computação que de outra forma impactaria o desempenho das consultas OLTP concorrentes.",
-      "hint": "Pense em um recurso do Aurora que distribui o trabalho de scan/agregação de uma consulta para a camada de armazenamento multi-nó, em vez de processá-lo inteiramente na instância de computação.",
+      "explanation": "Redshift Spectrum consulta S3, não tabelas Aurora diretamente por essa opção. Índice pode ajudar filtros seletivos, mas não desloca agregação full-scan à camada de storage. Parallel Query distribui certos scans/agregações no storage Aurora, reduzindo CPU do writer; exige versão/tipo de consulta elegível. Read replica isola carga, mas não oferece a execução paralela storage-layer específica.",
+      "hint": "A resposta procura acelerar grandes scans no próprio Aurora, não criar outro data warehouse.",
       "optionRationales": [
-        "Correto. O Parallel Query empurra operações de filtragem e agregação para a camada de armazenamento distribuída e multi-nó do Aurora, executando partes da consulta em paralelo em muitos nós de armazenamento (em vez da camada de computação de uma única instância), acelerando drasticamente scans/agregações analíticos grandes e reduzindo a carga de CPU na camada de computação que de outra forma impactaria o desempenho das consultas OLTP concorrentes.",
-        "Incorreto. Descarregar as consultas analíticas para uma réplica de leitura isola seu impacto sobre a carga OLTP do primário, mas as próprias consultas analíticas AINDA seriam lentas na réplica (mesma execução single-instance, limitada pela camada de computação, para agregações grandes) — isola o impacto, mas não acelera as consultas analíticas em si, como o paralelismo da camada de armazenamento do Parallel Query faz.",
-        "Incorreto. 'Global Secondary Index' é um conceito do DynamoDB; no Aurora MySQL, o equivalente seria um índice secundário, que PODE ajudar certos padrões de consulta, mas agregações em tabela inteira sobre centenas de milhões de linhas (SUM/COUNT/AVG sem filtro seletivo) frequentemente ainda exigem varrer a maioria/todas as linhas independentemente da indexação — o scan paralelo da camada de armazenamento do Parallel Query aborda esse cenário de scan grande de forma mais direta do que a indexação.",
-        "Incorreto. Embora o Redshift possa ser uma solução de data warehousing de longo prazo, o Redshift Spectrum consulta dados no S3 (não diretamente no armazenamento do Aurora), portanto isso exigiria uma etapa de ETL/exportação para levar os dados do Aurora ao S3 primeiro — uma mudança arquitetural muito maior do que habilitar um recurso nativo do Aurora (Parallel Query) projetado especificamente para acelerar consultas analíticas grandes contra dados existentes no Aurora, no local."
+        "Redshift Spectrum consulta S3, não tabelas Aurora diretamente por essa opção.",
+        "Índice pode ajudar filtros seletivos, mas não desloca agregação full-scan à camada de storage.",
+        "Parallel Query distribui certos scans/agregações no storage Aurora, reduzindo CPU do writer; exige versão/tipo de consulta elegível.",
+        "Read replica isola carga, mas não oferece a execução paralela storage-layer específica."
       ],
       "topics": [
         "databases"
@@ -3755,19 +3755,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa possui uma única conexão AWS Direct Connect de 10 Gbps entre seu data center e a AWS, utilizada para um workload de replicação de dados de alto throughput. Periodicamente, durante janelas de replicação intensiva, a demanda excede os 10 Gbps disponíveis. A equipe deseja aumentar a largura de banda agregada disponível na MESMA localização do Direct Connect, mantendo uma única sessão BGP e uma interface lógica única para fins de configuração e roteamento.",
       "options": [
-        "Utilizar AWS Site-to-Site VPN como conexão suplementar para adicionar largura de banda sobre a conexão Direct Connect existente",
-        "Solicitar à AWS o upgrade da velocidade da porta da conexão Direct Connect existente, sem provisionar conexões físicas adicionais",
-        "Provisionar conexões adicionais do AWS Direct Connect na mesma localização e agrupá-las em um Link Aggregation Group (LAG)",
-        "Provisionar uma segunda conexão Direct Connect independente em outra localização e configurar ECMP (Equal-Cost Multi-Path) entre as duas conexões"
+        "Adicionar VPN sobre a conexão existente para criar uma interface lógica maior.",
+        "Solicitar upgrade da porta única sem conexões físicas adicionais.",
+        "Criar conexões DX compatíveis e agrupá-las em LAG na mesma localização.",
+        "Criar DX independente em outra localização e usar ECMP."
       ],
       "correct": 2,
-      "explanation": "Correto. Um LAG agrega múltiplas conexões físicas do Direct Connect (de mesma capacidade, no mesmo dispositivo/local do Direct Connect) em uma única interface lógica, somando a largura de banda agregada e apresentando uma única sessão BGP e configuração de roteamento ao cliente — atendendo exatamente ao requisito de simplicidade operacional com maior throughput.",
-      "hint": "Pense em qual recurso do Direct Connect permite combinar múltiplas conexões físicas no mesmo local em uma única interface lógica com uma única sessão BGP.",
+      "explanation": "VPN pode complementar, mas não agrega uma interface lógica DX de maior capacidade. Não há upgrade in-place genérico que transforme uma porta física existente sem nova provisão. LAG combina conexões DX compatíveis na mesma localização em interface lógica/BGP, aumentando banda e redundância. Outra localização com ECMP não atende ao requisito de mesma localização e interface única.",
+      "hint": "A agregação ocorre entre conexões físicas compatíveis sob uma interface lógica.",
       "optionRationales": [
-        "Correto. Um LAG agrega múltiplas conexões físicas do Direct Connect (de mesma capacidade, no mesmo dispositivo/local do Direct Connect) em uma única interface lógica, somando a largura de banda agregada e apresentando uma única sessão BGP e configuração de roteamento ao cliente — atendendo exatamente ao requisito de simplicidade operacional com maior throughput.",
-        "Incorreto. ECMP entre conexões independentes pode agregar bandwidth e fornecer redundância geográfica, mas exige gerenciar duas sessões BGP e configurações de roteamento separadas — mais complexidade do que o requisito de 'interface lógica única'. Para combinar conexões NA MESMA localização em uma única interface, o LAG é o recurso correto.",
-        "Incorreto. A velocidade de porta do Direct Connect está vinculada à interconexão física estabelecida na localização do parceiro/Direct Connect. Não é possível simplesmente 'aumentar' a capacidade de uma conexão física existente via solicitação de suporte — é necessário provisionar uma nova conexão de maior capacidade (com troca/downtime) ou agregar conexões adicionais via LAG.",
-        "Incorreto. O Site-to-Site VPN trafega pela internet pública e possui throughput por túnel tipicamente limitado a cerca de 1,25 Gbps, com características de latência distintas do Direct Connect dedicado. É adequado como conectividade de backup/failover, não como mecanismo para agregar linearmente bandwidth a uma conexão Direct Connect em uma interface lógica única."
+        "VPN pode complementar, mas não agrega uma interface lógica DX de maior capacidade.",
+        "Não há upgrade in-place genérico que transforme uma porta física existente sem nova provisão.",
+        "LAG combina conexões DX compatíveis na mesma localização em interface lógica/BGP, aumentando banda e redundância.",
+        "Outra localização com ECMP não atende ao requisito de mesma localização e interface única."
       ],
       "topics": [
         "hybrid-networking"
@@ -3778,19 +3778,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação precisa baixar um único objeto muito grande (um arquivo de modelo de machine learning de 50 GB) do Amazon S3 o mais rápido possível. A equipe observou que uma requisição GET única e sequencial atinge um platô de throughput bem abaixo da largura de banda de rede disponível, pois uma única conexão TCP não consegue utilizar totalmente essa capacidade. Eles desejam paralelizar o download deste ÚNICO objeto em múltiplas conexões para maximizar o throughput total.",
       "options": [
-        "Emitir múltiplas requisições GET concorrentes utilizando o cabeçalho HTTP 'Range' para baixar diferentes intervalos de bytes do mesmo objeto em paralelo, reconstruindo o arquivo localmente",
-        "Utilizar o S3 Multipart Upload para reenviar o objeto em partes menores e, em seguida, baixar cada parte separadamente",
-        "Habilitar o Amazon S3 Transfer Acceleration para este download",
-        "Migrar a instância EC2 que realiza o download para um tipo de instância com Enhanced Networking, aumentando a capacidade de rede disponível"
+        "Fazer GETs Range concorrentes e recompor o objeto localmente.",
+        "Usar Multipart Upload para baixar as partes originais do objeto.",
+        "Habilitar Transfer Acceleration e manter GET único.",
+        "Trocar instância por Enhanced Networking e manter uma única conexão TCP."
       ],
       "correct": 0,
-      "explanation": "Correto. Requisições GET paralelas com 'Range' (byte-range fetches) permitem que a aplicação utilize múltiplas conexões TCP simultâneas para diferentes partes do mesmo objeto, agregando o throughput dessas conexões e acelerando significativamente o download de um objeto grande em comparação a um único GET sequencial.",
-      "hint": "Considere como dividir o download de um único arquivo grande em múltiplas requisições HTTP concorrentes que operem sobre partes diferentes do mesmo objeto.",
+      "explanation": "Range GET paraleliza partes do download e permite recomposição local. Multipart Upload é protocolo de envio, não torna partes de um objeto baixáveis separadamente. Transfer Acceleration pode alterar rota, mas não cria paralelismo do objeto. Enhanced Networking amplia teto de instância, não força uma conexão única a ocupar toda banda.",
+      "hint": "O protocolo de download deve solicitar faixas de bytes do objeto já existente.",
       "optionRationales": [
-        "Correto. Requisições GET paralelas com 'Range' (byte-range fetches) permitem que a aplicação utilize múltiplas conexões TCP simultâneas para diferentes partes do mesmo objeto, agregando o throughput dessas conexões e acelerando significativamente o download de um objeto grande em comparação a um único GET sequencial.",
-        "Incorreto. O Transfer Acceleration otimiza o caminho de rede via edge locations do CloudFront, principalmente para clientes geograficamente distantes. Ele não paraleliza, por si só, o download de um ÚNICO objeto em múltiplas conexões — uma requisição GET única continuaria limitada pelas características de throughput de uma única conexão.",
-        "Incorreto. Multipart Upload é um mecanismo de UPLOAD para criação de objetos; não se aplica ao DOWNLOAD de um objeto já existente. Reenviar 50 GB apenas para permitir downloads paralelos das partes seria extremamente custoso e ineficiente em termos de armazenamento e transferência.",
-        "Incorreto. Enhanced Networking aumenta o teto de capacidade da interface de rede da instância, mas uma única conexão TCP (uma única requisição GET) tipicamente não consegue saturar nem mesmo uma interface de rede moderada devido às características de janela/controle de congestionamento do TCP em longas distâncias — sem paralelizar o download em si, mais capacidade de rede disponível não é aproveitada."
+        "Range GET paraleliza partes do download e permite recomposição local.",
+        "Multipart Upload é protocolo de envio, não torna partes de um objeto baixáveis separadamente.",
+        "Transfer Acceleration pode alterar rota, mas não cria paralelismo do objeto.",
+        "Enhanced Networking amplia teto de instância, não força uma conexão única a ocupar toda banda."
       ],
       "topics": [
         "s3-storage"
@@ -3801,19 +3801,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma indústria de manufatura executa software de controle de equipamentos em tempo real em uma fábrica on-premises que exige latência de milissegundos de dígito único para sensores e atuadores locais — latência até mesmo de dezenas de milissegundos para uma Região AWS é inaceitável para esse loop de controle. A empresa deseja utilizar as MESMAS APIs, serviços (como Amazon EC2, Amazon EBS, Amazon ECS) e ferramentas operacionais (como AWS CloudFormation, IAM) que já utiliza na nuvem, com a capacidade de integrar essa infraestrutura on-premises a uma VPC na Região AWS mais próxima.",
       "options": [
-        "Implantar o software de controle na Região AWS mais próxima e conectar via AWS Direct Connect para obter a menor latência possível",
-        "Utilizar o AWS Wavelength para implantar a aplicação mais próxima da fábrica",
-        "Implantar o AWS Outposts (rack ou servidor) na própria instalação da fábrica",
-        "Utilizar AWS Local Zones, implantando recursos na Local Zone mais próxima da fábrica"
+        "Executar na Região com Direct Connect da fábrica.",
+        "Usar Wavelength para instalar infraestrutura dentro da fábrica.",
+        "Usar AWS Outposts rack/servidor na própria instalação.",
+        "Usar Local Zone mais próxima e assumir latência de sensor local."
       ],
       "correct": 2,
-      "explanation": "Correto. O AWS Outposts leva infraestrutura projetada pela AWS, com serviços nativos (EC2, EBS, ECS/EKS, etc.) e as mesmas APIs/ferramentas de controle utilizadas nas Regiões, diretamente para dentro da instalação on-premises do cliente — fornecendo computação local com latência de milissegundos de dígito único para workloads sensíveis à latência, ao mesmo tempo em que se integra a uma VPC na Região AWS ancora para conectividade híbrida e operações consistentes.",
-      "hint": "O requisito-chave é ter infraestrutura AWS nativa fisicamente dentro da própria fábrica, não apenas geograficamente próxima.",
+      "explanation": "Região e Direct Connect ainda não atendem controle local de milissegundos. Wavelength é voltado a borda da rede 5G, não instala EC2/EBS na fábrica. Outposts leva infraestrutura AWS à instalação e integra à Região/VPC, com limitações de capacidade/conectividade a planejar. Local Zone pode estar próxima, mas não garante presença física na fábrica ou latência local exigida.",
+      "hint": "O requisito é presença AWS on-premises com APIs familiares.",
       "optionRationales": [
-        "Correto. O AWS Outposts leva infraestrutura projetada pela AWS, com serviços nativos (EC2, EBS, ECS/EKS, etc.) e as mesmas APIs/ferramentas de controle utilizadas nas Regiões, diretamente para dentro da instalação on-premises do cliente — fornecendo computação local com latência de milissegundos de dígito único para workloads sensíveis à latência, ao mesmo tempo em que se integra a uma VPC na Região AWS ancora para conectividade híbrida e operações consistentes.",
-        "Incorreto. Mesmo com Direct Connect, a latência entre o chão de fábrica e os data centers de uma Região AWS (potencialmente a centenas de km de distância) envolve atraso de propagação que tipicamente excede muito os milissegundos de dígito único. O Direct Connect melhora a previsibilidade de latência e a largura de banda em comparação à internet, mas não torna a latência regional comparável a um processamento verdadeiramente LOCAL on-premises.",
-        "Incorreto. O AWS Wavelength incorpora infraestrutura de computação e armazenamento AWS dentro das redes 5G de operadoras de telecomunicações, voltado especificamente para aplicações móveis/edge de latência ultrabaixa acessadas por dispositivos via 5G — não foi projetado para estender a infraestrutura AWS para dentro de uma instalação on-premises do cliente.",
-        "Incorreto. As AWS Local Zones são implantações de infraestrutura AWS em grandes áreas metropolitanas, estendendo uma Região para mais perto de centros populacionais/industriais, mas ainda são instalações operadas pela AWS em uma área metropolitana (não dentro da própria fábrica do cliente). Reduzem a latência em comparação a uma Região distante, mas não fornecem a colocação dentro da instalação que loops de controle de milissegundos de dígito único exigem — o Outposts coloca a infraestrutura fisicamente dentro da instalação do cliente."
+        "Região e Direct Connect ainda não atendem controle local de milissegundos.",
+        "Wavelength é voltado a borda da rede 5G, não instala EC2/EBS na fábrica.",
+        "Outposts leva infraestrutura AWS à instalação e integra à Região/VPC, com limitações de capacidade/conectividade a planejar.",
+        "Local Zone pode estar próxima, mas não garante presença física na fábrica ou latência local exigida."
       ],
       "topics": [
         "hybrid-networking"
@@ -3824,19 +3824,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação utiliza Amazon ElastiCache for Redis em modo 'Cluster Mode Disabled' (um único shard com um nó primário). O conjunto de dados cabe confortavelmente na memória de um único nó, e o volume de escritas é baixo a moderado, mas o tráfego de LEITURA cresceu substancialmente e agora é o fator limitante — a capacidade de rede/CPU do nó primário para atender leituras está se esgotando, mesmo que o tamanho do dataset e o throughput de escrita não exijam particionamento.",
       "options": [
-        "Habilitar o Cluster Mode (Cluster Mode Enabled) com múltiplos shards para distribuir a carga de leitura",
-        "Aumentar o tipo do nó para o maior tamanho disponível (escalonamento vertical) para suportar mais tráfego de leitura no nó primário único",
-        "Adicionar Read Replicas ao grupo de replicação existente (mantendo 'Cluster Mode Disabled') e configurar a aplicação para distribuir o tráfego de LEITURA entre as réplicas, mantendo as escritas direcionadas ao primário",
-        "Implementar o Amazon DynamoDB Accelerator (DAX) na frente do ElastiCache for Redis para reduzir a carga de leitura no Redis"
+        "Habilitar cluster mode enabled e múltiplos shards para escala de leitura.",
+        "Aumentar somente o nó primário ao maior tamanho.",
+        "Adicionar read replicas e direcionar leituras a elas, mantendo escritas no primário.",
+        "Usar DAX na frente do Redis."
       ],
       "correct": 2,
-      "explanation": "Correto. Como o gargalo é especificamente de capacidade de LEITURA (não de tamanho de dataset ou throughput de escrita), adicionar read replicas ao MESMO shard fornece endpoints adicionais de leitura para escalar horizontalmente o throughput de leitura, sem a complexidade adicional do Cluster Mode (particionamento de dados via hash slots), que seria necessária apenas se o tamanho do dataset ou o throughput de escrita fossem a restrição.",
-      "hint": "Identifique se o problema está relacionado ao tamanho dos dados/escrita (que exigiria particionamento) ou apenas à capacidade de leitura (que pode ser escalada horizontalmente sem particionar).",
+      "explanation": "Shards tratam tamanho/escrita; adicionam complexidade desnecessária quando apenas leitura é gargalo. Vertical scale pode ajudar, mas não distribui leituras e tem limite de nó. Read replicas em cluster mode disabled escalam leituras; aplicações usam endpoint de leitura/replicas e consideram lag. DAX é cache DynamoDB, não camada para Redis.",
+      "hint": "Réplicas atendem escala de leitura sem particionar o dataset.",
       "optionRationales": [
-        "Correto. Como o gargalo é especificamente de capacidade de LEITURA (não de tamanho de dataset ou throughput de escrita), adicionar read replicas ao MESMO shard fornece endpoints adicionais de leitura para escalar horizontalmente o throughput de leitura, sem a complexidade adicional do Cluster Mode (particionamento de dados via hash slots), que seria necessária apenas se o tamanho do dataset ou o throughput de escrita fossem a restrição.",
-        "Incorreto. Habilitar o Cluster Mode e particionar em shards é a ferramenta correta quando o TAMANHO DO DATASET ou o throughput de ESCRITA excede a capacidade de um único nó (exigindo particionamento de dados). Aqui o dataset cabe confortavelmente em um nó e o volume de escrita é moderado — o particionamento adiciona complexidade desnecessária (gerenciamento de hash slots) quando simplesmente adicionar read replicas ao shard existente resolve diretamente o gargalo de leitura descrito.",
-        "Incorreto. O escalonamento vertical pode aumentar a capacidade até certo ponto, mas tem um teto rígido (o maior tipo de nó disponível) e concentra TODO o tráfego de leitura E escrita em um único nó; não fornece o escalonamento HORIZONTAL de leitura (múltiplos endpoints) que as read replicas oferecem, nem desvia leituras do primário.",
-        "Incorreto. O DAX é uma camada de cache específica para tabelas do Amazon DynamoDB (utilizando a API do DynamoDB); não é uma camada de cache que se posiciona na frente do ElastiCache for Redis — essa combinação não é um padrão de arquitetura válido na AWS."
+        "Shards tratam tamanho/escrita; adicionam complexidade desnecessária quando apenas leitura é gargalo.",
+        "Vertical scale pode ajudar, mas não distribui leituras e tem limite de nó.",
+        "Read replicas em cluster mode disabled escalam leituras; aplicações usam endpoint de leitura/replicas e consideram lag.",
+        "DAX é cache DynamoDB, não camada para Redis."
       ],
       "topics": [
         "databases",
@@ -3848,19 +3848,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa possui um Network Load Balancer (NLB) com target groups contendo instâncias EC2 registradas em 3 Zonas de Disponibilidade, mas com número desigual de targets saudáveis por AZ (AZ-A tem 1 instância, AZ-B tem 1 instância, AZ-C tem 4 instâncias), devido à forma como um Auto Scaling Group lançou as instâncias. Com a configuração padrão do NLB (Cross-Zone Load Balancing desabilitado), cada nó do load balancer em uma AZ distribui o tráfego apenas entre os targets DAQUELA AZ, fazendo com que as instâncias únicas de AZ-A e AZ-B recebam, cada uma, tanto tráfego quanto as 4 instâncias de AZ-C recebem COMBINADAS — causando sobrecarga severa nas instâncias de AZ-A e AZ-B.",
       "options": [
-        "Ajustar manualmente o Auto Scaling Group para garantir sempre o mesmo número exato de instâncias em cada AZ",
-        "Configurar políticas de Target Tracking do Auto Scaling baseadas na contagem de requisições por AZ, escalando AZ-A e AZ-B de forma independente",
-        "Substituir o Network Load Balancer por um Application Load Balancer, que distribui sempre de forma igual entre todos os targets independentemente da AZ",
-        "Habilitar o Cross-Zone Load Balancing no NLB e em seus target groups"
+        "Ajustar ASG manualmente para números idênticos por AZ.",
+        "Criar target tracking independente por AZ baseado em requests.",
+        "Trocar NLB por ALB apenas para obter balanceamento entre AZs.",
+        "Habilitar Cross-Zone Load Balancing no NLB."
       ],
       "correct": 3,
-      "explanation": "Correto. Com o Cross-Zone Load Balancing habilitado, cada nó do load balancer distribui o tráfego recebido entre os targets registrados em TODAS as AZs habilitadas (não apenas na sua própria AZ), alcançando uma distribuição equilibrada por TARGET independentemente de como os targets estão distribuídos entre as AZs. O trade-off é que cobranças de transferência de dados entre AZs podem ser aplicadas quando o tráfego é enviado a um target em AZ diferente daquela que recebeu a requisição.",
-      "hint": "Pense em qual configuração do Network Load Balancer determina se cada nó do balanceador distribui tráfego apenas para targets locais da AZ ou para todos os targets registrados.",
+      "explanation": "Equilibrar ASG pode ajudar, mas não garante e exige operar capacidade por AZ. Target tracking normal não escala cada AZ de forma independente por request sem desenho adicional. ALB pode resolver alguns protocolos, mas não é necessária a troca para corrigir a distribuição NLB. Cross-zone permite que nó NLB encaminhe a targets de outras AZs e distribui o conjunto completo, com implicações de custo inter-AZ.",
+      "hint": "A correção deve fazer cada nó enxergar targets fora da própria AZ.",
       "optionRationales": [
-        "Correto. Com o Cross-Zone Load Balancing habilitado, cada nó do load balancer distribui o tráfego recebido entre os targets registrados em TODAS as AZs habilitadas (não apenas na sua própria AZ), alcançando uma distribuição equilibrada por TARGET independentemente de como os targets estão distribuídos entre as AZs. O trade-off é que cobranças de transferência de dados entre AZs podem ser aplicadas quando o tráfego é enviado a um target em AZ diferente daquela que recebeu a requisição.",
-        "Incorreto. Embora balancear o NÚMERO de instâncias por AZ ajudasse a mitigar esse desequilíbrio específico sob o comportamento PADRÃO (cross-zone desabilitado), trata-se de uma solução manual e frágil para algo que o Cross-Zone Load Balancing resolve diretamente e automaticamente, mesmo com contagens de targets desiguais entre AZs — ASGs podem naturalmente apresentar desequilíbrios temporários durante eventos de escalonamento e substituição de instâncias.",
-        "Incorreto. Embora o ALB tenha o Cross-Zone Load Balancing habilitado por padrão (e não possa ser desabilitado), trocar o TIPO de load balancer é uma mudança arquitetural muito maior do que simplesmente habilitar uma opção de configuração no NLB existente — e poderia significar perder características de Camada 4 do NLB (como IPs estáticos e latência ultrabaixa) que podem ser necessárias em outras partes da arquitetura.",
-        "Incorreto. Esta é uma abordagem excessivamente complexa e personalizada para resolver um problema de distribuição de carga que o Cross-Zone Load Balancing resolve com uma única opção de configuração. Políticas de escalonamento direcionadas por AZ baseadas em contagem de requisições não são uma configuração padrão de ASG e exigiriam ferramentas customizadas substanciais."
+        "Equilibrar ASG pode ajudar, mas não garante e exige operar capacidade por AZ.",
+        "Target tracking normal não escala cada AZ de forma independente por request sem desenho adicional.",
+        "ALB pode resolver alguns protocolos, mas não é necessária a troca para corrigir a distribuição NLB.",
+        "Cross-zone permite que nó NLB encaminhe a targets de outras AZs e distribui o conjunto completo, com implicações de custo inter-AZ."
       ],
       "topics": [
         "high-availability"
@@ -3871,19 +3871,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma tabela do Amazon DynamoDB atende a um workload com padrão de tráfego diário altamente previsível: tráfego baixo durante a madrugada, aumento gradual durante o horário comercial até um pico bem conhecido, e queda gradual depois — esse padrão se repete diariamente com pequenas variações. A equipe deseja o modo de capacidade mais ECONÔMICO para esse padrão previsível e gradual, mantendo o ajuste automático de capacidade conforme o padrão diário, sem intervenção manual.",
       "options": [
-        "Utilizar o modo de capacidade Provisionado com capacidade FIXA definida no valor do pico diário, sem Auto Scaling",
-        "Utilizar o modo de capacidade On-Demand, que escala automaticamente para qualquer nível de tráfego sem necessidade de configuração",
-        "Utilizar o DynamoDB Accelerator (DAX) para absorver os picos de tráfego, permitindo que a tabela base utilize capacidade Provisionada mínima durante todo o ano",
-        "Utilizar o modo de capacidade Provisionado (Provisioned) com AWS Application Auto Scaling configurado para a tabela"
+        "Provisionar fixo no pico diário sem autoscaling.",
+        "Usar On-Demand para todo padrão previsível.",
+        "Usar DAX e manter a tabela sempre na capacidade mínima.",
+        "Usar Provisioned com Application Auto Scaling e, se necessário, ações agendadas."
       ],
       "correct": 3,
-      "explanation": "Correto. Para um padrão de tráfego ALTAMENTE PREVISÍVEL e gradualmente variável, o modo Provisionado (que tem custo por unidade de capacidade menor que o On-Demand) combinado com Auto Scaling (que ajusta WCU/RCU provisionadas com base em metas de utilização, acompanhando a rampa diária) oferece a opção mais econômica, já que o prêmio de preço do On-Demand (projetado para tráfego imprevisível/com picos) não é necessário quando o padrão é bem compreendido e gradual.",
-      "hint": "Compare o custo por unidade de capacidade entre os modos e considere o que acompanha automaticamente um padrão de tráfego gradual e previsível sem pagar o prêmio de imprevisibilidade.",
+      "explanation": "Capacidade fixa no pico cobra ociosa em períodos baixos. On-Demand é apropriado a imprevisível, mas previsibilidade favorece provisionado com auto scaling. DAX reduz leituras, mas não gerencia a capacidade de leitura/escrita geral da tabela e acrescenta cache. Provisioned com Application Auto Scaling acompanha métricas; scheduled scaling pode complementar padrão previsível.",
+      "hint": "Tráfego previsível pode usar capacidade provisionada ajustada, com menor custo que manter o pico constante.",
       "optionRationales": [
-        "Correto. Para um padrão de tráfego ALTAMENTE PREVISÍVEL e gradualmente variável, o modo Provisionado (que tem custo por unidade de capacidade menor que o On-Demand) combinado com Auto Scaling (que ajusta WCU/RCU provisionadas com base em metas de utilização, acompanhando a rampa diária) oferece a opção mais econômica, já que o prêmio de preço do On-Demand (projetado para tráfego imprevisível/com picos) não é necessário quando o padrão é bem compreendido e gradual.",
-        "Incorreto. O On-Demand atende a QUALQUER nível de tráfego (incluindo picos imprevisíveis) sem planejamento de capacidade, o que é valioso para workloads IMPREVISÍVEIS, mas tem custo POR REQUISIÇÃO mais alto que o modo Provisionado. Para um workload com padrão bem compreendido, gradual e PREVISÍVEL, esse prêmio de preço é geralmente desnecessário — Provisionado + Auto Scaling oferece ajuste automático semelhante a um custo menor para padrões previsíveis.",
-        "Incorreto. Provisionar capacidade fixa no nível de PICO significa pagar por WCU/RCU no nível de pico durante todo o período de baixo tráfego da madrugada também, quando o uso real está muito abaixo do provisionado — isso é significativamente menos econômico do que o Auto Scaling, que reduz a capacidade provisionada durante períodos de baixo tráfego.",
-        "Incorreto. O DAX é uma camada de cache de LEITURA; não altera as necessidades de capacidade de ESCRITA da tabela, e usar o DAX para compensar capacidade de LEITURA subprovisionada resolve um problema diferente (latência/custo de leitura) do que ajustar a capacidade PROVISIONADA ao formato previsível do tráfego diário — algo que o Auto Scaling resolve diretamente."
+        "Capacidade fixa no pico cobra ociosa em períodos baixos.",
+        "On-Demand é apropriado a imprevisível, mas previsibilidade favorece provisionado com auto scaling.",
+        "DAX reduz leituras, mas não gerencia a capacidade de leitura/escrita geral da tabela e acrescenta cache.",
+        "Provisioned com Application Auto Scaling acompanha métricas; scheduled scaling pode complementar padrão previsível."
       ],
       "topics": [
         "databases",
@@ -3895,19 +3895,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa executa clusters Amazon EMR para jobs de processamento em lote noturno com um prazo conhecido (devem concluir antes do horário comercial). Os nós CORE do cluster (que executam HDFS DataNodes e armazenam dados que não podem ser perdidos durante o job) são dimensionados para a capacidade básica, mas o volume de processamento varia de noite para noite, e em noites de pico essa capacidade básica não é suficiente para concluir antes do prazo. A equipe deseja adicionar capacidade computacional EXTRA em noites de pico para acelerar o processamento, da forma mais econômica possível, aceitando que essa capacidade extra possa ocasionalmente ser interrompida durante o job sem impacto catastrófico (o framework de processamento lida com a reexecução de tasks).",
       "options": [
-        "Adicionar nós TASK (que executam apenas YARN NodeManagers/computação, sem dados HDFS) ao cluster utilizando Spot Instances, escalando dinamicamente (por exemplo, via EMR Managed Scaling) conforme a demanda de processamento",
-        "Aumentar permanentemente o número de nós CORE (usando On-Demand) para suportar o volume da noite mais pesada esperada, todas as noites",
-        "Adicionar nós CORE adicionais utilizando Spot Instances para fornecer a capacidade extra em noites de pico",
-        "Utilizar funções AWS Lambda para lidar com a capacidade de processamento excedente em noites de pico"
+        "Adicionar task nodes Spot e usar managed scaling para capacidade extra de compute.",
+        "Aumentar permanentemente core nodes On-Demand para cada noite de pico.",
+        "Adicionar core nodes Spot para armazenar dados HDFS extra.",
+        "Mover excedente diretamente a Lambda sem adaptar o job Spark."
       ],
       "correct": 0,
-      "explanation": "Correto. Nós TASK não armazenam dados do HDFS, então, se um nó TASK em Spot for interrompido, apenas as tasks em andamento nele são perdidas e reexecutadas em outro lugar pelo YARN/framework de processamento (ex.: tolerância a falhas nativa do Spark/Hadoop), sem risco de perda de dados. Usar Spot para essa capacidade extra elástica e tolerante a interrupções proporciona economia significativa em comparação ao On-Demand para a capacidade de 'pico' necessária em noites pesadas.",
-      "hint": "Diferencie o papel dos nós CORE (armazenam dados HDFS) dos nós TASK (apenas computação) ao decidir onde aplicar capacidade Spot interrompível.",
+      "explanation": "Task nodes podem usar Spot para computação sem HDFS e ser adicionados/removidos conforme demanda. Core On-Demand para pico custa todas as noites. Core Spot pode perder HDFS e comprometer dados do job; só deve ser considerado quando desenho tolera isso. Lambda não substitui diretamente executores distribuídos EMR sem redesenho.",
+      "hint": "Separe nós que guardam HDFS dos que fornecem computação descartável.",
       "optionRationales": [
-        "Correto. Nós TASK não armazenam dados do HDFS, então, se um nó TASK em Spot for interrompido, apenas as tasks em andamento nele são perdidas e reexecutadas em outro lugar pelo YARN/framework de processamento (ex.: tolerância a falhas nativa do Spark/Hadoop), sem risco de perda de dados. Usar Spot para essa capacidade extra elástica e tolerante a interrupções proporciona economia significativa em comparação ao On-Demand para a capacidade de 'pico' necessária em noites pesadas.",
-        "Incorreto. Nós CORE executam HDFS DataNodes e armazenam parte dos dados do cluster (incluindo blocos replicados); se um nó CORE em Spot for interrompido, isso pode afetar a disponibilidade/fator de replicação do HDFS, potencialmente causando falhas de job ou risco de perda de dados — nós TASK (que não armazenam dados HDFS) são a escolha apropriada para capacidade Spot tolerante a interrupções, não nós CORE.",
-        "Incorreto. Provisionar permanentemente para a capacidade da noite mais pesada significa pagar por essa capacidade todas as noites, mesmo nas mais leves — o oposto de econômico para um workload com variabilidade noite a noite; o escalonamento elástico de nós TASK ajusta a capacidade à demanda real de cada noite.",
-        "Incorreto. O AWS Lambda tem limite de tempo de execução (15 minutos) e não foi projetado para se integrar como capacidade computacional adicional dentro de um cluster EMR/Hadoop/YARN existente — reestruturar o processamento excedente como funções Lambda separadas exigiria um modelo de processamento fundamentalmente diferente do job em lote baseado em EMR existente."
+        "Task nodes podem usar Spot para computação sem HDFS e ser adicionados/removidos conforme demanda.",
+        "Core On-Demand para pico custa todas as noites.",
+        "Core Spot pode perder HDFS e comprometer dados do job; só deve ser considerado quando desenho tolera isso.",
+        "Lambda não substitui diretamente executores distribuídos EMR sem redesenho."
       ],
       "topics": [
         "analytics",
@@ -3919,19 +3919,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa está migrando para a AWS um workload de armazenamento de arquivos on-premises que depende de recursos específicos do NetApp ONTAP: eficiência de armazenamento via deduplicação/compressão, Snapshots pontuais com restauração rápida, replicação baseada em SnapMirror e suporte multiprotocolo (NFS e SMB) ao mesmo conjunto de dados, com latências de sub-milissegundo para aplicações sensíveis a desempenho (como bancos de dados via NFS). Eles desejam um serviço de armazenamento de arquivos totalmente gerenciado na AWS que forneça exatamente o conjunto de recursos e APIs do ONTAP, sem reestruturar a aplicação para um paradigma de armazenamento diferente.",
       "options": [
-        "Utilizar o Amazon FSx for NetApp ONTAP",
-        "Utilizar o Amazon FSx for Lustre",
-        "Utilizar o Amazon FSx for Windows File Server",
-        "Utilizar o Amazon EFS (Elastic File System)"
+        "Usar FSx for NetApp ONTAP.",
+        "Usar FSx for Lustre.",
+        "Usar FSx for Windows File Server.",
+        "Usar EFS."
       ],
       "correct": 0,
-      "explanation": "Correto. O Amazon FSx for NetApp ONTAP é um serviço totalmente gerenciado pela AWS que executa o sistema de arquivos NetApp ONTAP real, fornecendo recursos nativos do ONTAP (deduplicação/compressão para eficiência de armazenamento, Snapshots, replicação SnapMirror, acesso multiprotocolo NFS/SMB/iSCSI ao mesmo dado) com armazenamento de alto desempenho e baixa latência — atendendo diretamente ao requisito de manter o conjunto de recursos e APIs do ONTAP sem reestruturação.",
-      "hint": "O requisito central é replicar exatamente as capacidades do sistema de arquivos NetApp ONTAP (SnapMirror, deduplicação, multiprotocolo) sem reestruturar a aplicação — pense em qual serviço FSx executa o próprio ONTAP.",
+      "explanation": "FSx ONTAP fornece APIs/protocolos e capacidades ONTAP gerenciadas, incluindo SnapMirror e eficiência. Lustre é HPC/parallel file system, não ONTAP multiprotocolo com SnapMirror. Windows FSx é especializado SMB/Windows e não entrega ONTAP/NFS necessário. EFS fornece NFS gerenciado mas não ONTAP, SnapMirror e conjunto de recursos pedido.",
+      "hint": "A exigência é compatibilidade funcional com ONTAP, não somente montar NFS ou SMB.",
       "optionRationales": [
-        "Correto. O Amazon FSx for NetApp ONTAP é um serviço totalmente gerenciado pela AWS que executa o sistema de arquivos NetApp ONTAP real, fornecendo recursos nativos do ONTAP (deduplicação/compressão para eficiência de armazenamento, Snapshots, replicação SnapMirror, acesso multiprotocolo NFS/SMB/iSCSI ao mesmo dado) com armazenamento de alto desempenho e baixa latência — atendendo diretamente ao requisito de manter o conjunto de recursos e APIs do ONTAP sem reestruturação.",
-        "Incorreto. O FSx for Windows File Server fornece armazenamento de arquivos baseado em SMB construído sobre o Windows Server, com recursos nativos do Windows (integração com Active Directory, ACLs NTFS, DFS), mas NÃO fornece recursos específicos do NetApp ONTAP, como replicação SnapMirror ou a deduplicação/multiprotocolo no formato do ONTAP — é uma tecnologia de sistema de arquivos diferente (baseada em Windows, não em ONTAP).",
-        "Incorreto. O Amazon EFS é um sistema de arquivos NFS totalmente gerenciado construído sobre a tecnologia de arquivos distribuída própria da AWS (não NetApp ONTAP); embora suporte NFS e tenha mecanismos próprios de backup/snapshot, não fornece recursos específicos do ONTAP (SnapMirror, deduplicação no estilo ONTAP, multiprotocolo NFS+SMB no mesmo volume no sentido do ONTAP) — exigiria reestruturação para abandonar dependências específicas do ONTAP.",
-        "Incorreto. O FSx for Lustre é otimizado para workloads de computação de alto desempenho (HPC) e machine learning que exigem throughput/IOPS extremamente altos com um sistema de arquivos paralelo (Lustre), fortemente integrado ao S3 para pipelines de processamento de dados — não fornece o conjunto de recursos empresariais do NetApp ONTAP (SnapMirror, deduplicação no estilo ONTAP, suporte a SMB), tornando-o inadequado para uma migração que depende de capacidades específicas do ONTAP."
+        "FSx ONTAP fornece APIs/protocolos e capacidades ONTAP gerenciadas, incluindo SnapMirror e eficiência.",
+        "Lustre é HPC/parallel file system, não ONTAP multiprotocolo com SnapMirror.",
+        "Windows FSx é especializado SMB/Windows e não entrega ONTAP/NFS necessário.",
+        "EFS fornece NFS gerenciado mas não ONTAP, SnapMirror e conjunto de recursos pedido."
       ],
       "topics": [
         "s3-storage"
@@ -3942,19 +3942,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa está migrando um banco de dados distribuído (estilo Apache Cassandra) para centenas de instâncias EC2 dentro de uma única Zona de Disponibilidade. O design do banco de dados distribui réplicas de cada partição de dados entre 'racks' lógicos, e a empresa quer minimizar a chance de que uma falha de hardware subjacente (rack de energia/rede compartilhado) afete múltiplas réplicas da mesma partição simultaneamente. A solução precisa suportar centenas de instâncias na mesma AZ, agrupadas de forma alinhada ao próprio esquema de distribuição de réplicas do banco de dados.",
       "options": [
-        "Utilizar um Cluster Placement Group para agrupar todas as instâncias",
-        "Utilizar um Partition Placement Group, distribuindo grupos de instâncias (alinhados às réplicas do banco de dados) entre diferentes partições lógicas",
-        "Distribuir as instâncias em múltiplos Auto Scaling Groups, um por Zona de Disponibilidade, sem usar placement groups",
-        "Utilizar um Spread Placement Group para garantir que cada instância fique em hardware distinto"
+        "Usar cluster placement group para agrupar todas as replicas Cassandra.",
+        "Usar partition placement group e alinhar racks/replicas às partições.",
+        "Criar ASGs por AZ sem placement group.",
+        "Usar spread placement group para centenas de instâncias na mesma AZ."
       ],
       "correct": 1,
-      "explanation": "Correto. Um Partition Placement Group divide as instâncias em partições lógicas, cada uma posicionada em um conjunto distinto de racks de hardware (com energia e rede separadas); instâncias dentro da mesma partição podem compartilhar racks, mas partições diferentes não. Suporta até 7 partições por AZ com centenas de instâncias — ideal para sistemas como Cassandra, HDFS e Kafka, onde se deseja alinhar as partições de hardware ao esquema de distribuição de réplicas do próprio sistema distribuído.",
-      "hint": "Pense em qual tipo de placement group permite agrupar centenas de instâncias em 'partições' de hardware isoladas, alinhadas ao esquema de réplicas de um sistema distribuído.",
+      "explanation": "Cluster aproxima instâncias, elevando risco de perda correlacionada para replicas. Partition placement group separa partições/racks lógicos e suporta grande escala na AZ; a aplicação mapeia réplica a partição de forma consciente. ASGs por AZ não segmentam racks na AZ única do cenário. Spread oferece separação por instância mas possui limites de escala, inadequados a centenas de nós.",
+      "hint": "O placement group deve corresponder a um domínio de falha que o banco reconhece como rack.",
       "optionRationales": [
-        "Correto. Um Partition Placement Group divide as instâncias em partições lógicas, cada uma posicionada em um conjunto distinto de racks de hardware (com energia e rede separadas); instâncias dentro da mesma partição podem compartilhar racks, mas partições diferentes não. Suporta até 7 partições por AZ com centenas de instâncias — ideal para sistemas como Cassandra, HDFS e Kafka, onde se deseja alinhar as partições de hardware ao esquema de distribuição de réplicas do próprio sistema distribuído.",
-        "Incorreto. O Cluster Placement Group agrupa as instâncias o mais próximo possível no mesmo hardware, otimizando para latência de rede ultrabaixa em cargas fortemente acopladas (HPC) — exatamente o OPOSTO do que é necessário aqui (isolar domínios de falha), e aumenta o risco de uma falha de hardware correlacionada afetar muitas réplicas simultaneamente.",
-        "Incorreto. O Spread Placement Group coloca cada instância em hardware distinto, sem que duas instâncias compartilhem o mesmo hardware subjacente — porém é limitado a 7 instâncias por AZ, não atendendo ao requisito de 'centenas de instâncias' na mesma AZ.",
-        "Incorreto. Confiar apenas na distribuição entre AZs não trata o isolamento de falhas no nível de rack/hardware DENTRO de uma mesma AZ, que é precisamente o que os Partition Placement Groups fornecem; o cenário exige centenas de instâncias na mesma AZ com isolamento alinhado às réplicas."
+        "Cluster aproxima instâncias, elevando risco de perda correlacionada para replicas.",
+        "Partition placement group separa partições/racks lógicos e suporta grande escala na AZ; a aplicação mapeia réplica a partição de forma consciente.",
+        "ASGs por AZ não segmentam racks na AZ única do cenário.",
+        "Spread oferece separação por instância mas possui limites de escala, inadequados a centenas de nós."
       ],
       "topics": [
         "ec2-compute",
@@ -3966,19 +3966,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa opera uma distribuição global via Amazon CloudFront e, durante o lançamento de um produto sensível a performance, precisa de visibilidade quase em tempo real (na ordem de segundos) sobre métricas no nível de requisição individual — latência, cache hit/miss, código de status e edge location — para monitoramento operacional e alertas. Os logs de acesso padrão do CloudFront, entregues ao Amazon S3, têm atraso de entrega de até várias horas, o que é inadequado para o monitoramento ativo durante o lançamento.",
       "options": [
-        "Habilitar os Real-time Logs do CloudFront, configurando a entrega para o Amazon Kinesis Data Streams, e processar com Kinesis Data Firehose/Lambda para dashboards e alertas quase em tempo real",
-        "Habilitar eventos de dados (data events) do AWS CloudTrail para o CloudFront, para capturar dados no nível de requisição quase em tempo real",
-        "Utilizar métricas do Amazon CloudWatch para o CloudFront, como taxa de cache hit e total de requisições",
-        "Utilizar os logs de acesso padrão do CloudFront entregues ao S3, consultando-os com o Amazon Athena a cada poucos minutos"
+        "Usar CloudFront Real-time Logs para Kinesis e processar o stream.",
+        "Ativar CloudTrail data events para cada request CloudFront.",
+        "Usar somente métricas agregadas do CloudWatch.",
+        "Consultar standard logs S3 com Athena a cada poucos minutos."
       ],
       "correct": 0,
-      "explanation": "Correto. Os Real-time Logs do CloudFront entregam dados de log ao Amazon Kinesis Data Streams em uma janela de segundos, com taxa de amostragem e campos configuráveis, permitindo monitoramento operacional quase em tempo real — em forte contraste com o atraso de horas dos logs de acesso padrão.",
-      "hint": "O requisito é granularidade por requisição individual entregue em segundos — pense em qual recurso do CloudFront transmite logs em fluxo, em vez de arquivos em lote.",
+      "explanation": "Real-time logs entregam amostra configurada de campos de requisição em segundos para Kinesis; custos/volume e consumer devem ser planejados. CloudTrail registra atividade de API de controle, não cada request de viewer CloudFront. Métricas CloudWatch agregadas não contêm os campos individuais necessários. Logs standard S3 têm atraso e não atendem observação ativa na ordem de segundos.",
+      "hint": "A necessidade é visibilidade por requisição com baixa latência, não uma métrica agregada.",
       "optionRationales": [
-        "Correto. Os Real-time Logs do CloudFront entregam dados de log ao Amazon Kinesis Data Streams em uma janela de segundos, com taxa de amostragem e campos configuráveis, permitindo monitoramento operacional quase em tempo real — em forte contraste com o atraso de horas dos logs de acesso padrão.",
-        "Incorreto. Os logs de acesso padrão têm latência de entrega tipicamente de até 24 horas (frequentemente algumas horas), o que é inadequado para o requisito de monitoramento quase em tempo real (segundos), independentemente da frequência de consulta.",
-        "Incorreto. O CloudTrail captura eventos de gerenciamento/API (e, opcionalmente, eventos de dados para alguns serviços), não métricas de performance de REQUISIÇÕES DE CONTEÚDO de usuários finais (latência, cache hit/miss) das distribuições CloudFront — não é o mecanismo adequado para este caso de uso.",
-        "Incorreto. As métricas do CloudWatch para o CloudFront fornecem métricas operacionais AGREGADAS, com granularidade de no máximo 1 minuto, não o detalhe POR REQUISIÇÃO (latência individual, edge location, status específico de cada requisição) necessário para a análise operacional detalhada — os Real-time Logs fornecem essa granularidade."
+        "Real-time logs entregam amostra configurada de campos de requisição em segundos para Kinesis; custos/volume e consumer devem ser planejados.",
+        "CloudTrail registra atividade de API de controle, não cada request de viewer CloudFront.",
+        "Métricas CloudWatch agregadas não contêm os campos individuais necessários.",
+        "Logs standard S3 têm atraso e não atendem observação ativa na ordem de segundos."
       ],
       "topics": [
         "edge-dns",
@@ -3991,19 +3991,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa precisa ingerir dados de clickstream e entregá-los, com o mínimo de overhead operacional, diretamente ao Amazon S3 em lotes, com conversão opcional de formato (JSON para Parquet) e compressão, para posterior consulta com Amazon Athena. Não há necessidade de processamento customizado por registro em tempo real com latência sub-segundo por múltiplas aplicações consumidoras independentes — apenas entrega gerenciada e confiável ao S3 com transformação.",
       "options": [
-        "Utilizar o Amazon Kinesis Data Streams com uma aplicação consumidora customizada (por exemplo, em EC2) que agrupa registros em lotes e os grava no S3",
-        "Utilizar o Amazon SQS para armazenar em buffer os eventos de clickstream, e um job agendado do AWS Glue para ler do SQS e gravar no S3",
-        "Utilizar o Amazon Kinesis Data Firehose configurado para entregar ao S3 com conversão de formato para Parquet e compressão",
-        "Utilizar o AWS DMS (Database Migration Service) para transmitir os dados de clickstream para o S3"
+        "Usar Data Streams e consumer EC2 próprio para agrupar e gravar no S3.",
+        "Usar SQS e job Glue agendado para despejar eventos no S3.",
+        "Usar Data Firehose com destino S3, conversão Parquet e compressão.",
+        "Usar DMS para transferir eventos de clickstream ao S3."
       ],
       "correct": 2,
-      "explanation": "Correto. O Kinesis Data Firehose é um serviço de entrega totalmente gerenciado que armazena em buffer, opcionalmente transforma (conversão de formato, transformação via Lambda), comprime e entrega dados a destinos como S3, Redshift e OpenSearch, sem necessidade de gerenciar consumidores/shards — atendendo exatamente ao requisito de 'mínimo overhead operacional, entrega ao S3 com transformação'.",
-      "hint": "Compare o nível de gerenciamento entre os dois serviços Kinesis: um exige construir e operar aplicações consumidoras, o outro entrega diretamente a destinos com transformação integrada.",
+      "explanation": "Kinesis Data Streams exige consumers/custom code para batching/entrega. SQS+Glue adiciona polling e operação para fluxo de streaming simples. Firehose entrega gerenciada ao S3, faz buffering e pode converter formatos/comprimir; latência é de buffering, não sub-segundo. DMS replica bancos, não clickstream genérico.",
+      "hint": "A solução precisa ser gerenciada de ingestão para destino, não uma plataforma de consumidores independentes.",
       "optionRationales": [
-        "Correto. O Kinesis Data Firehose é um serviço de entrega totalmente gerenciado que armazena em buffer, opcionalmente transforma (conversão de formato, transformação via Lambda), comprime e entrega dados a destinos como S3, Redshift e OpenSearch, sem necessidade de gerenciar consumidores/shards — atendendo exatamente ao requisito de 'mínimo overhead operacional, entrega ao S3 com transformação'.",
-        "Incorreto. O Data Streams exige construir e gerenciar aplicações consumidoras customizadas (lidando com shard iterators, checkpointing, escalonamento e lógica de conversão de formato) — overhead operacional significativamente maior do que o Firehose para o requisito simples de 'entregar ao S3 com transformação'; o Data Streams é a escolha certa quando se precisa de MÚLTIPLOS consumidores customizados em tempo real com acesso sub-segundo ao stream bruto.",
-        "Incorreto. O SQS é uma fila de mensagens de uso geral, não projetada para ingestão de streaming de alto throughput com semântica de ordenação/replay, e não possui conversão de formato/compressão nativa na entrega ao S3 — esse pipeline seria muito mais complexo e customizado do que o Firehose, que já foi desenhado para esse propósito.",
-        "Incorreto. O DMS é projetado para migrar/replicar dados de BANCOS DE DADOS (usando CDC) para destinos, não para ingerir dados de EVENTOS de clickstream gerados por aplicações — não é o serviço apropriado para este caso de uso de ingestão de streaming."
+        "Kinesis Data Streams exige consumers/custom code para batching/entrega.",
+        "SQS+Glue adiciona polling e operação para fluxo de streaming simples.",
+        "Firehose entrega gerenciada ao S3, faz buffering e pode converter formatos/comprimir; latência é de buffering, não sub-segundo.",
+        "DMS replica bancos, não clickstream genérico."
       ],
       "topics": [
         "analytics",
@@ -4016,19 +4016,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma função AWS Lambda que sustenta uma API voltada ao cliente apresenta picos de latência por cold start durante um aumento diário de tráfego que começa precisamente às 9h e termina às 18h (horário comercial, padrão previsível). A equipe configurou Provisioned Concurrency para eliminar os cold starts durante essa janela, mas não quer pagar por essa concorrência provisionada 24 horas por dia — ela deve ser automaticamente aumentada antes das 9h e reduzida após as 18h, em um cronograma diário recorrente.",
       "options": [
-        "Definir Reserved Concurrency na função para corresponder ao tráfego de pico esperado, ativo o tempo todo",
-        "Utilizar o AWS Application Auto Scaling com uma ação de escalonamento agendado (scheduled scaling) direcionada à configuração de Provisioned Concurrency da função Lambda (para uma versão publicada/alias)",
-        "Configurar políticas de target tracking baseadas na métrica ConcurrentExecutions do CloudWatch",
-        "Aumentar a alocação de memória da função Lambda, o que aumenta proporcionalmente a CPU e reduz a duração do cold start"
+        "Definir Reserved Concurrency permanente no pico.",
+        "Agendar Provisioned Concurrency via Application Auto Scaling em versão/alias.",
+        "Usar só target tracking em ConcurrentExecutions para o período previsível.",
+        "Aumentar memória para eliminar a necessidade de provisionamento."
       ],
       "correct": 1,
-      "explanation": "Correto. O Application Auto Scaling suporta a Provisioned Concurrency do Lambda como um 'scalable target', e ações de escalonamento agendado permitem definir cronogramas recorrentes (baseados em cron) para aumentar/reduzir a Provisioned Concurrency configurada em horários específicos — atendendo exatamente ao padrão diário previsível do horário comercial, evitando pagar por concorrência provisionada fora dessa janela.",
-      "hint": "O padrão de tráfego é totalmente previsível por horário — pense em qual mecanismo permite pré-provisionar e depois reduzir a concorrência do Lambda em horários programados, em vez de reagir à demanda.",
+      "explanation": "Reserved concurrency limita concorrência e não agenda provisionamento. Application Auto Scaling scheduled action ajusta provisioned concurrency de versão/alias antes/depois de janela; custos e tempo de preparação devem ser considerados. Target tracking pode reagir a demanda, mas não atende tão diretamente o cronograma exato e pode não antecipar init. Memória não agenda ambientes provisionados.",
+      "hint": "O requisito é antecipar horário conhecido, não somente reagir quando a concorrência já cresceu.",
       "optionRationales": [
-        "Correto. O Application Auto Scaling suporta a Provisioned Concurrency do Lambda como um 'scalable target', e ações de escalonamento agendado permitem definir cronogramas recorrentes (baseados em cron) para aumentar/reduzir a Provisioned Concurrency configurada em horários específicos — atendendo exatamente ao padrão diário previsível do horário comercial, evitando pagar por concorrência provisionada fora dessa janela.",
-        "Incorreto. O target tracking reage a mudanças na métrica/utilização ATUAL (reativamente, após o fato), o que ainda permitiria a ocorrência de cold starts enquanto a concorrência é aumentada reativamente no início do aumento de tráfego; para um cronograma CONHECIDO e PREVISÍVEL, o escalonamento agendado pré-provisiona a concorrência ANTES do início do pico, evitando completamente os cold starts.",
-        "Incorreto. Aumentar a memória pode reduzir a DURAÇÃO de um cold start até certo ponto, mas não ELIMINA cold starts, e não atende ao objetivo de otimização de custo de ter Provisioned Concurrency apenas durante o horário comercial — é uma alavanca não relacionada ao requisito.",
-        "Incorreto. A Reserved Concurrency limita/garante a alocação de concorrência, mas NÃO pré-inicializa ambientes de execução (não elimina cold starts) — isso é especificamente o que a Provisioned Concurrency faz; além disso, configurá-la permanentemente no nível de pico não atende ao requisito de reduzir fora do horário comercial."
+        "Reserved concurrency limita concorrência e não agenda provisionamento.",
+        "Application Auto Scaling scheduled action ajusta provisioned concurrency de versão/alias antes/depois de janela; custos e tempo de preparação devem ser considerados.",
+        "Target tracking pode reagir a demanda, mas não atende tão diretamente o cronograma exato e pode não antecipar init.",
+        "Memória não agenda ambientes provisionados."
       ],
       "topics": [
         "serverless",
@@ -4038,21 +4038,21 @@
     {
       "id": "saa-avc-169",
       "domain": "high-performing-architectures",
-      "text": "Um banco de dados de produção Amazon RDS for PostgreSQL apresenta degradação de performance intermitente. A equipe de DBAs precisa identificar quais consultas SQL específicas, eventos de espera (wait events) ou carga do banco de dados (em termos de Average Active Sessions) são responsáveis durante essas janelas de degradação, com configuração mínima, idealmente com um dashboard visual mostrando a carga do banco de dados detalhada por SQL, wait state, usuário e host ao longo do tempo, incluindo dados históricos retidos por pelo menos uma semana sem infraestrutura adicional.",
+      "text": "Um RDS PostgreSQL apresenta degradação intermitente. DBAs precisam de SQL, wait events e Average Active Sessions com dashboard visual e histórico de pelo menos uma semana, sem infraestrutura própria. Considerando a oferta atual do RDS/CloudWatch após o fim de vida do Performance Insights, qual serviço atende?",
       "options": [
-        "Habilitar o Amazon RDS Performance Insights",
-        "Habilitar o Enhanced Monitoring na instância RDS para visualizar métricas no nível do sistema operacional com granularidade de 1 segundo",
-        "Configurar um dashboard separado no Amazon CloudWatch com métricas customizadas publicadas por um script que consulta pg_stat_statements periodicamente",
-        "Habilitar o log de slow queries do RDS e analisar os logs com o Amazon Athena"
+        "Habilitar CloudWatch Database Insights em modo Advanced para análise de SQL e wait events.",
+        "Usar Enhanced Monitoring para identificar SQL e AAS.",
+        "Criar métricas customizadas a partir de pg_stat_statements.",
+        "Analisar apenas logs de slow query no Athena."
       ],
       "correct": 0,
-      "explanation": "Correto. O Performance Insights é um recurso de monitoramento de performance de banco de dados totalmente gerenciado, que fornece um dashboard de Database Load (DB Load, medido em Average Active Sessions/AAS), com a capacidade de detalhar a carga por consulta SQL, wait event, usuário, host e outras dimensões; retém dados de performance por 7 dias sem custo adicional (retenção mais longa em camada paga), sem necessidade de instalar agentes ou gerenciar infraestrutura adicional.",
-      "hint": "Pense em qual recurso nativo do RDS fornece um dashboard de carga do banco de dados (Average Active Sessions) detalhável por SQL e wait event, sem agentes ou infraestrutura adicional.",
+      "explanation": "Database Insights é a experiência atual do CloudWatch para análise de carga de banco, SQL e wait events; Performance Insights teve fim de vida em 2026. Enhanced Monitoring mostra SO, não análise de SQL/AAS. Script customizado exige coleta/manutenção e não oferece a experiência gerenciada completa. Slow query logs cobrem somente parte das consultas e exigem análise posterior.",
+      "hint": "Procure a experiência atual de diagnóstico de banco integrada ao CloudWatch.",
       "optionRationales": [
-        "Correto. O Performance Insights é um recurso de monitoramento de performance de banco de dados totalmente gerenciado, que fornece um dashboard de Database Load (DB Load, medido em Average Active Sessions/AAS), com a capacidade de detalhar a carga por consulta SQL, wait event, usuário, host e outras dimensões; retém dados de performance por 7 dias sem custo adicional (retenção mais longa em camada paga), sem necessidade de instalar agentes ou gerenciar infraestrutura adicional.",
-        "Incorreto. O Enhanced Monitoring fornece métricas no nível do SISTEMA OPERACIONAL (CPU, memória, disco, rede no nível do host subjacente, via agente), não análise no nível de BANCO DE DADOS de consultas SQL/wait events — é complementar, mas não responde 'quais consultas SQL/wait events estão causando a carga'.",
-        "Incorreto. Essa abordagem exige construir e manter scripts/infraestrutura customizados para extrair e publicar dados do pg_stat_statements, algo que o Performance Insights já fornece nativamente como recurso gerenciado com dashboard visual integrado — overhead operacional muito maior para o mesmo resultado.",
-        "Incorreto. Os logs de slow queries capturam consultas que excedem um limite, mas não fornecem a visão holística e em tempo real de 'Average Active Sessions detalhado por wait event/SQL/usuário', e analisar via Athena exige exportar logs e construir consultas — uma abordagem muito mais manual e menos integrada do que o dashboard nativo do Performance Insights."
+        "Database Insights é a experiência atual do CloudWatch para análise de carga de banco, SQL e wait events; Performance Insights teve fim de vida em 2026.",
+        "Enhanced Monitoring mostra SO, não análise de SQL/AAS.",
+        "Script customizado exige coleta/manutenção e não oferece a experiência gerenciada completa.",
+        "Slow query logs cobrem somente parte das consultas e exigem análise posterior."
       ],
       "topics": [
         "databases"
@@ -4063,19 +4063,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa opera um banco de dados transacional Amazon RDS for MySQL (db.r6g.xlarge) que sustenta uma aplicação OLTP. A equipe de Business Intelligence quer executar consultas analíticas pesadas e de longa duração sobre os mesmos dados, mas atualmente essas consultas consomem recursos e degradam a performance da aplicação OLTP quando executadas na instância primária. As consultas de relatório não precisam rodar na mesma classe de instância da primária (são menos sensíveis a tempo e podem tolerar lag de replicação/consistência eventual), mas EXIGEM CPU/memória substanciais para agregações complexas sobre um volume maior de dados.",
       "options": [
-        "Aumentar a classe de instância da primária para um tamanho maior, de forma a acomodar tanto o workload OLTP quanto o de relatórios",
-        "Criar uma Read Replica do Amazon RDS com uma classe de instância MAIOR (ou mais otimizada para memória/CPU) do que a primária, e direcionar as consultas de BI/relatório para essa read replica",
-        "Utilizar a instância standby do Multi-AZ do Amazon RDS para executar as consultas de relatório (já que é uma cópia da primária)",
-        "Migrar todo o banco de dados para o Amazon Redshift, para atender tanto o workload OLTP quanto o analítico"
+        "Aumentar o writer primário para acomodar OLTP e BI juntos.",
+        "Criar read replica maior e rotear relatórios tolerantes a lag para ela.",
+        "Executar BI no standby Multi-AZ existente.",
+        "Migrar todo banco OLTP para Redshift."
       ],
       "correct": 1,
-      "explanation": "Correto. As Read Replicas do RDS podem usar uma classe de instância DIFERENTE da origem/primária, permitindo dimensionar a réplica adequadamente para as necessidades de recursos do workload de relatórios (independentemente do dimensionamento OLTP da primária), enquanto remove totalmente a carga analítica da primária, que continua atendendo o tráfego OLTP sem contenção; o lag de replicação é um trade-off aceitável para relatórios, conforme os requisitos.",
-      "hint": "Pense em qual propriedade das Read Replicas do RDS permite dimensioná-las de forma independente da instância primária para workloads de leitura com requisitos de recursos diferentes.",
+      "explanation": "Aumentar writer deixa OLTP e BI concorrendo pelos mesmos recursos e custa mais continuamente. Read replica pode usar classe maior/adequada e isola consultas analíticas tolerantes a lag; replicas não são para escrita. Standby Multi-AZ tradicional não é endpoint de leitura para workload BI. Redshift pode ser apropriado a warehouse, mas migrar todo OLTP não é resposta mínima e altera arquitetura.",
+      "hint": "A carga analítica é separável e aceita lag, permitindo isolar recursos do writer.",
       "optionRationales": [
-        "Correto. As Read Replicas do RDS podem usar uma classe de instância DIFERENTE da origem/primária, permitindo dimensionar a réplica adequadamente para as necessidades de recursos do workload de relatórios (independentemente do dimensionamento OLTP da primária), enquanto remove totalmente a carga analítica da primária, que continua atendendo o tráfego OLTP sem contenção; o lag de replicação é um trade-off aceitável para relatórios, conforme os requisitos.",
-        "Incorreto. Aumentar a instância PRIMÁRIA para suportar ambos os workloads ainda significa que as consultas de relatório competirão com as transações OLTP por recursos na MESMA instância (CPU, I/O, buffer pool), causando contenção independentemente do tamanho da instância; uma read replica separada isola os workloads.",
-        "Incorreto. A instância STANDBY do Multi-AZ não é acessível para consultas de leitura (existe exclusivamente para failover, usando replicação síncrona para alta disponibilidade, não para descarregar leituras) — isso difere de uma Read Replica, que É consultável; tentar consultar a standby não é um padrão suportado.",
-        "Incorreto. O Redshift é um data warehouse OLAP colunar, não otimizado para workloads OLTP transacionais (inserções/atualizações linha a linha, transações curtas de alta concorrência) — migrar TODO o banco OLTP para o Redshift seria inadequado para as necessidades transacionais da aplicação; uma read replica direcionada aos relatórios é uma mudança muito menor e menos disruptiva."
+        "Aumentar writer deixa OLTP e BI concorrendo pelos mesmos recursos e custa mais continuamente.",
+        "Read replica pode usar classe maior/adequada e isola consultas analíticas tolerantes a lag; replicas não são para escrita.",
+        "Standby Multi-AZ tradicional não é endpoint de leitura para workload BI.",
+        "Redshift pode ser apropriado a warehouse, mas migrar todo OLTP não é resposta mínima e altera arquitetura."
       ],
       "topics": [
         "databases"
@@ -4086,19 +4086,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma API REST construída sobre Amazon API Gateway + AWS Lambda expõe o endpoint 'GET /products/{id}', chamado com altíssima frequência para os mesmos IDs de produto, com os dados de produto mudando apenas algumas vezes por dia. A função Lambda realiza uma consulta a banco de dados e cálculos moderadamente custosos, e a equipe quer reduzir tanto o número de invocações do Lambda (custo) quanto a latência de resposta para requisições repetidas do mesmo ID de produto, sem construir uma camada de cache separada (como ElastiCache) e sem modificar a lógica da função Lambda.",
       "options": [
-        "Habilitar o cache do API Gateway no estágio (stage) da API REST, configurando um TTL apropriado para a frequência de mudança dos dados de produto",
-        "Aumentar a concorrência reservada (reserved concurrency) da função Lambda para lidar com mais requisições simultâneas para o mesmo ID de produto de forma mais eficiente",
-        "Implantar o Amazon ElastiCache for Redis e modificar a função Lambda para consultar o cache antes do banco de dados",
-        "Implementar lógica de cache dentro da função Lambda usando um dicionário em memória que persiste entre invocações por meio do reuso do contexto de execução"
+        "Habilitar cache de estágio API Gateway REST com TTL/chave adequados.",
+        "Aumentar Reserved Concurrency Lambda para o pico.",
+        "Adicionar Redis e alterar a função para usá-lo.",
+        "Guardar respostas em dicionário de memória dentro do handler."
       ],
       "correct": 0,
-      "explanation": "Correto. O cache de respostas integrado do API Gateway armazena respostas por um TTL configurável por chave de cache (que pode incluir parâmetros de path/query como {id}), servindo respostas em cache diretamente sem invocar o Lambda de backend para requisições repetidas com a mesma chave de cache — reduzindo invocações do Lambda e latência sem alterações de código, apenas via configuração do API Gateway.",
-      "hint": "Pense em qual recurso nativo do API Gateway permite armazenar respostas por chave de cache (incluindo parâmetros de path) sem alterar o código do backend.",
+      "explanation": "Cache de API Gateway REST atende respostas repetidas por chave/parametrização com TTL; métodos e autorização precisam ser considerados. Reserved concurrency não cacheia respostas e pode aumentar custo reservado. ElastiCache funcionaria mas viola restrição de não construir cache/alterar handler. Cache em memória do Lambda não é compartilhado, é efêmero e exigiria mudança de código.",
+      "hint": "O cache pode ficar no próprio estágio da API, antes de invocar a função.",
       "optionRationales": [
-        "Correto. O cache de respostas integrado do API Gateway armazena respostas por um TTL configurável por chave de cache (que pode incluir parâmetros de path/query como {id}), servindo respostas em cache diretamente sem invocar o Lambda de backend para requisições repetidas com a mesma chave de cache — reduzindo invocações do Lambda e latência sem alterações de código, apenas via configuração do API Gateway.",
-        "Incorreto. Confiar no reuso do contexto de execução do Lambda para cache é pouco confiável (cold starts criam novos contextos com caches vazios, e invocações concorrentes recebem contextos separados com caches separados) — não fornece uma camada de cache consistente entre todas as invocações/concorrência, diferentemente do cache gerenciado do API Gateway, que é compartilhado em todo o estágio.",
-        "Incorreto. Essa abordagem funcionaria, mas exige construir/gerenciar infraestrutura adicional (cluster ElastiCache, configuração de VPC para o Lambda) E modificar o código da função Lambda — contradizendo o requisito de evitar uma camada de cache separada e mudanças de código; o cache do API Gateway atinge o objetivo apenas com configuração.",
-        "Incorreto. A concorrência reservada controla quantas execuções simultâneas estão disponíveis/garantidas; não reduz o NÚMERO de invocações para requisições repetidas idênticas nem melhora a latência por requisição via cache — é uma alavanca não relacionada ao objetivo de cache/redução de custo."
+        "Cache de API Gateway REST atende respostas repetidas por chave/parametrização com TTL; métodos e autorização precisam ser considerados.",
+        "Reserved concurrency não cacheia respostas e pode aumentar custo reservado.",
+        "ElastiCache funcionaria mas viola restrição de não construir cache/alterar handler.",
+        "Cache em memória do Lambda não é compartilhado, é efêmero e exigiria mudança de código."
       ],
       "topics": [
         "app-integration",
@@ -4111,19 +4111,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação utiliza Amazon ElastiCache for Memcached com um cluster de múltiplos nós. À medida que a carga cresce, a equipe periodicamente adiciona ou remove nós de cache para escalar o cluster, mas a cada mudança na lista de nós, é necessário atualizar manualmente a configuração da aplicação com a nova lista de endpoints e reimplantar — gerando overhead operacional e potenciais 'tempestades' de cache miss durante essas reconfigurações. Eles querem que a aplicação detecte automaticamente mudanças na lista de nós do cluster sem reconfiguração manual.",
       "options": [
-        "Migrar de Memcached para Redis (Cluster Mode Enabled), que rebalanceia automaticamente os dados entre shards conforme nós são adicionados",
-        "Configurar o cliente Memcached da aplicação para usar o recurso Auto Discovery do ElastiCache, conectando-se através do configuration endpoint do cluster",
-        "Colocar todos os nós de cache atrás de um Network Load Balancer e conectar a aplicação ao endpoint único do NLB",
-        "Utilizar uma função AWS Lambda para consultar periodicamente a API do ElastiCache e atualizar um arquivo de configuração no S3 que a aplicação lê na inicialização"
+        "Migrar a Redis somente para evitar alteração de endpoints Memcached.",
+        "Usar cliente Memcached com Auto Discovery e configuration endpoint.",
+        "Colocar Memcached atrás de NLB e tratar todos nós como um endpoint TCP.",
+        "Atualizar configuração no S3 via Lambda que consulta periodicamente a API."
       ],
       "correct": 1,
-      "explanation": "Correto. O Auto Discovery permite que uma biblioteca de cliente Memcached (com suporte a Auto Discovery) se conecte a um único CONFIGURATION ENDPOINT que rastreia automaticamente a lista atual de nós de cache; o cliente consulta periodicamente esse endpoint e atualiza sua lista interna de nós automaticamente conforme nós são adicionados/removidos, eliminando a reconfiguração manual.",
-      "hint": "Pense em qual recurso do ElastiCache fornece um endpoint único e estável que sempre reflete a lista atual de nós do cluster, sem necessidade de reconfiguração manual.",
+      "explanation": "Redis poderia funcionar, mas muda engine e não é necessário para descoberta de nós Memcached. Auto Discovery usa configuration endpoint para cliente compatível atualizar lista de nós; aplicações precisam suportar o protocolo. NLB não é cliente Memcached-aware e pode quebrar sharding/hash da aplicação. Lambda/S3 cria polling customizado e atraso para uma capacidade nativa.",
+      "hint": "Em cache distribuído, o cliente precisa conhecer os nós para aplicar hashing consistente.",
       "optionRationales": [
-        "Correto. O Auto Discovery permite que uma biblioteca de cliente Memcached (com suporte a Auto Discovery) se conecte a um único CONFIGURATION ENDPOINT que rastreia automaticamente a lista atual de nós de cache; o cliente consulta periodicamente esse endpoint e atualiza sua lista interna de nós automaticamente conforme nós são adicionados/removidos, eliminando a reconfiguração manual.",
-        "Incorreto. Embora o Redis em Cluster Mode trate o resharding automaticamente, isso exigiria migrar de Memcached para Redis por completo (modelo de dados/conjunto de recursos diferente, mudanças na aplicação) — uma mudança muito maior do que habilitar um recurso do lado do cliente (Auto Discovery) que resolve diretamente o problema de rastreamento da lista de nós dentro do próprio Memcached.",
-        "Incorreto. Clientes Memcached usam um esquema de hashing distribuído (consistent hashing) entre MÚLTIPLOS endpoints de nó para determinar qual nó é responsável por uma determinada chave; rotear todo o tráfego por um único endpoint balanceado romperia esse modelo de particionamento do lado do cliente (o cliente precisa conhecer e se conectar diretamente aos nós individuais para calcular a posição das chaves) — não é assim que o clustering do Memcached funciona.",
-        "Incorreto. Essa é uma solução customizada e indireta (exigindo uma função Lambda, leitura/polling do S3 na inicialização, e ainda não tratando mudanças de nós EM TEMPO DE EXECUÇÃO sem reimplantação/reinício) para um problema que o recurso nativo Auto Discovery do ElastiCache resolve diretamente e continuamente no nível do cliente, sem nenhuma infraestrutura customizada."
+        "Redis poderia funcionar, mas muda engine e não é necessário para descoberta de nós Memcached.",
+        "Auto Discovery usa configuration endpoint para cliente compatível atualizar lista de nós; aplicações precisam suportar o protocolo.",
+        "NLB não é cliente Memcached-aware e pode quebrar sharding/hash da aplicação.",
+        "Lambda/S3 cria polling customizado e atraso para uma capacidade nativa."
       ],
       "topics": [
         "databases"
@@ -4134,19 +4134,19 @@
       "domain": "cost-optimized-architectures",
       "text": "Uma empresa firma um compromisso de 3 anos para obter descontos em computação, mas seu mix de workloads muda com frequência: ela migra cargas entre famílias de instâncias EC2 (por exemplo, de M5 para M6g/Graviton), alterna entre EC2, AWS Fargate e AWS Lambda, e move workloads entre Regiões. A empresa deseja o maior desconto possível, preservando a flexibilidade de mudar serviços de computação, famílias de instância e Regiões sem perder a cobertura do desconto contratado.",
       "options": [
-        "Adquirir Reserved Instances Standard de 3 anos com pagamento total adiantado (All Upfront)",
-        "Utilizar On-Demand Capacity Reservations combinadas com um compromisso de 1 ano",
-        "Adquirir Compute Savings Plans",
-        "Adquirir EC2 Instance Savings Plans"
+        "Comprar RI Standard All Upfront de três anos.",
+        "Usar Capacity Reservations com compromisso anual.",
+        "Comprar Compute Savings Plans de três anos.",
+        "Comprar EC2 Instance Savings Plans de três anos."
       ],
       "correct": 2,
-      "explanation": "Correto. Os Compute Savings Plans oferecem a maior flexibilidade: o desconto contratado se aplica automaticamente ao uso em qualquer família/tamanho de instância EC2, sistema operacional, tenancy e Região, além de uso em AWS Fargate e AWS Lambda, em troca de um compromisso de gasto horário consistente — ideal para um mix de workloads que muda entre famílias de instância, serviços e Regiões.",
-      "hint": "Pense em qual tipo de plano de economia aplica o desconto ao gasto computacional como um todo, independentemente da família de instância, serviço ou Região utilizados.",
+      "explanation": "RI Standard restringe família/região/plataforma mais que o mix mutável descrito. Capacity Reservation garante capacidade, não desconto flexível multi-serviço. Compute Savings Plans aplicam desconto a EC2, Fargate e Lambda independentemente de família/região, em troca de compromisso por hora; descontos podem ser menores que opções específicas. EC2 Instance Savings Plans têm maior desconto, mas restringem família e Região.",
+      "hint": "A cobertura desejada atravessa família de instância, Região e até serviços compute distintos.",
       "optionRationales": [
-        "Correto. Os Compute Savings Plans oferecem a maior flexibilidade: o desconto contratado se aplica automaticamente ao uso em qualquer família/tamanho de instância EC2, sistema operacional, tenancy e Região, além de uso em AWS Fargate e AWS Lambda, em troca de um compromisso de gasto horário consistente — ideal para um mix de workloads que muda entre famílias de instância, serviços e Regiões.",
-        "Incorreto. Os EC2 Instance Savings Plans oferecem uma taxa de desconto maior, mas o compromisso é vinculado a uma família de instância específica em uma Região específica (com flexibilidade apenas de tamanho, SO e tenancy dentro dessa família/região); migrar workloads para outras famílias, serviços (Fargate/Lambda) ou Regiões não se beneficiaria do desconto, contradizendo o requisito de flexibilidade.",
-        "Incorreto. As Reserved Instances Standard estão vinculadas a uma família de instância/Região/SO específicos, com pouca flexibilidade para mudanças de família (Convertible RIs permitem trocas, mas com processos manuais); comprometer-se com RIs para um workload que muda frequentemente de família/serviço/Região arrisca capacidade reservada subutilizada e exige trocas/modificações manuais, de forma muito menos automática que os Compute Savings Plans.",
-        "Incorreto. As Capacity Reservations garantem a DISPONIBILIDADE DE CAPACIDADE em uma AZ específica para um tipo de instância específico, mas não fornecem, por si só, um DESCONTO de faturamento (normalmente são combinadas com Savings Plans/RIs para obter desconto, mas isoladamente reservam capacidade a preços On-Demand) — não atendem ao objetivo de desconto com flexibilidade entre famílias/serviços."
+        "RI Standard restringe família/região/plataforma mais que o mix mutável descrito.",
+        "Capacity Reservation garante capacidade, não desconto flexível multi-serviço.",
+        "Compute Savings Plans aplicam desconto a EC2, Fargate e Lambda independentemente de família/região, em troca de compromisso por hora; descontos podem ser menores que opções específicas.",
+        "EC2 Instance Savings Plans têm maior desconto, mas restringem família e Região."
       ],
       "topics": [
         "ec2-compute",
@@ -4158,19 +4158,19 @@
       "domain": "cost-optimized-architectures",
       "text": "Uma empresa do setor financeiro precisa reter logs de auditoria por 10 anos conforme exigências regulatórias. Esses logs praticamente NUNCA são acessados (talvez uma vez a cada poucos anos, em cenários raros de auditoria), e a recuperação pode tolerar até 12 horas. Atualmente, os logs estão armazenados no S3 Standard, gerando custos mensais de armazenamento significativos para dados que provavelmente nunca serão lidos novamente em operações normais.",
       "options": [
-        "Transicionar os objetos para o S3 One Zone-IA",
-        "Transicionar os objetos para o S3 Glacier Instant Retrieval",
-        "Transicionar os objetos para o S3 Standard-IA (Infrequent Access)",
-        "Configurar uma política de Lifecycle do S3 para transicionar os objetos para o Amazon S3 Glacier Deep Archive após um período inicial curto (ex.: 30-90 dias no S3 Standard para eventuais necessidades de acesso de curto prazo)"
+        "Transicionar a One Zone-IA.",
+        "Transicionar a Glacier Instant Retrieval.",
+        "Transicionar a Standard-IA.",
+        "Usar Lifecycle para Glacier Deep Archive após período inicial adequado."
       ],
       "correct": 3,
-      "explanation": "Correto. O S3 Glacier Deep Archive oferece o armazenamento de menor custo do S3 (mais barato que o Glacier Flexible Retrieval), com tempos de recuperação de 12 a 48 horas — ideal para dados acessados menos de uma ou duas vezes por ano, com requisitos de retenção longos como logs de auditoria de 10 anos, onde a recuperação pode tolerar até 12 horas.",
-      "hint": "Considere a frequência de acesso (uma vez a cada poucos anos) e a tolerância de recuperação (até 12 horas) para escolher a classe de armazenamento de menor custo entre as opções de arquivamento do S3.",
+      "explanation": "One Zone-IA perde resiliência de AZ e é inadequada a logs regulatórios que precisam durabilidade regional. Instant Retrieval custa mais e é indicado a acesso imediato frequente. Standard-IA atende acesso infrequente mas custa mais para retenção praticamente arquivada de década. Deep Archive minimiza custo para acesso raro com restauração de horas; considere mínimo de armazenamento e política de retenção.",
+      "hint": "Compare frequência de acesso, tempo tolerado de restauração e custo de retenção longa.",
       "optionRationales": [
-        "Correto. O S3 Glacier Deep Archive oferece o armazenamento de menor custo do S3 (mais barato que o Glacier Flexible Retrieval), com tempos de recuperação de 12 a 48 horas — ideal para dados acessados menos de uma ou duas vezes por ano, com requisitos de retenção longos como logs de auditoria de 10 anos, onde a recuperação pode tolerar até 12 horas.",
-        "Incorreto. O S3 Standard-IA reduz o custo de armazenamento em relação ao Standard, mas é projetado para dados acessados mensalmente com recuperação em milissegundos e custo por GB MAIOR que o Glacier Deep Archive; para dados acessados uma vez a cada poucos ANOS com tolerância de recuperação de 12 horas, o Deep Archive oferece um custo de armazenamento substancialmente menor.",
-        "Incorreto. O Glacier Instant Retrieval fornece acesso em milissegundos a um custo intermediário entre o Standard-IA e o Glacier Flexible Retrieval, projetado para dados de arquivo acessados uma vez por trimestre; para dados acessados extremamente raramente (uma vez a cada poucos anos) com tolerância de recuperação de 12 horas, o custo de armazenamento menor do Glacier Deep Archive é mais apropriado, já que o prêmio de acesso instantâneo do Glacier Instant Retrieval não é necessário.",
-        "Incorreto. O S3 One Zone-IA armazena dados em uma ÚNICA AZ (durabilidade menor em caso de falha de AZ) com preços de acesso infrequente — mas ainda tem custo por GB maior que o Glacier Deep Archive para arquivamento de longo prazo, e o trade-off de durabilidade em uma única AZ é geralmente inadequado para logs de auditoria regulatórios de 10 anos que precisam permanecer duráveis/recuperáveis."
+        "One Zone-IA perde resiliência de AZ e é inadequada a logs regulatórios que precisam durabilidade regional.",
+        "Instant Retrieval custa mais e é indicado a acesso imediato frequente.",
+        "Standard-IA atende acesso infrequente mas custa mais para retenção praticamente arquivada de década.",
+        "Deep Archive minimiza custo para acesso raro com restauração de horas; considere mínimo de armazenamento e política de retenção."
       ],
       "topics": [
         "s3-storage"
@@ -4181,19 +4181,19 @@
       "domain": "cost-optimized-architectures",
       "text": "Uma empresa executa dezenas de instâncias EC2 em diversos workloads. Muitas foram provisionadas com base em estimativas iniciais grosseiras feitas anos atrás, e a equipe suspeita de superprovisionamento significativo (baixa utilização de CPU/memória/rede), mas não tem uma forma sistemática de identificar QUAIS instâncias estão superprovisionadas e qual seria a recomendação de dimensionamento CORRETO, sem analisar manualmente métricas do CloudWatch para cada instância.",
       "options": [
-        "Habilitar o AWS Compute Optimizer",
-        "Utilizar o AWS Systems Manager Inventory para catalogar todos os tipos e tamanhos de instância EC2",
-        "Utilizar o AWS Cost Explorer com tags de alocação de custos",
-        "Utilizar a verificação 'Low Utilization Amazon EC2 Instances' do AWS Trusted Advisor (planos de suporte Business/Enterprise)"
+        "Habilitar AWS Compute Optimizer.",
+        "Usar Systems Manager Inventory para listar tipos de instância.",
+        "Usar Cost Explorer e tags para encontrar as instâncias.",
+        "Usar apenas check de baixa utilização do Trusted Advisor."
       ],
       "correct": 0,
-      "explanation": "Correto. O Compute Optimizer analisa métricas históricas de utilização do CloudWatch (CPU, memória via agente do CloudWatch, rede, EBS) para instâncias EC2, volumes EBS, funções Lambda e serviços ECS no Fargate, e fornece recomendações específicas de dimensionamento (por exemplo, reduzir de m5.2xlarge para m5.xlarge) com economia de custo estimada, automatizando essa análise em toda a frota.",
-      "hint": "Pense em qual serviço da AWS analisa automaticamente métricas históricas de utilização de toda a frota e gera recomendações específicas de dimensionamento, sem análise manual.",
+      "explanation": "Compute Optimizer analisa métricas e recomenda tipos/tamanhos, com dados suficientes e opções habilitadas. Inventory inventaria, mas não produz recomendação de dimensionamento por utilização. Cost Explorer mostra custo/uso, não dimensionamento técnico por recurso. Trusted Advisor low utilization pode sinalizar subuso, mas Compute Optimizer é mais específico para recomendações de right-sizing.",
+      "hint": "A necessidade é recomendação de tamanho baseada em utilização, não apenas inventário ou sinalização.",
       "optionRationales": [
-        "Correto. O Compute Optimizer analisa métricas históricas de utilização do CloudWatch (CPU, memória via agente do CloudWatch, rede, EBS) para instâncias EC2, volumes EBS, funções Lambda e serviços ECS no Fargate, e fornece recomendações específicas de dimensionamento (por exemplo, reduzir de m5.2xlarge para m5.xlarge) com economia de custo estimada, automatizando essa análise em toda a frota.",
-        "Incorreto. O Cost Explorer mostra a DISTRIBUIÇÃO e tendências de GASTO por tag/serviço/conta, ajudando a entender ONDE o dinheiro está sendo gasto, mas não analisa métricas de UTILIZAÇÃO para recomendar mudanças específicas de dimensionamento de instância — é uma ferramenta de visibilidade de custo, não um motor de recomendação baseado em utilização.",
-        "Incorreto. Essa verificação sinaliza instâncias com baixa utilização de CPU como candidatas a revisão, mas oferece uma análise muito menos granular, contínua e multidimensional (CPU+memória+rede+EBS), com recomendações específicas de tipo de instância de destino, em comparação ao Compute Optimizer, que foi criado especificamente para isso e está disponível sem custo adicional mesmo no plano de suporte Basic.",
-        "Incorreto. O Systems Manager Inventory cataloga metadados sobre as instâncias (SO, software instalado, tipo de instância), mas não analisa métricas de UTILIZAÇÃO nem fornece recomendações de dimensionamento — é uma ferramenta de inventário/configuração, não um motor de recomendação baseado em performance."
+        "Compute Optimizer analisa métricas e recomenda tipos/tamanhos, com dados suficientes e opções habilitadas.",
+        "Inventory inventaria, mas não produz recomendação de dimensionamento por utilização.",
+        "Cost Explorer mostra custo/uso, não dimensionamento técnico por recurso.",
+        "Trusted Advisor low utilization pode sinalizar subuso, mas Compute Optimizer é mais específico para recomendações de right-sizing."
       ],
       "topics": [
         "ec2-compute",
@@ -4206,19 +4206,19 @@
       "domain": "cost-optimized-architectures",
       "text": "Uma aplicação executada em instâncias EC2 em subnets privadas acessa intensamente o Amazon S3 e o Amazon DynamoDB, roteando esse tráfego através de um NAT Gateway para alcançar esses serviços por seus endpoints públicos. A equipe percebe cobranças substanciais de processamento de dados do NAT Gateway (US$ 0,045/GB processado) atribuíveis a esse tráfego de S3/DynamoDB, mesmo que esse tráfego nunca precise saiar da rede da AWS. Eles querem eliminar especificamente essas cobranças de processamento de dados do NAT Gateway para o tráfego de S3/DynamoDB, sem adicionar infraestrutura roteável pela internet.",
       "options": [
-        "Substituir o NAT Gateway por uma instância NAT (EC2 autogerenciada)",
-        "Criar Interface VPC Endpoints (AWS PrivateLink) para o S3 e o DynamoDB",
-        "Criar Gateway VPC Endpoints para o Amazon S3 e o Amazon DynamoDB na VPC, e atualizar as tabelas de rotas das subnets privadas para rotear o tráfego de S3/DynamoDB por esses endpoints",
-        "Mover as instâncias EC2 para subnets públicas com IPs públicos, permitindo acesso direto ao S3/DynamoDB sem NAT Gateway"
+        "Substituir NAT por NAT instance autogerenciada.",
+        "Criar interface endpoints PrivateLink para ambos os serviços.",
+        "Criar gateway endpoints S3/DynamoDB e atualizar tabelas de rota privadas.",
+        "Mover EC2 para subnets públicas com IPs públicos."
       ],
       "correct": 2,
-      "explanation": "Correto. Os Gateway VPC Endpoints roteiam o tráfego para S3/DynamoDB diretamente dentro da rede da AWS por meio de entradas na tabela de rotas, contornando completamente o NAT Gateway para esse tráfego, SEM custo adicional pelo endpoint em si (diferente dos Interface Endpoints, que têm cobrança por hora + por GB) — eliminando diretamente as cobranças de processamento de dados do NAT Gateway para esse tráfego.",
-      "hint": "Pense em qual tipo de VPC Endpoint roteia tráfego para S3 e DynamoDB diretamente via tabela de rotas, sem custo adicional pelo próprio endpoint.",
+      "explanation": "NAT instance pode reduzir certos custos mas adiciona operação, disponibilidade e ainda não cria caminho privado aos serviços. Interface endpoints funcionam, mas S3/DynamoDB têm gateway endpoints sem cobrança por hora/data processing do endpoint e são a escolha direta para o requisito. Gateway endpoints adicionam rotas para S3/DynamoDB pelo backbone sem NAT; políticas de endpoint e bucket/tabela ainda controlam acesso. Subnets públicas aumentam exposição e não são necessárias.",
+      "hint": "S3 e DynamoDB são os serviços clássicos suportados por gateway endpoint.",
       "optionRationales": [
-        "Correto. Os Gateway VPC Endpoints roteiam o tráfego para S3/DynamoDB diretamente dentro da rede da AWS por meio de entradas na tabela de rotas, contornando completamente o NAT Gateway para esse tráfego, SEM custo adicional pelo endpoint em si (diferente dos Interface Endpoints, que têm cobrança por hora + por GB) — eliminando diretamente as cobranças de processamento de dados do NAT Gateway para esse tráfego.",
-        "Incorreto. Os Interface Endpoints também evitam o roteamento via NAT Gateway/internet, mas têm cobrança PRÓPRIA por hora MAIS cobrança por GB de dados processados pelo endpoint — para S3 e DynamoDB especificamente, os Gateway Endpoints (sem cobrança adicional) são a escolha ótima em custo; Interface Endpoints são usados para serviços que não suportam Gateway Endpoints.",
-        "Incorreto. Uma instância NAT pode ter custo-base por hora menor que um NAT Gateway, mas ainda incorre em custos de instância EC2 e de transferência de dados para o tráfego de S3/DynamoDB que passa por ela — não elimina o problema subjacente de rotear tráfego de S3/DynamoDB por um intermediário desnecessário; os Gateway Endpoints removem esse tráfego do caminho do NAT por completo.",
-        "Incorreto. Mover instâncias para subnets públicas tem implicações de segurança significativas (exposição direta à internet) e não está alinhado com a arquitetura de subnet privada; também não trata o objetivo de otimização de custo de forma segura — os Gateway Endpoints atingem o objetivo de custo mantendo as instâncias privadas."
+        "NAT instance pode reduzir certos custos mas adiciona operação, disponibilidade e ainda não cria caminho privado aos serviços.",
+        "Interface endpoints funcionam, mas S3/DynamoDB têm gateway endpoints sem cobrança por hora/data processing do endpoint e são a escolha direta para o requisito.",
+        "Gateway endpoints adicionam rotas para S3/DynamoDB pelo backbone sem NAT; políticas de endpoint e bucket/tabela ainda controlam acesso.",
+        "Subnets públicas aumentam exposição e não são necessárias."
       ],
       "topics": [
         "vpc",
