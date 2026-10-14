@@ -534,6 +534,72 @@
         return heroSpriteCache[choice];
     }
 
+
+    // CloudArena art preview: quatro frames por estado, sem alterar inimigos não migrados.
+    // Os PNGs ficam em images/arena/enemies/secure-architectures/{idle,attack,hurt,death}.png
+    const previewEnemySprites = new Map();
+    class AnimatedArenaEnemy {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.states = {};
+            this.timer = null;
+            this.token = 0;
+            this.ready = false;
+        }
+        async load() {
+            const base = 'images/arena/enemies/secure-architectures/';
+            try {
+                await Promise.all(['idle','attack','hurt','death'].map(async state => {
+                    const image = new Image();
+                    image.src = base + state + '.png';
+                    await image.decode();
+                    this.states[state] = image;
+                }));
+                this.ready = true;
+                this.play('idle', true);
+            } catch (err) {
+                this.canvas.style.display = 'none';
+                const fallback = this.canvas.nextElementSibling;
+                if (fallback) fallback.style.display = 'flex';
+                console.warn('[CloudArena] Sentinela sem sprites:', err);
+            }
+        }
+        stop() { clearTimeout(this.timer); ++this.token; }
+        play(state, loop = false) {
+            if (!this.ready || !this.states[state]) return;
+            this.stop();
+            const token = this.token;
+            const img = this.states[state];
+            const draw = frame => {
+                if (token !== this.token || !document.body.contains(this.canvas)) return;
+                const ctx = this.ctx;
+                ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+                // 4 celulas exatas de 450px, cada uma com margem transparente de 50px.
+                ctx.drawImage(img, frame*450, 0, 450, 450, 22, 3, 136, 136);
+                if (frame < 3 || loop) this.timer = setTimeout(() => draw((frame+1)%4), state === 'attack' ? 160 : 240);
+            };
+            draw(0);
+        }
+    }
+    function previewEnemyEnabled() {
+        return battle && battle.certId === 'saa-c03'
+            && battle.domain === 'secure-architectures' && !battle.boss;
+    }
+    function startPreviewEnemy() {
+        const canvas = $('#enemyCanvas');
+        if (!canvas) return;
+        const anim = new AnimatedArenaEnemy(canvas);
+        previewEnemySprites.set(canvas, anim);
+        anim.load();
+    }
+    function playPreviewEnemy(state, loop = false) {
+        const canvas = $('#enemyCanvas');
+        const anim = canvas && previewEnemySprites.get(canvas);
+        if (anim && anim.ready) anim.play(state, loop);
+        return !!(anim && anim.ready);
+    }
+
     function enemySpriteUrl(certId, domain, pose, boss) {
         const dir = certId === 'clf-c02' ? 'images/arena/enemies/clf/' : 'images/arena/enemies/';
         return `${dir}${domain}${boss ? '-boss' : ''}-${pose}.png`;
@@ -997,6 +1063,10 @@
     }
 
     function animateEnemyHurt() {
+        if (previewEnemyEnabled()) {
+            playPreviewEnemy(battle.enemyHp <= 0 ? 'death' : 'hurt');
+            if (battle.enemyHp > 0) setTimeout(() => playPreviewEnemy('idle', true), 850);
+        }
         const wrap = $('#enemyWrap');
         if (!wrap) return;
         wrap.classList.remove('enemy-hurt');
@@ -1012,14 +1082,15 @@
     function animateEnemyAttack(heroDies, done) {
         const wrap = $('#enemyWrap');
         const img = $('#enemySprite');
-        if (!wrap || !img) { if (done) done(); return; }
+        if (!wrap || (!img && !previewEnemyEnabled())) { if (done) done(); return; }
         const info = enemyInfo(battle.certId, battle.domain, battle.boss);
         const callout = $('#attackCallout');
         if (callout) {
             callout.textContent = `${info.name} ataca com ${battle.attackName}!`;
             callout.classList.add('show');
         }
-        setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
+        if (previewEnemyEnabled()) playPreviewEnemy('attack');
+        else setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
         wrap.classList.add('enemy-attacking'); // desloca em direção ao herói via CSS
         setTimeout(() => {
             animateHero(heroDies ? 'death' : 'hurt');
@@ -1027,7 +1098,8 @@
         }, 320);
         setTimeout(() => {
             wrap.classList.remove('enemy-attacking');
-            setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
+            if (previewEnemyEnabled()) playPreviewEnemy('idle', true);
+            else setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
             if (callout) callout.classList.remove('show');
             // se o herói morreu, espera a animação de morte (~2s) terminar
             if (done) setTimeout(done, heroDies ? 1700 : 80);
@@ -1225,7 +1297,9 @@
                     </div>
                     <div class="vs">VS</div>
                     <div class="fighter ${battle.boss ? 'is-boss' : ''}" id="enemyWrap">
-                        <img id="enemySprite" class="sprite" alt="${esc(info.name)}">
+                        ${certId === 'saa-c03' && battle.domain === 'secure-architectures' && !battle.boss
+                            ? '<canvas id="enemyCanvas" class="sprite" width="180" height="150"></canvas>'
+                            : `<img id="enemySprite" class="sprite" alt="${esc(info.name)}">`}
                         <div class="sprite-fallback">${info.emoji}</div>
                         <div class="fighter-name">${esc(info.name)}${battle.boss ? ' 👑' : ''}</div>
                         ${hpBarHtml('enemyHp', battle.enemyHp, battle.enemyMaxHp, '#ff6b6b')}
@@ -1248,7 +1322,8 @@
             </div>`;
 
         initHeroCanvas();
-        setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
+        if (previewEnemyEnabled()) startPreviewEnemy();
+        else setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
 
         // Toggle lista/blocos: troca só a classe (sem re-render, para não
