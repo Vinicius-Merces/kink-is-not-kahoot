@@ -3052,19 +3052,19 @@
       "domain": "high-performing-architectures",
       "text": "Um banco de dados transacional sensível à latência, executado em EC2, requer IOPS extremamente altas e consistentes (bem acima de 64.000) e latência sub-milissegundo, com taxas de erro de IO muito baixas. O volume io2 (Provisioned IOPS SSD) atual, em um tipo de instância sem suporte a Block Express, não consegue atingir o teto de IOPS necessário. O que deve ser feito?",
       "options": [
-        "Migrar o banco de dados para usar volumes Instance Store (NVMe SSD) para máxima IOPS",
-        "Usar um volume EBS io2 Block Express anexado a um tipo de instância baseado em Nitro com suporte a Block Express (ex.: famílias de instância elegíveis como R5b)",
-        "Aumentar a configuração de IOPS provisionadas do volume io2 atual para acima de 64.000 na instância existente",
-        "Combinar (stripe) múltiplos volumes gp3 usando RAID 0 no nível do sistema operacional para agregar IOPS"
+        "Migrar o banco a Instance Store NVMe e aceitar a reconstrução dos dados após perda da instância.",
+        "Usar io2 Block Express em instância Nitro elegível com suporte a Block Express.",
+        "Provisionar mais IOPS no io2 atual sem trocar a instância que limita o volume.",
+        "Fazer RAID 0 de volumes gp3 para substituir o requisito de durabilidade e IOPS do io2."
       ],
       "correct": 1,
-      "explanation": "Correto. O io2 Block Express oferece até 256.000 IOPS, até 4.000 MB/s de throughput, latência sub-milissegundo e durabilidade de 99,999%, sendo projetado especificamente para as cargas de trabalho mais exigentes em I/O, superando os limites dos volumes io2 padrão.",
-      "hint": "Considere qual variante do volume EBS Provisioned IOPS foi projetada especificamente para superar o teto de 64.000 IOPS, e quais instâncias a suportam.",
+      "explanation": "Instance Store pode oferecer I/O local muito alto, mas é efêmero e muda o modelo de durabilidade do banco. io2 Block Express em instância Nitro elegível suporta limites maiores e latência adequada; verifique compatibilidade de volume, instância, sistema operacional e EBS optimization. Não é possível ultrapassar o limite imposto pela combinação atual de instância e volume apenas aumentando a configuração. RAID 0 de gp3 agrega desempenho, mas acrescenta complexidade e risco de falha de qualquer membro; não atende necessariamente à exigência de latência/IOPS consistente do io2.",
+      "hint": "O limite depende tanto do volume quanto do tipo de instância que o anexa.",
       "optionRationales": [
-        "Correto. O io2 Block Express oferece até 256.000 IOPS, até 4.000 MB/s de throughput, latência sub-milissegundo e durabilidade de 99,999%, sendo projetado especificamente para as cargas de trabalho mais exigentes em I/O, superando os limites dos volumes io2 padrão.",
-        "Incorreto. O striping RAID 0 entre volumes gp3 pode aumentar a IOPS/throughput agregados até certo ponto, mas gerenciar RAID em software adiciona complexidade operacional, não fornece o mesmo teto de IOPS por volume nem as características de latência sub-milissegundo e durabilidade de 99,999% do io2 Block Express, e a falha de um único volume no array RAID 0 causa perda total de dados do array.",
-        "Incorreto. Volumes Instance Store oferecem IOPS/throughput muito altos, mas são EFÊMEROS (dados perdidos ao parar/finalizar a instância ou em caso de falha), tornando-os inadequados para um banco de dados transacional que exige durabilidade, apesar de atenderem ao requisito de IOPS.",
-        "Incorreto. Volumes io2 (não Block Express) têm um teto de 64.000 IOPS independentemente do valor provisionado solicitado; exceder esse teto requer io2 Block Express em um tipo de instância Nitro compatível, não simplesmente aumentar o valor provisionado em uma configuração incompatível."
+        "Instance Store pode oferecer I/O local muito alto, mas é efêmero e muda o modelo de durabilidade do banco.",
+        "io2 Block Express em instância Nitro elegível suporta limites maiores e latência adequada; verifique compatibilidade de volume, instância, sistema operacional e EBS optimization.",
+        "Não é possível ultrapassar o limite imposto pela combinação atual de instância e volume apenas aumentando a configuração.",
+        "RAID 0 de gp3 agrega desempenho, mas acrescenta complexidade e risco de falha de qualquer membro; não atende necessariamente à exigência de latência/IOPS consistente do io2."
       ],
       "topics": [
         "s3-storage",
@@ -3076,19 +3076,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa de mídia tem usuários em todo o mundo fazendo upload de arquivos de vídeo grandes diretamente para um único bucket S3 em us-east-1. Usuários na Ásia e na Austrália enfrentam velocidades de upload lentas e timeouts frequentes devido à grande distância de rede e roteamento variável da internet até us-east-1, enquanto usuários próximos a us-east-1 não têm problemas. A empresa quer melhorar a velocidade/confiabilidade de upload para usuários distantes, sem criar buckets por região nem exigir que os usuários escolham manualmente um endpoint 'mais próximo'.",
       "options": [
-        "Habilitar o Amazon S3 Transfer Acceleration no bucket e fazer os clientes enviarem uploads via o endpoint distinto 's3-accelerate'",
-        "Criar buckets S3 separados em múltiplas Regiões (ex.: ap-southeast-2, ap-northeast-1) e fazer a aplicação cliente escolher o bucket mais próximo com base na localização do usuário",
-        "Usar o AWS Direct Connect a partir da localização de cada usuário para estabelecer uma conexão de rede dedicada até a Região do bucket S3",
-        "Aumentar o tamanho das partes (parts) no multipart upload para reduzir o número de requisições HTTP de arquivos grandes"
+        "Habilitar S3 Transfer Acceleration e usar o endpoint s3-accelerate no cliente.",
+        "Criar buckets por Região e permitir que cada cliente escolha manualmente o destino.",
+        "Provisionar Direct Connect entre cada usuário final e a Região do bucket.",
+        "Aumentar apenas o tamanho das partes multipart e manter o endpoint regional comum."
       ],
       "correct": 0,
-      "explanation": "Correto. O S3 Transfer Acceleration roteia uploads através da localização de borda do CloudFront mais próxima (usando a rede global de localizações de borda da AWS) por um caminho otimizado até a Região do bucket, melhorando significativamente o throughput/confiabilidade para uploaders geograficamente distantes, sem exigir lógica de seleção de região no lado do cliente.",
-      "hint": "Pense em um recurso do S3 que aproveita a rede global de localizações de borda da AWS para acelerar uploads até a Região de destino, sem exigir buckets adicionais.",
+      "explanation": "Transfer Acceleration usa endpoints de borda para acelerar transferências ao bucket sem mudar a localização do objeto; há custos e é preciso testar o ganho. Buckets regionais exigem mudar o desenho e o cliente escolher ou rotear para destinos diferentes. Direct Connect é para redes corporativas, não consumidores distribuídos globalmente. Partes adequadas ajudam multipart, mas não resolvem o caminho de rede global até o bucket.",
+      "hint": "O serviço acelera o trecho de internet até a rede AWS sem criar réplica regional do bucket.",
       "optionRationales": [
-        "Correto. O S3 Transfer Acceleration roteia uploads através da localização de borda do CloudFront mais próxima (usando a rede global de localizações de borda da AWS) por um caminho otimizado até a Região do bucket, melhorando significativamente o throughput/confiabilidade para uploaders geograficamente distantes, sem exigir lógica de seleção de região no lado do cliente.",
-        "Incorreto. Embora buckets multi-região possam reduzir latência, isso exige lógica significativa na aplicação para detectar a localização do usuário, rotear para o bucket correto E complexidade adicional para consolidar/replicar os dados de volta para um bucket primário — uma solução muito mais complexa do que habilitar um único recurso no bucket existente.",
-        "Incorreto. O Direct Connect requer conexões físicas dedicadas a partir de locais específicos (tipicamente data centers de empresas, não dispositivos/localizações de usuários finais individuais ao redor do mundo), tornando-o completamente impraticável para usuários finais arbitrários fazendo upload a partir de seus próprios dispositivos.",
-        "Incorreto. Embora o multipart upload (e o ajuste de tamanho/concorrência das partes) ajude com uploads de arquivos grandes em geral e melhore a resiliência a falhas em partes individuais, isso não resolve o problema fundamental de latência/roteamento de rede para clientes geograficamente distantes — as requisições ainda percorrem o mesmo caminho de longa distância até us-east-1."
+        "Transfer Acceleration usa endpoints de borda para acelerar transferências ao bucket sem mudar a localização do objeto; há custos e é preciso testar o ganho.",
+        "Buckets regionais exigem mudar o desenho e o cliente escolher ou rotear para destinos diferentes.",
+        "Direct Connect é para redes corporativas, não consumidores distribuídos globalmente.",
+        "Partes adequadas ajudam multipart, mas não resolvem o caminho de rede global até o bucket."
       ],
       "topics": [
         "s3-storage"
@@ -3099,19 +3099,19 @@
       "domain": "high-performing-architectures",
       "text": "O tráfego de leitura de uma aplicação cresceu significativamente, e a equipe adicionou várias Aurora Replicas a um cluster Aurora MySQL para escalar a capacidade de leitura. Porém, a aplicação se conecta usando uma lista fixa (hardcoded) de endpoints individuais de réplicas, exigindo atualização manual sempre que réplicas são adicionadas/removidas, e a carga não é distribuída uniformemente (algumas réplicas recebem mais conexões que outras, dependendo de qual endpoint os desenvolvedores usaram). Como a aplicação deve se conectar para distribuir automaticamente a carga de leitura entre todas as réplicas atuais?",
       "options": [
-        "Configurar a aplicação para usar o 'reader endpoint' do cluster Aurora para todas as consultas somente leitura",
-        "Usar registros de roteamento ponderado (weighted) do Amazon Route 53 apontando para o endpoint individual de cada réplica, atualizando manualmente os pesos conforme as réplicas mudam",
-        "Implantar um Network Load Balancer na frente de todas as instâncias Aurora Replica e fazer a aplicação se conectar através do NLB",
-        "Configurar a aplicação para se conectar ao 'cluster endpoint' (writer endpoint) para todas as consultas de leitura, já que ele sempre aponta para a instância primária atual"
+        "Usar reader endpoint do Aurora para consultas somente leitura e cluster endpoint para escrita.",
+        "Manter endpoints individuais atrás de Route 53 weighted e atualizar pesos a cada alteração.",
+        "Colocar NLB TCP na frente de todas as replicas Aurora e usar um único endpoint próprio.",
+        "Usar somente o cluster endpoint writer para todas as leituras e escritas."
       ],
       "correct": 0,
-      "explanation": "Correto. O reader endpoint balanceia automaticamente as conexões entre todas as Aurora Replicas disponíveis (e o writer, caso não existam réplicas), e reflete automaticamente o conjunto atual de réplicas conforme elas são adicionadas ou removidas, sem exigir gerenciamento de lista de endpoints pela aplicação.",
-      "hint": "O Aurora fornece um endpoint específico, separado do endpoint do writer, que já realiza balanceamento de carga entre réplicas automaticamente.",
+      "explanation": "Reader endpoint distribui conexões somente leitura entre as réplicas disponíveis; aplicações devem separar escrita e tratar conexões persistentes/failover. Route 53 ponderado adiciona manutenção e não acompanha automaticamente membership do cluster. NLB não é proxy recomendado para endpoints Aurora e não entende o papel writer/reader do cluster. Cluster endpoint aponta ao writer e não distribui leitura entre replicas.",
+      "hint": "Aurora fornece endpoints de função; o endpoint reader acompanha o conjunto de réplicas.",
       "optionRationales": [
-        "Correto. O reader endpoint balanceia automaticamente as conexões entre todas as Aurora Replicas disponíveis (e o writer, caso não existam réplicas), e reflete automaticamente o conjunto atual de réplicas conforme elas são adicionadas ou removidas, sem exigir gerenciamento de lista de endpoints pela aplicação.",
-        "Incorreto. O cluster/writer endpoint sempre aponta para a única instância WRITER ATUAL; rotear todo o tráfego de leitura para ele NÃO distribuiria carga entre as Aurora Replicas — concentraria todas as leituras (e escritas) na instância writer, anulando o propósito de ter réplicas de leitura.",
-        "Incorreto. Construir e manter manualmente um load balancer na frente das instâncias Aurora Replica duplica funcionalidade que o reader endpoint nativo do Aurora já fornece, adicionando infraestrutura e overhead operacional desnecessários, e não acompanharia automaticamente mudanças na composição das réplicas como o reader endpoint faz.",
-        "Incorreto. Isso exige gerenciamento manual de registros DNS sempre que réplicas são adicionadas/removidas (exatamente o problema descrito) e não fornece o balanceamento de carga automático e em tempo real, nem o connection draining, do reader endpoint nativo do Aurora."
+        "Reader endpoint distribui conexões somente leitura entre as réplicas disponíveis; aplicações devem separar escrita e tratar conexões persistentes/failover.",
+        "Route 53 ponderado adiciona manutenção e não acompanha automaticamente membership do cluster.",
+        "NLB não é proxy recomendado para endpoints Aurora e não entende o papel writer/reader do cluster.",
+        "Cluster endpoint aponta ao writer e não distribui leitura entre replicas."
       ],
       "topics": [
         "databases"
@@ -3122,19 +3122,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação realiza milhões de requisições de leitura por segundo a uma tabela do DynamoDB, a maioria repetidas leituras dos mesmos itens 'quentes' (ex.: detalhes de produtos populares), e a aplicação tolera leituras eventualmente consistentes com até alguns segundos de defasagem para esses itens. Mesmo com o auto scaling do DynamoDB, os custos de leitura são altos e a latência de leitura (poucos milissegundos) é muito lenta para o requisito de latência em microssegundos da aplicação para essas leituras específicas de itens quentes.",
       "options": [
-        "Adicionar um Global Secondary Index (GSI) no atributo frequentemente acessado para acelerar essas leituras",
-        "Habilitar o DynamoDB Streams e usar uma função Lambda para pré-computar e armazenar em cache os resultados de itens quentes em uma tabela DynamoDB separada",
-        "Aumentar substancialmente as Read Capacity Units (RCUs) provisionadas da tabela, ou mudar para o modo de capacidade On-Demand",
-        "Implementar o Amazon DynamoDB Accelerator (DAX) como uma camada de cache em memória na frente da tabela DynamoDB"
+        "Criar GSI no atributo popular para substituir a cache de itens quentes.",
+        "Usar Streams e Lambda para construir um cache próprio em outra tabela DynamoDB.",
+        "Aumentar RCUs ou mudar para On-Demand para diminuir a latência de leitura da tabela.",
+        "Usar DAX diante do DynamoDB para leituras quentes eventualmente consistentes."
       ],
       "correct": 3,
-      "explanation": "Correto. O DAX é um serviço de cache compatível com a API do DynamoDB, write-through, que reduz os tempos de resposta de leitura de poucos milissegundos para microssegundos em itens 'quentes' (em cache), tratando de forma transparente a invalidação/população do cache, e a tolerância da aplicação a consistência eventual nessas leituras se alinha com as leituras de cache eventualmente consistentes (padrão) do DAX.",
-      "hint": "Pense em um serviço de cache em memória, compatível com a API do DynamoDB, projetado especificamente para reduzir a latência de leitura de milissegundos para microssegundos.",
+      "explanation": "GSI melhora padrões de consulta por chave, mas não entrega cache de microssegundos nem reduz leituras repetidas por si só. Streams com cache customizado acrescenta latência, operação e consistência a uma capacidade já fornecida por DAX. Mais RCU aumenta capacidade e custo, mas não entrega a camada in-memory de microssegundos. DAX é cache compatível com APIs DynamoDB para leituras eventualmente consistentes, com comportamento de cache que a aplicação deve considerar.",
+      "hint": "O requisito principal é latência in-memory para repetição de GetItem/Query, não apenas mais throughput.",
       "optionRationales": [
-        "Correto. O DAX é um serviço de cache compatível com a API do DynamoDB, write-through, que reduz os tempos de resposta de leitura de poucos milissegundos para microssegundos em itens 'quentes' (em cache), tratando de forma transparente a invalidação/população do cache, e a tolerância da aplicação a consistência eventual nessas leituras se alinha com as leituras de cache eventualmente consistentes (padrão) do DAX.",
-        "Incorreto. Aumentar RCUs (ou mudar para On-Demand) pode lidar com maior THROUGHPUT DE LEITURA e evitar throttling, mas não altera a característica fundamental de latência de poucos milissegundos das leituras diretas do DynamoDB — não atinge o requisito de latência em microssegundos.",
-        "Incorreto. Um GSI altera o PADRÃO DE CONSULTA/caminho de acesso (ex.: consultar por um atributo diferente), mas não reduz a latência fundamental de uma operação de leitura do DynamoDB para microssegundos — leituras via GSI têm características de latência semelhantes às leituras da tabela base.",
-        "Incorreto. Essa é uma solução de cache customizada complexa (usando o próprio DynamoDB como cache) que ainda exibiria a latência de leitura em nível de milissegundos do DynamoDB para a tabela 'cache' — não fornece as características de latência em memória, em microssegundos, de uma camada de cache dedicada como o DAX."
+        "GSI melhora padrões de consulta por chave, mas não entrega cache de microssegundos nem reduz leituras repetidas por si só.",
+        "Streams com cache customizado acrescenta latência, operação e consistência a uma capacidade já fornecida por DAX.",
+        "Mais RCU aumenta capacidade e custo, mas não entrega a camada in-memory de microssegundos.",
+        "DAX é cache compatível com APIs DynamoDB para leituras eventualmente consistentes, com comportamento de cache que a aplicação deve considerar."
       ],
       "topics": [
         "databases"
@@ -3145,19 +3145,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa de jogos multiplayer em tempo real executa servidores de jogo em instâncias EC2 atrás de Network Load Balancers em múltiplas Regiões da AWS. Jogadores em todo o mundo enfrentam latência inconsistente e problemas ocasionais de roteamento porque o tráfego deles atravessa a internet pública (com peering/roteamento imprevisível) até o NLB regional mais próximo. A empresa quer melhorar e estabilizar a latência para jogadores globalmente, roteando o tráfego para a rede global de alto desempenho da AWS o mais rápido possível, usando endereços IP estáticos que não mudem mesmo se as Regiões/endpoints de backend mudarem.",
       "options": [
-        "Usar roteamento baseado em latência (latency-based routing) do Route 53 para direcionar jogadores ao NLB regional com a menor latência a partir da localização deles",
-        "Implementar o Amazon CloudFront na frente dos NLBs para fazer cache e acelerar o tráfego do jogo",
-        "Implementar o AWS Global Accelerator com os NLBs regionais como endpoints",
-        "Implantar conexões AWS Direct Connect a partir da localização de cada jogador até a Região AWS mais próxima"
+        "Usar Route 53 latency routing para os nomes DNS dos NLBs regionais.",
+        "Usar CloudFront para cachear e encaminhar o protocolo de jogo por NLB.",
+        "Usar Global Accelerator com NLBs regionais como endpoints saudáveis.",
+        "Provisionar Direct Connect individual entre jogadores e a AWS."
       ],
       "correct": 2,
-      "explanation": "Correto. O Global Accelerator fornece endereços IP 'anycast' estáticos que, uma vez que o tráfego entra na localização de borda da AWS mais próxima, são roteados pela rede global privada da AWS (em vez da internet pública) até o endpoint saudável ideal, melhorando a consistência/desempenho da latência e fornecendo IPs estáticos independentes de mudanças nos endpoints subjacentes — atendendo tanto ao requisito de latência quanto ao de IP estático.",
-      "hint": "Pense em um serviço que fornece IPs anycast estáticos e leva o tráfego para a rede de backbone privada da AWS o mais próximo possível da origem, operando no nível de TCP/UDP.",
+      "explanation": "Route 53 escolhe respostas DNS, mas não fornece IPs anycast estáticos nem desvia o tráfego da internet pública para a rede AWS cedo. CloudFront é orientado a HTTP/HTTPS e não substitui a aceleração de tráfego de jogo arbitrário por NLB. Global Accelerator fornece IPs estáticos anycast e encaminha para endpoints regionais saudáveis pela rede global AWS. Direct Connect é destinado a redes privadas/corporativas, não a jogadores públicos em escala.",
+      "hint": "A solução combina ponto de entrada anycast estável e otimização do caminho de rede.",
       "optionRationales": [
-        "Correto. O Global Accelerator fornece endereços IP 'anycast' estáticos que, uma vez que o tráfego entra na localização de borda da AWS mais próxima, são roteados pela rede global privada da AWS (em vez da internet pública) até o endpoint saudável ideal, melhorando a consistência/desempenho da latência e fornecendo IPs estáticos independentes de mudanças nos endpoints subjacentes — atendendo tanto ao requisito de latência quanto ao de IP estático.",
-        "Incorreto. O CloudFront é um CDN focado em HTTP/HTTPS, projetado para fazer cache de conteúdo; o tráfego de jogos multiplayer em tempo real normalmente usa conexões TCP/UDP persistentes (não requisições HTTP cacheáveis), tornando o CloudFront inadequado como mecanismo principal de aceleração para esse tipo de tráfego, diferentemente do Global Accelerator, que opera no nível TCP/UDP.",
-        "Incorreto. O roteamento baseado em latência ajuda a direcionar jogadores à Região geograficamente/de rede mais próxima, mas o roteamento baseado em DNS tem limitações (cache/TTL do DNS causando roteamento desatualizado, nenhuma proteção contra caminhos subótimos na internet pública após o tráfego deixar o ISP do jogador) e não fornece IPs estáticos nem roteia o tráfego pela rede privada da AWS — o Global Accelerator resolve ambas as lacunas.",
-        "Incorreto. O Direct Connect requer conexões físicas dedicadas a partir de locais específicos, sendo completamente impraticável para jogadores individuais arbitrários conectando-se a partir de suas casas/escritórios em todo o mundo."
+        "Route 53 escolhe respostas DNS, mas não fornece IPs anycast estáticos nem desvia o tráfego da internet pública para a rede AWS cedo.",
+        "CloudFront é orientado a HTTP/HTTPS e não substitui a aceleração de tráfego de jogo arbitrário por NLB.",
+        "Global Accelerator fornece IPs estáticos anycast e encaminha para endpoints regionais saudáveis pela rede global AWS.",
+        "Direct Connect é destinado a redes privadas/corporativas, não a jogadores públicos em escala."
       ],
       "topics": [
         "edge-dns",
@@ -3169,19 +3169,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa executa uma frota de microsserviços containerizados e intensivos em computação no EC2 (tipos de instância baseados em x86, ex.: m5.xlarge) atrás de um ALB. A aplicação é construída em um runtime/linguagem com suporte nativo a ARM64, e a equipe quer melhorar o price-performance (desempenho por dólar) dessa carga de trabalho sem alterar a arquitetura da aplicação ou a quantidade de instâncias, apenas mudando a arquitetura de CPU subjacente, dado que a carga de trabalho é adequada para processadores baseados em ARM.",
       "options": [
-        "Trocar de On-Demand para Reserved Instances do mesmo tipo de instância x86 para reduzir custo",
-        "Migrar as instâncias EC2 para tipos de instância baseados em AWS Graviton (ex.: m7g.xlarge)",
-        "Habilitar Enhanced Networking (ENA) nas instâncias x86 existentes para melhorar o price-performance",
-        "Mover a carga de trabalho para o AWS Lambda para eliminar os custos de EC2 completamente"
+        "Comprar compromisso para as mesmas m5 x86 e manter a arquitetura atual.",
+        "Migrar a workload validada para instâncias Graviton compatíveis, como m7g.",
+        "Habilitar ENA nas m5 e esperar ganho equivalente de CPU por dólar.",
+        "Mover os contêineres para Lambda sem modificar execução ou arquitetura."
       ],
       "correct": 1,
-      "explanation": "Correto. Os processadores AWS Graviton (CPUs Arm customizadas projetadas pela AWS) oferecem price-performance significativamente melhor (comumente citado em até ~40% melhor) em comparação com instâncias x86 equivalentes para cargas de trabalho compatíveis, exigindo que a aplicação seja recompilada/disponível para arquitetura ARM64, mas sem mudança na arquitetura geral, quantidade de instâncias ou orquestração.",
-      "hint": "Pense em uma família de processadores customizados da AWS, baseados em uma arquitetura de CPU diferente, conhecidos por oferecerem melhor desempenho por dólar para cargas de trabalho compatíveis.",
+      "explanation": "Reserved Instances reduzem preço por compromisso, mas mantêm arquitetura x86 e não atacam o objetivo de price-performance ARM. Graviton pode melhorar preço/desempenho para workloads compatíveis; imagens, dependências nativas e benchmarks precisam ser validados antes da migração. ENA melhora rede, não muda eficiência de CPU da carga. Lambda exige reempacotar e adaptar limites/execução, contrariando a restrição de manter o desenho EC2.",
+      "hint": "O ganho pedido é da arquitetura de processador, não apenas de desconto comercial.",
       "optionRationales": [
-        "Correto. Os processadores AWS Graviton (CPUs Arm customizadas projetadas pela AWS) oferecem price-performance significativamente melhor (comumente citado em até ~40% melhor) em comparação com instâncias x86 equivalentes para cargas de trabalho compatíveis, exigindo que a aplicação seja recompilada/disponível para arquitetura ARM64, mas sem mudança na arquitetura geral, quantidade de instâncias ou orquestração.",
-        "Incorreto. Reserved Instances reduzem o PREÇO POR HORA mediante um compromisso, mas não mudam as características de desempenho por dólar do próprio tipo de instância x86 — é uma otimização de preço/compromisso, não uma melhoria de price-PERFORMANCE (eficiência computacional) como solicitado.",
-        "Incorreto. O Enhanced Networking melhora throughput/latência/PPS de rede, mas não muda fundamentalmente a relação de price-performance de CPU para cargas de trabalho intensivas em computação — aborda uma dimensão de desempenho diferente (rede) da que está sendo otimizada (price-performance geral de computação via arquitetura de CPU).",
-        "Incorreto. Mover para o Lambda é uma mudança arquitetural maior (o cenário especifica 'sem alterar a arquitetura da aplicação') e pode não ser adequado para microsserviços containerizados de longa duração com necessidades de computação sustentadas; não representa simplesmente 'mudar a arquitetura de CPU subjacente' como solicitado."
+        "Reserved Instances reduzem preço por compromisso, mas mantêm arquitetura x86 e não atacam o objetivo de price-performance ARM.",
+        "Graviton pode melhorar preço/desempenho para workloads compatíveis; imagens, dependências nativas e benchmarks precisam ser validados antes da migração.",
+        "ENA melhora rede, não muda eficiência de CPU da carga.",
+        "Lambda exige reempacotar e adaptar limites/execução, contrariando a restrição de manter o desenho EC2."
       ],
       "topics": [
         "ec2-compute"
@@ -3192,19 +3192,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa executa clusters Amazon EMR para processamento de big data (jobs Spark) que leem dados de entrada e gravam dados de saída no Amazon S3. Eles querem que o cluster escale dinamicamente conforme a carga de trabalho e use uma combinação flexível de tipos de instância/opções de compra para otimizar disponibilidade e desempenho, garantindo que os dados persistam independentemente do ciclo de vida do cluster (para que o cluster possa ser finalizado após cada job sem perda de dados).",
       "options": [
-        "Substituir o Amazon EMR completamente por clusters Apache Spark self-managed em instâncias EC2, usando instance store local para HDFS",
-        "Configurar o cluster EMR com um conjunto fixo de instance groups usando apenas um único tipo de instância, e armazenar os dados em HDFS nos volumes EBS locais do cluster para máximo desempenho",
-        "Usar o EMRFS (EMR File System) para ler/gravar diretamente no S3 como armazenamento persistente (em vez de HDFS em armazenamento local do cluster), e configurar o EMR com Instance Fleets (permitindo múltiplos tipos de instância e uma combinação de On-Demand/Spot na frota)",
-        "Usar um único cluster EMR grande e dedicado, em execução 24/7 com HDFS baseado em EBS para todo o armazenamento, para evitar o overhead de escalonamento dinâmico"
+        "Operar Spark self-managed com dados principais em instance store local.",
+        "Usar instance groups fixos e guardar resultados somente em HDFS/EBS do cluster.",
+        "Usar EMRFS no S3 e instance fleets com tipos e compra diversificados.",
+        "Manter um EMR grande ativo continuamente para preservar o HDFS entre jobs."
       ],
       "correct": 2,
-      "explanation": "Correto. Desacoplar o armazenamento (S3 via EMRFS) da computação (cluster EMR transitório) permite finalizar o cluster após cada job sem perda de dados, enquanto Instance Fleets fornecem flexibilidade na seleção de tipo de instância/opção de compra para otimização de disponibilidade e custo/desempenho.",
-      "hint": "Pense em como desacoplar o armazenamento persistente do ciclo de vida do cluster de processamento, e em qual recurso do EMR permite combinar tipos de instância e opções de compra.",
+      "explanation": "Self-managed Spark e instance store deixa dados intermediários/entrada dependentes do cluster e aumenta operação. Instance groups fixos e HDFS local não oferecem a flexibilidade de tipos/compra nem persistência independente solicitada. EMRFS usa S3 como armazenamento durável, e instance fleets oferecem múltiplos tipos e opções de compra; Auto Scaling/managed scaling é configurado separadamente conforme a carga. Cluster 24/7 com HDFS local aumenta custo e prende dados ao ciclo de vida da frota.",
+      "hint": "O armazenamento persistente precisa sobreviver ao encerramento do cluster.",
       "optionRationales": [
-        "Correto. Desacoplar o armazenamento (S3 via EMRFS) da computação (cluster EMR transitório) permite finalizar o cluster após cada job sem perda de dados, enquanto Instance Fleets fornecem flexibilidade na seleção de tipo de instância/opção de compra para otimização de disponibilidade e custo/desempenho.",
-        "Incorreto. Armazenar o dataset persistente em HDFS em armazenamento local do cluster vincula os dados ao ciclo de vida do cluster; finalizar o cluster (uma prática comum de otimização de custo para clusters EMR transitórios) causaria perda de dados, contrariando o requisito de os dados persistirem independentemente do cluster.",
-        "Incorreto. Executar um cluster 24/7 contraria o requisito de escalonamento dinâmico com base na carga de trabalho, e vincula a persistência dos dados a um cluster em execução contínua, em vez de armazenamento desacoplado.",
-        "Incorreto. Gerenciar clusters Spark de forma self-managed aumenta o overhead operacional (provisionamento, patches, monitoramento do cluster) comparado ao serviço gerenciado EMR, e instance store é efêmero, novamente vinculando a persistência dos dados ao ciclo de vida da instância."
+        "Self-managed Spark e instance store deixa dados intermediários/entrada dependentes do cluster e aumenta operação.",
+        "Instance groups fixos e HDFS local não oferecem a flexibilidade de tipos/compra nem persistência independente solicitada.",
+        "EMRFS usa S3 como armazenamento durável, e instance fleets oferecem múltiplos tipos e opções de compra; Auto Scaling/managed scaling é configurado separadamente conforme a carga.",
+        "Cluster 24/7 com HDFS local aumenta custo e prende dados ao ciclo de vida da frota."
       ],
       "topics": [
         "s3-storage",
@@ -3217,19 +3217,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma carga de trabalho de HPC (High Performance Computing) fortemente acoplada (ex.: simulação científica baseada em MPI) é executada em muitas instâncias EC2 que se comunicam frequentemente entre si, exigindo a menor latência de rede possível e o maior throughput de rede possível entre as instâncias. A equipe quer garantir que essas instâncias estejam fisicamente próximas umas das outras dentro de uma única AZ para minimizar a latência de rede entre instâncias.",
       "options": [
-        "Lançar as instâncias em um Partition Placement Group com múltiplas partições",
-        "Distribuir as instâncias entre múltiplas Zonas de Disponibilidade usando um Auto Scaling Group para resiliência",
-        "Lançar as instâncias em um Spread Placement Group distribuído por múltiplas AZs para maximizar a disponibilidade",
-        "Lançar as instâncias em um Cluster Placement Group, dentro de uma única AZ"
+        "Usar partition placement group com várias partições para aproximar todos os nós MPI.",
+        "Distribuir o ASG por várias AZs para reduzir a latência entre os nós.",
+        "Usar spread placement group em várias AZs para maior proximidade física.",
+        "Usar cluster placement group numa única AZ para o conjunto de instâncias HPC."
       ],
       "correct": 3,
-      "explanation": "Correto. Um Cluster Placement Group agrupa instâncias próximas dentro de uma Zona de Disponibilidade, fornecendo desempenho de rede de baixa latência e alto throughput entre instâncias, ideal para cargas de trabalho de HPC fortemente acopladas que exigem comunicação frequente entre nós.",
-      "hint": "Pense em qual tipo de placement group agrupa instâncias o mais próximo fisicamente possível dentro de uma única Zona de Disponibilidade, para minimizar a latência de rede entre elas.",
+      "explanation": "Partition placement groups isolam grupos de instâncias em partições para grandes workloads distribuídos; não fornecem a proximidade máxima de cluster. Múltiplas AZs melhoram tolerância a falha, mas acrescentam latência e não atende ao acoplamento MPI pedido. Spread minimiza correlação de falha, não aproxima fisicamente instâncias para HPC. Cluster placement group agrupa instâncias em uma AZ e é indicado para rede de baixa latência, sujeito à capacidade disponível.",
+      "hint": "A disponibilidade multi-AZ e a proximidade física máxima são objetivos arquiteturais diferentes.",
       "optionRationales": [
-        "Correto. Um Cluster Placement Group agrupa instâncias próximas dentro de uma Zona de Disponibilidade, fornecendo desempenho de rede de baixa latência e alto throughput entre instâncias, ideal para cargas de trabalho de HPC fortemente acopladas que exigem comunicação frequente entre nós.",
-        "Incorreto. Um Spread Placement Group posiciona instâncias em hardware subjacente distinto para MINIMIZAR falhas correlacionadas (maximizando disponibilidade), o que é o OPOSTO do objetivo aqui — isso AUMENTARIA a latência de rede entre instâncias ao distribuí-las entre racks/AZs, em vez de minimizá-la.",
-        "Incorreto. Partition Placement Groups são projetados para cargas de trabalho distribuídas/replicadas em grande escala (ex.: HDFS, Cassandra, Kafka), onde se deseja limitar o impacto de uma falha de hardware a uma partição, mas não fornecem o mesmo desempenho de rede de menor latência e agrupamento físico que um Cluster Placement Group para comunicação HPC fortemente acoplada.",
-        "Incorreto. Distribuir instâncias entre AZs aumenta a latência de rede entre elas (a latência entre AZs é maior que dentro de uma AZ), o que é contrário ao requisito da carga de trabalho de HPC de menor latência possível entre instâncias."
+        "Partition placement groups isolam grupos de instâncias em partições para grandes workloads distribuídos; não fornecem a proximidade máxima de cluster.",
+        "Múltiplas AZs melhoram tolerância a falha, mas acrescentam latência e não atende ao acoplamento MPI pedido.",
+        "Spread minimiza correlação de falha, não aproxima fisicamente instâncias para HPC.",
+        "Cluster placement group agrupa instâncias em uma AZ e é indicado para rede de baixa latência, sujeito à capacidade disponível."
       ],
       "topics": [
         "ec2-compute"
@@ -3240,19 +3240,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma equipe de machine learning executa jobs de treinamento distribuído em um cluster de instâncias EC2 baseadas em GPU (ex.: P4d), usando comunicação coletiva baseada em MPI (ex.: NCCL) entre as instâncias. O desempenho de rede entre as instâncias atualmente é limitado pelo overhead da pilha de rede TCP/IP padrão, e a equipe quer alcançar a menor latência possível entre nós e o maior throughput para esse padrão de comunicação fortemente acoplado e compatível com OS-bypass.",
       "options": [
-        "Substituir as instâncias com GPU por instâncias Compute Optimized (família C), que têm desempenho de rede base mais alto",
-        "Habilitar apenas o Enhanced Networking (ENA) padrão, sem o EFA",
-        "Habilitar o Elastic Fabric Adapter (EFA) nas instâncias (além de colocá-las em um Cluster Placement Group)",
-        "Usar Jumbo Frames (MTU 9001) na VPC do cluster para reduzir o overhead por pacote"
+        "Trocar GPUs por instâncias C para obter a rede HPC de menor latência.",
+        "Usar somente ENA padrão e manter a comunicação TCP/IP convencional.",
+        "Usar EFA em instâncias compatíveis e placement adequado para o cluster GPU.",
+        "Aumentar MTU para 9001 e dispensar adaptadores de rede especializados."
       ],
       "correct": 2,
-      "explanation": "Correto. O EFA é um dispositivo de rede que fornece comunicação com OS-bypass, permitindo que aplicações que usam bibliotecas como libfabric (e frameworks como NCCL/MPI) se comuniquem diretamente com o hardware de rede, contornando a pilha TCP/IP tradicional, reduzindo drasticamente a latência e melhorando o throughput para cargas de trabalho de HPC/ML de treinamento fortemente acopladas — exatamente o cenário descrito.",
-      "hint": "Pense em um dispositivo de rede que permite às aplicações contornar a pilha de rede do sistema operacional para comunicação direta com o hardware, complementando o Enhanced Networking padrão.",
+      "explanation": "Instâncias C não atendem a necessidade GPU nem fornecem o mecanismo OS-bypass solicitado. ENA melhora desempenho de rede tradicional, mas não entrega os recursos de EFA para comunicação HPC/MPI compatível. EFA fornece interface de baixa latência e OS-bypass para aplicações compatíveis, e placement/instâncias compatíveis devem ser confirmados. Jumbo frames podem ajudar alguns fluxos, mas não substituem EFA e dependem de toda a rota suportar MTU.",
+      "hint": "A aplicação precisa usar uma pilha capaz de explorar o adaptador de alto desempenho.",
       "optionRationales": [
-        "Correto. O EFA é um dispositivo de rede que fornece comunicação com OS-bypass, permitindo que aplicações que usam bibliotecas como libfabric (e frameworks como NCCL/MPI) se comuniquem diretamente com o hardware de rede, contornando a pilha TCP/IP tradicional, reduzindo drasticamente a latência e melhorando o throughput para cargas de trabalho de HPC/ML de treinamento fortemente acopladas — exatamente o cenário descrito.",
-        "Incorreto. O ENA melhora o throughput/PPS/latência de rede geral em relação à pilha de rede virtualizada padrão, mas ainda passa pela pilha de rede do sistema operacional (TCP/IP); não fornece a capacidade de OS-bypass necessária para a menor latência possível em comunicação coletiva baseada em MPI/NCCL — o EFA estende especificamente o ENA com OS-bypass para casos de uso de HPC/ML.",
-        "Incorreto. Jumbo frames podem reduzir modestamente o overhead por pacote em transferências grandes, mas isso é uma otimização menor comparada ao caminho de comunicação com OS-bypass em nível de hardware fornecido pelo EFA, e não muda fundamentalmente as características de latência dos padrões de comunicação coletiva usados em treinamento distribuído.",
-        "Incorreto. Instâncias da família C não são projetadas para treinamento de ML baseado em GPU (não possuem GPUs); substituir as instâncias com GPU eliminaria a aceleração por GPU da qual o job de treinamento depende — isso não aborda o requisito de rede e ainda quebra o requisito de computação principal da carga de trabalho."
+        "Instâncias C não atendem a necessidade GPU nem fornecem o mecanismo OS-bypass solicitado.",
+        "ENA melhora desempenho de rede tradicional, mas não entrega os recursos de EFA para comunicação HPC/MPI compatível.",
+        "EFA fornece interface de baixa latência e OS-bypass para aplicações compatíveis, e placement/instâncias compatíveis devem ser confirmados.",
+        "Jumbo frames podem ajudar alguns fluxos, mas não substituem EFA e dependem de toda a rota suportar MTU."
       ],
       "topics": [
         "ec2-compute"
@@ -3263,19 +3263,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma API síncrona sensível à latência (via API Gateway → Lambda) apresenta picos ocasionais na latência p99. A investigação mostra que esses picos se correlacionam com 'cold starts' — quando o Lambda precisa inicializar um novo ambiente de execução (carregando código, executando código de inicialização) antes de atender uma requisição, adicionando centenas de milissegundos a segundos de latência, especialmente após períodos de baixo tráfego ou durante aumentos súbitos de tráfego. A equipe quer garantir que um número-base de ambientes de execução esteja sempre pré-inicializado e pronto para responder imediatamente, mesmo durante períodos de baixo tráfego.",
       "options": [
-        "Trocar o runtime da função Lambda de uma linguagem interpretada (ex.: Python) para uma linguagem compilada (ex.: Go) para reduzir o tempo de cold start",
-        "Aumentar a alocação de memória da função Lambda para o máximo (10.240 MB)",
-        "Configurar Provisioned Concurrency na função Lambda (e considerar o Application Auto Scaling para ajustar o nível de concorrência provisionada com base em um agendamento ou utilização-alvo)",
-        "Configurar Reserved Concurrency igual ao pico esperado de requisições concorrentes"
+        "Trocar o runtime e assumir que nenhum cold start ocorrerá.",
+        "Aumentar memória ao máximo para manter ambientes de execução prontos.",
+        "Configurar Provisioned Concurrency na versão/alias e ajustar conforme a demanda.",
+        "Definir Reserved Concurrency no pico e esperar que ela mantenha ambientes quentes."
       ],
       "correct": 2,
-      "explanation": "Correto. O Provisioned Concurrency mantém um número especificado de ambientes de execução inicializados e prontos para responder em milissegundos de um único dígito, eliminando a latência de cold start para essa capacidade base, resolvendo diretamente os picos de latência p99 causados por cold starts.",
-      "hint": "Pense em um recurso do Lambda que mantém ambientes de execução já 'aquecidos' e prontos para responder imediatamente, eliminando a necessidade de inicialização sob demanda.",
+      "explanation": "Trocar runtime pode melhorar inicialização, mas não mantém ambientes pré-inicializados. Mais memória pode acelerar init dependendo da CPU, mas não elimina cold starts em períodos ociosos. Provisioned Concurrency inicializa ambientes antes das invocações e pode ser escalada; aliases/versions e custo adicional devem ser considerados. Reserved Concurrency limita/garante capacidade máxima da função, mas não pré-inicializa ambientes.",
+      "hint": "Limitar concorrência e reservar ambientes prontos são controles Lambda diferentes.",
       "optionRationales": [
-        "Correto. O Provisioned Concurrency mantém um número especificado de ambientes de execução inicializados e prontos para responder em milissegundos de um único dígito, eliminando a latência de cold start para essa capacidade base, resolvendo diretamente os picos de latência p99 causados por cold starts.",
-        "Incorreto. Aumentar a memória aumenta proporcionalmente a alocação de CPU e pode acelerar a EXECUÇÃO do código da função em si (e até o código de inicialização, em certa medida), mas não elimina o fenômeno fundamental do cold start (a necessidade de criar um novo ambiente de execução) — um cold start com memória máxima ainda é um cold start, possivelmente apenas mais rápido.",
-        "Incorreto. O Reserved Concurrency define um limite MÁXIMO (e mínimo garantido disponível) de concorrência para a função, evitando throttling em alta concorrência e garantindo que a capacidade não seja consumida por outras funções, mas NÃO pré-inicializa ambientes de execução — não resolve cold starts; aliás, configurá-lo muito baixo poderia causar throttling.",
-        "Incorreto. Embora diferentes runtimes tenham características de cold start de base diferentes (linguagens compiladas com runtimes menores costumam ter cold starts mais rápidos), isso exige reescrever a função em outra linguagem (um esforço considerável) e AINDA não elimina os cold starts completamente — o Provisioned Concurrency os elimina para a capacidade provisionada, independentemente do runtime."
+        "Trocar runtime pode melhorar inicialização, mas não mantém ambientes pré-inicializados.",
+        "Mais memória pode acelerar init dependendo da CPU, mas não elimina cold starts em períodos ociosos.",
+        "Provisioned Concurrency inicializa ambientes antes das invocações e pode ser escalada; aliases/versions e custo adicional devem ser considerados.",
+        "Reserved Concurrency limita/garante capacidade máxima da função, mas não pré-inicializa ambientes."
       ],
       "topics": [
         "serverless",
@@ -3287,19 +3287,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa usa o CloudFront para servir um site e precisa executar uma operação muito leve e de alto volume em CADA requisição do visualizador na borda: inspecionar um cabeçalho da requisição e, com base no valor, modificar o URI da requisição ANTES de ele ser avaliado pelos cache behaviors (ex.: para testes A/B ou normalização de URL). A operação deve executar com overhead sub-milissegundo e custo mínimo em volumes extremamente altos de requisições (potencialmente milhões de requisições por segundo em todas as localizações de borda), e não precisa de acesso ao corpo da requisição nem a rede/sistema de arquivos.",
       "options": [
-        "Implementar essa lógica usando CloudFront Functions (executadas no evento 'viewer request')",
-        "Implementar essa lógica usando Lambda@Edge no evento 'origin request'",
-        "Implementar essa lógica usando Lambda@Edge no evento 'viewer request'",
-        "Implementar essa lógica no código da aplicação no servidor de origem, após o CloudFront repassar a requisição"
+        "Usar CloudFront Functions no evento viewer request para reescrever URI leve.",
+        "Usar Lambda@Edge origin request para executar a lógica antes do cache.",
+        "Usar Lambda@Edge viewer request para toda normalização de URL de alto volume.",
+        "Reescrever URI no servidor de origem depois de uma requisição de cache miss."
       ],
       "correct": 0,
-      "explanation": "Correto. CloudFront Functions são projetadas para operações leves em JavaScript, de altíssima escala e críticas em latência, executadas nativamente em cada localização de borda do CloudFront com tempos de inicialização sub-milissegundo e um modelo de custo otimizado para invocações de alto volume — ideal para inspeção simples de cabeçalho/reescrita de URL no estágio de viewer request.",
-      "hint": "Pense em qual mecanismo de computação na borda do CloudFront foi projetado especificamente para operações extremamente leves, de altíssimo volume e baixíssima latência no evento de requisição do visualizador.",
+      "explanation": "CloudFront Functions é projetado para lógica leve no viewer request, antes da chave/cache behavior, sem rede ou filesystem. Lambda@Edge origin request executa somente após o cache miss e é mais pesado para a operação pedida. Lambda@Edge viewer request pode executar a lógica, mas com maior overhead/custo e recursos desnecessários. A origem vê a requisição tarde, depois de perder a oportunidade de influenciar cache behavior na borda.",
+      "hint": "O evento escolhido precisa ocorrer antes da decisão de cache e ter custo compatível com altíssimo volume.",
       "optionRationales": [
-        "Correto. CloudFront Functions são projetadas para operações leves em JavaScript, de altíssima escala e críticas em latência, executadas nativamente em cada localização de borda do CloudFront com tempos de inicialização sub-milissegundo e um modelo de custo otimizado para invocações de alto volume — ideal para inspeção simples de cabeçalho/reescrita de URL no estágio de viewer request.",
-        "Incorreto. O Lambda@Edge suporta o evento viewer request e PODE executar esse tipo de lógica, mas roda em um ambiente de execução Lambda Node.js/Python com overhead e custo por invocação maiores que o CloudFront Functions, sendo geralmente recomendado para operações mais complexas que precisem de acesso à rede, mais compute/memória ou tempos de execução maiores — para esse caso simples e de altíssimo volume, o CloudFront Functions é a escolha nativa, mais econômica e de menor latência.",
-        "Incorreto. O evento 'origin request' só é disparado em cache MISSES (depois que o cache behavior já foi avaliado), portanto seria tarde demais para modificar o URI da requisição ANTES de ele ser avaliado pelos cache behaviors, como exigido pelo cenário.",
-        "Incorreto. Executar essa lógica na origem significa que TODA requisição (mesmo as que poderiam ser servidas de forma idêntica pelo cache após a normalização do URI) precisaria chegar à origem, anulando o propósito de normalizar o URI antes da avaliação do cache behavior, e adiciona latência ao exigir uma ida e volta até a origem para uma lógica que poderia executar na borda."
+        "CloudFront Functions é projetado para lógica leve no viewer request, antes da chave/cache behavior, sem rede ou filesystem.",
+        "Lambda@Edge origin request executa somente após o cache miss e é mais pesado para a operação pedida.",
+        "Lambda@Edge viewer request pode executar a lógica, mas com maior overhead/custo e recursos desnecessários.",
+        "A origem vê a requisição tarde, depois de perder a oportunidade de influenciar cache behavior na borda."
       ],
       "topics": [
         "edge-dns"
@@ -3310,19 +3310,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma equipe está escolhendo uma engine do ElastiCache para uma camada de cache simples e stateless na frente de um banco de dados relacional, armazenando principalmente resultados de consultas read-heavy como pares chave-valor simples (strings/JSON). A aplicação foi construída para escalar horizontalmente com muitos nós de cache pequenos, requer acesso multi-thread para maximizar a utilização de CPU por nó, e explicitamente NÃO precisa de persistência de dados, replicação, estruturas de dados complexas (listas, sets, sorted sets) ou pub/sub — apenas o cache chave-valor mais simples e horizontalmente escalável possível.",
       "options": [
-        "Escolher o Amazon ElastiCache for Redis com cluster mode disabled",
-        "Escolher o Amazon ElastiCache for Memcached",
-        "Escolher o Amazon ElastiCache for Redis com cluster mode enabled e Multi-AZ com failover automático",
-        "Escolher o Amazon DynamoDB Accelerator (DAX) como camada de cache"
+        "Usar Redis cluster mode disabled como cache genérico multi-threaded de muitos nós pequenos.",
+        "Usar Memcached para cache key-value simples, multi-threaded e horizontal.",
+        "Usar Redis cluster mode enabled com Multi-AZ para cache sem estado e sem recursos avançados.",
+        "Usar DAX como cache universal à frente do banco relacional."
       ],
       "correct": 1,
-      "explanation": "Correto. O Memcached é um armazenamento chave-valor em memória, simples, multi-thread, sem persistência, replicação ou estruturas de dados complexas, projetado para ser facilmente escalado horizontalmente adicionando nós (com particionamento no lado do cliente/auto discovery), tornando-o adequado para esse caso de uso simples e horizontalmente escalável, apenas para cache, que explicitamente não precisa dos recursos avançados do Redis.",
-      "hint": "Pense em qual engine do ElastiCache é, por design, mais simples, multi-thread e otimizada para escalonamento horizontal puro como cache chave-valor, sem recursos avançados de persistência/replicação.",
+      "explanation": "Redis oferece estruturas e recursos adicionais, mas não é a opção simples multi-threaded solicitada. Memcached é cache simples, multi-threaded, horizontal e sem persistência/replicação, adequado ao padrão stateless descrito. Redis cluster/Multi-AZ adiciona capacidades de persistência, replicação/failover e complexidade não pedidas. DAX é cache específico para DynamoDB, não camada genérica para banco relacional.",
+      "hint": "A escolha depende do modelo de dados e recursos necessários, não de qual serviço possui mais funcionalidades.",
       "optionRationales": [
-        "Correto. O Memcached é um armazenamento chave-valor em memória, simples, multi-thread, sem persistência, replicação ou estruturas de dados complexas, projetado para ser facilmente escalado horizontalmente adicionando nós (com particionamento no lado do cliente/auto discovery), tornando-o adequado para esse caso de uso simples e horizontalmente escalável, apenas para cache, que explicitamente não precisa dos recursos avançados do Redis.",
-        "Incorreto. O Redis (mesmo com cluster mode disabled) é single-threaded por shard (limitando a utilização de CPU por nó para essa carga de trabalho que deseja acesso multi-thread), e fornece persistência, replicação e estruturas de dados complexas que esse caso de uso explicitamente não precisa — escolher o Redis aqui adiciona capacidade/complexidade além do necessário.",
-        "Incorreto. Isso adiciona as capacidades de replicação/failover do Redis (e custo/complexidade associados), nenhuma das quais é necessária para uma carga de trabalho que explicitamente não requer persistência ou replicação — e o modelo single-threaded por shard do Redis não se alinha com a necessidade declarada de acesso multi-thread por nó.",
-        "Incorreto. O DAX é projetado especificamente como um cache em memória NA FRENTE de tabelas DynamoDB (usando a API do DynamoDB), não como um cache de uso geral para resultados de consultas de um banco de dados relacional — é a ferramenta errada para fazer cache de resultados de um banco relacional."
+        "Redis oferece estruturas e recursos adicionais, mas não é a opção simples multi-threaded solicitada.",
+        "Memcached é cache simples, multi-threaded, horizontal e sem persistência/replicação, adequado ao padrão stateless descrito.",
+        "Redis cluster/Multi-AZ adiciona capacidades de persistência, replicação/failover e complexidade não pedidas.",
+        "DAX é cache específico para DynamoDB, não camada genérica para banco relacional."
       ],
       "topics": [
         "databases"
@@ -3333,19 +3333,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma equipe está implantando uma aplicação em cluster (ex.: um sistema de arquivos com reconhecimento de cluster ou um banco de dados em cluster que gerencia sua própria consistência/lock entre nós) no EC2, onde múltiplas instâncias EC2 dentro da mesma AZ precisam de acesso concorrente de leitura/escrita ao MESMO volume de armazenamento em bloco subjacente, sendo que a própria aplicação trata a ordenação de escritas e a consistência entre os nós (a camada de armazenamento não precisa fornecer isso).",
       "options": [
-        "Usar um volume EBS (io1 ou io2) com Multi-Attach habilitado, anexado a múltiplas instâncias EC2 dentro da mesma Zona de Disponibilidade",
-        "Usar o Amazon EFS (Elastic File System) montado em todas as instâncias",
-        "Usar um volume EBS gp3 com Multi-Attach habilitado",
-        "Criar um único volume EBS e anexá-lo a uma instância EC2, e então usar essa instância como um servidor NFS para as demais instâncias"
+        "Usar io1 ou io2 Multi-Attach na mesma AZ com software de cluster que controle escrita.",
+        "Usar EFS para obter o mesmo dispositivo de bloco Multi-Attach nas instâncias.",
+        "Usar gp3 Multi-Attach por ter custo mais baixo que io2.",
+        "Exportar um EBS único por NFS a partir de uma instância EC2 dedicada."
       ],
       "correct": 0,
-      "explanation": "Correto. O EBS Multi-Attach permite que um único volume Provisioned IOPS SSD (io1/io2) seja anexado simultaneamente a múltiplas instâncias na mesma AZ, cada uma com permissões completas de leitura/escrita; a APLICAÇÃO deve coordenar as escritas (ex.: via sistema de arquivos com reconhecimento de cluster ou locking em nível de aplicação), já que o próprio EBS não fornece consistência de ordem de escrita entre os anexos — alinhado com a premissa do cenário de que a aplicação trata isso.",
-      "hint": "Pense em qual tipo de volume EBS suporta ser anexado simultaneamente a múltiplas instâncias na mesma AZ, com leitura/escrita, deixando a coordenação de consistência para a aplicação.",
+      "explanation": "Multi-Attach é suportado em io1/io2 dentro de uma AZ para aplicações com coordenação própria; o volume não fornece file system/lock distribuído. EFS fornece sistema de arquivos compartilhado, mas muda o requisito de bloco e não é a alternativa Multi-Attach descrita. gp3 não suporta Multi-Attach. Servidor NFS próprio adiciona ponto de falha e operação, em vez de acesso bloco compartilhado direto.",
+      "hint": "O aplicativo, e não o EBS, deve controlar a consistência das escritas simultâneas.",
       "optionRationales": [
-        "Correto. O EBS Multi-Attach permite que um único volume Provisioned IOPS SSD (io1/io2) seja anexado simultaneamente a múltiplas instâncias na mesma AZ, cada uma com permissões completas de leitura/escrita; a APLICAÇÃO deve coordenar as escritas (ex.: via sistema de arquivos com reconhecimento de cluster ou locking em nível de aplicação), já que o próprio EBS não fornece consistência de ordem de escrita entre os anexos — alinhado com a premissa do cenário de que a aplicação trata isso.",
-        "Incorreto. Embora o EFS suporte acesso concorrente de muitas instâncias (inclusive entre AZs) e tecnicamente permitisse acesso compartilhado, o cenário descreve especificamente requisitos de armazenamento em BLOCO para uma aplicação com reconhecimento de cluster gerenciando sua própria consistência no nível de bloco (comum em certas arquiteturas de banco de dados/sistema de arquivos em cluster) — o EFS é um sistema de armazenamento compartilhado em nível de arquivo (NFS), um paradigma de armazenamento diferente do descrito.",
-        "Incorreto. Isso introduz um ponto único de falha/gargalo (a instância que serve NFS) e um salto de rede/latência adicional para o I/O de todas as outras instâncias, em vez de fornecer acesso concorrente direto em nível de bloco ao volume subjacente a partir de múltiplas instâncias, como o Multi-Attach proporciona.",
-        "Incorreto. O Multi-Attach é suportado apenas em volumes Provisioned IOPS SSD (io1 e io2), não em volumes gp3 (General Purpose SSD) — o gp3 não suporta o recurso Multi-Attach."
+        "Multi-Attach é suportado em io1/io2 dentro de uma AZ para aplicações com coordenação própria; o volume não fornece file system/lock distribuído.",
+        "EFS fornece sistema de arquivos compartilhado, mas muda o requisito de bloco e não é a alternativa Multi-Attach descrita.",
+        "gp3 não suporta Multi-Attach.",
+        "Servidor NFS próprio adiciona ponto de falha e operação, em vez de acesso bloco compartilhado direto."
       ],
       "topics": [
         "s3-storage",
@@ -3358,19 +3358,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação faz upload de arquivos grandes (de vários GB a TB) para o Amazon S3. Usando uploads de PUT único padrão, a equipe observa que qualquer interrupção de rede durante o upload exige reiniciar TODO o upload do início, desperdiçando tempo e largura de banda significativos para arquivos grandes, e o throughput geral de upload é limitado pela largura de banda de uma única conexão TCP. Eles querem melhorar a resiliência do upload (evitar reenviar o arquivo inteiro após uma falha transitória) e aumentar o throughput geral paralelizando a transferência de um único objeto grande.",
       "options": [
-        "Habilitar o S3 Transfer Acceleration para esses uploads",
-        "Usar o Multipart Upload do Amazon S3",
-        "Comprimir os arquivos antes do upload para reduzir seu tamanho e o tempo de upload",
-        "Usar o AWS Snowball para transferir fisicamente os arquivos grandes para a AWS"
+        "Habilitar Transfer Acceleration e manter PUT único para cada objeto grande.",
+        "Usar Multipart Upload, enviar partes em paralelo e repetir apenas as que falharem.",
+        "Comprimir todos os arquivos e manter upload único sequencial.",
+        "Usar Snowball para cada upload de objeto de vários GB."
       ],
       "correct": 1,
-      "explanation": "Correto. O objeto grande é dividido em múltiplas partes (cada uma enviada independentemente, potencialmente em paralelo por múltiplas conexões), e se uma parte falhar no upload, apenas ESSA parte precisa ser reenviada (não o objeto inteiro); uma vez que todas as partes são enviadas, o S3 as monta no objeto final — melhorando diretamente tanto a resiliência (retry parcial) quanto o throughput (envio paralelo de partes) para objetos grandes.",
-      "hint": "Pense em um recurso do S3 que divide um objeto grande em partes menores, enviadas independentemente e possivelmente em paralelo, permitindo retry apenas da parte que falhar.",
+      "explanation": "Transfer Acceleration pode melhorar caminho de rede, mas não divide/resume o objeto após falha. Multipart permite enviar partes paralelas e repetir somente partes incompletas; a aplicação precisa completar/abortar uploads e tratar partes abandonadas. Compressão pode reduzir bytes, mas não oferece retomada parcial nem paralelismo de um objeto. Snowball é para transferências offline em escala, não o mecanismo de upload recorrente descrito.",
+      "hint": "A unidade de retry precisa ser uma parte do objeto, não o objeto inteiro.",
       "optionRationales": [
-        "Correto. O objeto grande é dividido em múltiplas partes (cada uma enviada independentemente, potencialmente em paralelo por múltiplas conexões), e se uma parte falhar no upload, apenas ESSA parte precisa ser reenviada (não o objeto inteiro); uma vez que todas as partes são enviadas, o S3 as monta no objeto final — melhorando diretamente tanto a resiliência (retry parcial) quanto o throughput (envio paralelo de partes) para objetos grandes.",
-        "Incorreto. O Transfer Acceleration otimiza o CAMINHO DE REDE (roteando através de localizações de borda do CloudFront) até a Região do bucket, o que pode ajudar com latência para uploaders geograficamente distantes, mas não, por si só, divide um objeto grande em partes independentemente reenviáveis e paralelizáveis — pode ser usado junto com o multipart upload para benefício adicional, mas não o substitui para os requisitos declarados (retry parcial em caso de falha, paralelização da transferência de um único objeto).",
-        "Incorreto. A compressão pode reduzir a quantidade de dados transferidos (útil para o tempo de upload), mas não resolve o problema fundamental de um upload de PUT único precisar reiniciar inteiramente em caso de falha, nem fornece paralelização do upload de um único objeto em múltiplas conexões.",
-        "Incorreto. O Snowball é projetado para transferência de dados em massa, offline (frequentemente para migrações iniciais envolvendo datasets muito grandes, ex.: muitos TB a PB, ao longo de semanas), não para o fluxo de upload de arquivos contínuo e online de uma aplicação que precisa de resiliência e throughput melhorados para uploads individuais de arquivos grandes."
+        "Transfer Acceleration pode melhorar caminho de rede, mas não divide/resume o objeto após falha.",
+        "Multipart permite enviar partes paralelas e repetir somente partes incompletas; a aplicação precisa completar/abortar uploads e tratar partes abandonadas.",
+        "Compressão pode reduzir bytes, mas não oferece retomada parcial nem paralelismo de um objeto.",
+        "Snowball é para transferências offline em escala, não o mecanismo de upload recorrente descrito."
       ],
       "topics": [
         "s3-storage"
@@ -3381,19 +3381,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação de e-commerce tem uma tabela DynamoDB 'Orders' com chave de partição OrderId e um atributo 'Status' (ex.: 'PENDING', 'SHIPPED', 'DELIVERED'). Para encontrar todos os pedidos 'PENDING' para processamento, a aplicação atualmente executa uma operação Scan na tabela inteira, filtrando por Status='PENDING' — isso é lento e consome RCUs proporcionalmente ao tamanho de TODA a tabela, mesmo que pedidos PENDING sejam uma pequena fração do total. Como tornar essa consulta eficiente (evitando Scans completos) à medida que a tabela cresce para milhões de itens?",
       "options": [
-        "Criar um Global Secondary Index (GSI) esparso, onde a chave de partição do GSI é um atributo dedicado (ex.: 'GSI_PK') populado APENAS para pedidos com Status=PENDING (omitido/removido para os demais status)",
-        "Aumentar as Read Capacity Units provisionadas da tabela para lidar com o custo da operação Scan de forma mais eficiente",
-        "Adicionar um Local Secondary Index (LSI) sobre o atributo 'Status'",
-        "Usar o DynamoDB Streams para manter uma lista separada de 'pedidos PENDING' em um sistema externo como o Amazon S3, e consultar essa lista em vez da tabela"
+        "Criar GSI esparso com chave presente apenas em pedidos PENDING e consultar esse índice.",
+        "Aumentar RCUs da tabela e manter Scan filtrado por Status.",
+        "Criar LSI com Status e consultar todos os pedidos sem informar OrderId.",
+        "Manter lista de PENDING no S3 por DynamoDB Streams e consultar o arquivo externo."
       ],
       "correct": 0,
-      "explanation": "Correto. O DynamoDB indexa em um GSI apenas os itens que contêm os atributos de chave do GSI; um índice esparso contendo somente os pedidos PENDING permite uma operação Query (não Scan) que lê apenas os itens relevantes, com custo de leitura proporcional ao número de itens correspondentes, não à tabela inteira.",
-      "hint": "Pense em como um índice secundário pode conter apenas um subconjunto dos itens da tabela, populando seu atributo de chave somente para os itens que devem ser indexados.",
+      "explanation": "GSI esparso inclui somente itens que contêm a chave do índice; consultar a chave PENDING evita varrer itens de outros estados. É preciso modelar paginação e, se necessário, um sort key para ordenação. Mais RCUs torna o Scan mais caro/rápido, mas continua lendo toda a tabela. LSI compartilha a mesma partition key da tabela e não atende consulta global por Status sem conhecer OrderId. Streams e lista externa adicionam consistência eventual e operação para manter índice que DynamoDB oferece nativamente.",
+      "hint": "O FilterExpression de Scan não reduz os itens lidos; uma chave de índice direciona a consulta.",
       "optionRationales": [
-        "Correto. O DynamoDB indexa em um GSI apenas os itens que contêm os atributos de chave do GSI; um índice esparso contendo somente os pedidos PENDING permite uma operação Query (não Scan) que lê apenas os itens relevantes, com custo de leitura proporcional ao número de itens correspondentes, não à tabela inteira.",
-        "Incorreto. LSIs devem compartilhar a mesma chave de partição da tabela base (OrderId, neste caso) e fornecem apenas uma CHAVE DE ORDENAÇÃO alternativa dentro da mesma partição; como cada pedido tem um OrderId único (cada um sua própria partição), um LSI não permitiria consultar 'todos os pedidos com Status=PENDING' entre diferentes partições de OrderId — LSIs não resolvem essa necessidade de consulta entre partições.",
-        "Incorreto. Aumentar as RCUs permite que o Scan seja concluído com menos throttling, mas não reduz a característica fundamental de custo/latência do Scan (ler todos os itens da tabela); trata um sintoma (throttling), não a causa raiz (padrão de acesso ineficiente).",
-        "Incorreto. Isso introduz um sistema externo separado e eventualmente consistente que precisa ser mantido sincronizado via Streams/Lambda, adicionando complexidade arquitetural e uma nova fonte de defasagem de consistência, quando um GSI esparso (um recurso nativo do DynamoDB projetado exatamente para isso) resolve o problema de forma mais simples dentro do próprio DynamoDB."
+        "GSI esparso inclui somente itens que contêm a chave do índice; consultar a chave PENDING evita varrer itens de outros estados. É preciso modelar paginação e, se necessário, um sort key para ordenação.",
+        "Mais RCUs torna o Scan mais caro/rápido, mas continua lendo toda a tabela.",
+        "LSI compartilha a mesma partition key da tabela e não atende consulta global por Status sem conhecer OrderId.",
+        "Streams e lista externa adicionam consistência eventual e operação para manter índice que DynamoDB oferece nativamente."
       ],
       "topics": [
         "databases"
@@ -3404,19 +3404,19 @@
       "domain": "high-performing-architectures",
       "text": "O banco de dados RDS PostgreSQL primário de uma empresa está em us-east-1, servindo uma aplicação global. Usuários na Europa enfrentam maior latência de leitura para consultas de relatórios/dashboards, pois cada consulta precisa atravessar o Atlântico até us-east-1 e voltar. As operações de escrita permanecem centralizadas em us-east-1 (aceitável), mas a equipe quer reduzir a latência de LEITURA especificamente para usuários europeus que executam consultas de relatórios, sem modificar o caminho de escrita da aplicação.",
       "options": [
-        "Criar uma Cross-Region Read Replica da instância RDS PostgreSQL em uma Região europeia (ex.: eu-west-1), e direcionar o tráfego de leitura/relatórios europeu para o endpoint dessa réplica",
-        "Usar o AWS Database Migration Service (DMS) para replicar continuamente os dados para uma nova instância RDS em eu-west-1, configurada como o novo primário tanto para leituras quanto para escritas da Europa",
-        "Habilitar a implantação Multi-AZ para a instância RDS em us-east-1",
-        "Implementar o Amazon ElastiCache em us-east-1 para armazenar em cache os resultados de consultas dos usuários europeus"
+        "Criar read replica RDS em Região europeia e rotear relatórios de leitura a ela.",
+        "Usar DMS para transformar a instância europeia em primário de leituras e escritas.",
+        "Habilitar Multi-AZ na origem us-east-1 para aproximar leitura da Europa.",
+        "Criar ElastiCache somente em us-east-1 para que europeus consultem o cache central."
       ],
       "correct": 0,
-      "explanation": "Correto. Uma réplica de leitura entre regiões replica de forma assíncrona a partir do primário, fornecendo um endpoint de leitura local e de baixa latência para usuários europeus executarem consultas de relatórios, enquanto todas as escritas continuam indo para o primário em us-east-1, sem alterações.",
-      "hint": "Pense em um recurso do RDS que cria uma cópia somente leitura, assíncrona, em outra Região, sem alterar onde as escritas ocorrem.",
+      "explanation": "Read replica inter-regional oferece endpoint de leitura próximo; é assíncrona e a aplicação deve aceitar lag para relatórios. DMS pode replicar, mas é mais operação e mudar o primário europeu introduz escrita multi-site não requerida. Multi-AZ atende falha de AZ na mesma Região, não latência de leitura europeia. Cache em us-east-1 continua atravessando o Atlântico e não replica resultados regionalmente por si só.",
+      "hint": "A solução precisa aproximar fisicamente um endpoint de leitura sem mover o writer.",
       "optionRationales": [
-        "Correto. Uma réplica de leitura entre regiões replica de forma assíncrona a partir do primário, fornecendo um endpoint de leitura local e de baixa latência para usuários europeus executarem consultas de relatórios, enquanto todas as escritas continuam indo para o primário em us-east-1, sem alterações.",
-        "Incorreto. O Multi-AZ cria uma réplica standby síncrona em uma AZ DIFERENTE dentro da MESMA Região (us-east-1) para fins de failover/durabilidade; a standby não é usada para tráfego de leitura (no Multi-AZ padrão do RDS) e não reduz em nada a latência transatlântica para consultas de leitura europeias.",
-        "Incorreto. Um cache em us-east-1 não reduz a latência de rede das requisições dos usuários europeus para CHEGAR a us-east-1 em primeiro lugar (a latência de ida e volta até o cache é a mesma que até o banco de dados); não resolve o problema de distância entre regiões.",
-        "Incorreto. Tornar uma segunda instância um 'primário para escritas' criaria uma topologia multi-master/dual-write, que o RDS padrão não suporta e introduziria complexidade de resolução de conflitos; o cenário afirma explicitamente que as escritas devem permanecer centralizadas em us-east-1 sem alterações — isso transforma um problema de latência de leitura em uma mudança de arquitetura de escrita desproporcional."
+        "Read replica inter-regional oferece endpoint de leitura próximo; é assíncrona e a aplicação deve aceitar lag para relatórios.",
+        "DMS pode replicar, mas é mais operação e mudar o primário europeu introduz escrita multi-site não requerida.",
+        "Multi-AZ atende falha de AZ na mesma Região, não latência de leitura europeia.",
+        "Cache em us-east-1 continua atravessando o Atlântico e não replica resultados regionalmente por si só."
       ],
       "topics": [
         "databases"
@@ -3427,19 +3427,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação usa um volume EBS gp2 de 100 GB para seu banco de dados. O gp2 fornece 300 IOPS de baseline (3 IOPS por GB), o que é insuficiente para a demanda de I/O da carga de trabalho, mas os dados reais ocupam apenas cerca de 100 GB de capacidade — a equipe não quer pagar por um volume muito maior (que o gp2 exigiria para obter mais IOPS de baseline) apenas para ganhar IOPS. Eles querem aumentar IOPS (ex.: para 6.000) e throughput (ex.: para 250 MB/s) independentemente da capacidade de armazenamento do volume, da forma mais econômica para esse requisito moderado de IOPS (sem precisar das IOPS extremas do io2).",
       "options": [
-        "Aumentar o tamanho do volume gp2 para 2.000 GB para atingir as IOPS necessárias (já que o gp2 fornece 3 IOPS por GB)",
-        "Adicionar um segundo volume gp2 de 100 GB e combiná-los (stripe) com RAID 0 para dobrar as IOPS disponíveis",
-        "Migrar para io2 Block Express e provisionar exatamente 6.000 IOPS",
-        "Migrar o volume para gp3 (General Purpose SSD) e configurar as IOPS (até 16.000) e o throughput (até 1.000 MB/s) desejados independentemente do tamanho de 100 GB, pagando separadamente pelas IOPS/throughput acima do baseline do gp3 (3.000 IOPS / 125 MB/s incluídos em qualquer tamanho)"
+        "Aumentar gp2 para dois TB para obter IOPS por capacidade.",
+        "Fazer RAID 0 de volumes gp2 e aceitar o risco adicional de falha de qualquer membro.",
+        "Migrar a io2 Block Express para provisionar seis mil IOPS.",
+        "Migrar a gp3 e configurar IOPS/throughput separados da capacidade."
       ],
       "correct": 3,
-      "explanation": "Correto. O gp3 desacopla o provisionamento de IOPS e throughput do tamanho do volume, diferentemente do gp2, onde as IOPS escalam com (e são limitadas pelo) o tamanho provisionado, permitindo que a equipe obtenha exatamente as IOPS/throughput necessários para um volume de 100 GB sem superprovisionar capacidade.",
-      "hint": "Pense em qual tipo de volume EBS permite configurar IOPS e throughput como parâmetros independentes do tamanho provisionado do volume.",
+      "explanation": "Aumentar gp2 adiciona capacidade e custo para obter IOPS, justamente o acoplamento que se deseja evitar. RAID 0 aumenta desempenho mas também complexidade, risco e não desacopla configurações como gp3. io2 Block Express é excessivo para a necessidade moderada e exige suporte específico. gp3 permite ajustar IOPS/throughput independentemente do tamanho dentro dos limites, com baseline incluído e cobrança adicional acima dele.",
+      "hint": "Em gp3, capacidade e desempenho podem ser dimensionados separadamente.",
       "optionRationales": [
-        "Correto. O gp3 desacopla o provisionamento de IOPS e throughput do tamanho do volume, diferentemente do gp2, onde as IOPS escalam com (e são limitadas pelo) o tamanho provisionado, permitindo que a equipe obtenha exatamente as IOPS/throughput necessários para um volume de 100 GB sem superprovisionar capacidade.",
-        "Incorreto. Isso atingiria 6.000 IOPS via o escalonamento de IOPS baseado em tamanho do gp2, mas exigiria pagar por 2.000 GB de armazenamento (20x a necessidade real de 100 GB) apenas para desbloquear as IOPS — uma forma cara e desperdiçadora de obter IOPS comparada ao provisionamento independente do gp3.",
-        "Incorreto. Volumes io2 (e io2 Block Express) são projetados para as cargas de trabalho mais exigentes em IOPS e têm um custo por IOPS provisionada maior que o gp3; para um requisito MODERADO de IOPS como 6.000 (bem dentro do teto de 16.000 IOPS do gp3), o gp3 é a escolha mais econômica — o io2 Block Express é desnecessário aqui.",
-        "Incorreto. O striping RAID 0 adiciona complexidade operacional (gerenciamento de RAID em software, risco de falha dobrado já que a falha de qualquer volume perde todos os dados) e dobra o armazenamento pago (200 GB) sem resolver o problema subjacente que o gp3 resolve nativamente e de forma mais simples: desacoplar IOPS do tamanho."
+        "Aumentar gp2 adiciona capacidade e custo para obter IOPS, justamente o acoplamento que se deseja evitar.",
+        "RAID 0 aumenta desempenho mas também complexidade, risco e não desacopla configurações como gp3.",
+        "io2 Block Express é excessivo para a necessidade moderada e exige suporte específico.",
+        "gp3 permite ajustar IOPS/throughput independentemente do tamanho dentro dos limites, com baseline incluído e cobrança adicional acima dele."
       ],
       "topics": [
         "s3-storage",
@@ -3451,19 +3451,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação global tem usuários nos EUA e na Ásia. A aplicação usa o ElastiCache for Redis em us-east-1 para cache de dados de referência lidos com frequência (ex.: catálogos de produtos) que mudam raramente. Usuários na Ásia enfrentam maior latência nas leituras do cache porque cada requisição de cache atravessa o Pacífico até us-east-1. A equipe quer que usuários asiáticos leiam de um cache Redis LOCAL, de baixa latência, que permaneça automaticamente sincronizado com o cache de us-east-1 (as escritas continuam ocorrendo em us-east-1), sem construir lógica de replicação customizada.",
       "options": [
-        "Configurar o ElastiCache for Redis com Cluster Mode Enabled, com shards distribuídos entre us-east-1 e ap-southeast-1",
-        "Configurar o ElastiCache for Redis Global Datastore, com o cluster de us-east-1 como primário e um cluster secundário em uma Região da Ásia-Pacífico (ex.: ap-southeast-1)",
-        "Usar o Amazon CloudFront para armazenar em cache os resultados de consultas do Redis em localizações de borda próximas aos usuários asiáticos",
-        "Configurar um segundo cluster ElastiCache for Redis independente em ap-southeast-1 e fazer a aplicação escrever em AMBOS os clusters em cada atualização de cache"
+        "Distribuir shards Redis cluster mode entre us-east-1 e ap-southeast-1.",
+        "Usar Global Datastore com primário nos EUA e secundário read-only na Ásia.",
+        "Usar CloudFront para cachear consultas Redis próximas ao cliente.",
+        "Manter dois Redis independentes e escrever em ambos pela aplicação."
       ],
       "correct": 1,
-      "explanation": "Correto. O Global Datastore fornece replicação entre regiões totalmente gerenciada e rápida (geralmente sub-segundo) para o Redis, permitindo que as LEITURAS do cluster secundário sejam atendidas localmente, com baixa latência, na Região da Ásia-Pacífico, enquanto as escritas continuam sendo feitas no cluster primário em us-east-1 e são propagadas de forma assíncrona.",
-      "hint": "Pense em um recurso do ElastiCache for Redis projetado especificamente para replicação rápida e gerenciada entre Regiões, mantendo um primário para escritas e secundários para leituras locais.",
+      "explanation": "Cluster mode distribui shards dentro de uma Região, não cria replicação regional. Global Datastore replica o primário para secundárias read-only regionais e oferece procedimento de failover/promover; o RPO depende da replicação. CloudFront não atua como cache de protocolo Redis. Replicação customizada em dois writers cria conflitos e manutenção desnecessária.",
+      "hint": "Sharding e replicação entre Regiões são recursos distintos do Redis gerenciado.",
       "optionRationales": [
-        "Correto. O Global Datastore fornece replicação entre regiões totalmente gerenciada e rápida (geralmente sub-segundo) para o Redis, permitindo que as LEITURAS do cluster secundário sejam atendidas localmente, com baixa latência, na Região da Ásia-Pacífico, enquanto as escritas continuam sendo feitas no cluster primário em us-east-1 e são propagadas de forma assíncrona.",
-        "Incorreto. Os shards do cluster mode do ElastiCache (e suas réplicas) devem residir dentro de uma implantação Multi-AZ de uma ÚNICA Região; clusters do ElastiCache não podem ter shards abrangendo Regiões AWS DIFERENTES — replicação entre regiões para ElastiCache Redis requer Global Datastore, não sharding multi-região dentro de um cluster.",
-        "Incorreto. Construir lógica de escrita dupla customizada na aplicação é operacionalmente complexo e propenso a erros (lidar com falhas parciais, garantir consistência entre os dois caches independentes) — exatamente o que a replicação gerenciada do Global Datastore foi projetada para evitar.",
-        "Incorreto. O CloudFront armazena em cache respostas HTTP/HTTPS de um servidor de origem, não dados do protocolo Redis bruto; isso exigiria construir uma camada de API HTTP na frente do Redis e não forneceria o padrão de acesso de leitura nativo e de baixa latência do Redis que a aplicação usa atualmente diretamente."
+        "Cluster mode distribui shards dentro de uma Região, não cria replicação regional.",
+        "Global Datastore replica o primário para secundárias read-only regionais e oferece procedimento de failover/promover; o RPO depende da replicação.",
+        "CloudFront não atua como cache de protocolo Redis.",
+        "Replicação customizada em dois writers cria conflitos e manutenção desnecessária."
       ],
       "topics": [
         "databases"
@@ -3472,21 +3472,21 @@
     {
       "id": "saa-avc-145",
       "domain": "high-performing-architectures",
-      "text": "Uma aplicação de analytics armazena arquivos CSV grandes (vários GB cada) no S3, onde cada arquivo contém muitas colunas, mas uma consulta típica precisa apenas de 2-3 colunas específicas e um filtro em uma delas (ex.: 'linhas onde region = EU'). Atualmente, a aplicação baixa o arquivo CSV INTEIRO para obter o subconjunto necessário, consumindo largura de banda e tempo de processamento significativos para dados que são imediatamente descartados. Como a aplicação pode reduzir a quantidade de dados transferidos do S3 para essas consultas?",
+      "text": "Uma conta AWS que já tinha acesso ao Amazon S3 Select possui CSVs grandes no S3. Uma consulta precisa de poucas colunas e filtra linhas por region. Sem adotar um mecanismo analítico separado, como reduzir os dados transferidos ao aplicativo?",
       "options": [
-        "Habilitar o S3 Transfer Acceleration para acelerar o download do arquivo CSV inteiro",
-        "Usar o Amazon S3 Select para recuperar apenas o subconjunto necessário de dados usando uma expressão semelhante a SQL (SELECT colunas específicas WHERE region='EU') diretamente sobre o objeto S3",
-        "Converter os arquivos CSV para um formato comprimido (ex.: gzip) antes de armazená-los no S3",
-        "Usar download multipart do S3 (GETs paralelos por byte-range) para baixar o arquivo mais rapidamente"
+        "Usar Transfer Acceleration para baixar o CSV integral mais rápido.",
+        "Para uma conta já elegível, usar S3 Select para projetar colunas e filtrar linhas no objeto.",
+        "Compactar CSV e continuar baixando todo arquivo para cada consulta.",
+        "Fazer GETs por byte range em paralelo e montar o CSV localmente."
       ],
       "correct": 1,
-      "explanation": "Correto. O S3 Select realiza a filtragem/projeção do LADO DO SERVIDOR dentro do S3, retornando pela rede apenas as linhas correspondentes e as colunas solicitadas, reduzindo drasticamente a quantidade de dados transferidos e o processamento necessário no cliente, em comparação com baixar o objeto inteiro.",
-      "hint": "Pense em um recurso do S3 que permite executar filtragem e projeção de colunas, semelhante a SQL, diretamente sobre o objeto armazenado, antes da transferência.",
+      "explanation": "Transfer Acceleration muda o caminho de rede, mas ainda transfere todas as colunas e linhas. S3 Select pode filtrar e projetar CSV/JSON para contas que já tinham acesso ao recurso; para novos clientes, Athena é a alternativa gerenciada de consulta sobre S3. Gzip reduz bytes mas não evita baixar colunas/linhas não usadas. Byte ranges paralelos aceleram o download, mas não conhecem registros/colunas CSV.",
+      "hint": "S3 Select não está disponível para novos clientes; neste cenário a conta já é elegível.",
       "optionRationales": [
-        "Correto. O S3 Select realiza a filtragem/projeção do LADO DO SERVIDOR dentro do S3, retornando pela rede apenas as linhas correspondentes e as colunas solicitadas, reduzindo drasticamente a quantidade de dados transferidos e o processamento necessário no cliente, em comparação com baixar o objeto inteiro.",
-        "Incorreto. O Transfer Acceleration acelera o CAMINHO DE REDE da transferência de dados, mas não reduz a QUANTIDADE de dados transferidos — o arquivo inteiro ainda seria baixado, apenas potencialmente mais rápido; não resolve a ineficiência principal de transferir colunas/linhas não necessárias.",
-        "Incorreto. A compressão reduz o TAMANHO do arquivo (e, portanto, o tempo de transferência do arquivo INTEIRO), mas a aplicação ainda precisaria baixar e descomprimir o arquivo COMPLETO para extrair o subconjunto necessário — não permite a recuperação seletiva de colunas/linhas específicas como o S3 Select.",
-        "Incorreto. Downloads paralelos por byte-range podem acelerar a obtenção do objeto INTEIRO usando múltiplas conexões, mas a aplicação ainda receberia (e precisaria processar/descartar) todas as colunas e linhas não necessárias — melhora a velocidade de download do arquivo completo, não a SELETIVIDADE do que é recuperado."
+        "Transfer Acceleration muda o caminho de rede, mas ainda transfere todas as colunas e linhas.",
+        "S3 Select pode filtrar e projetar CSV/JSON para contas que já tinham acesso ao recurso; para novos clientes, Athena é a alternativa gerenciada de consulta sobre S3.",
+        "Gzip reduz bytes mas não evita baixar colunas/linhas não usadas.",
+        "Byte ranges paralelos aceleram o download, mas não conhecem registros/colunas CSV."
       ],
       "topics": [
         "s3-storage"
@@ -3497,19 +3497,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação serverless usa funções AWS Lambda que se conectam diretamente a um banco de dados Amazon RDS MySQL. Durante picos de tráfego, o número de ambientes de execução Lambda concorrentes aumenta rapidamente, cada um abrindo sua própria conexão com o banco de dados, rapidamente esgotando o limite máximo de conexões da instância RDS e causando erros de 'too many connections', mesmo que a carga real de consultas no banco seja moderada (as conexões são abertas, mas frequentemente ficam ociosas ou são usadas brevemente).",
       "options": [
-        "Fazer cada função Lambda encerrar sua conexão com o banco de dados imediatamente após cada consulta, em vez de reutilizar conexões entre invocações",
-        "Implementar o Amazon RDS Proxy entre as funções Lambda e a instância RDS MySQL",
-        "Aumentar o parâmetro max_connections da instância RDS e escalar para uma classe de instância maior para suportar mais conexões",
-        "Configurar Provisioned Concurrency no Lambda para limitar o número de ambientes de execução durante picos"
+        "Abrir e fechar uma conexão nova em cada consulta Lambda para nunca reutilizar sockets.",
+        "Usar RDS Proxy entre Lambda e RDS para pool e gerenciamento de conexões.",
+        "Aumentar max_connections e a instância sem adicionar camada de gerenciamento.",
+        "Configurar Provisioned Concurrency para limitar automaticamente a quantidade de Lambdas."
       ],
       "correct": 1,
-      "explanation": "Correto. O RDS Proxy agrupa e multiplexa conexões, permitindo que muitos ambientes de execução Lambda compartilhem um pool menor de conexões reais com o banco de dados, evitando o esgotamento de conexões durante picos de tráfego, enquanto o banco de dados vê um número estável e gerenciável de conexões, independentemente de quantos ambientes Lambda estejam concorrentemente em execução.",
-      "hint": "Pense em um serviço gerenciado posicionado entre uma aplicação e o banco de dados, projetado especificamente para agrupar/multiplexar muitas conexões de clientes em um número menor de conexões reais com o banco.",
+      "explanation": "Abrir/fechar por consulta pode piorar overhead e não limita explosões de conexões concorrentes. RDS Proxy mantém pools e multiplexa/conserva conexões ao banco, protegendo o limite durante picos Lambda; transações longas e pinning podem reduzir benefícios. Aumentar max_connections pode adiar o sintoma, mas custa recursos e não resolve clientes ociosos em explosão. Provisioned Concurrency pré-inicializa ambientes e não é um limite de concorrência nem pool de banco.",
+      "hint": "O gargalo é número de conexões físicas ao banco, não somente número de consultas.",
       "optionRationales": [
-        "Correto. O RDS Proxy agrupa e multiplexa conexões, permitindo que muitos ambientes de execução Lambda compartilhem um pool menor de conexões reais com o banco de dados, evitando o esgotamento de conexões durante picos de tráfego, enquanto o banco de dados vê um número estável e gerenciável de conexões, independentemente de quantos ambientes Lambda estejam concorrentemente em execução.",
-        "Incorreto. Aumentar o max_connections (usando uma classe de instância maior com mais memória) eleva o TETO, mas a concorrência do Lambda pode escalar para números muito altos durante picos, potencialmente ainda excedendo até um limite muito maior, e cada conexão adicional consome memória/recursos do banco mesmo ociosa — uma abordagem mais cara e menos escalável do que o pooling via RDS Proxy.",
-        "Incorreto. O Provisioned Concurrency pré-inicializa um número DEFINIDO de ambientes para eliminar cold starts, mas não LIMITA a concorrência máxima durante um pico (o Lambda ainda pode escalar além do valor provisionado usando ambientes sob demanda) — não resolve diretamente um problema de esgotamento de conexões do banco.",
-        "Incorreto. Embora isso possa reduzir o número de conexões ABERTAS EM UM DADO MOMENTO para invocações warm, na verdade AUMENTARIA a taxa de estabelecimento de NOVAS conexões (uma operação relativamente cara) ao longo do alto volume de invocações durante um pico, e não resolve fundamentalmente o problema de muitos ambientes Lambda concorrentes precisando cada um de uma conexão simultaneamente."
+        "Abrir/fechar por consulta pode piorar overhead e não limita explosões de conexões concorrentes.",
+        "RDS Proxy mantém pools e multiplexa/conserva conexões ao banco, protegendo o limite durante picos Lambda; transações longas e pinning podem reduzir benefícios.",
+        "Aumentar max_connections pode adiar o sintoma, mas custa recursos e não resolve clientes ociosos em explosão.",
+        "Provisioned Concurrency pré-inicializa ambientes e não é um limite de concorrência nem pool de banco."
       ],
       "topics": [
         "databases",
@@ -3521,19 +3521,19 @@
       "domain": "high-performing-architectures",
       "text": "Um job de processamento de big data executado em instâncias EC2 realiza uma fase de 'shuffle' (similar ao shuffle do Hadoop/Spark) que grava e lê grandes volumes de dados intermediários TEMPORÁRIOS em disco local durante o processamento — esses dados temporários são regerados em cada execução do job e não precisam persistir além do ciclo de vida do job, mas a fase de shuffle atualmente é limitada por I/O usando volumes EBS gp3, atrasando o tempo de conclusão do job.",
       "options": [
-        "Provisionar volumes EBS io2 Block Express para o diretório de dados de shuffle, maximizando as IOPS",
-        "Usar tipos de instância EC2 com volumes Instance Store baseados em NVMe (ex.: instâncias das famílias 'd' ou 'i' com SSDs NVMe locais) para o diretório de dados temporários do shuffle",
-        "Aumentar as configurações de IOPS e throughput provisionados do volume EBS gp3 para seus valores máximos",
-        "Usar o Amazon EFS para o diretório de dados de shuffle, montado em todas as instâncias do cluster"
+        "Usar io2 Block Express para persistir shuffle temporário entre execuções.",
+        "Usar Instance Store NVMe local para dados de shuffle regeneráveis.",
+        "Maximizar IOPS/throughput gp3 e manter o scratch remoto em EBS.",
+        "Usar EFS compartilhado como diretório de shuffle de todos os workers."
       ],
       "correct": 1,
-      "explanation": "Correto. Volumes Instance Store fornecem IOPS e throughput muito altos (frequentemente significativamente maiores que o EBS conectado via rede), ideais para dados temporários efêmeros e críticos em desempenho; como os dados de shuffle não precisam persistir além do job (são regerados em cada execução), a natureza efêmera do instance store (dados perdidos ao parar/finalizar a instância) é um trade-off aceitável pelo ganho substancial de desempenho de I/O.",
-      "hint": "Pense em um tipo de armazenamento fisicamente local à instância, com IOPS/throughput muito altos, mas cujos dados são perdidos se a instância for parada ou finalizada — um trade-off aceitável para dados regeráveis.",
+      "explanation": "io2 pode acelerar I/O persistente, mas é mais caro e os dados temporários não precisam sobreviver à instância. Instance Store NVMe fornece I/O local muito alto para dados efêmeros; o job deve tolerar perda e regenerar dados no retry. gp3 maior pode ajudar, mas mantém I/O remoto e custo de volume para um dataset descartável. EFS acrescenta rede e semântica compartilhada, inadequadas ao scratch altamente intenso de cada worker.",
+      "hint": "Os dados de shuffle não precisam sobreviver; isso permite trocar durabilidade por desempenho local.",
       "optionRationales": [
-        "Correto. Volumes Instance Store fornecem IOPS e throughput muito altos (frequentemente significativamente maiores que o EBS conectado via rede), ideais para dados temporários efêmeros e críticos em desempenho; como os dados de shuffle não precisam persistir além do job (são regerados em cada execução), a natureza efêmera do instance store (dados perdidos ao parar/finalizar a instância) é um trade-off aceitável pelo ganho substancial de desempenho de I/O.",
-        "Incorreto. Embora o io2 Block Express forneça IOPS muito altas, é uma opção de armazenamento conectada via rede, persistente e mais cara; para dados TEMPORÁRIOS que são regerados em cada execução e não precisam de durabilidade, pagar pelas garantias de persistência/durabilidade do io2 Block Express é um custo desnecessário, quando o instance store NVMe (frequentemente incluído no preço da instância) fornece desempenho de I/O bruto comparável ou melhor para esse caso específico.",
-        "Incorreto. O EFS é um sistema de arquivos de rede com características de latência geralmente maiores que o armazenamento NVMe local para cargas de trabalho de alto IOPS, arquivos pequenos ou acesso aleatório típicas de operações de shuffle; usar um sistema de arquivos de rede compartilhado para dados temporários efêmeros e por instância adiciona overhead de rede e contenção de recursos compartilhados desnecessários comparado ao instance store local.",
-        "Incorreto. Aumentar IOPS/throughput provisionados do gp3 pode ajudar, mas o máximo do gp3 (16.000 IOPS / 1.000 MB/s) ainda é um limite de armazenamento conectado via rede do EBS; para o desempenho de I/O absolutamente mais alto para dados efêmeros, o instance store NVMe local geralmente fornece maior throughput/menor latência do que mesmo um volume gp3 provisionado ao máximo, sem custo de armazenamento adicional em tipos de instância que o incluem."
+        "io2 pode acelerar I/O persistente, mas é mais caro e os dados temporários não precisam sobreviver à instância.",
+        "Instance Store NVMe fornece I/O local muito alto para dados efêmeros; o job deve tolerar perda e regenerar dados no retry.",
+        "gp3 maior pode ajudar, mas mantém I/O remoto e custo de volume para um dataset descartável.",
+        "EFS acrescenta rede e semântica compartilhada, inadequadas ao scratch altamente intenso de cada worker."
       ],
       "topics": [
         "s3-storage",
@@ -3545,19 +3545,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa tem um Amazon Kinesis Data Stream com múltiplas aplicações consumidoras (ex.: analytics em tempo real, detecção de fraude, arquivamento no S3), cada uma precisando processar todos os registros do stream de forma independente. Usando o modelo de consumidor padrão (throughput compartilhado), cada consumidor compete pelo mesmo throughput de leitura de 2 MB/s por shard, e à medida que mais consumidores foram adicionados, cada um começou a apresentar maior latência de leitura e throttling ocasional, já que os 2 MB/s compartilhados precisam ser divididos entre todos os consumidores que leem do mesmo shard.",
       "options": [
-        "Registrar cada aplicação consumidora usando o Enhanced Fan-Out do Kinesis Data Streams",
-        "Trocar do Kinesis Data Streams para filas Amazon SQS standard, com uma fila por aplicação consumidora",
-        "Aumentar o número de shards do Kinesis Data Stream para fornecer mais throughput total",
-        "Fazer cada aplicação consumidora ler de um Kinesis Data Stream separado, com uma função Lambda replicando registros do stream original para cada stream específico de consumidor"
+        "Registrar consumidores Enhanced Fan-Out para cada aplicação do stream.",
+        "Trocar o stream por filas SQS independentes sem implementar fanout dos registros.",
+        "Aumentar shards e manter todos consumidores no modo GetRecords compartilhado.",
+        "Replicar eventos via Lambda para streams separados por consumidor."
       ],
       "correct": 0,
-      "explanation": "Correto. O Enhanced Fan-Out fornece a cada consumidor registrado seu PRÓPRIO throughput dedicado de 2 MB/s POR SHARD (usando push via HTTP/2 com SubscribeToShard), eliminando a contenção de throughput entre consumidores e fornecendo a cada um entrega de registros de baixa latência (~70ms), independentemente de quantos outros consumidores também estejam lendo do stream.",
-      "hint": "Pense em um recurso do Kinesis Data Streams que fornece a cada aplicação consumidora registrada seu próprio canal de entrega dedicado por shard, em vez de um throughput compartilhado entre todos os consumidores.",
+      "explanation": "Enhanced fan-out dá a cada consumidor registrado throughput dedicado por shard, evitando competir pelo GetRecords compartilhado. SQS altera o modelo de fanout e não recebe automaticamente cada registro de um stream sem produtor/ponte adicional. Mais shards aumenta capacidade total, mas os consumidores padrão ainda compartilham a leitura de cada shard. Replicar para streams separados cria custos, latência e operação que EFO evita.",
+      "hint": "A opção desejada separa a capacidade de leitura de cada consumidor no mesmo shard.",
       "optionRationales": [
-        "Correto. O Enhanced Fan-Out fornece a cada consumidor registrado seu PRÓPRIO throughput dedicado de 2 MB/s POR SHARD (usando push via HTTP/2 com SubscribeToShard), eliminando a contenção de throughput entre consumidores e fornecendo a cada um entrega de registros de baixa latência (~70ms), independentemente de quantos outros consumidores também estejam lendo do stream.",
-        "Incorreto. Aumentar o número de shards aumenta o throughput TOTAL do STREAM (mais shards = mais alocações totais de 2 MB/s), mas o throughput de leitura de 2 MB/s de CADA shard individual AINDA é compartilhado entre todos os consumidores que leem dele no modelo padrão — não dá a cada CONSUMIDOR seu próprio throughput dedicado por shard; apenas adiciona mais shards para dividir entre os consumidores.",
-        "Incorreto. Construir um mecanismo customizado de replicação/fan-out via Lambda adiciona complexidade operacional, latência adicional (os registros precisam primeiro ser processados pela Lambda de replicação) e custo, quando o Enhanced Fan-Out fornece throughput dedicado nativo por consumidor sem replicar dados em streams separados.",
-        "Incorreto. Filas SQS, por design, normalmente entregam cada mensagem a UM consumidor de uma dada fila (não a múltiplas aplicações consumidoras independentes que precisam VER todos os registros); obter 'múltiplos consumidores independentes, cada um vendo todos os registros' com SQS exigiria publicar em múltiplas filas (ex.: via fan-out do SNS), uma arquitetura diferente de simplesmente registrar consumidores enhanced fan-out em um stream Kinesis existente."
+        "Enhanced fan-out dá a cada consumidor registrado throughput dedicado por shard, evitando competir pelo GetRecords compartilhado.",
+        "SQS altera o modelo de fanout e não recebe automaticamente cada registro de um stream sem produtor/ponte adicional.",
+        "Mais shards aumenta capacidade total, mas os consumidores padrão ainda compartilham a leitura de cada shard.",
+        "Replicar para streams separados cria custos, latência e operação que EFO evita."
       ],
       "topics": [
         "analytics",
@@ -3567,21 +3567,21 @@
     {
       "id": "saa-avc-149",
       "domain": "high-performing-architectures",
-      "text": "Uma tabela DynamoDB armazena dados de atividade de usuários, particionada por UserId. Uma campanha de marketing causa um aumento súbito e massivo de tráfego de leitura/escrita para um pequeno número de UserIds 'celebridade' (conteúdo viral), excedendo em muito o throughput por partição que normalmente seria alocado com base na distribuição uniforme da capacidade provisionada total da tabela. Apesar de a tabela como um todo ter capacidade provisionada suficiente, requisições para essas partições específicas 'quentes' estão sofrendo throttling.",
+      "text": "Uma tabela provisionada tem aumento súbito para poucos UserIds quentes, mas ainda possui capacidade não usada em outras partições. A equipe quer absorver o desequilíbrio sem alterar a chave imediatamente, sabendo que hot keys sustentadas além de limites físicos exigiriam sharding. Qual recurso ajuda neste caso?",
       "options": [
-        "Mudar a tabela para usar um Local Secondary Index (LSI) para distribuir os dados do UserId 'quente' entre múltiplas partições",
-        "Habilitar o DynamoDB Streams para detectar requisições com throttling e automaticamente repeti-las com backoff exponencial via uma função Lambda",
-        "Confiar no Adaptive Capacity do DynamoDB, que aumenta automática e rapidamente a capacidade de throughput alocada para partições específicas de alto tráfego, realocando capacidade não utilizada da capacidade provisionada total da tabela para as partições com maior demanda",
-        "Aumentar manualmente as WCU/RCU provisionadas totais da tabela em 10x para garantir que cada partição individualmente tenha capacidade alocada suficiente"
+        "Criar LSI para distribuir um UserId quente em várias partições físicas.",
+        "Usar Streams para repetir requests throttled e manter a mesma chave concentrada.",
+        "Usar Adaptive Capacity para favorecer partições quentes enquanto houver capacidade não usada.",
+        "Aumentar RCU/WCU total em dez vezes e assumir que uma chave recebe qualquer valor necessário."
       ],
       "correct": 2,
-      "explanation": "Correto. O Adaptive Capacity isola e ajusta automaticamente a capacidade de partições 'quentes' sem intervenção manual, mitigando o throttling causado por padrões de acesso desiguais; a equipe deve ainda considerar melhorar o design de cardinalidade da chave de partição a longo prazo, mas o Adaptive Capacity resolve o problema imediato de throttling.",
-      "hint": "Pense em um recurso automático do DynamoDB que reage a padrões de acesso desiguais entre partições, realocando capacidade de forma dinâmica sem intervenção manual.",
+      "explanation": "LSI não muda a distribuição da partition key e não reparte um UserId quente. Streams/retries podem aliviar erros, mas não aumentam capacidade da partição quente. Adaptive capacity pode realocar capacidade não usada para partições quentes quando possível, mas não substitui sharding se uma chave excede limites físicos sustentados. Aumentar total pode ajudar se houver falta global, mas não garante resolver uma única chave além dos limites por partição.",
+      "hint": "Adaptive capacity redistribui capacidade existente quando possível; não remove todos os limites de uma chave única.",
       "optionRationales": [
-        "Correto. O Adaptive Capacity isola e ajusta automaticamente a capacidade de partições 'quentes' sem intervenção manual, mitigando o throttling causado por padrões de acesso desiguais; a equipe deve ainda considerar melhorar o design de cardinalidade da chave de partição a longo prazo, mas o Adaptive Capacity resolve o problema imediato de throttling.",
-        "Incorreto. O DynamoDB divide a capacidade provisionada de forma relativamente uniforme entre as partições com base no total; aumentar a capacidade provisionada TOTAL em 10x seria extremamente caro e AINDA poderia não ser suficiente para uma única partição 'celebridade' lidando com uma parcela desproporcional do tráfego, já que a fração calculada de cada partição ainda seria uma fração do total — uma forma cara e imprecisa de resolver um hot-spot por partição.",
-        "Incorreto. LSIs compartilham a mesma chave de partição da tabela base; eles não redistribuem os dados/tráfego de uma única chave de partição 'quente' entre múltiplas partições — o problema da partição quente persiste independentemente dos LSIs definidos.",
-        "Incorreto. Repetir requisições com throttling (mesmo com backoff) não aumenta a capacidade de throughput subjacente disponível para a partição quente; apenas atrasaria/enfileiraria a mesma demanda excessiva contra a mesma capacidade restrita da partição, possivelmente piorando a latência sem resolver a restrição de throughput na raiz."
+        "LSI não muda a distribuição da partition key e não reparte um UserId quente.",
+        "Streams/retries podem aliviar erros, mas não aumentam capacidade da partição quente.",
+        "Adaptive capacity pode realocar capacidade não usada para partições quentes quando possível, mas não substitui sharding se uma chave excede limites físicos sustentados.",
+        "Aumentar total pode ajudar se houver falta global, mas não garante resolver uma única chave além dos limites por partição."
       ],
       "topics": [
         "databases",
@@ -3593,19 +3593,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma plataforma de negociação financeira requer um load balancer capaz de lidar com milhões de requisições por segundo com latência ultrabaixa e consistente (latência adicional sub-milissegundo), preservar o endereço IP de origem do cliente nativamente para fins de auditoria/compliance downstream, e suportar endereços IP estáticos por AZ (ou atribuição de Elastic IP) para permitir allow-listing por contrapartes externas. Qual tipo de load balancer deve ser usado?",
       "options": [
-        "Network Load Balancer (NLB), operando na Camada 4",
-        "Amazon CloudFront, com os servidores da plataforma de negociação como origem",
-        "Classic Load Balancer (CLB)",
-        "Application Load Balancer (ALB), operando na Camada 7"
+        "Usar Network Load Balancer na camada 4 com endereços estáticos/EIPs por AZ.",
+        "Usar CloudFront como balanceador de baixa latência de camada 4.",
+        "Usar Classic Load Balancer para IP estático e milhões de conexões por segundo.",
+        "Usar Application Load Balancer e usar o IP TCP do cliente no target sem cabeçalhos."
       ],
       "correct": 0,
-      "explanation": "Correto. O NLB foi projetado para lidar com milhões de requisições por segundo com latências ultrabaixas e consistentes, preserva nativamente o endereço IP de origem do cliente (visível para os targets de backend sem necessidade de parsing de proxy protocol, quando os targets são registrados adequadamente) e suporta a atribuição de um IP estático (ou Elastic IP) por sub-rede/AZ — atendendo a todos os requisitos declarados para essa carga de trabalho financeira crítica em latência e throughput.",
-      "hint": "Pense em qual tipo de load balancer opera na camada de transporte (Camada 4), preservando nativamente o IP de origem e suportando IPs estáticos por sub-rede.",
+      "explanation": "NLB opera L4, oferece desempenho de alta escala/baixa latência, preservação de IP de origem para protocolos suportados e IPs estáticos/EIPs por AZ. CloudFront é CDN HTTP/HTTPS e não fornece o modelo L4/endereço de origem solicitado. CLB é legado e não é a escolha para esses requisitos modernos de desempenho/IP estático. ALB termina L7 e não preserva o IP de origem na conexão TCP ao target da mesma forma, usando cabeçalhos para HTTP.",
+      "hint": "Procure suporte L4, IPs estáticos e preservação de origem sem depender do protocolo HTTP.",
       "optionRationales": [
-        "Correto. O NLB foi projetado para lidar com milhões de requisições por segundo com latências ultrabaixas e consistentes, preserva nativamente o endereço IP de origem do cliente (visível para os targets de backend sem necessidade de parsing de proxy protocol, quando os targets são registrados adequadamente) e suporta a atribuição de um IP estático (ou Elastic IP) por sub-rede/AZ — atendendo a todos os requisitos declarados para essa carga de trabalho financeira crítica em latência e throughput.",
-        "Incorreto. O ALB fornece recursos avançados de Camada 7 (roteamento baseado em path/host, integração nativa com WAF), mas geralmente tem maior overhead de latência por requisição que o NLB devido ao processamento de Camada 7, e não suporta atribuição de IP estático/Elastic IP por AZ da mesma forma que o NLB — para os requisitos declarados de latência ultrabaixa, milhões de RPS e IP estático, o NLB é mais adequado.",
-        "Incorreto. O CLB é um tipo de load balancer legado, com características de throughput máximo/escalonamento inferiores e menos recursos modernos em comparação com NLB/ALB; a AWS recomenda NLB ou ALB para novas cargas de trabalho, e o CLB não fornece o mesmo suporte a IP estático nem a latência ultrabaixa em escala extrema que o NLB.",
-        "Incorreto. O CloudFront é um CDN focado em HTTP/HTTPS, projetado para cache e aceleração de conteúdo; o tráfego de uma plataforma de negociação financeira (frequentemente protocolos customizados baseados em TCP, matching de ordens em tempo real) não é adequado para um CDN de cache HTTP, e o CloudFront não fornece as mesmas características de preservação de IP de origem em Camada 4 e IP estático por AZ que o NLB."
+        "NLB opera L4, oferece desempenho de alta escala/baixa latência, preservação de IP de origem para protocolos suportados e IPs estáticos/EIPs por AZ.",
+        "CloudFront é CDN HTTP/HTTPS e não fornece o modelo L4/endereço de origem solicitado.",
+        "CLB é legado e não é a escolha para esses requisitos modernos de desempenho/IP estático.",
+        "ALB termina L7 e não preserva o IP de origem na conexão TCP ao target da mesma forma, usando cabeçalhos para HTTP."
       ],
       "topics": [
         "high-availability"
@@ -3616,19 +3616,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa executa duas cargas de trabalho distintas no EC2: a Carga A é um banco de dados em memória (estilo SAP HANA ou baseado em Redis) que mantém um dataset muito grande inteiramente na RAM e realiza operações relativamente simples sobre ele, exigindo uma ALTA RELAÇÃO de memória por vCPU. A Carga B é um pipeline de transcodificação de vídeo em lote, fortemente limitado por CPU, realizando computação intensiva sobre blocos relativamente pequenos de dados, exigindo uma ALTA RELAÇÃO de vCPU por memória. Atualmente, ambas executam em instâncias General Purpose da família M, o que a equipe suspeita não ser ideal em custo para o perfil de recursos de nenhuma das duas.",
       "options": [
-        "Mover a Carga A para instâncias Memory Optimized (ex.: família R ou X, que fornecem alta relação memória/vCPU) e a Carga B para instâncias Compute Optimized (ex.: família C, que fornecem alta relação vCPU/memória)",
-        "Manter ambas as cargas em instâncias General Purpose (família M), mas aumentar o tamanho da instância (escalar verticalmente) para ambas",
-        "Mover ambas as cargas para instâncias Accelerated Computing (ex.: família P ou G) com GPUs para descarregar o processamento",
-        "Mover ambas as cargas para instâncias Storage Optimized (ex.: família I), que fornecem armazenamento NVMe local de alto desempenho para cargas de trabalho exigentes em I/O"
+        "Usar Memory Optimized para o banco em memória e Compute Optimized para transcodificação CPU-bound.",
+        "Aumentar instâncias M para ambos e manter a mesma proporção de recursos.",
+        "Mover ambos para GPU mesmo sem adaptar o software para aceleração.",
+        "Mover ambos para Storage Optimized por terem SSD NVMe local."
       ],
       "correct": 0,
-      "explanation": "Correto. Alinhar a família de instância de cada carga de trabalho com seu requisito de recurso dominante (limitado por memória vs limitado por CPU) garante que os recursos provisionados correspondam ao uso real, evitando pagar por vCPUs subutilizadas (Carga A em General Purpose) ou memória subutilizada (Carga B em General Purpose).",
-      "hint": "Pense em quais famílias de instância EC2 oferecem uma relação memória/vCPU acima ou abaixo da média da família General Purpose, e como isso se alinha ao gargalo de recurso de cada carga de trabalho.",
+      "explanation": "Instâncias memory optimized oferecem mais memória por vCPU e compute optimized mais vCPU por memória, alinhando tipo à característica dominante; escolha final requer benchmark e limites da aplicação. Aumentar M pode funcionar, mas mantém proporção genérica e pode desperdiçar o recurso menos usado. GPU só beneficia workloads que podem explorá-la, não é escolha padrão para banco em memória e transcodificação CPU-only. Storage optimized privilegia I/O local e não corrige os perfis CPU/memória descritos.",
+      "hint": "A família deve refletir o recurso dominante, e não apenas um tamanho maior da família genérica.",
       "optionRationales": [
-        "Correto. Alinhar a família de instância de cada carga de trabalho com seu requisito de recurso dominante (limitado por memória vs limitado por CPU) garante que os recursos provisionados correspondam ao uso real, evitando pagar por vCPUs subutilizadas (Carga A em General Purpose) ou memória subutilizada (Carga B em General Purpose).",
-        "Incorreto. Instâncias Storage Optimized são projetadas para cargas de trabalho que precisam de I/O de disco local muito alto e de baixa latência (ex.: bancos NoSQL, data warehousing com armazenamento local); nenhuma das cargas descritas é primariamente limitada por I/O de armazenamento (a Carga A é limitada por memória, a Carga B por CPU) — essa família de instância não se alinha com o gargalo real de nenhuma das duas.",
-        "Incorreto. Simplesmente escalar verticalmente instâncias General Purpose aumenta tanto vCPU quanto memória proporcionalmente (na relação fixa da família M); isso não muda o desalinhamento subjacente entre o perfil de recursos de cada carga de trabalho (intensiva em memória vs intensiva em CPU) e a relação da família de instância — ainda resultaria em pagar por recursos subutilizados em uma dimensão para cada carga.",
-        "Incorreto. Instâncias Accelerated Computing são projetadas para cargas de trabalho que podem aproveitar aceleração por GPU/FPGA (ex.: treinamento de ML, certas codificações de vídeo com suporte a GPU); porém, o cenário não indica que nenhuma das duas cargas foi projetada para usar aceleração por GPU (a Carga A é um banco de dados em memória; a transcodificação da Carga B pode ou não suportar codificação por GPU) — introduzir instâncias com GPU sem suporte de software confirmado para aceleração adiciona custo sem benefício garantido, e não aborda diretamente o desalinhamento de relação memória/CPU declarado."
+        "Instâncias memory optimized oferecem mais memória por vCPU e compute optimized mais vCPU por memória, alinhando tipo à característica dominante; escolha final requer benchmark e limites da aplicação.",
+        "Aumentar M pode funcionar, mas mantém proporção genérica e pode desperdiçar o recurso menos usado.",
+        "GPU só beneficia workloads que podem explorá-la, não é escolha padrão para banco em memória e transcodificação CPU-only.",
+        "Storage optimized privilegia I/O local e não corrige os perfis CPU/memória descritos."
       ],
       "topics": [
         "ec2-compute"
