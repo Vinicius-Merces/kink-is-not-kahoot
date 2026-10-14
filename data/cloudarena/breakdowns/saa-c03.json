@@ -31465,41 +31465,41 @@
       "questionId": "saa-avc-102",
       "options": [
         {
-          "matchText": "Usar o AWS Backup para realizar uma restauração completa da tabela, que mescla automaticamente os itens restaurados com a tabela em produção sem criar uma nova tabela.",
+          "matchText": "Restaurar pelo AWS Backup e esperar que os itens sejam mesclados automaticamente na tabela atual.",
           "stage": "eliminate",
-          "reasonWrong": "O AWS Backup não 'mescla' a restauração na tabela em produção — restaura para uma nova tabela; a premissa é falsa."
+          "reasonWrong": "AWS Backup restaura uma tabela separada; não mescla itens automaticamente na tabela em produção."
         },
         {
-          "matchText": "Habilitar o DynamoDB Streams retroativamente e reproduzir o stream de 4 horas atrás para recriar os itens excluídos.",
+          "matchText": "Habilitar DynamoDB Streams após a exclusão e reproduzir os eventos históricos do período.",
           "stage": "eliminate",
-          "reasonWrong": "DynamoDB Streams não pode ser habilitado retroativamente para eventos passados — não há stream de 4 horas atrás."
+          "reasonWrong": "Streams só retém eventos depois de habilitado e não pode ser reproduzido retroativamente."
         },
         {
-          "matchText": "Restaurar a tabela a partir do backup on-demand mais recente feito antes do incidente, sobrescrevendo a tabela de produção atual.",
+          "matchText": "Restaurar um backup anterior sobrescrevendo a tabela de produção em uso.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque restaurar de backup on-demand anterior ao incidente traz de volta os itens — mas SOBRESCREVER a tabela de produção descartaria todas as escritas dos últimos 4 horas e derrubaria a operação; o correto é PITR para uma NOVA tabela e copiar seletivamente só os itens excluídos de volta."
+          "reasonWrong": "Sobrescrever a tabela atual perderia as escritas legítimas posteriores ao incidente."
         },
         {
-          "matchText": "Usar o Point-in-Time Recovery (PITR) do DynamoDB para restaurar a tabela em uma NOVA tabela refletindo o estado no timestamp escolhido (imediatamente antes da exclusão); em seguida, identificar e copiar seletivamente os itens excluídos da tabela restaurada de volta para a tabela de produção em uso.",
+          "matchText": "Restaurar por PITR para uma tabela nova e reconciliar seletivamente os itens ausentes com a produção.",
           "stage": "correct"
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o PITR restaura o estado do timestamp anterior à exclusão numa NOVA tabela, e copiar seletivamente só os itens apagados de volta preserva a produção e as escritas dos últimos 4 horas.",
+            "text": "PITR restaura uma tabela nova; a reconciliação seletiva protege escritas posteriores da produção.",
+            "correct": false
+          },
+          {
+            "text": "PITR substitui in-place a tabela existente preservando automaticamente cada escrita posterior.",
+            "correct": false
+          },
+          {
+            "text": "Um backup DynamoDB mescla automaticamente itens restaurados na tabela de origem.",
             "correct": true
           },
           {
-            "text": "Porque restaurar o backup on-demand traz o estado anterior à exclusão numa NOVA tabela, e copiar seletivamente só os itens apagados de volta preserva a produção e as escritas recentes.",
-            "correct": false
-          },
-          {
-            "text": "Porque o AWS Backup restaura o estado anterior à exclusão numa NOVA tabela, e copiar seletivamente só os itens apagados de volta preserva a produção e as escritas dos últimos 4 horas.",
-            "correct": false
-          },
-          {
-            "text": "Porque o replay do DynamoDB Streams restaura o estado anterior à exclusão numa NOVA tabela, e copiar seletivamente só os itens apagados de volta preserva a produção e as escritas recentes.",
+            "text": "Streams habilitados depois do incidente recriam as exclusões do período anterior.",
             "correct": false
           }
         ]
@@ -31509,41 +31509,41 @@
       "questionId": "saa-avc-103",
       "options": [
         {
-          "matchText": "Envolver o código de tratamento do evento do S3 em um bloco try/catch e usar o AWS SDK para chamar manualmente SQS SendMessage ao capturar uma exceção.",
+          "matchText": "Capturar a exceção no código e chamar SQS SendMessage manualmente.",
           "stage": "eliminate",
-          "reasonWrong": "try/catch + SendMessage manual é justamente modificar o código — o oposto do pedido."
+          "reasonWrong": "Try/catch no código aumenta implementação e não é necessário para a entrega nativa de falhas assíncronas."
         },
         {
-          "matchText": "Configurar uma Dead-Letter Queue (DLQ) na função e adicionar código na função para publicar uma mensagem personalizada nessa DLQ ao capturar um erro.",
+          "matchText": "Criar uma DLQ e publicar uma mensagem customizada nela dentro do handler.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque a DLQ do Lambda de fato captura invocações assíncronas falhas — mas 'adicionar código na função para publicar na DLQ' contradiz o requisito de NÃO modificar o código: a DLQ nativa e o on-failure Destination capturam sem tocar na função; o Destination ainda inclui o contexto do evento e mais alvos."
+          "reasonWrong": "Uma DLQ de Lambda não requer código para receber o evento original, mas destinations oferecem contexto de invocação e opções de destino; as duas configurações não devem ser usadas como se fossem o mesmo fluxo."
         },
         {
-          "matchText": "Configurar um 'on-failure' Destination do Lambda apontando para uma fila SQS (ou tópico SNS/barramento do EventBridge/outra função Lambda).",
+          "matchText": "Configurar on-failure destination da invocação assíncrona para uma fila SQS e permissões da role.",
           "stage": "correct"
         },
         {
-          "matchText": "Aumentar a concorrência reservada da função para que invocações com falha sejam reprocessadas mais vezes antes de desistir.",
+          "matchText": "Aumentar concorrência reservada para que a Lambda tente processar o evento mais vezes.",
           "stage": "eliminate",
-          "reasonWrong": "Concorrência reservada controla paralelismo — não redireciona invocações falhas para uma fila."
+          "reasonWrong": "Concorrência reservada controla paralelismo, não o encaminhamento de falhas."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o on-failure Destination do Lambda envia as invocações assíncronas falhas (após as retentativas) direto para a fila SQS, com o contexto do evento — sem tocar no código da função.",
+            "text": "Aumentar concorrência reservada aumenta automaticamente o número de tentativas assíncronas por evento.",
+            "correct": false
+          },
+          {
+            "text": "On-failure destination entrega falhas assíncronas após a política de retry, sem lógica no handler.",
             "correct": true
           },
           {
-            "text": "Porque a DLQ com código de publicação envia as invocações assíncronas falhas (após as retentativas) direto para a fila SQS, com o contexto do evento — sem tocar no código da função.",
+            "text": "Uma destination SQS remove a necessidade de a role Lambda possuir permissão SendMessage.",
             "correct": false
           },
           {
-            "text": "Porque o try/catch com SendMessage envia as invocações assíncronas falhas (após as retentativas) direto para a fila SQS, com o contexto do evento — sem tocar no código da função.",
-            "correct": false
-          },
-          {
-            "text": "Porque a concorrência reservada envia as invocações assíncronas falhas (após as retentativas) direto para a fila SQS, com o contexto do evento — sem tocar no código da função.",
+            "text": "A DLQ configurada para SQS executa novamente a função até ela processar cada evento.",
             "correct": false
           }
         ]
@@ -31553,42 +31553,42 @@
       "questionId": "saa-avc-104",
       "options": [
         {
-          "matchText": "O visibility timeout (30s) é menor que o tempo real de processamento de muitas mensagens; quando ele expira (enquanto a invocação original ainda está processando), o SQS torna a mensagem visível novamente e outra invocação a captura, processando-a concorrentemente. Correção: aumentar o visibility timeout da fila para ser MAIOR que o tempo máximo esperado de processamento (ex.: pelo menos igual ao timeout configurado da função, 15 minutos, idealmente com margem).",
+          "matchText": "Aumentar o visibility timeout para pelo menos seis vezes o timeout da Lambda, considerando a janela de lote.",
           "stage": "correct"
         },
         {
-          "matchText": "O problema é causado pela fila SQS não ter uma dead-letter queue configurada, fazendo as mensagens entrarem em loop indefinidamente.",
+          "matchText": "Adicionar DLQ e manter visibility timeout de trinta segundos.",
           "stage": "eliminate",
-          "reasonWrong": "Falta de DLQ causa loop de mensagens que FALHAM — mas aqui não há erro; o problema é reentrega por timeout."
+          "reasonWrong": "DLQ decide o destino após repetidas falhas, mas não impede reentrega enquanto um processamento normal ainda está em execução."
         },
         {
-          "matchText": "O problema é causado pelo batch size do event source mapping do Lambda estar configurado com um valor muito alto, fazendo a mesma mensagem aparecer em múltiplos lotes.",
+          "matchText": "Reduzir batch size para impedir que a mesma mensagem apareça em mais de um lote.",
           "stage": "eliminate",
-          "reasonWrong": "Batch size alto agrupa mensagens distintas por invocação — não faz a MESMA mensagem aparecer em paralelo."
+          "reasonWrong": "Batch size não cria cópias da mesma mensagem em lotes distintos no mesmo recebimento."
         },
         {
-          "matchText": "O problema é causado pela concorrência reservada da função Lambda estar configurada com um valor muito alto, permitindo invocações paralelas em excesso.",
+          "matchText": "Reduzir concorrência reservada para impedir processamentos duplicados.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque concorrência alta REALMENTE gera muitas invocações paralelas — mas cada uma processaria mensagens DIFERENTES; aqui a MESMA mensagem é processada em duplicata porque o visibility timeout (30s) expira durante o processamento longo e o SQS a reentrega; a correção é aumentar o visibility timeout acima do tempo de processamento."
+          "reasonWrong": "Concorrência possibilita processar mensagens diferentes em paralelo; não é a causa da visibilidade antecipada."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o visibility timeout de 30s expira antes de a mensagem longa terminar, e o SQS a reentrega a outra invocação: elevar o timeout acima do processamento máximo (≥15 min, com margem) elimina a duplicata.",
+            "text": "Batch size alto cria cópias independentes da mesma mensagem para cada invocação concorrente.",
+            "correct": false
+          },
+          {
+            "text": "DLQ estende o visibility timeout de toda mensagem processada pela função.",
+            "correct": false
+          },
+          {
+            "text": "A concorrência reservada faz o SQS esconder a mensagem até o handler concluir.",
+            "correct": false
+          },
+          {
+            "text": "Visibility timeout deve cobrir a configuração Lambda e possíveis retries, não só o tempo médio do handler.",
             "correct": true
-          },
-          {
-            "text": "Porque a concorrência reservada alta expira antes de a mensagem longa terminar, e o SQS a reentrega a outra invocação: reduzir a concorrência acima do processamento máximo elimina a duplicata.",
-            "correct": false
-          },
-          {
-            "text": "Porque a falta de DLQ expira antes de a mensagem longa terminar, e o SQS a reentrega a outra invocação: configurar a DLQ com tempo acima do processamento máximo elimina a duplicata.",
-            "correct": false
-          },
-          {
-            "text": "Porque o batch size alto expira antes de a mensagem longa terminar, e o SQS a reentrega a outra invocação: reduzir o batch size acima do processamento máximo elimina a duplicata.",
-            "correct": false
           }
         ]
       }
@@ -31597,41 +31597,41 @@
       "questionId": "saa-avc-105",
       "options": [
         {
-          "matchText": "Usar o EventBridge Archive (se um archive foi configurado no event bus para reter eventos correspondentes) e o EventBridge Replay para reproduzir os eventos arquivados da janela de 6 horas para uma NOVA regra/target apontando apenas para a função Lambda corrigida.",
+          "matchText": "Usar Archive e Replay, selecionando somente uma nova regra que direcione à Lambda corrigida.",
           "stage": "correct"
         },
         {
-          "matchText": "Acionar novamente os produtores de eventos originais para reenviar todos os eventos dessa janela de 6 horas.",
+          "matchText": "Pedir aos produtores que reenviem todos os eventos originais da janela de seis horas.",
           "stage": "eliminate",
-          "reasonWrong": "Reacionar os produtores reenviaria a TODOS os consumidores — afeta quem já processou corretamente."
+          "reasonWrong": "Reemitir produtores pode ser impossível, gerar novos efeitos externos e não preserva o payload histórico."
         },
         {
-          "matchText": "Usar o CloudWatch Logs Insights para extrair os payloads dos eventos dos logs do EventBridge e reinvocar manualmente a função Lambda para cada um via AWS CLI.",
+          "matchText": "Extrair payloads dos logs e invocar a Lambda manualmente para cada evento.",
           "stage": "eliminate",
-          "reasonWrong": "Extrair payloads de logs e reinvocar manualmente via CLI é trabalhoso e frágil — o Replay já faz isso nativamente."
+          "reasonWrong": "Logs não são uma fonte de replay confiável de todos os eventos nem eliminam implementação operacional própria."
         },
         {
-          "matchText": "Aumentar o período de retenção da DLQ da função Lambda para que os eventos com falha dessa janela possam ser reprocessados a partir da DLQ.",
+          "matchText": "Aumentar retenção da DLQ da Lambda para recuperar eventos que ela processou sem erro.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque a DLQ é o caminho clássico para reprocessar falhas — mas o bug falhava SILENCIOSAMENTE, sem lançar erro: nada foi para a DLQ, então não há o que reprocessar de lá; reter os eventos da janela e reproduzi-los é o EventBridge Archive + Replay."
+          "reasonWrong": "Como o handler falhou silenciosamente, DLQ não contém necessariamente os eventos."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Archive reteve os eventos da janela e o Replay os reproduz para uma nova regra apontando só à Lambda corrigida — sem reenviar aos consumidores que já processaram certo.",
+            "text": "Replay do archive pode escolher regras específicas no event bus e atingir apenas o consumidor corrigido.",
             "correct": true
           },
           {
-            "text": "Porque a DLQ da Lambda reteve os eventos da janela e os reproduz para uma nova regra apontando só à Lambda corrigida — sem reenviar aos consumidores que já processaram certo.",
+            "text": "Replay entrega somente eventos que falharam no Lambda e ficaram na DLQ por padrão.",
             "correct": false
           },
           {
-            "text": "Porque reacionar os produtores reteve os eventos da janela e os reproduz para uma nova regra apontando só à Lambda corrigida — sem reenviar aos consumidores que já processaram certo.",
+            "text": "Arquivar eventos permite reexecutar automaticamente os produtores originais no mesmo instante histórico.",
             "correct": false
           },
           {
-            "text": "Porque o Logs Insights reteve os eventos da janela e os reproduz para uma nova regra apontando só à Lambda corrigida — sem reenviar aos consumidores que já processaram certo.",
+            "text": "CloudWatch Logs é sempre a fonte canônica e completa para replays EventBridge.",
             "correct": false
           }
         ]
@@ -31641,41 +31641,41 @@
       "questionId": "saa-avc-106",
       "options": [
         {
-          "matchText": "AWS Well-Architected Tool com o pilar de Confiabilidade (Reliability) selecionado.",
+          "matchText": "Usar Well-Architected Tool e responder manualmente às perguntas do pilar de Confiabilidade.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o pilar de Confiabilidade do Well-Architected Tool também avalia resiliência — mas é um QUESTIONÁRIO qualitativo preenchido à mão, não uma análise automática da CONFIGURAÇÃO REAL dos recursos contra metas de RTO/RPO com pontuação; essa avaliação medida é o Resilience Hub."
+          "reasonWrong": "Well-Architected Tool depende de avaliação guiada e não analisa automaticamente metas RTO/RPO contra a configuração implantada."
         },
         {
-          "matchText": "As verificações da categoria 'Fault Tolerance' do AWS Trusted Advisor.",
+          "matchText": "Usar somente checks Fault Tolerance do Trusted Advisor nas contas de aplicação.",
           "stage": "eliminate",
-          "reasonWrong": "Trusted Advisor 'Fault Tolerance' dá checagens genéricas de boas práticas — não pontua contra RTO/RPO por aplicação."
+          "reasonWrong": "Trusted Advisor fornece checks gerais, não uma avaliação de resiliência por aplicação e objetivo de recuperação."
         },
         {
-          "matchText": "AWS Resilience Hub.",
+          "matchText": "Definir aplicações e políticas de resiliência no AWS Resilience Hub para avaliação e recomendações.",
           "stage": "correct"
         },
         {
-          "matchText": "AWS Compute Optimizer.",
+          "matchText": "Usar Compute Optimizer para inferir RTO e RPO a partir de utilização e custos.",
           "stage": "eliminate",
-          "reasonWrong": "Compute Optimizer recomenda tipo/tamanho de instância por custo/desempenho — nada a ver com metas de resiliência."
+          "reasonWrong": "Compute Optimizer dimensiona recursos, não avalia metas de recuperação."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Resilience Hub analisa a configuração real dos recursos da aplicação contra as metas de RTO/RPO, gera uma pontuação de resiliência e aponta lacunas acionáveis, como um banco sem Multi-AZ.",
+            "text": "Trusted Advisor calcula automaticamente RTO e RPO de cada aplicação a partir dos recursos.",
+            "correct": false
+          },
+          {
+            "text": "Compute Optimizer mede a probabilidade de perda regional para determinar o RPO do banco.",
+            "correct": false
+          },
+          {
+            "text": "Resilience Hub avalia a aplicação contra a política de resiliência definida e recomenda correções.",
             "correct": true
           },
           {
-            "text": "Porque o Well-Architected Tool analisa a configuração real dos recursos contra as metas de RTO/RPO, gera uma pontuação de resiliência e aponta lacunas acionáveis, como um banco sem Multi-AZ.",
-            "correct": false
-          },
-          {
-            "text": "Porque o Trusted Advisor analisa a configuração real dos recursos contra as metas de RTO/RPO, gera uma pontuação de resiliência e aponta lacunas acionáveis, como um banco sem Multi-AZ.",
-            "correct": false
-          },
-          {
-            "text": "Porque o Compute Optimizer analisa a configuração real dos recursos contra as metas de RTO/RPO, gera uma pontuação de resiliência e aponta lacunas acionáveis, como um banco sem Multi-AZ.",
+            "text": "Well-Architected Tool impõe alterações na infraestrutura ao concluir o questionário.",
             "correct": false
           }
         ]
@@ -31685,41 +31685,41 @@
       "questionId": "saa-avc-107",
       "options": [
         {
-          "matchText": "Realizar a atualização major in-place durante uma janela de manutenção, confiando no snapshot automático tirado antes da atualização para rollback se necessário.",
+          "matchText": "Atualizar in-place e restaurar snapshot se a aplicação encontrar incompatibilidade.",
           "stage": "eliminate",
-          "reasonWrong": "Atualização in-place traz a indisponibilidade e o rollback complexo que a empresa quer justamente evitar."
+          "reasonWrong": "Upgrade in-place interrompe a instância e rollback requer restaurar ou migrar novamente; snapshot não fornece reversão instantânea."
         },
         {
-          "matchText": "Usar o AWS DMS para realizar uma migração homogênea única (one-time) do banco na versão antiga para um novo banco executando a nova versão do engine, e então redirecionar o tráfego.",
+          "matchText": "Migrar com DMS one-time para outro RDS e trocar o endpoint manualmente.",
           "stage": "eliminate",
-          "reasonWrong": "DMS one-time é migração pontual sem o switchover gerenciado nem o rollback rápido do Blue/Green."
+          "reasonWrong": "DMS pode migrar dados, mas não oferece o ciclo gerenciado de staging e switchover do cenário."
         },
         {
-          "matchText": "Usar o Amazon RDS Blue/Green Deployments — o RDS cria um ambiente de staging totalmente gerenciado ('green'), sincronizado com a produção ('blue') via replicação lógica, mas executando a nova versão/configuração do engine; após validação, o RDS realiza um switchover (tipicamente com menos de um minuto de indisponibilidade de escrita) que promove o 'green' a nova produção, mantendo o 'blue' disponível brevemente para rollback rápido se necessário.",
+          "matchText": "Usar RDS Blue/Green, validar o green e planejar o switchover e a reversão operacional.",
           "stage": "correct"
         },
         {
-          "matchText": "Criar uma Read Replica com a nova versão do engine, validá-la, depois promovê-la a instância independente e atualizar a connection string da aplicação.",
+          "matchText": "Criar read replica na nova versão major e promovê-la ao final dos testes.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque uma Read Replica na nova versão permite validar antes de promover — mas promovê-la exige TROCAR a connection string, não dá switchover de segundos e NÃO oferece rollback rápido (o 'blue' some ao promover); cópia sincronizada com switchover mínimo e rollback é o Blue/Green Deployments do RDS."
+          "reasonWrong": "Read replica não é uma rota geral para atualização major e a promoção exige reconfiguração de endpoints."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Blue/Green cria um 'green' sincronizado na nova versão para validar, faz o switchover em segundos promovendo-o, e mantém o 'blue' brevemente disponível para rollback rápido.",
+            "text": "Um snapshot pré-upgrade pode ser restaurado sobre a mesma instância após uma atualização major in-place.",
+            "correct": false
+          },
+          {
+            "text": "Blue/Green cria ambiente testável e switchover controlado, mas rollback posterior exige plano operacional.",
             "correct": true
           },
           {
-            "text": "Porque a Read Replica na nova versão cria um ambiente sincronizado para validar, faz o switchover em segundos ao promovê-la, e mantém o original brevemente disponível para rollback rápido.",
+            "text": "Blue/Green garante rollback automático sem considerar gravações realizadas depois da virada.",
             "correct": false
           },
           {
-            "text": "Porque a atualização in-place cria um ambiente sincronizado na nova versão para validar, faz o switchover em segundos, e mantém a versão antiga brevemente disponível para rollback rápido.",
-            "correct": false
-          },
-          {
-            "text": "Porque o DMS one-time cria um ambiente sincronizado na nova versão para validar, faz o switchover em segundos, e mantém o banco antigo brevemente disponível para rollback rápido.",
+            "text": "Uma read replica pode ser atualizada para qualquer versão major sem restrições de engine ou endpoint.",
             "correct": false
           }
         ]
@@ -31729,42 +31729,42 @@
       "questionId": "saa-avc-108",
       "options": [
         {
-          "matchText": "Amazon ElastiCache Global Datastore for Redis.",
+          "matchText": "Usar ElastiCache Global Datastore for Redis com réplica regional e procedimento de promoção.",
           "stage": "correct"
         },
         {
-          "matchText": "Usar o ElastiCache for Memcached com Auto Discovery habilitado em ambas as Regiões.",
+          "matchText": "Usar Memcached com Auto Discovery em cada Região para compartilhar o mesmo cache.",
           "stage": "eliminate",
-          "reasonWrong": "Memcached não replica entre regiões — Auto Discovery só encontra nós de um cluster local."
+          "reasonWrong": "Memcached não fornece replicação global ou promoção de cluster Redis."
         },
         {
-          "matchText": "Implantar clusters ElastiCache for Redis independentes em ambas as Regiões e usar funções Lambda acionadas por Redis Keyspace Notifications para replicar escritas entre eles.",
+          "matchText": "Replicar mudanças com Lambdas e Keyspace Notifications entre clusters Redis independentes.",
           "stage": "eliminate",
-          "reasonWrong": "Replicar escritas com Lambda + Keyspace Notifications é solução artesanal e frágil — não é replicação gerenciada entre regiões."
+          "reasonWrong": "Replicação customizada por notificações de chave é incompleta e exige resolver ordenação, falhas e consistência."
         },
         {
-          "matchText": "Configurar o ElastiCache for Redis com Multi-AZ habilitado, que estende automaticamente o grupo de replicação entre Regiões.",
+          "matchText": "Habilitar Multi-AZ em Redis para estender automaticamente o replication group a outra Região.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Multi-AZ do Redis também dá redundância com promoção automática — mas ele opera DENTRO de uma região (entre AZs) e NÃO se estende entre regiões; leitura de baixa latência em outra região com sincronização quase em tempo real e promoção do secundário é o Global Datastore."
+          "reasonWrong": "Multi-AZ é proteção dentro de uma Região; não estende o replication group entre Regiões."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Global Datastore replica de us-east-1 para ap-southeast-1 em quase tempo real com leitura local de baixa latência, e permite promover o cluster secundário a primário se us-east-1 cair.",
+            "text": "Memcached Auto Discovery compartilha dados e failover entre clusters de Regiões distintas.",
+            "correct": false
+          },
+          {
+            "text": "Multi-AZ Redis replica automaticamente o nó primário para outra Região.",
+            "correct": false
+          },
+          {
+            "text": "Keyspace Notifications fornece replicação global ordenada e exatamente uma vez entre Redis independentes.",
+            "correct": false
+          },
+          {
+            "text": "Global Datastore mantém réplicas regionais e suporta promoção controlada no procedimento de recuperação.",
             "correct": true
-          },
-          {
-            "text": "Porque o Memcached com Auto Discovery replica de us-east-1 para ap-southeast-1 em quase tempo real com leitura local, e permite promover o cluster secundário a primário se us-east-1 cair.",
-            "correct": false
-          },
-          {
-            "text": "Porque a replicação por Lambda replica de us-east-1 para ap-southeast-1 em quase tempo real com leitura local de baixa latência, e permite promover o cluster secundário a primário se us-east-1 cair.",
-            "correct": false
-          },
-          {
-            "text": "Porque o Redis Multi-AZ replica de us-east-1 para ap-southeast-1 em quase tempo real com leitura local de baixa latência, e permite promover o cluster secundário a primário se us-east-1 cair.",
-            "correct": false
           }
         ]
       }
@@ -31773,41 +31773,41 @@
       "questionId": "saa-avc-109",
       "options": [
         {
-          "matchText": "Express Workflows para ambos (1) e (2), já que Express Workflows são mais baratos e suportam todos os mesmos recursos que Standard.",
+          "matchText": "Usar Express nos dois fluxos por ter custo inferior em todas as situações.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque os Express Workflows são de fato mais baratos e ideais para o caso (1) de alto volume — mas eles NÃO suportam 'todos os mesmos recursos' do Standard: não têm exactly-once nem histórico de 90 dias no console, exatamente o que o caso (2) de pagamentos exige; (2) precisa de Standard."
+          "reasonWrong": "Express é adequado a alto volume e processamento idempotente pelo menos uma vez, mas não à semântica Standard exigida para pagamentos."
         },
         {
-          "matchText": "Express Workflows para (1) e Standard Workflows para (2).",
+          "matchText": "Usar Express para telemetria idempotente e Standard para pagamentos auditáveis.",
           "stage": "correct"
         },
         {
-          "matchText": "Express Workflows para (1) e AWS Step Functions Activities (com workers EC2 fazendo polling de tasks) para (2), evitando Standard Workflows completamente.",
+          "matchText": "Usar Express para telemetria e Activities EC2 para pagamentos, sem Standard.",
           "stage": "eliminate",
-          "reasonWrong": "Activities com workers EC2 é padrão de integração de tasks — não substitui o Standard nem entrega exactly-once/histórico por si."
+          "reasonWrong": "Activities são uma integração de worker, não substituem o tipo Standard nem fornecem por si só o histórico e a semântica exigidos."
         },
         {
-          "matchText": "Standard Workflows para ambos (1) e (2), já que Standard Workflows fornecem semântica exactly-once para todos os casos de uso.",
+          "matchText": "Usar Standard para ambos os fluxos para impor exactly-once também na telemetria.",
           "stage": "eliminate",
-          "reasonWrong": "Standard para AMBOS encarece e é exagero para (1): milhões de execuções curtas idempotentes são o caso perfeito de Express."
+          "reasonWrong": "Usar Standard para telemetria pode funcionar, mas é mais caro e não atende à prioridade do primeiro fluxo tão bem quanto Express."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque Express serve (1) (barato, alto volume, at-least-once idempotente) e Standard serve (2) (exactly-once e histórico de 90 dias no console para auditoria) — cada tipo no seu caso.",
+            "text": "Express é adequado a alto volume idempotente; Standard atende exatamente uma vez e histórico auditável.",
             "correct": true
           },
           {
-            "text": "Porque Express serve (1) e Express serve (2): sendo mais barato e com os mesmos recursos do Standard, cobre também o exactly-once e o histórico de 90 dias exigidos nos pagamentos.",
+            "text": "Express oferece o mesmo histórico de noventa dias e exactly-once para pagamentos.",
             "correct": false
           },
           {
-            "text": "Porque Express serve (1) e Activities com workers EC2 serve (2): o polling de tasks entrega o exactly-once e o histórico de 90 dias exigidos, evitando o Standard por completo.",
+            "text": "Activities alteram o worker, mas substituem as garantias de Standard Workflow.",
             "correct": false
           },
           {
-            "text": "Porque Standard serve (1) e Standard serve (2): dando exactly-once e histórico de 90 dias a todos os casos, cobre tanto a telemetria de alto volume quanto os pagamentos.",
+            "text": "Standard é obrigatório para toda telemetria porque Express não pode invocar Lambda.",
             "correct": false
           }
         ]
@@ -31817,41 +31817,41 @@
       "questionId": "saa-avc-110",
       "options": [
         {
-          "matchText": "Realizar backups RMAN periódicos do banco Oracle on-premises e restaurá-los na instância RDS for Oracle a cada poucas horas.",
+          "matchText": "Restaurar backups RMAN periodicamente no destino RDS para manter um warm standby.",
           "stage": "eliminate",
-          "reasonWrong": "Backups RMAN restaurados a cada horas dão RPO de horas — não é a baixa latência de minutos pedida."
+          "reasonWrong": "Backups periódicos aumentam RPO e exigem restauração, não CDC de baixa latência."
         },
         {
-          "matchText": "Usar o AWS Schema Conversion Tool (SCT) para realizar uma conversão e migração única (one-time) do schema e dos dados para o RDS for Oracle.",
+          "matchText": "Usar SCT para uma conversão única e considerar o destino sincronizado depois da migração.",
           "stage": "eliminate",
-          "reasonWrong": "SCT faz conversão/migração ÚNICA — não mantém a réplica continuamente atualizada."
+          "reasonWrong": "SCT avalia/converte schema, não mantém replicação contínua de mudanças."
         },
         {
-          "matchText": "Configurar o Oracle Data Guard em modo 'Maximum Performance' para replicar diretamente para a instância RDS for Oracle.",
+          "matchText": "Configurar Oracle Data Guard diretamente entre o servidor on-premises e RDS for Oracle.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Oracle Data Guard é a replicação nativa do Oracle e daria o standby com baixa latência — mas o RDS for Oracle é GERENCIADO e não permite configurá-lo como destino de Data Guard; replicação contínua on-premises → RDS sem mexer na aplicação é o DMS com full load + CDC."
+          "reasonWrong": "Data Guard não é configurável diretamente para uma instância RDS for Oracle como standby gerenciado pelo cliente."
         },
         {
-          "matchText": "Usar o AWS Database Migration Service (DMS) com uma tarefa de replicação configurada para 'full load + Change Data Capture (CDC)'.",
+          "matchText": "Usar DMS full load + CDC do Oracle on-premises para o RDS for Oracle de recuperação.",
           "stage": "correct"
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o DMS com full load + CDC carrega o banco inicial e depois replica as mudanças on-premises → RDS com latência de minutos — sem alterar a aplicação, e o RDS é promovido no desastre.",
+            "text": "RMAN periódico fornece replicação de mudanças contínua com RPO de minutos sem restauração.",
+            "correct": false
+          },
+          {
+            "text": "SCT acompanha cada alteração de redo log depois de converter o schema.",
+            "correct": false
+          },
+          {
+            "text": "DMS combina carga inicial e CDC, com preparação do Oracle e do destino compatíveis.",
             "correct": true
           },
           {
-            "text": "Porque o Oracle Data Guard em Maximum Performance carrega o banco inicial e replica as mudanças on-premises → RDS com latência de minutos — sem alterar a aplicação, e o RDS é promovido no desastre.",
-            "correct": false
-          },
-          {
-            "text": "Porque o RMAN periódico carrega o banco inicial e replica as mudanças on-premises → RDS com latência de minutos — sem alterar a aplicação, e o RDS é promovido no desastre.",
-            "correct": false
-          },
-          {
-            "text": "Porque o SCT one-time carrega o banco inicial e replica as mudanças on-premises → RDS com latência de minutos — sem alterar a aplicação, e o RDS é promovido no desastre.",
+            "text": "Data Guard permite administrar diretamente o standby RDS como se fosse uma instância Oracle própria.",
             "correct": false
           }
         ]
@@ -31861,41 +31861,41 @@
       "questionId": "saa-avc-111",
       "options": [
         {
-          "matchText": "Criar um S3 Multi-Region Access Point abrangendo os buckets em us-east-1 e eu-west-1.",
+          "matchText": "Criar Multi-Region Access Point para os buckets replicados e usar seu endpoint global.",
           "stage": "correct"
         },
         {
-          "matchText": "Configurar o S3 Transfer Acceleration em ambos os buckets para que as requisições sejam roteadas automaticamente para o bucket mais próximo.",
+          "matchText": "Habilitar Transfer Acceleration nos dois buckets e usar um dos endpoints acelerados.",
           "stage": "eliminate",
-          "reasonWrong": "Transfer Acceleration acelera uploads via edge para UM bucket — não roteia entre réplicas de regiões."
+          "reasonWrong": "Transfer Acceleration acelera o acesso a um bucket específico, sem escolher outra réplica."
         },
         {
-          "matchText": "Criar uma distribuição do Amazon CloudFront com ambos os buckets S3 configurados como um origin group para failover.",
+          "matchText": "Criar distribuição CloudFront com origin group para representar os dois buckets no SDK S3.",
           "stage": "eliminate",
-          "reasonWrong": "CloudFront com origin group faz FAILOVER de origem para conteúdo em cache — não é o endpoint S3 ativo-ativo por latência para requisições de API."
+          "reasonWrong": "Origin group CloudFront é orientado a entrega HTTP e não substitui endpoint S3 de leitura/escrita da aplicação."
         },
         {
-          "matchText": "Usar roteamento por latência do Route 53 com dois registros apontando para o endpoint S3 regional de cada bucket.",
+          "matchText": "Criar registros Route 53 por latência apontando aos endpoints regionais dos buckets.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque roteamento por latência do Route 53 também escolhe a região mais próxima — mas ele resolve NOMES DNS para endpoints regionais, não dá um endpoint S3 ÚNICO com failover e roteamento nativos entre buckets replicados; endpoint global sobre múltiplos buckets é o S3 Multi-Region Access Point."
+          "reasonWrong": "Route 53 não resolve diretamente a seleção correta de buckets S3 por registros aliases regionais nesse modelo."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Multi-Region Access Point dá um endpoint global único sobre os dois buckets: a AWS roteia cada requisição à réplica de menor latência/saudável, sem a aplicação gerenciar região nem failover.",
+            "text": "Transfer Acceleration seleciona a réplica regional de um objeto conforme latência e saúde.",
+            "correct": false
+          },
+          {
+            "text": "MRAP oferece endpoint global sobre buckets replicados; a replicação continua sendo configurada separadamente.",
             "correct": true
           },
           {
-            "text": "Porque o roteamento por latência do Route 53 dá um endpoint global único sobre os dois buckets: a AWS roteia cada requisição à réplica de menor latência, sem a aplicação gerenciar failover.",
+            "text": "CloudFront origin group substitui as APIs S3 de leitura e escrita do aplicativo por um endpoint equivalente.",
             "correct": false
           },
           {
-            "text": "Porque o Transfer Acceleration dá um endpoint global único sobre os dois buckets: a AWS roteia cada requisição à réplica de menor latência/saudável, sem a aplicação gerenciar região nem failover.",
-            "correct": false
-          },
-          {
-            "text": "Porque o CloudFront com origin group dá um endpoint global único sobre os dois buckets: a AWS roteia cada requisição à réplica de menor latência, sem a aplicação gerenciar failover.",
+            "text": "Route 53 coordena automaticamente o status de replicação de objetos entre buckets.",
             "correct": false
           }
         ]
@@ -31905,42 +31905,42 @@
       "questionId": "saa-avc-112",
       "options": [
         {
-          "matchText": "Usar Scheduled Scaling para pré-provisionar capacidade On-Demand durante o horário comercial e escalar para zero fora do horário, evitando Spot completamente.",
+          "matchText": "Usar Scheduled Scaling somente com On-Demand e não incorporar Spot.",
           "stage": "eliminate",
-          "reasonWrong": "Scheduled scaling evita Spot por completo — não incorpora a economia pedida."
+          "reasonWrong": "Scheduled Scaling pode reduzir custo em padrões previsíveis, mas não usa Spot nem resolve diversidade de pools."
         },
         {
-          "matchText": "Migrar totalmente para Spot Instances com um único tipo de instância, mas configurar um 'Spot max price' bem alto, igual ao preço On-Demand.",
+          "matchText": "Usar apenas m5.large Spot e elevar o preço máximo ao preço On-Demand.",
           "stage": "eliminate",
-          "reasonWrong": "Spot total com um único tipo e preço alto concentra o risco num só pool — a interrupção afeta tudo junto."
+          "reasonWrong": "Um único tipo Spot continua exposto à indisponibilidade e a interrupções correlacionadas daquele pool."
         },
         {
-          "matchText": "Configurar o ASG com uma 'mixed instances policy' especificando MÚLTIPLOS tipos de instância compatíveis (ex.: m5.large, m5a.large, m4.large, m5.xlarge com capacidade ponderada) em MÚLTIPLOS pools de capacidade Spot (combinações de tipo de instância + AZ), junto com um número base de instâncias On-Demand (ou uma porcentagem On-Demand) para capacidade mínima garantida.",
+          "matchText": "Usar mixed instances policy com tipos/pools diversos e base ou percentual On-Demand.",
           "stage": "correct"
         },
         {
-          "matchText": "Usar um único tipo de instância Spot, mas solicitar capacidade Spot em 4 AZs diferentes simultaneamente para aumentar a chance de disponibilidade.",
+          "matchText": "Usar apenas m5.large Spot em várias AZs e assumir que os pools são independentes.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque espalhar Spot por 4 AZs ataca a preocupação (a) de disponibilidade — mas mantém um ÚNICO tipo de instância: uma interrupção de Spot naquele tipo derruba muitas instâncias de uma vez (preocupação b não resolvida); diversificar TIPOS em múltiplos pools é a mixed instances policy."
+          "reasonWrong": "Solicitar o mesmo tipo em várias AZs melhora opções, mas ainda concentra a exposição no mesmo tipo de instância."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque a mixed instances policy com vários tipos em múltiplos pools Spot dilui o risco de interrupção e a escassez por tipo, e a base On-Demand garante a capacidade mínima — resolvendo (a) e (b).",
+            "text": "Preço máximo alto garante capacidade Spot e impede interrupção de um pool específico.",
+            "correct": false
+          },
+          {
+            "text": "Uma base On-Demand transforma todas as instâncias adicionais automaticamente em On-Demand.",
+            "correct": false
+          },
+          {
+            "text": "Uma única família Spot em várias AZs elimina correlação de capacidade entre seus pools.",
+            "correct": false
+          },
+          {
+            "text": "Mixed instances policy diversifica pools e combina base ou percentual On-Demand conforme o desenho.",
             "correct": true
-          },
-          {
-            "text": "Porque o Spot único em 4 AZs com vários tipos em múltiplos pools dilui o risco de interrupção e a escassez por tipo, e a base On-Demand garante a capacidade mínima — resolvendo (a) e (b).",
-            "correct": false
-          },
-          {
-            "text": "Porque o scheduled scaling com vários tipos em múltiplos pools Spot dilui o risco de interrupção e a escassez por tipo, e a base On-Demand garante a capacidade mínima — resolvendo (a) e (b).",
-            "correct": false
-          },
-          {
-            "text": "Porque o Spot total com preço alto e vários tipos em múltiplos pools dilui o risco de interrupção e a escassez por tipo, e a base On-Demand garante a capacidade mínima — resolvendo (a) e (b).",
-            "correct": false
           }
         ]
       }
@@ -31949,41 +31949,41 @@
       "questionId": "saa-avc-113",
       "options": [
         {
-          "matchText": "Criar um canário do Amazon CloudWatch Synthetics usando um blueprint do tipo 'heartbeat'/jornada que execute programaticamente o fluxo multi-etapas de checkout (login, adicionar ao carrinho, finalizar compra) em um cronograma (ex.: a cada 5 minutos) a partir de fora da infraestrutura; configurar um alarme do CloudWatch sobre as métricas de taxa de sucesso/duração do canário para alertar a equipe automaticamente em caso de falha ou degradação.",
+          "matchText": "Criar canário Synthetics que execute uma jornada de checkout de teste e alarme suas métricas.",
           "stage": "correct"
         },
         {
-          "matchText": "Habilitar o AWS X-Ray em todos os serviços envolvidos no fluxo de checkout para identificar a causa raiz após um usuário relatar um problema.",
+          "matchText": "Habilitar X-Ray e esperar uma reclamação do usuário para investigar o traço correspondente.",
           "stage": "eliminate",
-          "reasonWrong": "X-Ray dá causa raiz DEPOIS que alguém relata — não é detecção proativa da jornada."
+          "reasonWrong": "X-Ray ajuda diagnóstico de solicitações instrumentadas, mas não cria teste proativo de jornada."
         },
         {
-          "matchText": "Aumentar a frequência dos alarmes de status check do EC2 no CloudWatch de 5 minutos para 1 minuto.",
+          "matchText": "Aumentar a frequência dos status checks EC2 para detectar indisponibilidade do checkout.",
           "stage": "eliminate",
-          "reasonWrong": "Status check do EC2 mais frequente vê saúde de infraestrutura — nunca o fluxo de checkout de ponta a ponta."
+          "reasonWrong": "Status checks EC2 não exercitam login, carrinho e pagamento."
         },
         {
-          "matchText": "Configurar health checks adicionais do target group do ALB com um caminho de verificação mais complexo que exercite o fluxo de checkout.",
+          "matchText": "Criar health check ALB que execute login, carrinho e pagamento em todos os targets.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque um health check mais 'complexo' no ALB parece exercitar o fluxo — mas o health check do target group testa UM endpoint por vez de dentro da infraestrutura: não executa uma jornada multi-etapas (login → carrinho → compra) com estado nem simula o usuário de fora; isso é o canário do CloudWatch Synthetics."
+          "reasonWrong": "Health check ALB verifica um endpoint por target; não executa uma sequência de ações de usuário."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o canário do Synthetics executa a jornada de checkout de fora a cada poucos minutos e o alarme do CloudWatch alerta na falha — detecção proativa que corta o tempo até perceber o problema.",
+            "text": "Synthetics pode executar jornada programada e alarmar sucesso/duração usando dados de teste controlados.",
             "correct": true
           },
           {
-            "text": "Porque o health check complexo do ALB executa a jornada de checkout de fora a cada poucos minutos e o alarme alerta na falha — detecção proativa que corta o tempo até perceber o problema.",
+            "text": "X-Ray executa login e pagamento continuamente em nome de usuários reais.",
             "correct": false
           },
           {
-            "text": "Porque o X-Ray executa a jornada de checkout de fora a cada poucos minutos e o alarme do CloudWatch alerta na falha — detecção proativa que corta o tempo até perceber o problema.",
+            "text": "Status checks EC2 validam a lógica de checkout mesmo quando o sistema operacional está saudável.",
             "correct": false
           },
           {
-            "text": "Porque o status check do EC2 a cada minuto executa a jornada de checkout de fora e o alarme alerta na falha — detecção proativa que corta o tempo até perceber o problema.",
+            "text": "ALB health checks podem executar um fluxo multi-etapas com cookies e estado de carrinho.",
             "correct": false
           }
         ]
@@ -31993,41 +31993,41 @@
       "questionId": "saa-avc-114",
       "options": [
         {
-          "matchText": "Durante a interrupção, PROMOVER manualmente a Cross-Region Read Replica de us-west-2 para se tornar uma instância RDS independente (operação unidirecional — a réplica se torna primária e para de replicar); reconfigurar a aplicação (ex.: via atualização de DNS/connection string) para apontar para essa instância recém-promovida; estar consciente de que, por ser replicação assíncrona, algumas transações recentes ainda não replicadas no momento da interrupção podem ser perdidas (RPO diferente de zero); e configurar Multi-AZ separadamente na instância agora promovida em us-west-2 para resiliência contínua a nível de AZ.",
+          "matchText": "Promover manualmente a réplica, atualizar o roteamento da aplicação e configurar Multi-AZ no novo primário.",
           "stage": "correct"
         },
         {
-          "matchText": "Como a réplica está em outra Região, ela já está automaticamente protegida por Multi-AZ e não requer configuração adicional após a promoção.",
+          "matchText": "Depender de Route 53 para promover automaticamente a read replica sem perda de dados.",
           "stage": "eliminate",
-          "reasonWrong": "A réplica em outra região não fica automaticamente Multi-AZ — isso precisa ser configurado após a promoção."
+          "reasonWrong": "A read replica não possui failover automático regional nem perda zero por ser assíncrona."
         },
         {
-          "matchText": "A Cross-Region Read Replica se torna automaticamente o novo primário e começa a aceitar escritas assim que os health checks do Route 53 detectarem a interrupção em us-east-1, com zero perda de dados.",
+          "matchText": "Continuar usando o endpoint original e esperar redirecionamento automático ao novo primário.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque descreve a réplica virando primária num evento de us-east-1 — mas erra em dois pontos críticos: a promoção é MANUAL (não automática via health check do Route 53) e, sendo replicação ASSÍNCRONA, NÃO há zero perda de dados; o procedimento correto assume RPO diferente de zero."
+          "reasonWrong": "O endpoint original não redireciona escritas entre Regiões após uma promoção."
         },
         {
-          "matchText": "A aplicação pode continuar escrevendo no endpoint original de us-east-1, e o RDS redirecionará automaticamente essas escritas para a instância promovida em us-west-2.",
+          "matchText": "Usar PITR na Região de origem para que a read replica seja promovida automaticamente.",
           "stage": "eliminate",
-          "reasonWrong": "Não se continua escrevendo no endpoint de us-east-1 — o RDS não redireciona escritas para a instância promovida."
+          "reasonWrong": "PITR local não promove a cross-region replica nem restabelece replicação reversa automaticamente."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque a Cross-Region Read Replica é promovida MANUALMENTE a instância independente, a aplicação é reapontada por DNS, e algumas transações não replicadas se perdem (RPO≠0) — com Multi-AZ configurado depois.",
+            "text": "A réplica regional é promovida automaticamente por health checks DNS e preserva RPO zero.",
+            "correct": false
+          },
+          {
+            "text": "Promover a réplica mantém a replicação unidirecional ativa para o antigo primário indisponível.",
+            "correct": false
+          },
+          {
+            "text": "A promoção cria um novo primário independente; o runbook atualiza tráfego, trata RPO e configura HA local.",
             "correct": true
           },
           {
-            "text": "Porque a Cross-Region Read Replica já está protegida por Multi-AZ automaticamente após promovida, a aplicação é reapontada por DNS, e não há perda de dados por replicação assíncrona.",
-            "correct": false
-          },
-          {
-            "text": "Porque a Cross-Region Read Replica vira primária automaticamente quando o Route 53 detecta a interrupção, a aplicação é reapontada por DNS, e não há perda de dados no processo.",
-            "correct": false
-          },
-          {
-            "text": "Porque a aplicação segue escrevendo no endpoint de us-east-1 e o RDS redireciona para a réplica promovida, sem perda de dados por replicação assíncrona — com Multi-AZ configurado depois.",
+            "text": "O endpoint da instância primária encaminha chamadas automaticamente à réplica em outra Região.",
             "correct": false
           }
         ]
@@ -32037,41 +32037,41 @@
       "questionId": "saa-avc-115",
       "options": [
         {
-          "matchText": "Configurar uma CONSTRAINT de posicionamento do tipo 'distinctInstance' para o serviço.",
+          "matchText": "Usar distinctInstance como única regra de placement para distribuir tarefas entre AZs.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque 'distinctInstance' também espalha tasks — mas ele apenas garante UMA task por instância; não distribui uniformemente entre AZs e pode deixar zonas subutilizadas; distribuição por AZ (e por host dentro dela) é a estratégia spread em attribute:ecs.availability-zone."
+          "reasonWrong": "distinctInstance separa tarefas por hosts, mas não garante distribuição entre AZs."
         },
         {
-          "matchText": "Mudar o launch type do serviço de EC2 para Fargate, que distribui automaticamente as tasks entre AZs por padrão, sem configuração.",
+          "matchText": "Trocar para Fargate e depender de distribuição automática sem configurar sub-redes.",
           "stage": "eliminate",
-          "reasonWrong": "Migrar para Fargate resolve, mas troca o launch type inteiro — a pergunta é como configurar o posicionamento no EC2."
+          "reasonWrong": "Fargate também requer seleção apropriada de sub-redes; não é uma correção automática do serviço EC2 existente."
         },
         {
-          "matchText": "Configurar a estratégia de posicionamento do serviço ECS como 'spread', usando o campo 'attribute:ecs.availability-zone' como campo de distribuição primário (opcionalmente combinado com um spread secundário em 'instanceId' para distribuir também entre hosts dentro de cada AZ).",
+          "matchText": "Configurar spread por availability-zone e, em seguida, por instanceId.",
           "stage": "correct"
         },
         {
-          "matchText": "Reduzir o desired count do serviço para que o bin-packing resulte naturalmente em distribuição uniforme.",
+          "matchText": "Reduzir desired count até que o binpack pareça mais uniforme.",
           "stage": "eliminate",
-          "reasonWrong": "Reduzir o desired count não muda a lógica de binpack — só diminui a quantidade de tasks concentradas."
+          "reasonWrong": "Reduzir tasks não cria capacidade nem garante equilíbrio."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque a estratégia spread em attribute:ecs.availability-zone distribui as tasks uniformemente entre as AZs (e por instanceId dentro de cada uma), priorizando disponibilidade sobre o binpack.",
+            "text": "distinctInstance equilibra necessariamente o total de tarefas por AZ antes de considerar hosts.",
+            "correct": false
+          },
+          {
+            "text": "Spread por availability-zone e instanceId orienta distribuição topológica conforme capacidade disponível.",
             "correct": true
           },
           {
-            "text": "Porque a constraint distinctInstance distribui as tasks uniformemente entre as AZs (e por instanceId dentro de cada uma), priorizando disponibilidade sobre a eficiência de binpack.",
+            "text": "Fargate usa placement constraints ECS EC2 para escolher hosts no cluster existente.",
             "correct": false
           },
           {
-            "text": "Porque migrar para Fargate distribui as tasks uniformemente entre as AZs (e por instanceId dentro de cada uma), priorizando disponibilidade sobre a eficiência de binpack.",
-            "correct": false
-          },
-          {
-            "text": "Porque reduzir o desired count distribui as tasks uniformemente entre as AZs (e por instanceId dentro de cada uma), priorizando disponibilidade sobre a eficiência de binpack.",
+            "text": "Binpack sempre distribui igualmente as tarefas porque minimiza uso de CPU em cada AZ.",
             "correct": false
           }
         ]
@@ -32081,42 +32081,42 @@
       "questionId": "saa-avc-116",
       "options": [
         {
-          "matchText": "AWS Global Accelerator.",
+          "matchText": "Usar AWS Global Accelerator com acelerador padrão e endpoints NLB regionais.",
           "stage": "correct"
         },
         {
-          "matchText": "Amazon Route 53 com roteamento por latência e health checks apontando para o nome DNS de cada NLB regional.",
+          "matchText": "Usar Route 53 latency routing e solicitar que clientes renovem DNS em cada partida.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque Route 53 com latência + health checks também roteia ao NLB regional ótimo e faz failover — mas resolve por DNS, e o requisito (a) exige IPs ESTÁTICOS fixáveis, sem depender de resolução que pode ser cacheada; IP anycast estático com roteamento e failover é o Global Accelerator."
+          "reasonWrong": "Route 53 retorna DNS e depende de TTL/caches, não entrega IPs estáticos anycast nem aceleração de UDP desse modo."
         },
         {
-          "matchText": "AWS Transit Gateway com suporte a multicast configurado entre as duas Regiões.",
+          "matchText": "Conectar NLBs regionais por Transit Gateway e expor os IPs privados aos jogadores.",
           "stage": "eliminate",
-          "reasonWrong": "Transit Gateway com multicast é para replicação de tráfego multicast entre VPCs — não é entrada global de jogadores por IP estático."
+          "reasonWrong": "Transit Gateway conecta redes privadas; não é um ponto de entrada global de jogadores."
         },
         {
-          "matchText": "Amazon CloudFront com dois NLBs configurados como origin group para failover.",
+          "matchText": "Usar CloudFront com origin group dos NLBs para encaminhar os datagramas UDP.",
           "stage": "eliminate",
-          "reasonWrong": "CloudFront não suporta UDP arbitrário — o próprio enunciado descarta; e origin group é failover de cache, não de front UDP."
+          "reasonWrong": "CloudFront não suporta UDP genérico como distribuição de origem."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Global Accelerator dá IPs anycast estáticos fixáveis, roteia o UDP dos jogadores à região saudável de menor latência e faz failover automático para o NLB da outra região.",
+            "text": "Route 53 fornece dois IPs anycast estáticos e encaminha UDP pela rede global AWS.",
+            "correct": false
+          },
+          {
+            "text": "CloudFront encaminha UDP arbitrário a NLBs quando configurado com origin group.",
+            "correct": false
+          },
+          {
+            "text": "Transit Gateway fornece IPs públicos fixos globais para clientes externos do jogo.",
+            "correct": false
+          },
+          {
+            "text": "Global Accelerator oferece IPs estáticos e saúde/failover para endpoints TCP ou UDP.",
             "correct": true
-          },
-          {
-            "text": "Porque o Route 53 por latência dá IPs anycast estáticos fixáveis, roteia o UDP dos jogadores à região de menor latência e faz failover automático para o NLB da outra região.",
-            "correct": false
-          },
-          {
-            "text": "Porque o Transit Gateway multicast dá IPs anycast estáticos fixáveis, roteia o UDP dos jogadores à região de menor latência e faz failover automático para o NLB da outra região.",
-            "correct": false
-          },
-          {
-            "text": "Porque o CloudFront com origin group dá IPs anycast estáticos fixáveis, roteia o UDP dos jogadores à região de menor latência e faz failover automático para o NLB da outra região.",
-            "correct": false
           }
         ]
       }
@@ -32125,41 +32125,41 @@
       "questionId": "saa-avc-117",
       "options": [
         {
-          "matchText": "Configurar um Gateway Load Balancer para distribuir tráfego para a ENI única a partir das 3 AZs.",
+          "matchText": "Adicionar Gateway Load Balancer diante da única ENI de endpoint existente.",
           "stage": "eliminate",
-          "reasonWrong": "Gateway Load Balancer é para inserir appliances de inspeção — não distribui tráfego a um Interface Endpoint."
+          "reasonWrong": "GWLB não adiciona ENIs de PrivateLink nas AZs consumidoras."
         },
         {
-          "matchText": "Modificar o Interface VPC Endpoint para adicionar associações de sub-rede adicionais em AZ-B e AZ-C (uma ENI por AZ).",
+          "matchText": "Adicionar sub-redes AZ-B e AZ-C ao mesmo interface endpoint para criar ENIs locais.",
           "stage": "correct"
         },
         {
-          "matchText": "Habilitar 'Cross-Zone Load Balancing' no Interface VPC Endpoint.",
+          "matchText": "Habilitar cross-zone load balancing no interface endpoint existente.",
           "stage": "eliminate",
-          "reasonWrong": "Não existe 'Cross-Zone Load Balancing' em Interface Endpoint — é recurso de load balancer, não de endpoint."
+          "reasonWrong": "Interface endpoint não tem opção de cross-zone load balancing."
         },
         {
-          "matchText": "Criar 3 Interface VPC Endpoints separados (um por AZ) para o mesmo serviço, cada um em uma sub-rede diferente.",
+          "matchText": "Criar endpoints isolados por AZ e manter DNS separado para cada um.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque criar endpoints por AZ também colocaria uma ENI em cada zona — mas são 3 endpoints SEPARADOS (3x o custo por hora, DNS e gestão distintos) para o mesmo serviço; o correto é UM endpoint com associações de sub-rede adicionais em AZ-B e AZ-C (uma ENI por AZ)."
+          "reasonWrong": "Endpoints separados podem funcionar, mas tornam DNS, custo e administração desnecessariamente complexos quando um endpoint multi-AZ atende."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque adicionar associações de sub-rede em AZ-B e AZ-C ao mesmo endpoint cria uma ENI local por AZ: cada instância usa a da própria zona, eliminando a taxa cross-AZ e o ponto único de falha.",
+            "text": "Associar sub-redes de cada AZ ao mesmo endpoint cria ENIs locais e reduz dependência inter-AZ.",
             "correct": true
           },
           {
-            "text": "Porque criar 3 endpoints separados cria uma ENI local por AZ: cada instância usa a da própria zona, eliminando a taxa cross-AZ e o ponto único de falha, com um só endpoint a gerenciar.",
+            "text": "Cross-zone load balancing é uma configuração do interface endpoint que cria ENIs em AZs ausentes.",
             "correct": false
           },
           {
-            "text": "Porque habilitar Cross-Zone no endpoint cria uma ENI local por AZ: cada instância usa a da própria zona, eliminando a taxa cross-AZ e o ponto único de falha da conectividade.",
+            "text": "Uma única ENI PrivateLink sobrevive automaticamente à perda da AZ em que ela está criada.",
             "correct": false
           },
           {
-            "text": "Porque o Gateway Load Balancer cria uma ENI local por AZ: cada instância usa a da própria zona, eliminando a taxa cross-AZ e o ponto único de falha da conectividade PrivateLink.",
+            "text": "Três endpoints separados são necessários porque um endpoint não pode abranger mais de uma AZ.",
             "correct": false
           }
         ]
@@ -32169,41 +32169,41 @@
       "questionId": "saa-avc-118",
       "options": [
         {
-          "matchText": "Eliminar as sub-redes privadas e mover todas as instâncias para sub-redes públicas, atribuindo um Elastic IP a cada instância",
+          "matchText": "Mover workloads a sub-redes públicas e usar Elastic IP individual para cada instância.",
           "stage": "eliminate",
-          "reasonWrong": "Mover tudo para sub-rede pública com EIP por instância amplia a exposição — o oposto do isolamento pedido."
+          "reasonWrong": "Tornar instâncias públicas aumenta superfície de ataque e não preserva o desenho privado."
         },
         {
-          "matchText": "Implantar um NAT Gateway em CADA AZ (uma sub-rede pública por AZ) e configurar a tabela de rotas da sub-rede privada de cada AZ para apontar 0.0.0.0/0 para o NAT Gateway da SUA PRÓPRIA AZ",
+          "matchText": "Implantar NAT Gateway por AZ e direcionar cada subnet privada ao NAT da própria AZ.",
           "stage": "correct"
         },
         {
-          "matchText": "Manter o NAT Gateway único, mas associar a ele um Elastic IP — dessa forma, a AWS replica automaticamente o recurso para outras AZs em caso de falha da AZ de origem",
+          "matchText": "Manter NAT único e adicionar Elastic IP para que a AWS o replique em outras AZs.",
           "stage": "eliminate",
-          "reasonWrong": "NAT Gateway é zonal e NÃO é replicado automaticamente para outra AZ — a premissa da opção é falsa."
+          "reasonWrong": "Elastic IP não replica um NAT Gateway entre AZs."
         },
         {
-          "matchText": "Substituir o NAT Gateway por uma instância NAT (baseada em EC2) dentro de um Auto Scaling Group que abrange as 3 AZs",
+          "matchText": "Usar NAT instances em ASG multi-AZ sem projetar mecanismos de rota e failover.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque uma NAT instance em ASG dá alguma redundância — mas uma instância NAT serve por vez e o failover entre AZs exige scripts de reescrita de rota; reintroduz gestão de SO e gargalo; o desenho nativo e resiliente por AZ é um NAT Gateway por AZ com rota local em cada sub-rede."
+          "reasonWrong": "NAT instances em ASG exigem roteamento, source/destination check e failover próprios; não é substituição simples de resiliência zonal."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque um NAT Gateway por AZ com a rota 0.0.0.0/0 apontando ao NAT da própria zona isola a falha: a queda da AZ-A não afeta a saída de AZ-B e AZ-C, que seguem pelos seus NATs locais.",
+            "text": "Um Elastic IP torna um NAT Gateway regionalmente redundante sem outro recurso.",
+            "correct": false
+          },
+          {
+            "text": "NAT Gateway por AZ e rotas locais evitam dependência de uma AZ para o egress das outras.",
             "correct": true
           },
           {
-            "text": "Porque uma NAT instance em ASG nas 3 AZs com a rota apontando ao NAT da própria zona isola a falha: a queda da AZ-A não afeta a saída de AZ-B e AZ-C, que seguem pelos seus NATs locais.",
+            "text": "Uma instância pública com Elastic IP preserva o mesmo isolamento e superfície privada de um NAT Gateway.",
             "correct": false
           },
           {
-            "text": "Porque o NAT Gateway único com EIP, replicado a outra AZ, com a rota apontando ao NAT da própria zona isola a falha: a queda da AZ-A não afeta a saída de AZ-B e AZ-C.",
-            "correct": false
-          },
-          {
-            "text": "Porque mover as instâncias para sub-rede pública com a rota apontando ao NAT da própria zona isola a falha: a queda da AZ-A não afeta a saída de AZ-B e AZ-C, que seguem locais.",
+            "text": "Um ASG de NAT instances atualiza automaticamente todas as tabelas de rotas ao substituir um nó.",
             "correct": false
           }
         ]
@@ -32213,41 +32213,41 @@
       "questionId": "saa-avc-119",
       "options": [
         {
-          "matchText": "Substituir a Site-to-Site VPN por AWS Direct Connect, que não exige túneis redundantes",
+          "matchText": "Substituir a VPN por Direct Connect e omitir a configuração de redundância local.",
           "stage": "eliminate",
-          "reasonWrong": "Trocar por Direct Connect é mudança de arquitetura cara — e o próprio DC recomenda redundância; não é a correção do túnel VPN."
+          "reasonWrong": "Direct Connect pode complementar conectividade, mas não resolve a configuração omitida dos dois túneis no customer gateway."
         },
         {
-          "matchText": "Essa configuração é esperada e não exige nenhuma ação — a AWS ativa automaticamente o segundo túnel apenas quando o endpoint do primeiro túnel entra em manutenção, sem necessidade de configuração no lado do cliente",
+          "matchText": "Confiar que a AWS ativa o segundo túnel sem configuração no customer gateway.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque parece razoável a AWS gerenciar a redundância sozinha — mas está ERRADA: os dois túneis são endpoints independentes e cabe ao CUSTOMER GATEWAY estabelecer/alternar entre eles; a AWS não 'ativa o segundo por você' se o cliente não o configurou, então uma manutenção no túnel em uso derruba tudo."
+          "reasonWrong": "A AWS disponibiliza os túneis, mas o dispositivo do cliente deve configurar e monitorar ambos para failover/ECMP."
         },
         {
-          "matchText": "Configurar o customer gateway on-premises para estabelecer AMBOS os túneis (idealmente em modo ativo-ativo via BGP/ECMP, ou no mínimo com failover automático para o segundo túnel); caso contrário, uma manutenção ou indisponibilidade no endpoint do túnel atualmente em uso causará perda total de conectividade, já que o segundo túnel — provisionado justamente para esse cenário — não está sendo utilizado",
+          "matchText": "Configurar ambos os túneis no customer gateway, com BGP/ECMP ou failover automático.",
           "stage": "correct"
         },
         {
-          "matchText": "Aumentar os intervalos de rekey IKE/IPsec do túnel ativo para reduzir a chance de queda da conexão",
+          "matchText": "Aumentar somente o intervalo de rekey do túnel que está ativo.",
           "stage": "eliminate",
-          "reasonWrong": "Aumentar intervalos de rekey não adiciona redundância — o segundo túnel continua ocioso e o ponto único permanece."
+          "reasonWrong": "Rekey ajusta parâmetros criptográficos, não cria um caminho redundante."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o risco é o ponto único: usar só um túnel derruba a conexão numa manutenção do endpoint em uso; configurar o customer gateway para ambos (ativo-ativo via BGP/ECMP ou failover) elimina isso.",
+            "text": "A AWS usa o segundo túnel no equipamento do cliente mesmo se ele nunca foi configurado.",
+            "correct": false
+          },
+          {
+            "text": "Rekey mais lento cria um segundo caminho IPsec independente sem alterações de roteamento.",
+            "correct": false
+          },
+          {
+            "text": "Configurar os dois túneis com roteamento apropriado permite failover ou ECMP no lado do cliente.",
             "correct": true
           },
           {
-            "text": "Porque a configuração é esperada e a AWS ativa o segundo túnel sozinha na manutenção do primeiro; configurar o customer gateway para ambos apenas antecipa esse comportamento automático.",
-            "correct": false
-          },
-          {
-            "text": "Porque o risco é o ponto único: substituir por Direct Connect elimina a necessidade de túneis, e configurar o customer gateway para ambos os túneis passa a ser desnecessário nesse desenho.",
-            "correct": false
-          },
-          {
-            "text": "Porque o risco é o ponto único: aumentar os intervalos de rekey estabiliza o túnel em uso, e configurar o customer gateway para ambos os túneis deixa de ser necessário com a conexão estável.",
+            "text": "Direct Connect é obrigatório para usar mais de um túnel Site-to-Site VPN.",
             "correct": false
           }
         ]
@@ -32257,42 +32257,42 @@
       "questionId": "saa-avc-120",
       "options": [
         {
-          "matchText": "Configurar Replicação entre Regiões (CRR) para um bucket em outra Região",
+          "matchText": "Usar CRR para outro bucket e recuperar versões somente da réplica regional.",
           "stage": "eliminate",
-          "reasonWrong": "CRR replica para outra região — o cenário é intra-região e exclusão acidental também replicaria."
+          "reasonWrong": "CRR é útil para DR regional, mas não é necessária para recuperar versões no mesmo bucket."
         },
         {
-          "matchText": "Habilitar o S3 Object Lock em modo Compliance no bucket",
+          "matchText": "Habilitar Object Lock Compliance para cada objeto que possa ser sobrescrito.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Object Lock também protege objetos e depende de versionamento — mas ele IMPEDE exclusão/sobrescrita por um período (WORM); não é o mecanismo para RECUPERAR uma versão anterior nem 'desfazer' um delete acidental; recuperar versões e reverter marcador de exclusão é o Versioning."
+          "reasonWrong": "Object Lock impede ou limita exclusões conforme o modo, mas não é o recurso mínimo para recuperar sobrescritas acidentais e pode impor retenção rígida."
         },
         {
-          "matchText": "Habilitar o Versionamento (Versioning) no bucket S3: cada PUT (sobrescrita) cria uma nova versão preservando a anterior (recuperável pelo version ID), e um DELETE sem version ID apenas adiciona um 'marcador de exclusão' (o objeto aparenta estar excluído, mas as versões anteriores permanecem e podem ser restauradas removendo o marcador); combinar com uma regra de Lifecycle para expirar versões NÃO ATUAIS após um período, controlando o custo de armazenamento",
+          "matchText": "Habilitar Versioning e Lifecycle para versões noncurrent e delete markers conforme retenção.",
           "stage": "correct"
         },
         {
-          "matchText": "Configurar jobs diários do AWS Backup para o bucket S3 e restaurar a partir do backup do dia anterior quando ocorrer uma exclusão acidental",
+          "matchText": "Executar AWS Backup diário e restaurar o backup anterior a cada exclusão acidental.",
           "stage": "eliminate",
-          "reasonWrong": "AWS Backup é justamente o 'sistema de backup separado' que o requisito quer evitar."
+          "reasonWrong": "Backup pode fornecer cópias, mas acrescenta sistema e RPO sem ser necessário para a função solicitada."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Versioning preserva a versão anterior a cada PUT e transforma o DELETE num marcador reversível — recupera-se pelo version ID, e a Lifecycle expira versões antigas para controlar o custo.",
+            "text": "CRR é necessária para que Versioning preserve a versão sobrescrita no bucket de origem.",
+            "correct": false
+          },
+          {
+            "text": "Object Lock é o único recurso S3 capaz de recuperar uma versão anterior de um objeto.",
+            "correct": false
+          },
+          {
+            "text": "Lifecycle recupera automaticamente objetos apagados a partir de versões noncurrent expiradas.",
+            "correct": false
+          },
+          {
+            "text": "Versioning preserva versões e delete markers; Lifecycle pode controlar a retenção das cópias antigas.",
             "correct": true
-          },
-          {
-            "text": "Porque o Object Lock Compliance preserva a versão anterior a cada PUT e transforma o DELETE num marcador reversível — recupera-se pelo version ID, e a Lifecycle expira versões antigas para o custo.",
-            "correct": false
-          },
-          {
-            "text": "Porque a CRR preserva a versão anterior a cada PUT e transforma o DELETE num marcador reversível — recupera-se pelo version ID, e a Lifecycle expira versões antigas para controlar o custo.",
-            "correct": false
-          },
-          {
-            "text": "Porque o AWS Backup diário preserva a versão anterior a cada PUT e transforma o DELETE num marcador reversível — recupera-se pelo version ID, e a Lifecycle expira versões antigas para o custo.",
-            "correct": false
           }
         ]
       }
@@ -32301,41 +32301,41 @@
       "questionId": "saa-avc-121",
       "options": [
         {
-          "matchText": "Configurar o alarme do CloudWatch para invocar diretamente uma ação de 'Reboot' (reiniciar) na instância EC2 quando a utilização de disco ultrapassar 90%",
+          "matchText": "Reiniciar a instância automaticamente quando a métrica de disco ultrapassar noventa por cento.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque também é uma ação automática de alarme na instância EC2 — mas 'Reboot' apenas reinicia o servidor; não EXECUTA o script de limpeza (os logs antigos continuam lá após o boot); rodar um script na instância sem SSH pelo alarme é via SSM Automation/Run Command."
+          "reasonWrong": "Reboot não executa o script nem resolve necessariamente o espaço de disco consumido."
         },
         {
-          "matchText": "Configurar o alarme do CloudWatch para enviar uma notificação via SNS para o e-mail da equipe de operações, instruindo-os a acessar a instância via SSH e executar o script de limpeza manualmente",
+          "matchText": "Enviar SNS à equipe e depender de SSH manual para executar a limpeza.",
           "stage": "eliminate",
-          "reasonWrong": "Notificar por SNS para alguém abrir SSH e rodar à mão é intervenção humana — o oposto do requisito."
+          "reasonWrong": "SNS notifica pessoas, mas não automatiza a ação sem SSH solicitada."
         },
         {
-          "matchText": "Criar um Alarme do CloudWatch sobre a métrica de utilização de disco, com uma ação de alarme (ou regra do EventBridge) que dispara um runbook do AWS Systems Manager Automation (ou um documento SSM Run Command) direcionado à instância afetada; o runbook/documento executa o script de limpeza na instância via SSM Agent, sem necessidade de SSH",
+          "matchText": "Acionar SSM Automation ou Run Command a partir do alarme/evento e executar o script pelo SSM Agent.",
           "stage": "correct"
         },
         {
-          "matchText": "Usar o AWS Config para detectar quando a utilização de disco ultrapassa 90% e acionar uma ação de remediação que finaliza e substitui a instância automaticamente",
+          "matchText": "Usar Config para detectar o uso de disco e substituir a instância sem executar scripts.",
           "stage": "eliminate",
-          "reasonWrong": "Config detecta desvios de CONFIGURAÇÃO (não métrica de disco) e finalizar/substituir a instância é destrutivo — exagero para limpar logs."
+          "reasonWrong": "Config não mede utilização de disco da instância como sinal de configuração e substituir a instância não executa limpeza."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o alarme dispara um runbook do SSM Automation (ou Run Command) na instância afetada, que executa o script de limpeza via SSM Agent — remediação automática, sem SSH nem intervenção humana.",
+            "text": "Um alarme pode iniciar automação SSM quando as permissões, agente e destino estão configurados.",
             "correct": true
           },
           {
-            "text": "Porque a ação de Reboot do alarme dispara na instância afetada e executa o script de limpeza via SSM Agent — remediação automática, sem SSH nem intervenção humana ao ultrapassar 90%.",
+            "text": "CloudWatch executa comandos shell diretamente na instância sem SSM Agent ou role.",
             "correct": false
           },
           {
-            "text": "Porque a notificação SNS do alarme dispara na instância afetada e executa o script de limpeza via SSM Agent — remediação automática, sem SSH nem intervenção humana ao ultrapassar 90%.",
+            "text": "SNS com e-mail é uma remediação automática que não exige operadores humanos.",
             "correct": false
           },
           {
-            "text": "Porque a remediação do Config dispara na instância afetada e executa o script de limpeza via SSM Agent — remediação automática, sem SSH nem intervenção humana ao ultrapassar 90%.",
+            "text": "Config coleta métricas customizadas de disco e sempre substitui instâncias por remediação nativa.",
             "correct": false
           }
         ]
@@ -32345,41 +32345,41 @@
       "questionId": "saa-avc-122",
       "options": [
         {
-          "matchText": "Aumentar a capacidade mínima do ASG para manter permanentemente instâncias totalmente ativas suficientes para atender ao pico de tráfego em qualquer momento",
+          "matchText": "Elevar min capacity e manter instâncias ativas para todo pico possível.",
           "stage": "eliminate",
-          "reasonWrong": "Manter o mínimo alto para o pico deixa instâncias totalmente ativas cobradas o tempo todo — o custo que se quer evitar."
+          "reasonWrong": "Capacidade mínima alta reduz latência, mas mantém computação ativa e cobrada continuamente."
         },
         {
-          "matchText": "Usar um Launch Template com um tipo de instância maior para acelerar o processo de bootstrap",
+          "matchText": "Usar instâncias maiores para concluir bootstrap sem nenhum tempo de lançamento.",
           "stage": "eliminate",
-          "reasonWrong": "Instância maior acelera um pouco o bootstrap — mas não elimina os minutos de preparação nem chega a scale-out imediato."
+          "reasonWrong": "Uma instância maior pode reduzir parte do bootstrap, mas não elimina inicialização nem prepara capacidade antecipadamente."
         },
         {
-          "matchText": "Criar uma AMI customizada com a aplicação já instalada, eliminando a necessidade de qualquer processo de bootstrap",
+          "matchText": "Criar AMI pré-configurada e depender somente de novos lançamentos durante o pico.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque uma AMI com o software pré-instalado REALMENTE encurta o bootstrap — mas o cenário descreve configuração complexa que ainda leva minutos após o lançamento (e nem toda config cabe na imagem): a instância nova ainda precisa subir e configurar; latência de scale-out perto de ZERO com instâncias já prontas e sem cobrança de computação é o Warm Pool."
+          "reasonWrong": "AMI pré-configurada reduz bootstrap, porém lançamentos ainda exigem provisionamento e warm-up; pode ser combinada com warm pool."
         },
         {
-          "matchText": "Configurar um 'Warm Pool' do Auto Scaling: o ASG mantém um conjunto de instâncias pré-inicializadas (que já completaram o processo de bootstrap) em estado PARADO (stopped) ou outro estado de baixo custo; quando o scale-out é necessário, essas instâncias são movidas para o serviço muito mais rapidamente do que lançar e inicializar do zero, e instâncias paradas no warm pool não geram cobrança de computação (apenas de armazenamento)",
+          "matchText": "Usar Warm Pool com instâncias inicializadas e estado stopped quando compatível com a carga.",
           "stage": "correct"
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Warm Pool mantém instâncias já inicializadas em estado parado (sem cobrar computação): no scale-out elas entram em serviço quase de imediato, sem esperar os 8-10 min de bootstrap.",
+            "text": "Uma AMI pronta faz uma instância stopped atender tráfego instantaneamente, sem iniciar ou passar health checks.",
+            "correct": false
+          },
+          {
+            "text": "Warm Pool mantém instâncias pré-inicializadas; stopped reduz compute, mas ainda há ativação e health checks.",
             "correct": true
           },
           {
-            "text": "Porque a AMI customizada mantém instâncias já inicializadas em estado parado (sem cobrar computação): no scale-out elas entram em serviço quase de imediato, sem esperar os 8-10 min de bootstrap.",
+            "text": "Warm Pool cobra computação completa da mesma forma para instâncias stopped, hibernated e running.",
             "correct": false
           },
           {
-            "text": "Porque a capacidade mínima alta mantém instâncias já inicializadas em estado parado (sem cobrar computação): no scale-out elas entram em serviço quase de imediato, sem esperar o bootstrap.",
-            "correct": false
-          },
-          {
-            "text": "Porque o tipo de instância maior mantém instâncias já inicializadas em estado parado (sem cobrar computação): no scale-out elas entram em serviço quase de imediato, sem esperar o bootstrap.",
+            "text": "A capacidade mínima do ASG pode ser zero e ainda atender imediatamente o próximo pico sem warm pool.",
             "correct": false
           }
         ]
@@ -32389,41 +32389,41 @@
       "questionId": "saa-avc-123",
       "options": [
         {
-          "matchText": "(a) O Amazon EKS executa automaticamente o control plane gerenciado do Kubernetes (API server, etcd, etc.) distribuído em MÚLTIPLAS AZs dentro da Região escolhida, por padrão e sem nenhuma configuração adicional do cliente; (b) criar um EKS Managed Node Group especificando múltiplas sub-redes em múltiplas AZs — os managed node groups distribuem automaticamente os worker nodes entre as AZs especificadas e se integram ao EC2 Auto Scaling para substituir nós não saudáveis automaticamente",
+          "matchText": "Usar control plane EKS gerenciado e managed node group com sub-redes de múltiplas AZs, configurando autoscaling quando necessário.",
           "stage": "correct"
         },
         {
-          "matchText": "(a) Configurar 3 clusters EKS separados (um por AZ) e usar uma ferramenta de federação Kubernetes para unificá-los em um único control plane lógico",
+          "matchText": "Criar um cluster EKS independente em cada AZ e federar seus planos de controle.",
           "stage": "eliminate",
-          "reasonWrong": "Três clusters federados é reconstruir na mão o que o EKS já entrega gerenciado — control plane multi-AZ é nativo."
+          "reasonWrong": "Múltiplos clusters criam planos de controle distintos e exigem federação/oper operação adicional."
         },
         {
-          "matchText": "(a) Implantar 3 instâncias EC2 executando componentes self-managed do control plane do Kubernetes (kube-apiserver, etcd) em 3 AZs, registradas atrás de um NLB interno",
+          "matchText": "Operar kube-apiserver e etcd em EC2 atrás de NLB dentro do cluster EKS.",
           "stage": "eliminate",
-          "reasonWrong": "Control plane self-managed em EC2 contraria o requisito de NÃO gerenciar a infraestrutura do control plane."
+          "reasonWrong": "Control plane self-managed contraria o requisito de não gerenciar essa infraestrutura."
         },
         {
-          "matchText": "(b) Usar perfis do EKS Fargate exclusivamente para todas as cargas de trabalho, já que pods do Fargate são automaticamente distribuídos entre múltiplas AZs sem nenhuma configuração de node group",
+          "matchText": "Usar somente Fargate profiles e assumir distribuição multi-AZ sem configurar sub-redes ou capacidade.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Fargate distribui pods por várias AZs sem gerir nós — mas responde só à parte (b) e ainda deixa a (a) sem endereçar; além disso, 'exclusivamente Fargate para tudo' é restrição forte; o desenho pedido é o control plane gerenciado multi-AZ (automático) + Managed Node Group em várias AZs."
+          "reasonWrong": "Fargate profiles eliminam nodes gerenciados pelo cliente, mas selecionar sub-redes e disponibilidade ainda é configuração do workload; não é resposta genérica para todos os pods."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o control plane gerenciado do EKS já roda multi-AZ por padrão (a), e um Managed Node Group em várias sub-redes/AZs distribui os worker nodes e substitui os não saudáveis via Auto Scaling (b).",
+            "text": "EKS control plane exige que o cliente mantenha três EC2 de API server em cada cluster gerenciado.",
+            "correct": false
+          },
+          {
+            "text": "Managed node group escala automaticamente sem qualquer configuração de autoscaler, min/max ou demanda.",
+            "correct": false
+          },
+          {
+            "text": "EKS gerencia o control plane multi-AZ; node groups multi-AZ são configurados no data plane e autoscaling é adicional.",
             "correct": true
           },
           {
-            "text": "Porque o control plane em 3 clusters federados já roda multi-AZ por padrão (a), e o Managed Node Group em várias AZs distribui os worker nodes e substitui os não saudáveis via Auto Scaling (b).",
-            "correct": false
-          },
-          {
-            "text": "Porque o control plane self-managed em EC2 já roda multi-AZ por padrão (a), e o Managed Node Group em várias AZs distribui os worker nodes e substitui os não saudáveis via Auto Scaling (b).",
-            "correct": false
-          },
-          {
-            "text": "Porque o control plane com Fargate exclusivo já roda multi-AZ por padrão (a), e os perfis Fargate em várias AZs distribuem os worker nodes e substituem os não saudáveis via Auto Scaling (b).",
+            "text": "Fargate profiles dispensam a seleção de sub-redes e de capacidade para qualquer workload Kubernetes.",
             "correct": false
           }
         ]
@@ -32433,41 +32433,41 @@
       "questionId": "saa-avc-124",
       "options": [
         {
-          "matchText": "Configurar S3 Cross-Region Replication (CRR), mas definir a Região de destino igual à Região de origem",
+          "matchText": "Configurar CRR e escolher a mesma Região para o bucket de origem e destino.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque a CRR também replica objetos automaticamente entre buckets/contas — mas CRR pressupõe regiões DIFERENTES; 'definir destino igual à origem' não é como se configura replicação na MESMA região: o recurso próprio para isso é o Same-Region Replication (SRR), que suporta destino em outra conta."
+          "reasonWrong": "CRR exige buckets em Regiões diferentes; não é configurada para destino na mesma Região."
         },
         {
-          "matchText": "Usar o AWS DataSync para realizar sincronização contínua e em tempo real entre os dois buckets na mesma Região",
+          "matchText": "Usar DataSync como sincronização contínua de objetos na mesma Região.",
           "stage": "eliminate",
-          "reasonWrong": "DataSync sincroniza sob agendamento/execução — não é a replicação contínua e nativa de novos objetos entre contas do S3."
+          "reasonWrong": "DataSync pode mover dados, mas não é o recurso nativo de replicação contínua por objeto para este caso."
         },
         {
-          "matchText": "Configurar o Amazon S3 Same-Region Replication (SRR) do bucket de produção na Conta A para o bucket de compliance na Conta B (replicação entre contas, na mesma Região); o SRR suporta replicação para um bucket de propriedade de outra conta AWS, com versionamento habilitado em ambos os buckets, podendo opcionalmente alterar a propriedade do objeto para a conta de destino e/ou usar S3 Replication Time Control (RTC) para tempos de replicação previsíveis — sem latência ou custo de transferência entre regiões",
+          "matchText": "Configurar SRR cross-account, versionamento e permissões/ownership apropriados no bucket de destino.",
           "stage": "correct"
         },
         {
-          "matchText": "Conceder ao bucket S3 da Conta B permissões de leitura cross-account sobre o bucket da Conta A via política de bucket, e fazer com que as aplicações da Conta B leiam os objetos diretamente do bucket da Conta A",
+          "matchText": "Conceder leitura ao bucket de produção e considerar isso uma cópia de compliance separada.",
           "stage": "eliminate",
-          "reasonWrong": "Ler direto o bucket da Conta A não cria CÓPIA na Conta B — viola a segregação por conta/propriedade exigida."
+          "reasonWrong": "Leitura cross-account não cria cópia segregada sob propriedade/controle da conta de compliance."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o SRR replica cada novo objeto da Conta A para o bucket da Conta B na mesma região (com versionamento nos dois), podendo mudar a propriedade e usar RTC — sem latência nem custo entre regiões.",
+            "text": "SRR pode replicar cross-account na mesma Região com versionamento e configurações de destino adequadas.",
             "correct": true
           },
           {
-            "text": "Porque a CRR com destino igual à origem replica cada novo objeto da Conta A para a Conta B na mesma região (com versionamento nos dois), podendo mudar a propriedade — sem custo entre regiões.",
+            "text": "CRR permite escolher a mesma Região desde que os buckets estejam em contas distintas.",
             "correct": false
           },
           {
-            "text": "Porque o DataSync replica cada novo objeto da Conta A para o bucket da Conta B na mesma região (com versionamento nos dois), podendo mudar a propriedade e usar RTC — sem latência entre regiões.",
+            "text": "Leitura cross-account transfere propriedade dos objetos à conta que os lê.",
             "correct": false
           },
           {
-            "text": "Porque a leitura cross-account replica cada novo objeto da Conta A para o bucket da Conta B na mesma região (com versionamento nos dois), podendo mudar a propriedade — sem custo entre regiões.",
+            "text": "DataSync fornece o mesmo mecanismo de replicação contínua por objeto e controle de ownership do S3.",
             "correct": false
           }
         ]
@@ -32477,41 +32477,41 @@
       "questionId": "saa-avc-125",
       "options": [
         {
-          "matchText": "Substituir o Application Load Balancer por um Network Load Balancer para suportar maior throughput na origem",
+          "matchText": "Trocar ALB por NLB para absorver mais requests de cache miss.",
           "stage": "eliminate",
-          "reasonWrong": "Trocar ALB por NLB muda o balanceador — não reduz a quantidade de requisições de cache miss à origem."
+          "reasonWrong": "NLB não reduz o número de cache misses que chegam à origem; apenas muda o tipo de balanceador."
         },
         {
-          "matchText": "Configurar múltiplas distribuições do CloudFront, uma por região geográfica, cada uma apontando para uma origem separada",
+          "matchText": "Criar distribuições CloudFront independentes para cada macro-região.",
           "stage": "eliminate",
-          "reasonWrong": "Múltiplas distribuições por região multiplica origens e complexidade — não consolida os misses sobre uma origem."
+          "reasonWrong": "Múltiplas distribuições aumentam a complexidade e não cria camada consolidada de miss entre bordas."
         },
         {
-          "matchText": "Habilitar o Origin Shield do CloudFront, escolhendo uma região próxima à origem",
+          "matchText": "Habilitar Origin Shield no origin e escolher Região próxima à origem.",
           "stage": "correct"
         },
         {
-          "matchText": "Aumentar o TTL (Time to Live) do cache do CloudFront para o valor máximo em todos os objetos",
+          "matchText": "Aumentar o TTL de todos os objetos ao máximo permitido.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque TTL maior REALMENTE reduz idas à origem — mas ele ALTERA o comportamento de cache por objeto (o que o enunciado veta) e não resolve o problema descrito: várias bordas ainda fazem cache miss simultâneo para o MESMO objeto; consolidar essas requisições numa camada intermediária é o Origin Shield."
+          "reasonWrong": "TTL maior reduz misses, mas altera a política de frescor por objeto, contrariando a restrição."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Origin Shield adiciona uma camada de cache central perto da origem: os cache miss das bordas convergem nela, e a origem recebe uma única requisição por objeto — sem mudar o cache por objeto.",
+            "text": "Origin Shield cria uma camada adicional de cache que consolida misses de múltiplas bordas.",
+            "correct": false
+          },
+          {
+            "text": "Regional Edge Caches já impedem qualquer miss simultâneo à origem, sem configuração adicional.",
             "correct": true
           },
           {
-            "text": "Porque aumentar o TTL ao máximo adiciona uma camada de cache central perto da origem: os cache miss das bordas convergem nela, e a origem recebe uma única requisição por objeto.",
+            "text": "Aumentar TTL preserva exatamente a política de cache e não muda frescor de objetos.",
             "correct": false
           },
           {
-            "text": "Porque trocar o ALB por NLB adiciona uma camada de cache central perto da origem: os cache miss das bordas convergem nela, e a origem recebe uma única requisição por objeto popular.",
-            "correct": false
-          },
-          {
-            "text": "Porque múltiplas distribuições por região adicionam uma camada de cache central perto da origem: os cache miss das bordas convergem nela, e a origem recebe uma única requisição por objeto.",
+            "text": "Trocar ALB por NLB reduz o número de requisições que o CloudFront envia em cache miss.",
             "correct": false
           }
         ]
@@ -32521,42 +32521,42 @@
       "questionId": "saa-avc-126",
       "options": [
         {
-          "matchText": "Aumentar o número de réplicas de leitura do cluster de shard único existente",
+          "matchText": "Adicionar réplicas de leitura ao único shard Redis existente.",
           "stage": "eliminate",
-          "reasonWrong": "Mais réplicas de leitura escala LEITURA — não distribui escrita nem aumenta a memória total do dataset."
+          "reasonWrong": "Réplicas aumentam leitura e disponibilidade, mas escritas e memória do shard continuam limitadas pelo primário."
         },
         {
-          "matchText": "Migrar do ElastiCache for Redis para o ElastiCache for Memcached, que suporta nativamente distribuição de escrita multi-nó",
+          "matchText": "Migrar para Memcached para distribuir escritas sem alterar o modelo da aplicação.",
           "stage": "eliminate",
-          "reasonWrong": "Memcached não persiste sessão da mesma forma nem replica — migração troca o modelo e perde recursos do Redis."
+          "reasonWrong": "Memcached distribui chaves, mas exige alterar semânticas e não é a escalabilidade Redis pedida."
         },
         {
-          "matchText": "Trocar para um tipo de nó ElastiCache maior (escalonamento vertical) dentro do mesmo cluster de shard único",
+          "matchText": "Aumentar a classe do nó do shard único e manter todas as chaves no mesmo primário.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque um nó maior alivia memória e throughput por um tempo — mas é escalonamento VERTICAL: há teto de tamanho e todas as escritas continuam num único primário; resolver dataset E throughput de escrita de forma horizontal exige sharding com Cluster Mode Enabled."
+          "reasonWrong": "Escala vertical pode adiar o limite, mas não distribui dataset e escritas por múltiplos primários."
         },
         {
-          "matchText": "Habilitar o Cluster Mode (Cluster Mode Enabled) com múltiplos shards",
+          "matchText": "Habilitar cluster mode enabled e distribuir slots entre múltiplos shards Redis.",
           "stage": "correct"
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Cluster Mode Enabled distribui os dados por múltiplos shards: cada shard tem seu primário, somando memória para o dataset e paralelizando as escritas — escalonamento horizontal dos dois gargalos.",
+            "text": "Réplicas Redis distribuem automaticamente toda escrita entre seus nós de leitura.",
+            "correct": false
+          },
+          {
+            "text": "Um tipo de nó maior cria shards independentes para partes distintas das chaves.",
+            "correct": false
+          },
+          {
+            "text": "Memcached preserva transações, scripts e semânticas Redis sem mudanças de cliente.",
+            "correct": false
+          },
+          {
+            "text": "Cluster mode enabled usa shards com primários distintos para distribuir slots, memória e escrita.",
             "correct": true
-          },
-          {
-            "text": "Porque o nó maior distribui os dados por múltiplos shards: cada shard tem seu primário, somando memória para o dataset e paralelizando as escritas — escalonamento horizontal dos dois gargalos.",
-            "correct": false
-          },
-          {
-            "text": "Porque mais réplicas de leitura distribuem os dados por múltiplos shards: cada shard tem seu primário, somando memória para o dataset e paralelizando as escritas — escalonamento horizontal dos gargalos.",
-            "correct": false
-          },
-          {
-            "text": "Porque migrar para Memcached distribui os dados por múltiplos shards: cada shard tem seu primário, somando memória para o dataset e paralelizando as escritas — escalonamento horizontal dos gargalos.",
-            "correct": false
           }
         ]
       }

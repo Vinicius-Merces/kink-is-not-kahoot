@@ -2451,21 +2451,21 @@
     {
       "id": "saa-avc-102",
       "domain": "resilient-architectures",
-      "text": "Um desenvolvedor executou acidentalmente, há 4 horas, um script que excluiu milhares de itens de uma tabela DynamoDB de produção. A equipe precisa recuperar esses itens, restaurando a tabela ao estado em um ponto específico no tempo imediatamente anterior à execução do script, com mínimo impacto na tabela em produção (que continuou recebendo novas escritas desde o incidente e deve permanecer operacional). Qual abordagem atende a esse requisito?",
+      "text": "PITR do DynamoDB já estava habilitado antes de uma exclusão acidental. A tabela de produção continuou recebendo novas escritas. A equipe deve recuperar apenas os itens excluídos, sem substituir a tabela atual e com reconciliação segura de possíveis alterações concorrentes. Qual abordagem atende?",
       "options": [
-        "Usar o AWS Backup para realizar uma restauração completa da tabela, que mescla automaticamente os itens restaurados com a tabela em produção sem criar uma nova tabela.",
-        "Habilitar o DynamoDB Streams retroativamente e reproduzir o stream de 4 horas atrás para recriar os itens excluídos.",
-        "Restaurar a tabela a partir do backup on-demand mais recente feito antes do incidente, sobrescrevendo a tabela de produção atual.",
-        "Usar o Point-in-Time Recovery (PITR) do DynamoDB para restaurar a tabela em uma NOVA tabela refletindo o estado no timestamp escolhido (imediatamente antes da exclusão); em seguida, identificar e copiar seletivamente os itens excluídos da tabela restaurada de volta para a tabela de produção em uso."
+        "Restaurar pelo AWS Backup e esperar que os itens sejam mesclados automaticamente na tabela atual.",
+        "Habilitar DynamoDB Streams após a exclusão e reproduzir os eventos históricos do período.",
+        "Restaurar um backup anterior sobrescrevendo a tabela de produção em uso.",
+        "Restaurar por PITR para uma tabela nova e reconciliar seletivamente os itens ausentes com a produção."
       ],
       "correct": 3,
-      "explanation": "O PITR do DynamoDB sempre restaura para uma NOVA tabela, refletindo o estado em um timestamp específico, sem afetar a tabela de produção em operação; a partir dessa nova tabela, os itens excluídos podem ser identificados e copiados seletivamente de volta para a tabela em produção (via script ou job do AWS Glue, por exemplo), sem interromper as operações em andamento.",
-      "hint": "Pense no recurso do DynamoDB que permite restaurar o estado da tabela em um timestamp específico para uma nova tabela, sem afetar a tabela original em produção.",
+      "explanation": "AWS Backup restaura uma tabela separada; não mescla itens automaticamente na tabela em produção. Streams só retém eventos depois de habilitado e não pode ser reproduzido retroativamente. Sobrescrever a tabela atual perderia as escritas legítimas posteriores ao incidente. PITR restaura para uma nova tabela no instante escolhido. A recuperação seletiva exige comparar itens, reconciliar conflitos e usar escritas condicionais quando necessário.",
+      "hint": "A restauração PITR cria uma nova tabela; ela não é uma reversão in-place.",
       "optionRationales": [
-        "O PITR do DynamoDB sempre restaura para uma NOVA tabela, refletindo o estado em um timestamp específico, sem afetar a tabela de produção em operação; a partir dessa nova tabela, os itens excluídos podem ser identificados e copiados seletivamente de volta para a tabela em produção (via script ou job do AWS Glue, por exemplo), sem interromper as operações em andamento.",
-        "Restaurar um backup SOBRE a tabela em produção (in-place) descartaria todas as escritas legítimas feitas na tabela desde o incidente, e as restaurações do DynamoDB sempre criam uma NOVA tabela em vez de sobrescrever no local; essa abordagem causaria perda adicional de dados desnecessária.",
-        "O DynamoDB Streams retém dados por apenas 24 horas E precisa estar habilitado ANTES dos eventos ocorrerem para capturá-los; habilitá-lo agora não forneceria retroativamente um stream de eventos de 4 horas atrás (antes de ser habilitado), portanto os eventos de exclusão (e os estados anteriores dos itens) não estão disponíveis para reprodução.",
-        "O AWS Backup (e a restauração nativa do DynamoDB) sempre restaura para uma NOVA tabela, nunca 'mescla' automaticamente com a tabela em produção; uma etapa manual de reconciliação é necessária independentemente do mecanismo de restauração usado."
+        "AWS Backup restaura uma tabela separada; não mescla itens automaticamente na tabela em produção.",
+        "Streams só retém eventos depois de habilitado e não pode ser reproduzido retroativamente.",
+        "Sobrescrever a tabela atual perderia as escritas legítimas posteriores ao incidente.",
+        "PITR restaura para uma nova tabela no instante escolhido. A recuperação seletiva exige comparar itens, reconciliar conflitos e usar escritas condicionais quando necessário."
       ],
       "topics": [
         "databases"
@@ -2476,19 +2476,19 @@
       "domain": "resilient-architectures",
       "text": "Uma função Lambda é invocada de forma ASSÍNCRONA (por exemplo, a partir de notificações de eventos do S3) para processar arquivos enviados. Ocasionalmente, a função falha após esgotar suas retentativas automáticas (2 retentativas por padrão para invocações assíncronas). A equipe quer que invocações com falha sejam automaticamente direcionadas para uma fila SQS para análise e reprocessamento posterior, SEM modificar o código da função Lambda para adicionar lógica explícita de tratamento de erro/publicação em fila.",
       "options": [
-        "Envolver o código de tratamento do evento do S3 em um bloco try/catch e usar o AWS SDK para chamar manualmente SQS SendMessage ao capturar uma exceção.",
-        "Configurar uma Dead-Letter Queue (DLQ) na função e adicionar código na função para publicar uma mensagem personalizada nessa DLQ ao capturar um erro.",
-        "Configurar um 'on-failure' Destination do Lambda apontando para uma fila SQS (ou tópico SNS/barramento do EventBridge/outra função Lambda).",
-        "Aumentar a concorrência reservada da função para que invocações com falha sejam reprocessadas mais vezes antes de desistir."
+        "Capturar a exceção no código e chamar SQS SendMessage manualmente.",
+        "Criar uma DLQ e publicar uma mensagem customizada nela dentro do handler.",
+        "Configurar on-failure destination da invocação assíncrona para uma fila SQS e permissões da role.",
+        "Aumentar concorrência reservada para que a Lambda tente processar o evento mais vezes."
       ],
       "correct": 2,
-      "explanation": "Após as retentativas de invocação assíncrona se esgotarem e a função ainda falhar, o Lambda envia automaticamente um registro da invocação (incluindo o payload original do evento e detalhes do erro) para o destino de falha configurado — sem necessidade de qualquer alteração no código da função.",
-      "hint": "Pense no recurso do Lambda, configurado fora do código da função, que encaminha automaticamente o evento e os detalhes do erro para um destino após o esgotamento das retentativas de invocação assíncrona.",
+      "explanation": "Try/catch no código aumenta implementação e não é necessário para a entrega nativa de falhas assíncronas. Uma DLQ de Lambda não requer código para receber o evento original, mas destinations oferecem contexto de invocação e opções de destino; as duas configurações não devem ser usadas como se fossem o mesmo fluxo. On-failure destination entrega um registro de invocação após as tentativas e idade máxima configuradas; a role de execução precisa autorizar o envio ao SQS. Concorrência reservada controla paralelismo, não o encaminhamento de falhas.",
+      "hint": "Procure uma configuração da invocação assíncrona que funciona fora do handler.",
       "optionRationales": [
-        "Após as retentativas de invocação assíncrona se esgotarem e a função ainda falhar, o Lambda envia automaticamente um registro da invocação (incluindo o payload original do evento e detalhes do erro) para o destino de falha configurado — sem necessidade de qualquer alteração no código da função.",
-        "Embora DLQs sejam um mecanismo (legado) válido para capturar invocações assíncronas com falha, essa opção descreve a necessidade de ADICIONAR código na função para publicar na DLQ — o que contraria o requisito de 'sem modificar o código'; o Lambda já encaminha automaticamente para a DLQ configurada após esgotar as retentativas, mas Destinations é o mecanismo mais recente e recomendado, sem exigir nenhuma alteração de código.",
-        "A concorrência reservada controla o número MÁXIMO de execuções simultâneas, não o número de tentativas de retry para invocações assíncronas com falha; ela não direciona invocações com falha para lugar nenhum para análise.",
-        "Essa abordagem exige modificar o código da função (contrariando o requisito declarado) e não capturaria falhas que ocorrem FORA do try/catch (ex.: timeout da função, falta de memória, ou um crash antes de alcançar o catch) — os Lambda Destinations capturam falhas independentemente do modo de falha."
+        "Try/catch no código aumenta implementação e não é necessário para a entrega nativa de falhas assíncronas.",
+        "Uma DLQ de Lambda não requer código para receber o evento original, mas destinations oferecem contexto de invocação e opções de destino; as duas configurações não devem ser usadas como se fossem o mesmo fluxo.",
+        "On-failure destination entrega um registro de invocação após as tentativas e idade máxima configuradas; a role de execução precisa autorizar o envio ao SQS.",
+        "Concorrência reservada controla paralelismo, não o encaminhamento de falhas."
       ],
       "topics": [
         "serverless",
@@ -2498,21 +2498,21 @@
     {
       "id": "saa-avc-104",
       "domain": "resilient-architectures",
-      "text": "Uma função Lambda processa mensagens de uma fila SQS, onde cada mensagem pode levar de 30 segundos a 10 minutos para ser processada, dependendo do tamanho do payload (o timeout da função Lambda está configurado para 15 minutos). O visibility timeout da fila SQS está configurado para 30 segundos. A equipe observa que mensagens de processamento longo (que levam vários minutos) estão sendo capturadas e processadas por MÚLTIPLAS invocações Lambda concorrentes simultaneamente, causando processamento duplicado e desperdício de recursos, mesmo sem ocorrência de erros. O que está causando isso e como corrigir?",
+      "text": "Uma Lambda com timeout de 15 minutos consome SQS e pode levar até 10 minutos por mensagem. Com visibility timeout de 30 segundos, mensagens reaparecem durante o processamento. Qual ajuste evita reentregas concorrentes e atende à recomendação para a integração Lambda-SQS?",
       "options": [
-        "O visibility timeout (30s) é menor que o tempo real de processamento de muitas mensagens; quando ele expira (enquanto a invocação original ainda está processando), o SQS torna a mensagem visível novamente e outra invocação a captura, processando-a concorrentemente. Correção: aumentar o visibility timeout da fila para ser MAIOR que o tempo máximo esperado de processamento (ex.: pelo menos igual ao timeout configurado da função, 15 minutos, idealmente com margem).",
-        "O problema é causado pela fila SQS não ter uma dead-letter queue configurada, fazendo as mensagens entrarem em loop indefinidamente.",
-        "O problema é causado pelo batch size do event source mapping do Lambda estar configurado com um valor muito alto, fazendo a mesma mensagem aparecer em múltiplos lotes.",
-        "O problema é causado pela concorrência reservada da função Lambda estar configurada com um valor muito alto, permitindo invocações paralelas em excesso."
+        "Aumentar o visibility timeout para pelo menos seis vezes o timeout da Lambda, considerando a janela de lote.",
+        "Adicionar DLQ e manter visibility timeout de trinta segundos.",
+        "Reduzir batch size para impedir que a mesma mensagem apareça em mais de um lote.",
+        "Reduzir concorrência reservada para impedir processamentos duplicados."
       ],
       "correct": 0,
-      "explanation": "Quando o visibility timeout expira antes que o processamento original termine, o SQS considera a mensagem disponível novamente para outros consumidores, resultando em processamento concorrente duplicado da mesma mensagem sem que tenha ocorrido qualquer erro; alinhar o visibility timeout para exceder o tempo máximo de processamento garante que a mensagem permaneça invisível durante toda a tentativa de processamento.",
-      "hint": "Pense na relação entre o visibility timeout da fila SQS e o tempo real necessário para processar uma mensagem — o que acontece se o timeout expirar antes do processamento terminar?",
+      "explanation": "O timeout de visibilidade expira antes do processamento; a mesma mensagem volta a ser elegível. Para Lambda, o valor deve cobrir retries e ser pelo menos seis vezes o timeout da função, mais a janela de lote quando usada. DLQ decide o destino após repetidas falhas, mas não impede reentrega enquanto um processamento normal ainda está em execução. Batch size não cria cópias da mesma mensagem em lotes distintos no mesmo recebimento. Concorrência possibilita processar mensagens diferentes em paralelo; não é a causa da visibilidade antecipada.",
+      "hint": "O intervalo precisa cobrir mais que a execução nominal, pois a integração pode precisar repetir o recebimento.",
       "optionRationales": [
-        "Quando o visibility timeout expira antes que o processamento original termine, o SQS considera a mensagem disponível novamente para outros consumidores, resultando em processamento concorrente duplicado da mesma mensagem sem que tenha ocorrido qualquer erro; alinhar o visibility timeout para exceder o tempo máximo de processamento garante que a mensagem permaneça invisível durante toda a tentativa de processamento.",
-        "A concorrência reservada limita o paralelismo, mas não explica por que a MESMA mensagem é processada múltiplas vezes; esse sintoma específico (a mesma mensagem reprocessada concorrentemente) é um problema de visibility timeout, não de limite de concorrência.",
-        "DLQs tratam mensagens que falham repetidamente após maxReceiveCount tentativas; elas não resolvem mensagens que se tornam visíveis novamente ENQUANTO ainda estão sendo processadas com sucesso devido a um visibility timeout muito curto, que é o sintoma descrito (sem ocorrência de erros).",
-        "O SQS garante que uma determinada mensagem seja entregue em apenas um lote, para um consumidor por vez (enquanto invisível); o batch size afeta quantas mensagens são agrupadas por invocação, mas não causa a duplicação da MESMA mensagem entre invocações concorrentes — isso é especificamente um problema de expiração do visibility timeout."
+        "O timeout de visibilidade expira antes do processamento; a mesma mensagem volta a ser elegível. Para Lambda, o valor deve cobrir retries e ser pelo menos seis vezes o timeout da função, mais a janela de lote quando usada.",
+        "DLQ decide o destino após repetidas falhas, mas não impede reentrega enquanto um processamento normal ainda está em execução.",
+        "Batch size não cria cópias da mesma mensagem em lotes distintos no mesmo recebimento.",
+        "Concorrência possibilita processar mensagens diferentes em paralelo; não é a causa da visibilidade antecipada."
       ],
       "topics": [
         "serverless"
@@ -2521,21 +2521,21 @@
     {
       "id": "saa-avc-105",
       "domain": "resilient-architectures",
-      "text": "Uma arquitetura orientada a eventos usa o Amazon EventBridge para rotear eventos de diversos produtores para múltiplos consumidores (funções Lambda/targets). Por 6 horas, a função Lambda de um dos consumidores teve um bug que fez com que ela falhasse silenciosamente ao processar certos eventos corretamente (sem lançar erros que acionariam retentativas/DLQ). Após corrigir o bug, a equipe precisa REPROCESSAR todos os eventos enviados ao EventBridge durante essa janela de 6 horas, reproduzindo-os para a função Lambda corrigida, sem afetar outros consumidores que processaram esses eventos corretamente na primeira vez. Qual abordagem atende a esse requisito?",
+      "text": "Um archive EventBridge foi configurado antes da janela de seis horas. Após uma falha lógica silenciosa em um consumidor, a equipe precisa reprocessar somente os eventos desse consumidor corrigido, sem duplicar entregas aos demais. Qual abordagem atende?",
       "options": [
-        "Usar o EventBridge Archive (se um archive foi configurado no event bus para reter eventos correspondentes) e o EventBridge Replay para reproduzir os eventos arquivados da janela de 6 horas para uma NOVA regra/target apontando apenas para a função Lambda corrigida.",
-        "Acionar novamente os produtores de eventos originais para reenviar todos os eventos dessa janela de 6 horas.",
-        "Usar o CloudWatch Logs Insights para extrair os payloads dos eventos dos logs do EventBridge e reinvocar manualmente a função Lambda para cada um via AWS CLI.",
-        "Aumentar o período de retenção da DLQ da função Lambda para que os eventos com falha dessa janela possam ser reprocessados a partir da DLQ."
+        "Usar Archive e Replay, selecionando somente uma nova regra que direcione à Lambda corrigida.",
+        "Pedir aos produtores que reenviem todos os eventos originais da janela de seis horas.",
+        "Extrair payloads dos logs e invocar a Lambda manualmente para cada evento.",
+        "Aumentar retenção da DLQ da Lambda para recuperar eventos que ela processou sem erro."
       ],
       "correct": 0,
-      "explanation": "O Replay do EventBridge envia os eventos arquivados como novos eventos (com um marcador de metadados de replay), direcionados à(s) regra(s) escolhida(s); ao criar uma nova regra apontando somente para a função Lambda corrigida, o replay reprocessa apenas para esse consumidor, sem afetar os consumidores originais que não fazem parte do replay.",
-      "hint": "Pense no par de recursos do EventBridge que permite reter eventos históricos do event bus e reenviá-los posteriormente para regras/targets específicos.",
+      "explanation": "Archive/replay só funciona para eventos arquivados antes da janela; o replay pode especificar a regra de destino para não reenviar aos demais consumidores. Reemitir produtores pode ser impossível, gerar novos efeitos externos e não preserva o payload histórico. Logs não são uma fonte de replay confiável de todos os eventos nem eliminam implementação operacional própria. Como o handler falhou silenciosamente, DLQ não contém necessariamente os eventos.",
+      "hint": "Replays retornam ao mesmo event bus, mas podem limitar as regras destinatárias.",
       "optionRationales": [
-        "O Replay do EventBridge envia os eventos arquivados como novos eventos (com um marcador de metadados de replay), direcionados à(s) regra(s) escolhida(s); ao criar uma nova regra apontando somente para a função Lambda corrigida, o replay reprocessa apenas para esse consumidor, sem afetar os consumidores originais que não fazem parte do replay.",
-        "Isso exigiria que os produtores tivessem retido ou pudessem regenerar exatamente esses eventos históricos, e os reenviaria para TODOS os targets/consumidores originais (não apenas o corrigido), potencialmente causando reprocessamento indesejado nos consumidores que já funcionaram corretamente na primeira vez.",
-        "Esse é um processo totalmente manual, propenso a erros e inviável em escala para potencialmente milhares de eventos; o EventBridge Archive/Replay é o mecanismo nativo projetado especificamente para esse cenário.",
-        "O cenário especifica que a função falhou SILENCIOSAMENTE (sem lançar erros), portanto os eventos nunca entraram em uma DLQ; não há nada na DLQ para reprocessar, já que o EventBridge/Lambda nunca registrou essas execuções como falhas."
+        "Archive/replay só funciona para eventos arquivados antes da janela; o replay pode especificar a regra de destino para não reenviar aos demais consumidores.",
+        "Reemitir produtores pode ser impossível, gerar novos efeitos externos e não preserva o payload histórico.",
+        "Logs não são uma fonte de replay confiável de todos os eventos nem eliminam implementação operacional própria.",
+        "Como o handler falhou silenciosamente, DLQ não contém necessariamente os eventos."
       ],
       "topics": [
         "serverless"
@@ -2546,19 +2546,19 @@
       "domain": "resilient-architectures",
       "text": "Uma organização possui dezenas de aplicações, cada uma com arquitetura definida via CloudFormation/Terraform, mas sem uma forma formal de avaliar se a configuração real de cada aplicação na AWS atende às metas de RTO e RPO definidas pelo NEGÓCIO, ou de identificar lacunas específicas de resiliência (ex.: 'o banco de dados desta aplicação não é Multi-AZ, mas sua meta de RTO exige que seja'). Eles querem um serviço que analise a configuração real dos recursos AWS de uma aplicação em relação a metas de RTO/RPO definidas e produza uma pontuação de resiliência com recomendações acionáveis. Qual serviço atende a esse requisito?",
       "options": [
-        "AWS Well-Architected Tool com o pilar de Confiabilidade (Reliability) selecionado.",
-        "As verificações da categoria 'Fault Tolerance' do AWS Trusted Advisor.",
-        "AWS Resilience Hub.",
-        "AWS Compute Optimizer."
+        "Usar Well-Architected Tool e responder manualmente às perguntas do pilar de Confiabilidade.",
+        "Usar somente checks Fault Tolerance do Trusted Advisor nas contas de aplicação.",
+        "Definir aplicações e políticas de resiliência no AWS Resilience Hub para avaliação e recomendações.",
+        "Usar Compute Optimizer para inferir RTO e RPO a partir de utilização e custos."
       ],
       "correct": 2,
-      "explanation": "O AWS Resilience Hub permite definir uma aplicação (importando recursos de stacks do CloudFormation, estado do Terraform ou recursos marcados com tags), definir metas de RTO/RPO com base em uma política de resiliência escolhida, e executar uma avaliação; o Resilience Hub analisa a configuração real (ex.: configurações Multi-AZ, configurações de backup) em relação às metas, produzindo uma pontuação de resiliência e recomendações específicas e acionáveis para fechar as lacunas identificadas.",
-      "hint": "Pense no serviço da AWS projetado especificamente para definir metas quantitativas de RTO/RPO para uma aplicação e avaliar automaticamente sua configuração real contra essas metas.",
+      "explanation": "Well-Architected Tool depende de avaliação guiada e não analisa automaticamente metas RTO/RPO contra a configuração implantada. Trusted Advisor fornece checks gerais, não uma avaliação de resiliência por aplicação e objetivo de recuperação. Resilience Hub avalia aplicações definidas por recursos/IaC contra políticas de RTO/RPO e produz recomendações, assumindo que a aplicação foi modelada corretamente. Compute Optimizer dimensiona recursos, não avalia metas de recuperação.",
+      "hint": "O serviço precisa relacionar metas formais de recuperação à topologia real da aplicação.",
       "optionRationales": [
-        "O AWS Resilience Hub permite definir uma aplicação (importando recursos de stacks do CloudFormation, estado do Terraform ou recursos marcados com tags), definir metas de RTO/RPO com base em uma política de resiliência escolhida, e executar uma avaliação; o Resilience Hub analisa a configuração real (ex.: configurações Multi-AZ, configurações de backup) em relação às metas, produzindo uma pontuação de resiliência e recomendações específicas e acionáveis para fechar as lacunas identificadas.",
-        "O Trusted Advisor fornece verificações gerais de boas práticas (ex.: 'este ELB tem menos de 2 instâncias saudáveis') em toda a conta, mas não permite definir metas de RTO/RPO específicas por aplicação nem avaliar a arquitetura de uma aplicação específica em relação a essas metas personalizadas com uma pontuação de resiliência.",
-        "O Compute Optimizer fornece recomendações de rightsizing para recursos de computação (EC2, Lambda, EBS, etc.) com base em utilização, focado em otimização de custo/desempenho, não em avaliação de resiliência/RTO/RPO.",
-        "O Well-Architected Tool é um processo de autoavaliação majoritariamente MANUAL, baseado em questionários respondidos por humanos sobre a arquitetura; ele não analisa automaticamente as configurações reais dos recursos implantados em relação a metas quantitativas de RTO/RPO para produzir uma pontuação de resiliência como o Resilience Hub faz."
+        "Well-Architected Tool depende de avaliação guiada e não analisa automaticamente metas RTO/RPO contra a configuração implantada.",
+        "Trusted Advisor fornece checks gerais, não uma avaliação de resiliência por aplicação e objetivo de recuperação.",
+        "Resilience Hub avalia aplicações definidas por recursos/IaC contra políticas de RTO/RPO e produz recomendações, assumindo que a aplicação foi modelada corretamente.",
+        "Compute Optimizer dimensiona recursos, não avalia metas de recuperação."
       ],
       "topics": [
         "dr-backup"
@@ -2567,21 +2567,21 @@
     {
       "id": "saa-avc-107",
       "domain": "resilient-architectures",
-      "text": "Uma empresa precisa atualizar seu banco de dados Amazon RDS for MySQL de produção para uma nova versão MAJOR do engine. Eles estão preocupados com o risco de uma atualização major in-place (que exige indisponibilidade e traz risco de problemas de compatibilidade descobertos somente após a atualização, com rollback complexo). Eles querem: criar uma cópia completa do ambiente de produção com a nova versão do engine, validá-la minuciosamente com testes equivalentes aos de produção, e então fazer a virada (switchover) com indisponibilidade mínima (segundos) — com capacidade de revogar rapidamente se problemas forem encontrados pouco depois da virada. Qual abordagem atende a esse requisito?",
+      "text": "Um RDS MySQL precisa receber uma atualização major com testes completos em um ambiente sincronizado e switchover gerenciado de baixa indisponibilidade. A equipe aceitará definir o plano de reversão operacional e não pressupõe rollback automático após o switchover. Qual abordagem é indicada?",
       "options": [
-        "Realizar a atualização major in-place durante uma janela de manutenção, confiando no snapshot automático tirado antes da atualização para rollback se necessário.",
-        "Usar o AWS DMS para realizar uma migração homogênea única (one-time) do banco na versão antiga para um novo banco executando a nova versão do engine, e então redirecionar o tráfego.",
-        "Usar o Amazon RDS Blue/Green Deployments — o RDS cria um ambiente de staging totalmente gerenciado ('green'), sincronizado com a produção ('blue') via replicação lógica, mas executando a nova versão/configuração do engine; após validação, o RDS realiza um switchover (tipicamente com menos de um minuto de indisponibilidade de escrita) que promove o 'green' a nova produção, mantendo o 'blue' disponível brevemente para rollback rápido se necessário.",
-        "Criar uma Read Replica com a nova versão do engine, validá-la, depois promovê-la a instância independente e atualizar a connection string da aplicação."
+        "Atualizar in-place e restaurar snapshot se a aplicação encontrar incompatibilidade.",
+        "Migrar com DMS one-time para outro RDS e trocar o endpoint manualmente.",
+        "Usar RDS Blue/Green, validar o green e planejar o switchover e a reversão operacional.",
+        "Criar read replica na nova versão major e promovê-la ao final dos testes."
       ],
       "correct": 2,
-      "explanation": "O Blue/Green Deployments do RDS mantém o ambiente 'green' sincronizado com as mudanças contínuas do 'blue' via replicação lógica, permitindo testes completos contra o 'green' sem impactar a produção; quando pronto, o switchover gerenciado promove o 'green' com indisponibilidade de escrita tipicamente inferior a um minuto, e o 'blue' pode ser mantido temporariamente para rollback rápido.",
-      "hint": "Pense no recurso do RDS que cria um ambiente de staging totalmente sincronizado com a produção via replicação lógica, permitindo uma virada (switchover) gerenciada com indisponibilidade mínima.",
+      "explanation": "Upgrade in-place interrompe a instância e rollback requer restaurar ou migrar novamente; snapshot não fornece reversão instantânea. DMS pode migrar dados, mas não oferece o ciclo gerenciado de staging e switchover do cenário. Blue/Green permite testar o ambiente green e fazer switchover controlado. Após switchover concluído, não existe botão de rollback automático; reversão exige planejar e restaurar o tráfego/dados conforme o caso. Read replica não é uma rota geral para atualização major e a promoção exige reconfiguração de endpoints.",
+      "hint": "Blue/Green reduz o risco da virada, mas não substitui o plano de rollback de dados.",
       "optionRationales": [
-        "O Blue/Green Deployments do RDS mantém o ambiente 'green' sincronizado com as mudanças contínuas do 'blue' via replicação lógica, permitindo testes completos contra o 'green' sem impactar a produção; quando pronto, o switchover gerenciado promove o 'green' com indisponibilidade de escrita tipicamente inferior a um minuto, e o 'blue' pode ser mantido temporariamente para rollback rápido.",
-        "Promover uma Read Replica a instância independente é uma operação manual e unidirecional; alterar a connection string da aplicação introduz mais indisponibilidade/coordenação do que o switchover gerenciado do Blue/Green (que preserva o mesmo endpoint), e não há um caminho integrado de rollback rápido de volta ao ambiente 'blue' original após a promoção.",
-        "Essa é a abordagem de maior risco e indisponibilidade que a empresa explicitamente quer EVITAR; reverter a partir de um snapshot pré-atualização significa restaurar uma nova instância a partir dele (perdendo escritas feitas após o snapshot) e atualizar endpoints, o que é mais lento e com mais perda de dados do que o switchover/rollback do Blue/Green.",
-        "Uma migração única via DMS captura os dados em um ponto no tempo, exigindo um plano de cutover para lidar com escritas contínuas durante a migração (o CDC do DMS pode ajudar, mas o DMS não é o mecanismo nativo e totalmente gerenciado do RDS para atualizações de versão de engine in-place com staging sincronizado e switchover/rollback rápidos, como o Blue/Green Deployments)."
+        "Upgrade in-place interrompe a instância e rollback requer restaurar ou migrar novamente; snapshot não fornece reversão instantânea.",
+        "DMS pode migrar dados, mas não oferece o ciclo gerenciado de staging e switchover do cenário.",
+        "Blue/Green permite testar o ambiente green e fazer switchover controlado. Após switchover concluído, não existe botão de rollback automático; reversão exige planejar e restaurar o tráfego/dados conforme o caso.",
+        "Read replica não é uma rota geral para atualização major e a promoção exige reconfiguração de endpoints."
       ],
       "topics": [
         "databases"
@@ -2592,19 +2592,19 @@
       "domain": "resilient-architectures",
       "text": "Uma aplicação global tem sua carga de trabalho de escrita primária em us-east-1 usando Amazon ElastiCache for Redis, e quer fornecer acesso de LEITURA de baixa latência aos mesmos dados em cache para uma aplicação implantada em ap-southeast-1, com os dados em cache mantidos em sincronia quase em tempo real de us-east-1 para ap-southeast-1, e a capacidade de promover o cluster de ap-southeast-1 para aceitar escritas (tornando-se o novo primário) caso us-east-1 fique indisponível. Qual recurso do ElastiCache atende a esse requisito?",
       "options": [
-        "Amazon ElastiCache Global Datastore for Redis.",
-        "Usar o ElastiCache for Memcached com Auto Discovery habilitado em ambas as Regiões.",
-        "Implantar clusters ElastiCache for Redis independentes em ambas as Regiões e usar funções Lambda acionadas por Redis Keyspace Notifications para replicar escritas entre eles.",
-        "Configurar o ElastiCache for Redis com Multi-AZ habilitado, que estende automaticamente o grupo de replicação entre Regiões."
+        "Usar ElastiCache Global Datastore for Redis com réplica regional e procedimento de promoção.",
+        "Usar Memcached com Auto Discovery em cada Região para compartilhar o mesmo cache.",
+        "Replicar mudanças com Lambdas e Keyspace Notifications entre clusters Redis independentes.",
+        "Habilitar Multi-AZ em Redis para estender automaticamente o replication group a outra Região."
       ],
       "correct": 0,
-      "explanation": "O Global Datastore fornece um mecanismo de replicação entre regiões totalmente gerenciado, replicando assincronamente os dados de um cluster primário (us-east-1) para um ou mais clusters secundários em outras Regiões (ap-southeast-1), permitindo leituras locais de baixa latência em ap-southeast-1; em caso de interrupção regional, a região do cluster secundário pode ser promovida a novo primário, passando a aceitar escritas.",
-      "hint": "Pense no recurso do ElastiCache for Redis projetado especificamente para replicação assíncrona ENTRE REGIÕES, com capacidade de promoção do cluster secundário a primário.",
+      "explanation": "Global Datastore replica de uma Região primária a secundárias para leituras locais e permite promover/remover a primária em falha, seguindo o procedimento de failover. Memcached não fornece replicação global ou promoção de cluster Redis. Replicação customizada por notificações de chave é incompleta e exige resolver ordenação, falhas e consistência. Multi-AZ é proteção dentro de uma Região; não estende o replication group entre Regiões.",
+      "hint": "A necessidade combina réplica de leitura inter-regional com recuperação regional.",
       "optionRationales": [
-        "O Global Datastore fornece um mecanismo de replicação entre regiões totalmente gerenciado, replicando assincronamente os dados de um cluster primário (us-east-1) para um ou mais clusters secundários em outras Regiões (ap-southeast-1), permitindo leituras locais de baixa latência em ap-southeast-1; em caso de interrupção regional, a região do cluster secundário pode ser promovida a novo primário, passando a aceitar escritas.",
-        "Construir replicação entre regiões personalizada via Lambda e keyspace notifications é complexo, introduz latência/custo adicionais e traz riscos de inconsistência de dados, quando o ElastiCache Global Datastore já fornece isso como um recurso nativo totalmente gerenciado.",
-        "O Multi-AZ no ElastiCache for Redis fornece replicação e failover automático ENTRE ZONAS DE DISPONIBILIDADE DENTRO DE UMA ÚNICA REGIÃO; ele não se estende entre REGIÕES — replicação entre regiões requer especificamente o Global Datastore.",
-        "O Memcached não possui nenhum mecanismo de replicação embutido (é um cache distribuído simples, sem persistência ou relações de réplica), e o Auto Discovery apenas ajuda os clientes a descobrir nós de cache DENTRO de um único cluster, não a replicar dados entre regiões."
+        "Global Datastore replica de uma Região primária a secundárias para leituras locais e permite promover/remover a primária em falha, seguindo o procedimento de failover.",
+        "Memcached não fornece replicação global ou promoção de cluster Redis.",
+        "Replicação customizada por notificações de chave é incompleta e exige resolver ordenação, falhas e consistência.",
+        "Multi-AZ é proteção dentro de uma Região; não estende o replication group entre Regiões."
       ],
       "topics": [
         "databases"
@@ -2615,19 +2615,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa tem dois fluxos de trabalho no AWS Step Functions: (1) processamento de telemetria de IoT, com milhões de execuções curtas (poucos segundos) por dia, onde o custo por execução é prioridade e semântica 'at-least-once' (pelo menos uma vez) é aceitável, já que o processamento é idempotente; (2) processamento de pagamentos, com volume muito menor, execuções mais longas, exigindo semântica de execução 'exactly-once' (exatamente uma vez) e histórico completo de execução (visível no console por até 90 dias) para auditoria/compliance. Qual tipo de workflow do Step Functions deve ser usado para (1) e para (2), respectivamente?",
       "options": [
-        "Express Workflows para ambos (1) e (2), já que Express Workflows são mais baratos e suportam todos os mesmos recursos que Standard.",
-        "Express Workflows para (1) e Standard Workflows para (2).",
-        "Express Workflows para (1) e AWS Step Functions Activities (com workers EC2 fazendo polling de tasks) para (2), evitando Standard Workflows completamente.",
-        "Standard Workflows para ambos (1) e (2), já que Standard Workflows fornecem semântica exactly-once para todos os casos de uso."
+        "Usar Express nos dois fluxos por ter custo inferior em todas as situações.",
+        "Usar Express para telemetria idempotente e Standard para pagamentos auditáveis.",
+        "Usar Express para telemetria e Activities EC2 para pagamentos, sem Standard.",
+        "Usar Standard para ambos os fluxos para impor exactly-once também na telemetria."
       ],
       "correct": 1,
-      "explanation": "Express Workflows são precificados por duração/número de execuções e otimizados para cargas de alto volume e curta duração a menor custo, mas fornecem semântica 'at-least-once' (com histórico enviado ao CloudWatch Logs, não ao histórico de 90 dias do console). Standard Workflows fornecem semântica 'exactly-once' e mantêm histórico de execução por até 90 dias no console do Step Functions, adequados para workflows de menor volume, mais longos e sensíveis a auditoria, como processamento de pagamentos.",
-      "hint": "Pense em quais dois tipos de workflow do Step Functions diferem em precificação, semântica de execução (at-least-once vs. exactly-once) e retenção do histórico de execução no console.",
+      "explanation": "Express é adequado a alto volume e processamento idempotente pelo menos uma vez, mas não à semântica Standard exigida para pagamentos. Standard fornece execução exatamente uma vez, histórico de execução e maior duração; é o tipo apropriado ao fluxo de auditoria descrito. Activities são uma integração de worker, não substituem o tipo Standard nem fornecem por si só o histórico e a semântica exigidos. Usar Standard para telemetria pode funcionar, mas é mais caro e não atende à prioridade do primeiro fluxo tão bem quanto Express.",
+      "hint": "Compare garantias de execução, duração e histórico, não apenas preço por execução.",
       "optionRationales": [
-        "Express Workflows são precificados por duração/número de execuções e otimizados para cargas de alto volume e curta duração a menor custo, mas fornecem semântica 'at-least-once' (com histórico enviado ao CloudWatch Logs, não ao histórico de 90 dias do console). Standard Workflows fornecem semântica 'exactly-once' e mantêm histórico de execução por até 90 dias no console do Step Functions, adequados para workflows de menor volume, mais longos e sensíveis a auditoria, como processamento de pagamentos.",
-        "Usar Standard Workflows para o caso de alto volume de IoT seria consideravelmente mais caro (Standard é precificado por transição de estado, o que se torna custoso em milhões de execuções/dia) em comparação ao Express, que é otimizado exatamente para esse padrão.",
-        "Express Workflows fornecem apenas semântica 'at-least-once' e não retêm o histórico de execução de 90 dias no console do Step Functions (os logs vão para o CloudWatch Logs); isso não atende aos requisitos do workflow (2) de semântica exactly-once e histórico de execução amigável para auditoria.",
-        "Activities são um padrão de integração de tarefas (para integração com workers externos/EC2/on-premises), utilizável dentro de workflows Standard OU Express; não são um TIPO alternativo de workflow e não fornecem, por si só, semântica exactly-once ou o histórico de execução de 90 dias — essas propriedades vêm especificamente da escolha do tipo Standard Workflow."
+        "Express é adequado a alto volume e processamento idempotente pelo menos uma vez, mas não à semântica Standard exigida para pagamentos.",
+        "Standard fornece execução exatamente uma vez, histórico de execução e maior duração; é o tipo apropriado ao fluxo de auditoria descrito.",
+        "Activities são uma integração de worker, não substituem o tipo Standard nem fornecem por si só o histórico e a semântica exigidos.",
+        "Usar Standard para telemetria pode funcionar, mas é mais caro e não atende à prioridade do primeiro fluxo tão bem quanto Express."
       ],
       "topics": [
         "app-integration",
@@ -2639,19 +2639,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa executa um banco de dados Oracle de produção on-premises e quer manter uma cópia warm-standby desse banco continuamente atualizada em um RDS for Oracle em us-west-2 (região de DR), com as alterações do banco on-premises replicadas com baixa latência (minutos), sem exigir alterações na aplicação que usa o banco on-premises. Em caso de desastre on-premises, a instância RDS em us-west-2 seria promovida/usada como novo primário. Qual abordagem atende a esse requisito?",
       "options": [
-        "Realizar backups RMAN periódicos do banco Oracle on-premises e restaurá-los na instância RDS for Oracle a cada poucas horas.",
-        "Usar o AWS Schema Conversion Tool (SCT) para realizar uma conversão e migração única (one-time) do schema e dos dados para o RDS for Oracle.",
-        "Configurar o Oracle Data Guard em modo 'Maximum Performance' para replicar diretamente para a instância RDS for Oracle.",
-        "Usar o AWS Database Migration Service (DMS) com uma tarefa de replicação configurada para 'full load + Change Data Capture (CDC)'."
+        "Restaurar backups RMAN periodicamente no destino RDS para manter um warm standby.",
+        "Usar SCT para uma conversão única e considerar o destino sincronizado depois da migração.",
+        "Configurar Oracle Data Guard diretamente entre o servidor on-premises e RDS for Oracle.",
+        "Usar DMS full load + CDC do Oracle on-premises para o RDS for Oracle de recuperação."
       ],
       "correct": 3,
-      "explanation": "O DMS realiza uma carga completa inicial (full load) do banco Oracle on-premises para o RDS for Oracle em us-west-2, e então captura e aplica continuamente as alterações (CDC) a partir dos logs de transação/redo do banco de origem, mantendo o destino em sincronia quase em tempo real, sem exigir alterações na aplicação de origem.",
-      "hint": "Pense no serviço da AWS projetado especificamente para replicação contínua de bancos de dados via captura de alterações (change data capture) para um banco de destino gerenciado, sem alterar a aplicação de origem.",
+      "explanation": "Backups periódicos aumentam RPO e exigem restauração, não CDC de baixa latência. SCT avalia/converte schema, não mantém replicação contínua de mudanças. Data Guard não é configurável diretamente para uma instância RDS for Oracle como standby gerenciado pelo cliente. DMS full load + CDC replica alterações para o destino; compatibilidade, logs suplementares e preparação do endpoint precisam ser configurados.",
+      "hint": "O requisito pede carga inicial e captura contínua de alterações sem controlar a instância RDS como standby Data Guard.",
       "optionRationales": [
-        "O DMS realiza uma carga completa inicial (full load) do banco Oracle on-premises para o RDS for Oracle em us-west-2, e então captura e aplica continuamente as alterações (CDC) a partir dos logs de transação/redo do banco de origem, mantendo o destino em sincronia quase em tempo real, sem exigir alterações na aplicação de origem.",
-        "O SCT é destinado principalmente à conversão de SCHEMAS de banco de dados (especialmente em migrações heterogêneas) e à migração inicial; ele não fornece replicação contínua/CDC para manter o destino sincronizado ao longo do tempo.",
-        "O RDS for Oracle é um serviço gerenciado que NÃO fornece o acesso direto em nível de host necessário para configurar o Oracle Data Guard entre um primário on-premises e uma standby no RDS; o Data Guard não é uma configuração suportada para replicar para o RDS for Oracle a partir de bancos Oracle externos.",
-        "Backup/restauração periódica fornece RPO medido em HORAS (o intervalo entre backups), não os 'minutos' de replicação CDC quase em tempo real exigidos, além de ser um processo manual/roteirizado operacionalmente pesado em comparação ao CDC gerenciado do DMS."
+        "Backups periódicos aumentam RPO e exigem restauração, não CDC de baixa latência.",
+        "SCT avalia/converte schema, não mantém replicação contínua de mudanças.",
+        "Data Guard não é configurável diretamente para uma instância RDS for Oracle como standby gerenciado pelo cliente.",
+        "DMS full load + CDC replica alterações para o destino; compatibilidade, logs suplementares e preparação do endpoint precisam ser configurados."
       ],
       "topics": [
         "migration",
@@ -2663,19 +2663,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa possui buckets S3 com os mesmos dados replicados (via S3 Cross-Region Replication) entre us-east-1 e eu-west-1, para uma aplicação ativo-ativo. Atualmente, a aplicação precisa saber qual bucket/região usar, e implementa sua própria lógica para fazer failover para o bucket da outra região se o primário ficar inacessível. A empresa quer um ÚNICO endpoint global que a aplicação possa usar para requisições ao S3, com a AWS roteando automaticamente cada requisição para a réplica de bucket na Região de menor latência (ou saudável), eliminando a necessidade de a aplicação gerenciar endpoints por região e lógica de failover. Qual recurso atende a esse requisito?",
       "options": [
-        "Criar um S3 Multi-Region Access Point abrangendo os buckets em us-east-1 e eu-west-1.",
-        "Configurar o S3 Transfer Acceleration em ambos os buckets para que as requisições sejam roteadas automaticamente para o bucket mais próximo.",
-        "Criar uma distribuição do Amazon CloudFront com ambos os buckets S3 configurados como um origin group para failover.",
-        "Usar roteamento por latência do Route 53 com dois registros apontando para o endpoint S3 regional de cada bucket."
+        "Criar Multi-Region Access Point para os buckets replicados e usar seu endpoint global.",
+        "Habilitar Transfer Acceleration nos dois buckets e usar um dos endpoints acelerados.",
+        "Criar distribuição CloudFront com origin group para representar os dois buckets no SDK S3.",
+        "Criar registros Route 53 por latência apontando aos endpoints regionais dos buckets."
       ],
       "correct": 0,
-      "explanation": "A aplicação usa o endpoint/ARN global único do Multi-Region Access Point para todas as requisições ao S3; a AWS roteia automaticamente cada requisição (usando a rede do AWS Global Accelerator) para a réplica de bucket saudável de menor latência, com failover automático para o bucket da outra Região caso uma delas fique indisponível — a aplicação não precisa mais de lógica de endpoint por região.",
-      "hint": "Pense no recurso do S3 projetado especificamente para fornecer um único ponto de acesso global que roteia automaticamente entre réplicas de buckets em múltiplas regiões.",
+      "explanation": "MRAP fornece um endpoint global para buckets replicados e pode rotear requisições à cópia mais próxima, com controles de failover; não replica dados sozinho. Transfer Acceleration acelera o acesso a um bucket específico, sem escolher outra réplica. Origin group CloudFront é orientado a entrega HTTP e não substitui endpoint S3 de leitura/escrita da aplicação. Route 53 não resolve diretamente a seleção correta de buckets S3 por registros aliases regionais nesse modelo.",
+      "hint": "O serviço deve fornecer endpoint S3 global e não apenas uma camada HTTP ou DNS genérica.",
       "optionRationales": [
-        "A aplicação usa o endpoint/ARN global único do Multi-Region Access Point para todas as requisições ao S3; a AWS roteia automaticamente cada requisição (usando a rede do AWS Global Accelerator) para a réplica de bucket saudável de menor latência, com failover automático para o bucket da outra Região caso uma delas fique indisponível — a aplicação não precisa mais de lógica de endpoint por região.",
-        "O CloudFront com origin groups fornece failover para entrega de CONTEÚDO a usuários finais (acesso de leitura estilo HTTP GET via CDN), mas não foi projetado para ser um endpoint transparente para operações gerais da API do S3 de uma APLICAÇÃO (ex.: PutObject a partir de servidores de aplicação), como os Multi-Region Access Points são.",
-        "Endpoints de bucket do S3 (especialmente com endereçamento virtual-hosted-style e certificados SSL vinculados a nomes de bucket/regiões específicos) geralmente não são projetados para serem acessados de forma intercambiável via um nome DNS personalizado com roteamento automático da forma como os Multi-Region Access Points foram propositalmente construídos; isso exigiria engenharia customizada significativa e não forneceria a mesma semântica de failover automático para chamadas da API do S3.",
-        "O Transfer Acceleration acelera transferências PARA um bucket ESPECÍFICO via edge locations do CloudFront; ele não fornece um único endpoint que roteie entre MÚLTIPLOS buckets em regiões diferentes, nem fornece failover entre eles."
+        "MRAP fornece um endpoint global para buckets replicados e pode rotear requisições à cópia mais próxima, com controles de failover; não replica dados sozinho.",
+        "Transfer Acceleration acelera o acesso a um bucket específico, sem escolher outra réplica.",
+        "Origin group CloudFront é orientado a entrega HTTP e não substitui endpoint S3 de leitura/escrita da aplicação.",
+        "Route 53 não resolve diretamente a seleção correta de buckets S3 por registros aliases regionais nesse modelo."
       ],
       "topics": [
         "s3-storage"
@@ -2686,19 +2686,19 @@
       "domain": "resilient-architectures",
       "text": "Uma aplicação web stateless executa em um Auto Scaling Group usando um único tipo de instância (m5.large) em 2 AZs, totalmente com instâncias On-Demand. A empresa quer reduzir custos de computação incorporando Spot Instances, mas está preocupada que: (a) a capacidade Spot para m5.large pode não estar sempre disponível em quantidade suficiente em nenhuma das AZs (impedindo o ASG de lançar instâncias suficientes), e (b) uma interrupção de Spot afetando muitas instâncias do mesmo tipo simultaneamente poderia causar uma queda significativa de capacidade. Como o ASG deve ser configurado para incorporar a economia do Spot mitigando AMBAS as preocupações?",
       "options": [
-        "Usar Scheduled Scaling para pré-provisionar capacidade On-Demand durante o horário comercial e escalar para zero fora do horário, evitando Spot completamente.",
-        "Migrar totalmente para Spot Instances com um único tipo de instância, mas configurar um 'Spot max price' bem alto, igual ao preço On-Demand.",
-        "Configurar o ASG com uma 'mixed instances policy' especificando MÚLTIPLOS tipos de instância compatíveis (ex.: m5.large, m5a.large, m4.large, m5.xlarge com capacidade ponderada) em MÚLTIPLOS pools de capacidade Spot (combinações de tipo de instância + AZ), junto com um número base de instâncias On-Demand (ou uma porcentagem On-Demand) para capacidade mínima garantida.",
-        "Usar um único tipo de instância Spot, mas solicitar capacidade Spot em 4 AZs diferentes simultaneamente para aumentar a chance de disponibilidade."
+        "Usar Scheduled Scaling somente com On-Demand e não incorporar Spot.",
+        "Usar apenas m5.large Spot e elevar o preço máximo ao preço On-Demand.",
+        "Usar mixed instances policy com tipos/pools diversos e base ou percentual On-Demand.",
+        "Usar apenas m5.large Spot em várias AZs e assumir que os pools são independentes."
       ],
       "correct": 2,
-      "explanation": "Diversificar entre tipos de instância e pools reduz a chance de indisponibilidade/interrupção simultânea em todos os pools ao mesmo tempo, enquanto a base On-Demand garante uma capacidade mínima sempre disponível — atendendo a ambas as preocupações da empresa.",
-      "hint": "Pense na recomendação da AWS para mitigar tanto a indisponibilidade de capacidade quanto interrupções simultâneas do Spot: diversificação por múltiplas dimensões (tipo de instância e AZ), combinada com uma base garantida de capacidade.",
+      "explanation": "Scheduled Scaling pode reduzir custo em padrões previsíveis, mas não usa Spot nem resolve diversidade de pools. Um único tipo Spot continua exposto à indisponibilidade e a interrupções correlacionadas daquele pool. Mixed instances policy usa tipos e AZs compatíveis, diversifica pools e mantém base On-Demand ou percentual para capacidade mínima. Solicitar o mesmo tipo em várias AZs melhora opções, mas ainda concentra a exposição no mesmo tipo de instância.",
+      "hint": "Diversidade precisa abranger tanto tipo de instância quanto Zona/pool, com uma base de capacidade estável.",
       "optionRationales": [
-        "Diversificar entre tipos de instância e pools reduz a chance de indisponibilidade/interrupção simultânea em todos os pools ao mesmo tempo, enquanto a base On-Demand garante uma capacidade mínima sempre disponível — atendendo a ambas as preocupações da empresa.",
-        "O ASG atual opera em apenas 2 AZs (presumivelmente onde existem sub-redes da VPC); adicionar arbitrariamente mais AZs pode não ser viável, e diversificar apenas por AZ (não por tipo de instância) ainda deixa risco se aquele ÚNICO tipo de instância sofrer escassez de capacidade/interrupção ampla em todas as AZs simultaneamente — a diversificação por tipo de instância é a mitigação mais eficaz segundo as recomendações da AWS.",
-        "Um max price mais alto afeta apenas se a solicitação Spot é atendida ao preço Spot atual (até esse limite) e a probabilidade de interrupção por PREÇO, mas não resolve a disponibilidade de CAPACIDADE para aquele único pool tipo de instância/AZ, nem interrupções por reivindicação de capacidade pela AWS (que podem ocorrer independentemente do preço ofertado).",
-        "Essa abordagem evita o Spot por completo (não atendendo ao objetivo de redução de custo via Spot) e não aborda as questões subjacentes sobre diversificação de capacidade Spot; é uma otimização de custo ortogonal, não relacionada às preocupações declaradas."
+        "Scheduled Scaling pode reduzir custo em padrões previsíveis, mas não usa Spot nem resolve diversidade de pools.",
+        "Um único tipo Spot continua exposto à indisponibilidade e a interrupções correlacionadas daquele pool.",
+        "Mixed instances policy usa tipos e AZs compatíveis, diversifica pools e mantém base On-Demand ou percentual para capacidade mínima.",
+        "Solicitar o mesmo tipo em várias AZs melhora opções, mas ainda concentra a exposição no mesmo tipo de instância."
       ],
       "topics": [
         "ec2-compute",
@@ -2711,19 +2711,19 @@
       "domain": "resilient-architectures",
       "text": "A aplicação multi-camada de uma empresa aparenta estar saudável segundo health checks de infraestrutura (status checks do EC2 e target health do ALB, todos verdes), mas usuários ocasionalmente relatam que o fluxo de 'checkout' do site (uma jornada multi-etapas envolvendo login, adicionar ao carrinho e finalizar a compra) fica indisponível por 10-15 minutos antes que alguém perceba, pois nenhum dos health checks existentes exercita de fato esse fluxo de ponta a ponta. A equipe quer detecção PROATIVA e automatizada desse tipo de problema — simulando regularmente a jornada real do usuário a partir de fora da infraestrutura e alertando em caso de falha — para reduzir o tempo até a detecção. Qual abordagem atende a esse requisito?",
       "options": [
-        "Criar um canário do Amazon CloudWatch Synthetics usando um blueprint do tipo 'heartbeat'/jornada que execute programaticamente o fluxo multi-etapas de checkout (login, adicionar ao carrinho, finalizar compra) em um cronograma (ex.: a cada 5 minutos) a partir de fora da infraestrutura; configurar um alarme do CloudWatch sobre as métricas de taxa de sucesso/duração do canário para alertar a equipe automaticamente em caso de falha ou degradação.",
-        "Habilitar o AWS X-Ray em todos os serviços envolvidos no fluxo de checkout para identificar a causa raiz após um usuário relatar um problema.",
-        "Aumentar a frequência dos alarmes de status check do EC2 no CloudWatch de 5 minutos para 1 minuto.",
-        "Configurar health checks adicionais do target group do ALB com um caminho de verificação mais complexo que exercite o fluxo de checkout."
+        "Criar canário Synthetics que execute uma jornada de checkout de teste e alarme suas métricas.",
+        "Habilitar X-Ray e esperar uma reclamação do usuário para investigar o traço correspondente.",
+        "Aumentar a frequência dos status checks EC2 para detectar indisponibilidade do checkout.",
+        "Criar health check ALB que execute login, carrinho e pagamento em todos os targets."
       ],
       "correct": 0,
-      "explanation": "Os canários do CloudWatch Synthetics executam scripts que simulam jornadas de usuário reais e multi-etapas a partir de fora da infraestrutura, em um cronograma regular; combinados com um alarme do CloudWatch sobre suas métricas, fornecem detecção proativa e automatizada de falhas no fluxo de checkout antes que muitos usuários reais sejam afetados.",
-      "hint": "Pense no serviço do CloudWatch projetado especificamente para executar scripts que simulam jornadas de usuário reais a partir de fora da infraestrutura, em um cronograma regular.",
+      "explanation": "Synthetics executa uma jornada externa programada e emite métricas para alertas; contas de teste e dados devem ser isolados da produção. X-Ray ajuda diagnóstico de solicitações instrumentadas, mas não cria teste proativo de jornada. Status checks EC2 não exercitam login, carrinho e pagamento. Health check ALB verifica um endpoint por target; não executa uma sequência de ações de usuário.",
+      "hint": "A jornada precisa gerar tráfego de teste e alerta antes de um usuário real reportar o problema.",
       "optionRationales": [
-        "Os canários do CloudWatch Synthetics executam scripts que simulam jornadas de usuário reais e multi-etapas a partir de fora da infraestrutura, em um cronograma regular; combinados com um alarme do CloudWatch sobre suas métricas, fornecem detecção proativa e automatizada de falhas no fluxo de checkout antes que muitos usuários reais sejam afetados.",
-        "Health checks do ALB são requisições periódicas simples (HTTP/HTTPS/TCP) para um único caminho, com validação limitada da resposta esperada; eles não foram projetados para realizar jornadas de usuário multi-etapas e stateful (login → adicionar ao carrinho → compra) envolvendo múltiplas requisições e estado de sessão.",
-        "O X-Ray ajuda na análise de causa raiz APÓS um problema ser detectado/relatado (reativo), mas não fornece simulação proativa e agendada da jornada do usuário para detectar problemas antes que os usuários os relatem.",
-        "Status checks do EC2 refletem a saúde da instância/hardware, não a funcionalidade de uma jornada de usuário multi-etapas em nível de aplicação; aumentar sua frequência não detectaria um bug no fluxo de checkout quando a infraestrutura subjacente está saudável."
+        "Synthetics executa uma jornada externa programada e emite métricas para alertas; contas de teste e dados devem ser isolados da produção.",
+        "X-Ray ajuda diagnóstico de solicitações instrumentadas, mas não cria teste proativo de jornada.",
+        "Status checks EC2 não exercitam login, carrinho e pagamento.",
+        "Health check ALB verifica um endpoint por target; não executa uma sequência de ações de usuário."
       ],
       "topics": [
         "monitoring",
@@ -2734,21 +2734,21 @@
     {
       "id": "saa-avc-114",
       "domain": "resilient-architectures",
-      "text": "Uma empresa executa o Amazon RDS for PostgreSQL em us-east-1 com Multi-AZ habilitado (protegendo contra falhas de AZ). Para proteção contra uma interrupção REGIONAL completa de us-east-1, eles criam uma Cross-Region Read Replica do RDS em us-west-2, sabendo que essa réplica usa replicação assíncrona (com algum lag de replicação, RPO diferente de zero). Em caso de uma interrupção regional em us-east-1, qual é o procedimento correto de DR usando essa réplica entre regiões, e o que a equipe deve ter em mente?",
+      "text": "Uma read replica RDS entre Regiões é usada para DR de uma instância Multi-AZ. Em uma falha regional, o runbook deve aceitar RPO não zero e não pressupor automação nativa de promoção ou retorno. Qual passo principal é correto após validar o estado da réplica?",
       "options": [
-        "Durante a interrupção, PROMOVER manualmente a Cross-Region Read Replica de us-west-2 para se tornar uma instância RDS independente (operação unidirecional — a réplica se torna primária e para de replicar); reconfigurar a aplicação (ex.: via atualização de DNS/connection string) para apontar para essa instância recém-promovida; estar consciente de que, por ser replicação assíncrona, algumas transações recentes ainda não replicadas no momento da interrupção podem ser perdidas (RPO diferente de zero); e configurar Multi-AZ separadamente na instância agora promovida em us-west-2 para resiliência contínua a nível de AZ.",
-        "Como a réplica está em outra Região, ela já está automaticamente protegida por Multi-AZ e não requer configuração adicional após a promoção.",
-        "A Cross-Region Read Replica se torna automaticamente o novo primário e começa a aceitar escritas assim que os health checks do Route 53 detectarem a interrupção em us-east-1, com zero perda de dados.",
-        "A aplicação pode continuar escrevendo no endpoint original de us-east-1, e o RDS redirecionará automaticamente essas escritas para a instância promovida em us-west-2."
+        "Promover manualmente a réplica, atualizar o roteamento da aplicação e configurar Multi-AZ no novo primário.",
+        "Depender de Route 53 para promover automaticamente a read replica sem perda de dados.",
+        "Continuar usando o endpoint original e esperar redirecionamento automático ao novo primário.",
+        "Usar PITR na Região de origem para que a read replica seja promovida automaticamente."
       ],
       "correct": 0,
-      "explanation": "A promoção de uma Cross-Region Read Replica do RDS é uma ação MANUAL e unidirecional; como a replicação é assíncrona, não há garantia de zero perda de dados (RPO > 0); e a instância promovida é uma instância única que não herda automaticamente proteção Multi-AZ — tudo isso deve ser tratado explicitamente pela equipe como parte do procedimento de DR.",
-      "hint": "Pense em quais aspectos de uma Cross-Region Read Replica do RDS são automáticos e quais exigem ação manual do operador — promoção, RPO e proteção Multi-AZ subsequente.",
+      "explanation": "Após promoção, a instância é independente e o RDS não adiciona Multi-AZ automaticamente; a aplicação deve usar endpoint/roteamento de DR e aceitar o RPO do lag. A read replica não possui failover automático regional nem perda zero por ser assíncrona. O endpoint original não redireciona escritas entre Regiões após uma promoção. PITR local não promove a cross-region replica nem restabelece replicação reversa automaticamente.",
+      "hint": "Multi-AZ local, replicação entre Regiões e promoção de réplica são mecanismos distintos.",
       "optionRationales": [
-        "A promoção de uma Cross-Region Read Replica do RDS é uma ação MANUAL e unidirecional; como a replicação é assíncrona, não há garantia de zero perda de dados (RPO > 0); e a instância promovida é uma instância única que não herda automaticamente proteção Multi-AZ — tudo isso deve ser tratado explicitamente pela equipe como parte do procedimento de DR.",
-        "Cross-Region Read Replicas do RDS NÃO se promovem automaticamente; a promoção é uma ação MANUAL iniciada pelo operador/automação, e como a replicação é assíncrona, zero perda de dados não pode ser garantida (existe algum RPO).",
-        "Uma Cross-Region Read Replica é uma instância única na região de destino; ela não herda nem ganha automaticamente proteção Multi-AZ — o Multi-AZ deve ser explicitamente configurado nela (antes ou depois da promoção) se a resiliência contínua a nível de AZ for desejada.",
-        "Durante uma interrupção regional, o endpoint/instância de us-east-1 está indisponível; não existe um mecanismo automático de redirecionamento de escritas entre regiões no RDS — a aplicação deve ser explicitamente reconfigurada para apontar para o endpoint da instância recém-promovida."
+        "Após promoção, a instância é independente e o RDS não adiciona Multi-AZ automaticamente; a aplicação deve usar endpoint/roteamento de DR e aceitar o RPO do lag.",
+        "A read replica não possui failover automático regional nem perda zero por ser assíncrona.",
+        "O endpoint original não redireciona escritas entre Regiões após uma promoção.",
+        "PITR local não promove a cross-region replica nem restabelece replicação reversa automaticamente."
       ],
       "topics": [
         "databases",
@@ -2759,21 +2759,21 @@
     {
       "id": "saa-avc-115",
       "domain": "resilient-architectures",
-      "text": "Um serviço ECS executando no launch type EC2 (não Fargate) tem suas tasks posicionadas usando a estratégia de posicionamento PADRÃO, que a equipe descobre tende a concentrar ('binpack') as tasks em poucas instâncias de container dentro da mesma AZ, para otimizar a utilização de recursos, deixando outras AZs subutilizadas. Essa concentração significa que uma falha de AZ poderia derrubar um número desproporcional das tasks do serviço. Como a equipe deve configurar o posicionamento de tasks para garantir distribuição uniforme entre AZs (e entre instâncias dentro de cada AZ), priorizando disponibilidade sobre eficiência de bin-packing?",
+      "text": "Um serviço ECS EC2 usa múltiplas sub-redes/AZs e deve espalhar tasks primeiramente entre as AZs e depois entre instâncias, quando houver capacidade. Qual estratégia de placement atende?",
       "options": [
-        "Configurar uma CONSTRAINT de posicionamento do tipo 'distinctInstance' para o serviço.",
-        "Mudar o launch type do serviço de EC2 para Fargate, que distribui automaticamente as tasks entre AZs por padrão, sem configuração.",
-        "Configurar a estratégia de posicionamento do serviço ECS como 'spread', usando o campo 'attribute:ecs.availability-zone' como campo de distribuição primário (opcionalmente combinado com um spread secundário em 'instanceId' para distribuir também entre hosts dentro de cada AZ).",
-        "Reduzir o desired count do serviço para que o bin-packing resulte naturalmente em distribuição uniforme."
+        "Usar distinctInstance como única regra de placement para distribuir tarefas entre AZs.",
+        "Trocar para Fargate e depender de distribuição automática sem configurar sub-redes.",
+        "Configurar spread por availability-zone e, em seguida, por instanceId.",
+        "Reduzir desired count até que o binpack pareça mais uniforme."
       ],
       "correct": 2,
-      "explanation": "A estratégia 'spread' usando 'attribute:ecs.availability-zone' distribui explicitamente as tasks de forma uniforme entre AZs (e, com um spread secundário em 'instanceId', também entre instâncias dentro de cada AZ), trocando alguma eficiência de bin-packing por maior disponibilidade.",
-      "hint": "Pense na estratégia de posicionamento de tasks do ECS que prioriza explicitamente distribuição uniforme entre um atributo (como Zona de Disponibilidade), em vez de maximizar a utilização de recursos.",
+      "explanation": "distinctInstance separa tarefas por hosts, mas não garante distribuição entre AZs. Fargate também requer seleção apropriada de sub-redes; não é uma correção automática do serviço EC2 existente. Spread por availability-zone, seguido de instanceId se desejado, prioriza distribuição; capacidade disponível e desired count ainda influenciam o resultado. Reduzir tasks não cria capacidade nem garante equilíbrio.",
+      "hint": "A estratégia deve declarar o atributo de topologia que vem antes da eficiência de binpack.",
       "optionRationales": [
-        "A estratégia 'spread' usando 'attribute:ecs.availability-zone' distribui explicitamente as tasks de forma uniforme entre AZs (e, com um spread secundário em 'instanceId', também entre instâncias dentro de cada AZ), trocando alguma eficiência de bin-packing por maior disponibilidade.",
-        "A constraint 'distinctInstance' garante que duas tasks do serviço não rodem na MESMA instância de container, mas não equilibra especificamente a distribuição de tasks ENTRE ZONAS DE DISPONIBILIDADE; as tasks ainda poderiam ficar concentradas em instâncias da mesma AZ se a maioria das instâncias estiver lá.",
-        "Embora o posicionamento padrão do Fargate distribua entre as AZs especificadas nas sub-redes do serviço, o cenário especifica que a equipe usa o launch type EC2 e presumivelmente tem motivos (ex.: infraestrutura existente, tipos de instância específicos) para permanecer em EC2; trocar completamente o launch type é uma mudança arquitetural muito maior do que simplesmente alterar a ESTRATÉGIA de posicionamento do serviço EC2 existente.",
-        "Reduzir o desired count não muda o ALGORITMO de posicionamento subjacente (binpack); com menos tasks, o binpack ainda tenderia a concentrá-las no menor número possível de instâncias/AZs, não a distribuí-las uniformemente."
+        "distinctInstance separa tarefas por hosts, mas não garante distribuição entre AZs.",
+        "Fargate também requer seleção apropriada de sub-redes; não é uma correção automática do serviço EC2 existente.",
+        "Spread por availability-zone, seguido de instanceId se desejado, prioriza distribuição; capacidade disponível e desired count ainda influenciam o resultado.",
+        "Reduzir tasks não cria capacidade nem garante equilíbrio."
       ],
       "topics": [
         "containers",
@@ -2785,19 +2785,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa executa um backend de jogos multiplayer usando protocolos UDP personalizados (não HTTP/HTTPS), com servidores de jogo em instâncias EC2 em 2 Regiões (us-east-1 e ap-northeast-1) atrás de Network Load Balancers em cada região. Os requisitos são: (a) endereços IP estáticos que os clientes do jogo possam fixar/colocar em whitelist (sem depender de resolução DNS que poderia ser cacheada); (b) roteamento automático do tráfego dos jogadores para a Região saudável ótima (menor latência); e (c) failover automático para o NLB da outra Região se os endpoints de uma Região ficarem não saudáveis. Como o CloudFront não suporta tráfego UDP arbitrário, qual serviço da AWS atende a esses requisitos?",
       "options": [
-        "AWS Global Accelerator.",
-        "Amazon Route 53 com roteamento por latência e health checks apontando para o nome DNS de cada NLB regional.",
-        "AWS Transit Gateway com suporte a multicast configurado entre as duas Regiões.",
-        "Amazon CloudFront com dois NLBs configurados como origin group para failover."
+        "Usar AWS Global Accelerator com acelerador padrão e endpoints NLB regionais.",
+        "Usar Route 53 latency routing e solicitar que clientes renovem DNS em cada partida.",
+        "Conectar NLBs regionais por Transit Gateway e expor os IPs privados aos jogadores.",
+        "Usar CloudFront com origin group dos NLBs para encaminhar os datagramas UDP."
       ],
       "correct": 0,
-      "explanation": "O Global Accelerator fornece 2 endereços IP anycast estáticos que atuam como ponto de entrada fixo para a aplicação (adequados para fixação/whitelist pelos clientes do jogo, suportando tanto TCP quanto UDP), roteia automaticamente o tráfego pela rede global da AWS para o grupo de endpoints (NLB) saudável de menor latência com base em proximidade geográfica e health checks, e faz failover automático para endpoints da outra Região se os do NLB primário ficarem não saudáveis.",
-      "hint": "Pense no serviço da AWS que fornece IPs anycast estáticos fixos e suporta tanto TCP quanto UDP, com roteamento e failover automáticos entre regiões — diferente do CloudFront, que é limitado a HTTP/HTTPS.",
+      "explanation": "Global Accelerator fornece IPs anycast estáticos e roteia TCP/UDP para endpoints regionais saudáveis, escolhendo caminho ótimo pela rede AWS. Route 53 retorna DNS e depende de TTL/caches, não entrega IPs estáticos anycast nem aceleração de UDP desse modo. Transit Gateway conecta redes privadas; não é um ponto de entrada global de jogadores. CloudFront não suporta UDP genérico como distribuição de origem.",
+      "hint": "Combine protocolo suportado, endereços fixos globais e failover sem depender do cache DNS.",
       "optionRationales": [
-        "O Global Accelerator fornece 2 endereços IP anycast estáticos que atuam como ponto de entrada fixo para a aplicação (adequados para fixação/whitelist pelos clientes do jogo, suportando tanto TCP quanto UDP), roteia automaticamente o tráfego pela rede global da AWS para o grupo de endpoints (NLB) saudável de menor latência com base em proximidade geográfica e health checks, e faz failover automático para endpoints da outra Região se os do NLB primário ficarem não saudáveis.",
-        "O cenário especifica que a aplicação usa protocolos UDP personalizados; o CloudFront é projetado para entrega de conteúdo HTTP/HTTPS (e RTMP em alguns casos legados) e NÃO suporta tráfego UDP arbitrário, tornando-o inadequado aqui.",
-        "Roteamento baseado em DNS fornece endereços IP que podem mudar e estão sujeitos a cache/TTL de DNS pelos clientes (clientes de jogo que fixam/colocam IPs em whitelist quebrariam se os IPs subjacentes ao nome DNS mudassem); não fornece os endereços IP anycast FIXOS e estáticos exigidos para fixação/whitelist no lado do cliente.",
-        "O multicast do Transit Gateway é para distribuir tráfego multicast DENTRO/ENTRE VPCs na camada de rede para aplicações multicast específicas; não é uma solução de roteamento/failover global de tráfego para direcionar tráfego externo de jogadores ao endpoint regional ótimo com IPs anycast estáticos."
+        "Global Accelerator fornece IPs anycast estáticos e roteia TCP/UDP para endpoints regionais saudáveis, escolhendo caminho ótimo pela rede AWS.",
+        "Route 53 retorna DNS e depende de TTL/caches, não entrega IPs estáticos anycast nem aceleração de UDP desse modo.",
+        "Transit Gateway conecta redes privadas; não é um ponto de entrada global de jogadores.",
+        "CloudFront não suporta UDP genérico como distribuição de origem."
       ],
       "topics": [
         "edge-dns",
@@ -2809,19 +2809,19 @@
       "domain": "resilient-architectures",
       "text": "Uma VPC possui um Interface VPC Endpoint (PrivateLink) para o Amazon S3 (ou outro serviço suportado) configurado com uma Elastic Network Interface (ENI) em apenas UMA AZ (AZ-A), embora as sub-redes de aplicação da VPC abranjam 3 AZs (AZ-A, AZ-B e AZ-C). Instâncias em AZ-B e AZ-C atualmente roteiam seu tráfego para esse serviço através da ENI em AZ-A, incorrendo em cobranças de transferência de dados entre AZs e criando um ponto único de falha para a conectividade PrivateLink se AZ-A ficar indisponível. Como o Interface Endpoint deve ser reconfigurado para resolver ambos os problemas?",
       "options": [
-        "Configurar um Gateway Load Balancer para distribuir tráfego para a ENI única a partir das 3 AZs.",
-        "Modificar o Interface VPC Endpoint para adicionar associações de sub-rede adicionais em AZ-B e AZ-C (uma ENI por AZ).",
-        "Habilitar 'Cross-Zone Load Balancing' no Interface VPC Endpoint.",
-        "Criar 3 Interface VPC Endpoints separados (um por AZ) para o mesmo serviço, cada um em uma sub-rede diferente."
+        "Adicionar Gateway Load Balancer diante da única ENI de endpoint existente.",
+        "Adicionar sub-redes AZ-B e AZ-C ao mesmo interface endpoint para criar ENIs locais.",
+        "Habilitar cross-zone load balancing no interface endpoint existente.",
+        "Criar endpoints isolados por AZ e manter DNS separado para cada um."
       ],
       "correct": 1,
-      "explanation": "Com uma ENI presente em cada AZ, instâncias em cada AZ resolvem o nome DNS do endpoint para a ENI da SUA PRÓPRIA AZ (evitando cobranças de transferência de dados entre AZs para tráfego PrivateLink), e a conectividade ao endpoint deixa de depender de uma única AZ.",
-      "hint": "Pense em como um Interface VPC Endpoint pode ter presença em múltiplas Zonas de Disponibilidade — qual elemento de configuração é adicionado por AZ?",
+      "explanation": "GWLB não adiciona ENIs de PrivateLink nas AZs consumidoras. Associar sub-redes em cada AZ cria uma interface de endpoint local, reduz tráfego inter-AZ e remove dependência da AZ-A. Interface endpoint não tem opção de cross-zone load balancing. Endpoints separados podem funcionar, mas tornam DNS, custo e administração desnecessariamente complexos quando um endpoint multi-AZ atende.",
+      "hint": "Um interface endpoint pode ter uma interface de rede por AZ selecionada.",
       "optionRationales": [
-        "Com uma ENI presente em cada AZ, instâncias em cada AZ resolvem o nome DNS do endpoint para a ENI da SUA PRÓPRIA AZ (evitando cobranças de transferência de dados entre AZs para tráfego PrivateLink), e a conectividade ao endpoint deixa de depender de uma única AZ.",
-        "Interface VPC Endpoints suportam adicionar MÚLTIPLAS associações de sub-rede (AZ) a um ÚNICO endpoint (criando uma ENI por sub-rede/AZ associada); criar 3 recursos de endpoint totalmente separados é desnecessário, cada um teria nomes DNS/configurações separados para gerenciar, e não é como os Interface Endpoints multi-AZ foram projetados para serem implantados.",
-        "O Gateway Load Balancer é usado para rotear tráfego através de appliances virtuais de terceiros (ex.: firewalls); não é um mecanismo para fornecer redundância multi-AZ das ENIs de um Interface VPC Endpoint, e adicionar um GWLB introduziria complexidade desnecessária e seu próprio ponto único de falha.",
-        "Interface VPC Endpoints (PrivateLink) não possuem uma configuração de 'Cross-Zone Load Balancing'; esse é um conceito de load balancer (ELB) e não se aplica à configuração de ENIs de um VPC Endpoint. A resiliência multi-AZ de endpoints é obtida associando múltiplas sub-redes, não por um alternador cross-zone."
+        "GWLB não adiciona ENIs de PrivateLink nas AZs consumidoras.",
+        "Associar sub-redes em cada AZ cria uma interface de endpoint local, reduz tráfego inter-AZ e remove dependência da AZ-A.",
+        "Interface endpoint não tem opção de cross-zone load balancing.",
+        "Endpoints separados podem funcionar, mas tornam DNS, custo e administração desnecessariamente complexos quando um endpoint multi-AZ atende."
       ],
       "topics": [
         "vpc"
@@ -2832,19 +2832,19 @@
       "domain": "resilient-architectures",
       "text": "Uma VPC possui sub-redes privadas em 3 Zonas de Disponibilidade (AZs), mas todo o tráfego de saída para a internet (ex.: chamadas a APIs externas, downloads de patches) é roteado através de um único NAT Gateway, implantado na sub-rede pública da AZ-A. Durante um evento de degradação que afeta a AZ-A, instâncias nas sub-redes privadas da AZ-B e AZ-C — que permanecem saudáveis — perdem completamente a conectividade de saída, mesmo sem nenhuma falha em seus próprios recursos. Qual mudança de arquitetura resolve esse ponto único de falha, mantendo o isolamento de falhas por AZ?",
       "options": [
-        "Eliminar as sub-redes privadas e mover todas as instâncias para sub-redes públicas, atribuindo um Elastic IP a cada instância",
-        "Implantar um NAT Gateway em CADA AZ (uma sub-rede pública por AZ) e configurar a tabela de rotas da sub-rede privada de cada AZ para apontar 0.0.0.0/0 para o NAT Gateway da SUA PRÓPRIA AZ",
-        "Manter o NAT Gateway único, mas associar a ele um Elastic IP — dessa forma, a AWS replica automaticamente o recurso para outras AZs em caso de falha da AZ de origem",
-        "Substituir o NAT Gateway por uma instância NAT (baseada em EC2) dentro de um Auto Scaling Group que abrange as 3 AZs"
+        "Mover workloads a sub-redes públicas e usar Elastic IP individual para cada instância.",
+        "Implantar NAT Gateway por AZ e direcionar cada subnet privada ao NAT da própria AZ.",
+        "Manter NAT único e adicionar Elastic IP para que a AWS o replique em outras AZs.",
+        "Usar NAT instances em ASG multi-AZ sem projetar mecanismos de rota e failover."
       ],
       "correct": 1,
-      "explanation": "Correto. Com um NAT Gateway por AZ e rotas '0.0.0.0/0' direcionadas ao NAT Gateway local, uma falha na AZ-A afeta apenas a conectividade de saída dos recursos QUE ESTÃO na AZ-A; AZ-B e AZ-C continuam operando de forma independente. Esse design também evita custos de transferência de dados entre AZs para o tráfego do NAT Gateway, já que o tráfego nunca cruza a fronteira de AZ antes de chegar ao NAT.",
-      "hint": "Pense em como o roteamento de saída de cada AZ pode permanecer totalmente independente das demais, sem depender de um recurso compartilhado localizado em uma única AZ.",
+      "explanation": "Tornar instâncias públicas aumenta superfície de ataque e não preserva o desenho privado. Um NAT Gateway por AZ com rotas locais evita que a falha de uma AZ elimine a saída das demais; há custo por NAT e tráfego inter-AZ é evitado. Elastic IP não replica um NAT Gateway entre AZs. NAT instances em ASG exigem roteamento, source/destination check e failover próprios; não é substituição simples de resiliência zonal.",
+      "hint": "O componente de saída também deve ser zonal para preservar isolamento de falhas.",
       "optionRationales": [
-        "Correto. Com um NAT Gateway por AZ e rotas '0.0.0.0/0' direcionadas ao NAT Gateway local, uma falha na AZ-A afeta apenas a conectividade de saída dos recursos QUE ESTÃO na AZ-A; AZ-B e AZ-C continuam operando de forma independente. Esse design também evita custos de transferência de dados entre AZs para o tráfego do NAT Gateway, já que o tráfego nunca cruza a fronteira de AZ antes de chegar ao NAT.",
-        "Incorreto. O NAT Gateway é um recurso vinculado a uma única sub-rede/AZ; a AWS não realiza replicação ou failover automático de um NAT Gateway para outra AZ. Se a AZ onde ele reside falhar, o NAT Gateway fica indisponível, independentemente do Elastic IP associado, e todas as sub-redes privadas que dependem dele perdem a saída para a internet.",
-        "Incorreto. Uma NAT Instance em um ASG, ao ser substituída, pode ser relançada em uma sub-rede/AZ diferente, exigindo atualização manual ou automatizada das tabelas de rotas, além de ter throughput e disponibilidade inferiores a um NAT Gateway gerenciado. É uma alternativa mais complexa e operacionalmente pesada do que simplesmente implantar um NAT Gateway gerenciado por AZ, que é o padrão recomendado pela AWS.",
-        "Incorreto. Expor todas as instâncias diretamente à internet com IPs públicos é um retrocesso grave de segurança (aumenta drasticamente a superfície de ataque) e não resolve o problema arquitetural relatado, que é a falta de redundância do NAT Gateway por AZ — não a necessidade de acesso direto à internet pelas instâncias."
+        "Tornar instâncias públicas aumenta superfície de ataque e não preserva o desenho privado.",
+        "Um NAT Gateway por AZ com rotas locais evita que a falha de uma AZ elimine a saída das demais; há custo por NAT e tráfego inter-AZ é evitado.",
+        "Elastic IP não replica um NAT Gateway entre AZs.",
+        "NAT instances em ASG exigem roteamento, source/destination check e failover próprios; não é substituição simples de resiliência zonal."
       ],
       "topics": [
         "vpc"
@@ -2855,19 +2855,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa estabelece uma conexão AWS Site-to-Site VPN entre seu data center on-premises e uma VPC, como parte de uma arquitetura híbrida. A AWS provisiona automaticamente 2 túneis VPN, cada um terminando em um endpoint distinto (com IPs públicos diferentes) para redundância. No entanto, o dispositivo de customer gateway on-premises está configurado para utilizar apenas UM dos dois túneis, mantendo o segundo completamente ocioso. Qual é o risco dessa configuração e qual ação corrige o problema?",
       "options": [
-        "Substituir a Site-to-Site VPN por AWS Direct Connect, que não exige túneis redundantes",
-        "Essa configuração é esperada e não exige nenhuma ação — a AWS ativa automaticamente o segundo túnel apenas quando o endpoint do primeiro túnel entra em manutenção, sem necessidade de configuração no lado do cliente",
-        "Configurar o customer gateway on-premises para estabelecer AMBOS os túneis (idealmente em modo ativo-ativo via BGP/ECMP, ou no mínimo com failover automático para o segundo túnel); caso contrário, uma manutenção ou indisponibilidade no endpoint do túnel atualmente em uso causará perda total de conectividade, já que o segundo túnel — provisionado justamente para esse cenário — não está sendo utilizado",
-        "Aumentar os intervalos de rekey IKE/IPsec do túnel ativo para reduzir a chance de queda da conexão"
+        "Substituir a VPN por Direct Connect e omitir a configuração de redundância local.",
+        "Confiar que a AWS ativa o segundo túnel sem configuração no customer gateway.",
+        "Configurar ambos os túneis no customer gateway, com BGP/ECMP ou failover automático.",
+        "Aumentar somente o intervalo de rekey do túnel que está ativo."
       ],
       "correct": 2,
-      "explanation": "Correto. A AWS provisiona 2 túneis com endpoints distintos especificamente para que o cliente configure redundância no lado on-premises. Se o customer gateway só reconhece/usa um túnel, a indisponibilidade (planejada ou não) do endpoint AWS daquele túnel resulta em perda completa da conectividade VPN, mesmo que o segundo túnel esteja perfeitamente operacional do lado da AWS.",
-      "hint": "A AWS sempre entrega dois endpoints de túnel para uma conexão Site-to-Site VPN — pense em quem é responsável por garantir que ambos sejam efetivamente utilizados.",
+      "explanation": "Direct Connect pode complementar conectividade, mas não resolve a configuração omitida dos dois túneis no customer gateway. A AWS disponibiliza os túneis, mas o dispositivo do cliente deve configurar e monitorar ambos para failover/ECMP. BGP/ECMP ou failover controlado no lado on-premises permite usar a redundância fornecida; sem isso a queda do túnel ativo interrompe o caminho. Rekey ajusta parâmetros criptográficos, não cria um caminho redundante.",
+      "hint": "Os dois endpoints da AWS só formam redundância quando o equipamento do cliente também os utiliza.",
       "optionRationales": [
-        "Correto. A AWS provisiona 2 túneis com endpoints distintos especificamente para que o cliente configure redundância no lado on-premises. Se o customer gateway só reconhece/usa um túnel, a indisponibilidade (planejada ou não) do endpoint AWS daquele túnel resulta em perda completa da conectividade VPN, mesmo que o segundo túnel esteja perfeitamente operacional do lado da AWS.",
-        "Incorreto. Embora a AWS gerencie o failover do SEU lado de forma transparente, o CUSTOMER GATEWAY precisa estar configurado para reconhecer e utilizar AMBOS os endpoints de túnel (cada um com um IP público distinto do lado AWS). Se o dispositivo on-premises só tem a configuração de um túnel ativa, a conectividade será perdida se justamente ESSE endpoint for afetado, independentemente do que a AWS faça do seu lado.",
-        "Incorreto. O AWS Direct Connect é uma opção de conectividade dedicada, com processo de provisionamento mais longo e custo geralmente maior, e POSSUI seu próprio modelo de resiliência (que tipicamente exige múltiplas conexões/locais para redundância) — não é correto afirmar que ele 'não exige redundância'. Além disso, essa substituição não resolve diretamente o problema imediato de subutilização dos túneis VPN já provisionados.",
-        "Incorreto. Ajustar os intervalos de rekey é um parâmetro de tuning menor para a estabilidade de UM túnel individual, mas não resolve a lacuna fundamental de redundância — que é o fato de apenas um dos dois túneis provisionados estar em uso."
+        "Direct Connect pode complementar conectividade, mas não resolve a configuração omitida dos dois túneis no customer gateway.",
+        "A AWS disponibiliza os túneis, mas o dispositivo do cliente deve configurar e monitorar ambos para failover/ECMP.",
+        "BGP/ECMP ou failover controlado no lado on-premises permite usar a redundância fornecida; sem isso a queda do túnel ativo interrompe o caminho.",
+        "Rekey ajusta parâmetros criptográficos, não cria um caminho redundante."
       ],
       "topics": [
         "hybrid-networking",
@@ -2880,19 +2880,19 @@
       "domain": "resilient-architectures",
       "text": "Uma equipe frequentemente sobrescreve ou exclui acidentalmente objetos importantes em um bucket do Amazon S3 (cenário dentro de uma única região, sem requisito de DR cross-region) devido a bugs na aplicação ou erro humano. Eles desejam conseguir recuperar a versão anterior de um objeto sobrescrito, ou 'desfazer' a exclusão acidental de um objeto, SEM depender de um sistema de backup separado, ao mesmo tempo em que precisam controlar o custo de armazenamento adicional gerado pela retenção de versões antigas.",
       "options": [
-        "Configurar Replicação entre Regiões (CRR) para um bucket em outra Região",
-        "Habilitar o S3 Object Lock em modo Compliance no bucket",
-        "Habilitar o Versionamento (Versioning) no bucket S3: cada PUT (sobrescrita) cria uma nova versão preservando a anterior (recuperável pelo version ID), e um DELETE sem version ID apenas adiciona um 'marcador de exclusão' (o objeto aparenta estar excluído, mas as versões anteriores permanecem e podem ser restauradas removendo o marcador); combinar com uma regra de Lifecycle para expirar versões NÃO ATUAIS após um período, controlando o custo de armazenamento",
-        "Configurar jobs diários do AWS Backup para o bucket S3 e restaurar a partir do backup do dia anterior quando ocorrer uma exclusão acidental"
+        "Usar CRR para outro bucket e recuperar versões somente da réplica regional.",
+        "Habilitar Object Lock Compliance para cada objeto que possa ser sobrescrito.",
+        "Habilitar Versioning e Lifecycle para versões noncurrent e delete markers conforme retenção.",
+        "Executar AWS Backup diário e restaurar o backup anterior a cada exclusão acidental."
       ],
       "correct": 2,
-      "explanation": "Correto. O Versionamento do S3 mantém um histórico completo de cada objeto, permitindo recuperar qualquer versão anterior ou desfazer uma exclusão removendo o marcador de exclusão (delete marker) — exatamente o comportamento de 'desfazer' desejado, sem necessidade de um sistema de backup separado. Regras de ciclo de vida para versões não atuais (NoncurrentVersionExpiration) controlam o crescimento de custo de armazenamento.",
-      "hint": "Pense em como cada operação de escrita ou exclusão sobre um objeto pode ser tratada como uma nova entrada em um histórico, em vez de uma substituição definitiva.",
+      "explanation": "CRR é útil para DR regional, mas não é necessária para recuperar versões no mesmo bucket. Object Lock impede ou limita exclusões conforme o modo, mas não é o recurso mínimo para recuperar sobrescritas acidentais e pode impor retenção rígida. Versioning preserva versões e delete markers; Lifecycle para noncurrent versions controla custos. Regras de expiração precisam ser definidas com cuidado para não remover versões ainda necessárias. Backup pode fornecer cópias, mas acrescenta sistema e RPO sem ser necessário para a função solicitada.",
+      "hint": "A exclusão sem version ID não remove a versão anterior quando Versioning está habilitado.",
       "optionRationales": [
-        "Correto. O Versionamento do S3 mantém um histórico completo de cada objeto, permitindo recuperar qualquer versão anterior ou desfazer uma exclusão removendo o marcador de exclusão (delete marker) — exatamente o comportamento de 'desfazer' desejado, sem necessidade de um sistema de backup separado. Regras de ciclo de vida para versões não atuais (NoncurrentVersionExpiration) controlam o crescimento de custo de armazenamento.",
-        "Incorreto. O Object Lock em modo Compliance impede QUALQUER exclusão ou sobrescrita de objetos (até mesmo pelo usuário root) até o término do período de retenção. Embora tecnicamente evitasse a perda, também impediria a equipe de excluir/sobrescrever objetos intencionalmente quando necessário (ex.: atualizações legítimas), sendo excessivamente restritivo para este cenário de aplicação em constante mudança.",
-        "Incorreto. A CRR replica operações de PUT e DELETE para o bucket de destino; uma sobrescrita ou exclusão acidental na origem também seria replicada para o destino (por padrão), portanto a CRR isoladamente não protege contra sobrescritas/exclusões acidentais — é um recurso de DR/disponibilidade entre regiões, não um mecanismo de 'desfazer' no nível do objeto.",
-        "Incorreto. Backups diários permitem recuperação apenas até o estado do último backup (até 24h de granularidade/perda), e restaurar um backup inteiro é uma operação muito mais pesada e 'tudo ou nada' comparada à recuperação por objeto e por versão específica oferecida pelo Versionamento."
+        "CRR é útil para DR regional, mas não é necessária para recuperar versões no mesmo bucket.",
+        "Object Lock impede ou limita exclusões conforme o modo, mas não é o recurso mínimo para recuperar sobrescritas acidentais e pode impor retenção rígida.",
+        "Versioning preserva versões e delete markers; Lifecycle para noncurrent versions controla custos. Regras de expiração precisam ser definidas com cuidado para não remover versões ainda necessárias.",
+        "Backup pode fornecer cópias, mas acrescenta sistema e RPO sem ser necessário para a função solicitada."
       ],
       "topics": [
         "s3-storage",
@@ -2904,19 +2904,19 @@
       "domain": "resilient-architectures",
       "text": "Uma equipe de operações quer remediar automaticamente um problema recorrente: quando a utilização de disco de uma instância EC2 específica (monitorada via métrica customizada do CloudWatch Agent) ultrapassa 90%, deve ser executado, de forma automática e sem sessão SSH ou intervenção humana, um script de limpeza (remoção de logs antigos) na própria instância, disparado automaticamente pelo alarme do CloudWatch.",
       "options": [
-        "Configurar o alarme do CloudWatch para invocar diretamente uma ação de 'Reboot' (reiniciar) na instância EC2 quando a utilização de disco ultrapassar 90%",
-        "Configurar o alarme do CloudWatch para enviar uma notificação via SNS para o e-mail da equipe de operações, instruindo-os a acessar a instância via SSH e executar o script de limpeza manualmente",
-        "Criar um Alarme do CloudWatch sobre a métrica de utilização de disco, com uma ação de alarme (ou regra do EventBridge) que dispara um runbook do AWS Systems Manager Automation (ou um documento SSM Run Command) direcionado à instância afetada; o runbook/documento executa o script de limpeza na instância via SSM Agent, sem necessidade de SSH",
-        "Usar o AWS Config para detectar quando a utilização de disco ultrapassa 90% e acionar uma ação de remediação que finaliza e substitui a instância automaticamente"
+        "Reiniciar a instância automaticamente quando a métrica de disco ultrapassar noventa por cento.",
+        "Enviar SNS à equipe e depender de SSH manual para executar a limpeza.",
+        "Acionar SSM Automation ou Run Command a partir do alarme/evento e executar o script pelo SSM Agent.",
+        "Usar Config para detectar o uso de disco e substituir a instância sem executar scripts."
       ],
       "correct": 2,
-      "explanation": "Correto. A integração CloudWatch Alarm → SSM Automation (ou Run Command) permite execução automatizada de runbooks/scripts diretamente na instância via SSM Agent, sem SSH e sem intervenção humana — exatamente o padrão de auto-remediação (self-healing) descrito.",
-      "hint": "Pense em qual serviço da AWS permite executar comandos ou runbooks diretamente dentro de uma instância EC2 sem precisar de acesso SSH, e como ele pode ser acionado por um alarme.",
+      "explanation": "Reboot não executa o script nem resolve necessariamente o espaço de disco consumido. SNS notifica pessoas, mas não automatiza a ação sem SSH solicitada. CloudWatch pode acionar uma automação SSM; o instance profile, SSM Agent e permissões de alarme/automação devem estar preparados. Para parâmetros dinâmicos pode ser usada uma regra EventBridge que receba o estado do alarme. Config não mede utilização de disco da instância como sinal de configuração e substituir a instância não executa limpeza.",
+      "hint": "O alarme detecta; o Systems Manager executa dentro da instância sem abrir SSH.",
       "optionRationales": [
-        "Correto. A integração CloudWatch Alarm → SSM Automation (ou Run Command) permite execução automatizada de runbooks/scripts diretamente na instância via SSM Agent, sem SSH e sem intervenção humana — exatamente o padrão de auto-remediação (self-healing) descrito.",
-        "Incorreto. Reiniciar a instância não libera o espaço em disco ocupado pelos arquivos de log antigos (eles permanecem após o reboot); essa ação não trata a causa raiz (acúmulo de logs) e ainda causa indisponibilidade desnecessária.",
-        "Incorreto. O AWS Config avalia conformidade de CONFIGURAÇÃO de recursos, não é a ferramenta adequada para métricas customizadas arbitrárias de utilização de disco do CloudWatch Agent; além disso, finalizar/substituir uma instância autônoma (fora de um ASG) destruiria seu estado/identidade — uma remediação desproporcional para uma simples limpeza de disco.",
-        "Incorreto. Essa abordagem exige intervenção HUMANA (acesso SSH manual e execução do script), contrariando o requisito explícito de um processo automatizado sem intervenção humana."
+        "Reboot não executa o script nem resolve necessariamente o espaço de disco consumido.",
+        "SNS notifica pessoas, mas não automatiza a ação sem SSH solicitada.",
+        "CloudWatch pode acionar uma automação SSM; o instance profile, SSM Agent e permissões de alarme/automação devem estar preparados. Para parâmetros dinâmicos pode ser usada uma regra EventBridge que receba o estado do alarme.",
+        "Config não mede utilização de disco da instância como sinal de configuração e substituir a instância não executa limpeza."
       ],
       "topics": [
         "monitoring",
@@ -2927,21 +2927,21 @@
     {
       "id": "saa-avc-122",
       "domain": "resilient-architectures",
-      "text": "Uma aplicação possui um processo de inicialização (bootstrap) lento e complexo: após o lançamento de uma instância EC2, são necessários 8 a 10 minutos para instalar e configurar o software antes que a instância passe os health checks e comece a atender tráfego. Durante picos súbitos de demanda, o Auto Scaling Group (ASG) escala horizontalmente, mas as novas instâncias levam 8-10 minutos para ficarem prontas, causando degradação/erros durante essa janela. A equipe quer reduzir essa latência de scale-out para próximo de zero, sem manter um grande número de instâncias totalmente em execução (e cobradas à taxa normal de computação) como standby para uma capacidade usada apenas ocasionalmente.",
+      "text": "O bootstrap de EC2 leva 8–10 minutos. A aplicação aceita pequena latência de ativação, mas quer reduzir muito o scale-out sem manter todas as instâncias em execução normal. Uma AMI já reduz parte do bootstrap. Qual recurso do ASG mantém capacidade previamente inicializada com custo de computação reduzido quando parada?",
       "options": [
-        "Aumentar a capacidade mínima do ASG para manter permanentemente instâncias totalmente ativas suficientes para atender ao pico de tráfego em qualquer momento",
-        "Usar um Launch Template com um tipo de instância maior para acelerar o processo de bootstrap",
-        "Criar uma AMI customizada com a aplicação já instalada, eliminando a necessidade de qualquer processo de bootstrap",
-        "Configurar um 'Warm Pool' do Auto Scaling: o ASG mantém um conjunto de instâncias pré-inicializadas (que já completaram o processo de bootstrap) em estado PARADO (stopped) ou outro estado de baixo custo; quando o scale-out é necessário, essas instâncias são movidas para o serviço muito mais rapidamente do que lançar e inicializar do zero, e instâncias paradas no warm pool não geram cobrança de computação (apenas de armazenamento)"
+        "Elevar min capacity e manter instâncias ativas para todo pico possível.",
+        "Usar instâncias maiores para concluir bootstrap sem nenhum tempo de lançamento.",
+        "Criar AMI pré-configurada e depender somente de novos lançamentos durante o pico.",
+        "Usar Warm Pool com instâncias inicializadas e estado stopped quando compatível com a carga."
       ],
       "correct": 3,
-      "explanation": "Correto. Warm Pools mantêm instâncias pré-inicializadas prontas para entrar em serviço rapidamente quando o ASG escala, eliminando o tempo de bootstrap do caminho crítico de scale-out, enquanto instâncias em estado 'stopped' no warm pool não são cobradas pela computação — atendendo simultaneamente ao requisito de latência próxima de zero e ao requisito de custo.",
-      "hint": "Pense em um estado intermediário para instâncias EC2 que já passaram pelo processo de inicialização, mas que não estão sendo cobradas como se estivessem totalmente em execução.",
+      "explanation": "Capacidade mínima alta reduz latência, mas mantém computação ativa e cobrada continuamente. Uma instância maior pode reduzir parte do bootstrap, mas não elimina inicialização nem prepara capacidade antecipadamente. AMI pré-configurada reduz bootstrap, porém lançamentos ainda exigem provisionamento e warm-up; pode ser combinada com warm pool. Warm Pool mantém instâncias já inicializadas em estados configuráveis; stopped reduz cobrança de compute, mas hibernated/running têm requisitos e custos diferentes. Não garante scale-out literalmente zero.",
+      "hint": "Warm pools reduzem muito a espera, mas não eliminam todos os tempos de ativação e dependem do estado escolhido.",
       "optionRationales": [
-        "Correto. Warm Pools mantêm instâncias pré-inicializadas prontas para entrar em serviço rapidamente quando o ASG escala, eliminando o tempo de bootstrap do caminho crítico de scale-out, enquanto instâncias em estado 'stopped' no warm pool não são cobradas pela computação — atendendo simultaneamente ao requisito de latência próxima de zero e ao requisito de custo.",
-        "Incorreto. Manter permanentemente a capacidade de pico totalmente ativa e cobrada à taxa normal, mesmo durante períodos de baixa demanda, contradiz diretamente o requisito de evitar 'um grande número de instâncias totalmente em execução... cobradas à taxa normal' como standby.",
-        "Incorreto. O tempo de bootstrap é dominado por etapas de instalação/configuração de software, que geralmente não são significativamente mais rápidas com um tipo de instância maior (especialmente se o gargalo for download de pacotes, execução de ferramentas de configuração, etc.); isso não resolve de forma confiável um processo de inicialização de 8-10 minutos.",
-        "Incorreto. Embora pré-construir uma AMI com a aplicação instalada seja uma boa prática que pode REDUZIR o tempo de bootstrap, o cenário descreve um processo 'lento e complexo', sugerindo etapas adicionais de configuração dinâmica/registro de serviço que podem ainda ocorrer no boot; mesmo com um boot mais rápido, apenas os Warm Pools garantem latência de scale-out próxima de zero ao manter instâncias já totalmente inicializadas e prontas, sem o custo de capacidade standby totalmente ativa."
+        "Capacidade mínima alta reduz latência, mas mantém computação ativa e cobrada continuamente.",
+        "Uma instância maior pode reduzir parte do bootstrap, mas não elimina inicialização nem prepara capacidade antecipadamente.",
+        "AMI pré-configurada reduz bootstrap, porém lançamentos ainda exigem provisionamento e warm-up; pode ser combinada com warm pool.",
+        "Warm Pool mantém instâncias já inicializadas em estados configuráveis; stopped reduz cobrança de compute, mas hibernated/running têm requisitos e custos diferentes. Não garante scale-out literalmente zero."
       ],
       "topics": [
         "high-availability",
@@ -2952,21 +2952,21 @@
     {
       "id": "saa-avc-123",
       "domain": "resilient-architectures",
-      "text": "Uma empresa está migrando uma aplicação containerizada crítica para o Amazon EKS. Os requisitos são: (a) o control plane do Kubernetes deve ser resiliente à falha de uma única Zona de Disponibilidade, sem que a equipe precise gerenciar a infraestrutura do control plane; e (b) os worker nodes (onde os pods rodam) também devem ser distribuídos entre múltiplas AZs, com substituição automática de nós não saudáveis. Quais configurações atendem a esses requisitos?",
+      "text": "Uma aplicação EKS precisa de control plane gerenciado resiliente a uma AZ e workers em várias AZs, com capacidade de escalar/substituir nós configurada no data plane. Sem requisitos de volumes zonais, qual desenho atende?",
       "options": [
-        "(a) O Amazon EKS executa automaticamente o control plane gerenciado do Kubernetes (API server, etcd, etc.) distribuído em MÚLTIPLAS AZs dentro da Região escolhida, por padrão e sem nenhuma configuração adicional do cliente; (b) criar um EKS Managed Node Group especificando múltiplas sub-redes em múltiplas AZs — os managed node groups distribuem automaticamente os worker nodes entre as AZs especificadas e se integram ao EC2 Auto Scaling para substituir nós não saudáveis automaticamente",
-        "(a) Configurar 3 clusters EKS separados (um por AZ) e usar uma ferramenta de federação Kubernetes para unificá-los em um único control plane lógico",
-        "(a) Implantar 3 instâncias EC2 executando componentes self-managed do control plane do Kubernetes (kube-apiserver, etcd) em 3 AZs, registradas atrás de um NLB interno",
-        "(b) Usar perfis do EKS Fargate exclusivamente para todas as cargas de trabalho, já que pods do Fargate são automaticamente distribuídos entre múltiplas AZs sem nenhuma configuração de node group"
+        "Usar control plane EKS gerenciado e managed node group com sub-redes de múltiplas AZs, configurando autoscaling quando necessário.",
+        "Criar um cluster EKS independente em cada AZ e federar seus planos de controle.",
+        "Operar kube-apiserver e etcd em EC2 atrás de NLB dentro do cluster EKS.",
+        "Usar somente Fargate profiles e assumir distribuição multi-AZ sem configurar sub-redes ou capacidade."
       ],
       "correct": 0,
-      "explanation": "Correto. A resiliência Multi-AZ do control plane é uma característica inerente ao EKS gerenciado, sem necessidade de configuração; para os worker nodes, um Managed Node Group com sub-redes em múltiplas AZs garante distribuição entre AZs e substituição automática de nós via integração com Auto Scaling — atendendo ambos os requisitos sem overhead operacional adicional.",
-      "hint": "Separe o que a AWS já garante automaticamente para o control plane do EKS do que precisa ser explicitamente configurado para os worker nodes baseados em EC2.",
+      "explanation": "O control plane EKS é gerenciado e distribuído em múltiplas AZs; node groups em sub-redes multi-AZ podem lançar nós entre AZs. Managed node groups reportam problemas e automatizam atualizações, mas autoscaling requer configuração adicional e não garante distribuição perfeitamente uniforme. Múltiplos clusters criam planos de controle distintos e exigem federação/oper operação adicional. Control plane self-managed contraria o requisito de não gerenciar essa infraestrutura. Fargate profiles eliminam nodes gerenciados pelo cliente, mas selecionar sub-redes e disponibilidade ainda é configuração do workload; não é resposta genérica para todos os pods.",
+      "hint": "O EKS gerencia o control plane; a política de capacidade e distribuição do data plane ainda é responsabilidade do desenho.",
       "optionRationales": [
-        "Correto. A resiliência Multi-AZ do control plane é uma característica inerente ao EKS gerenciado, sem necessidade de configuração; para os worker nodes, um Managed Node Group com sub-redes em múltiplas AZs garante distribuição entre AZs e substituição automática de nós via integração com Auto Scaling — atendendo ambos os requisitos sem overhead operacional adicional.",
-        "Incorreto. Essa abordagem complica enormemente a arquitetura; o control plane gerenciado do EKS JÁ é Multi-AZ dentro de um único cluster/região por padrão — não há necessidade de federar múltiplos clusters para obter resiliência de AZ no control plane.",
-        "Incorreto. Isso descreve um Kubernetes SELF-MANAGED (não o control plane gerenciado do EKS), que é exatamente o esforço operacional que o EKS foi projetado para eliminar; o EKS já fornece resiliência Multi-AZ do control plane como serviço gerenciado, sem essa complexidade.",
-        "Incorreto. Embora o EKS Fargate abstraia o gerenciamento de nós, o cenário especifica que os 'worker nodes' devem ser distribuídos entre AZs (implicando nós baseados em EC2, por exemplo para tipos de instância específicos ou DaemonSets não suportados no Fargate); para worker nodes EC2, a distribuição entre AZs é configurada pela seleção de sub-redes do Managed Node Group, não de forma automática como na abstração por pod do Fargate."
+        "O control plane EKS é gerenciado e distribuído em múltiplas AZs; node groups em sub-redes multi-AZ podem lançar nós entre AZs. Managed node groups reportam problemas e automatizam atualizações, mas autoscaling requer configuração adicional e não garante distribuição perfeitamente uniforme.",
+        "Múltiplos clusters criam planos de controle distintos e exigem federação/oper operação adicional.",
+        "Control plane self-managed contraria o requisito de não gerenciar essa infraestrutura.",
+        "Fargate profiles eliminam nodes gerenciados pelo cliente, mas selecionar sub-redes e disponibilidade ainda é configuração do workload; não é resposta genérica para todos os pods."
       ],
       "topics": [
         "containers",
@@ -2979,19 +2979,19 @@
       "domain": "resilient-architectures",
       "text": "Dentro de uma única Região da AWS, uma empresa possui um bucket S3 de 'produção' na Conta A e precisa de uma cópia automática, em tempo real, de todos os novos objetos em um bucket S3 separado de 'compliance/auditoria' na Conta B (uma conta AWS dedicada e separada, para armazenamento imutável de compliance), por exigência regulatória de segregação de dados por conta/propriedade — sem incorrer em latência ou custos de transferência de dados entre regiões, já que os recursos de ambas as contas estão na mesma Região.",
       "options": [
-        "Configurar S3 Cross-Region Replication (CRR), mas definir a Região de destino igual à Região de origem",
-        "Usar o AWS DataSync para realizar sincronização contínua e em tempo real entre os dois buckets na mesma Região",
-        "Configurar o Amazon S3 Same-Region Replication (SRR) do bucket de produção na Conta A para o bucket de compliance na Conta B (replicação entre contas, na mesma Região); o SRR suporta replicação para um bucket de propriedade de outra conta AWS, com versionamento habilitado em ambos os buckets, podendo opcionalmente alterar a propriedade do objeto para a conta de destino e/ou usar S3 Replication Time Control (RTC) para tempos de replicação previsíveis — sem latência ou custo de transferência entre regiões",
-        "Conceder ao bucket S3 da Conta B permissões de leitura cross-account sobre o bucket da Conta A via política de bucket, e fazer com que as aplicações da Conta B leiam os objetos diretamente do bucket da Conta A"
+        "Configurar CRR e escolher a mesma Região para o bucket de origem e destino.",
+        "Usar DataSync como sincronização contínua de objetos na mesma Região.",
+        "Configurar SRR cross-account, versionamento e permissões/ownership apropriados no bucket de destino.",
+        "Conceder leitura ao bucket de produção e considerar isso uma cópia de compliance separada."
       ],
       "correct": 2,
-      "explanation": "Correto. O SRR é projetado especificamente para replicação dentro da mesma Região, incluindo cenários cross-account, atendendo ao requisito de segregação de dados por conta sem os custos/latência de uma replicação entre regiões.",
-      "hint": "Considere qual recurso de replicação do S3 é projetado para operar dentro dos limites de uma única Região, incluindo entre contas AWS diferentes.",
+      "explanation": "CRR exige buckets em Regiões diferentes; não é configurada para destino na mesma Região. DataSync pode mover dados, mas não é o recurso nativo de replicação contínua por objeto para este caso. SRR replica novos objetos para outra conta na mesma Região com versionamento e permissões; RTC oferece SLA de replicação, e a propriedade/ACL deve ser desenhada para a conta de destino. Leitura cross-account não cria cópia segregada sob propriedade/controle da conta de compliance.",
+      "hint": "A sigla da replicação depende da relação entre as Regiões, não da relação entre as contas.",
       "optionRationales": [
-        "Correto. O SRR é projetado especificamente para replicação dentro da mesma Região, incluindo cenários cross-account, atendendo ao requisito de segregação de dados por conta sem os custos/latência de uma replicação entre regiões.",
-        "Incorreto. A CRR é projetada especificamente para replicação ENTRE Regiões DIFERENTES; não é assim que se configura replicação dentro da mesma Região — o recurso correto para isso (incluindo cenários cross-account) é o Same-Region Replication (SRR).",
-        "Incorreto. O AWS DataSync é normalmente utilizado para tarefas de transferência de dados agendadas/disparadas (frequentemente para migração ou sincronização periódica entre sistemas de armazenamento, incluindo on-premises), não para replicação nativa do S3, contínua e por objeto, com o mesmo nível de integração da Replicação do S3 — introduzindo mais overhead operacional do que o recurso nativo SRR.",
-        "Incorreto. Isso não cria uma CÓPIA SEPARADA dos objetos no bucket da Conta B (requisito declarado); apenas concede acesso de leitura a objetos que continuam residindo no bucket da Conta A, o que não satisfaz a exigência de segregação de dados por conta/propriedade com uma cópia independente para compliance."
+        "CRR exige buckets em Regiões diferentes; não é configurada para destino na mesma Região.",
+        "DataSync pode mover dados, mas não é o recurso nativo de replicação contínua por objeto para este caso.",
+        "SRR replica novos objetos para outra conta na mesma Região com versionamento e permissões; RTC oferece SLA de replicação, e a propriedade/ACL deve ser desenhada para a conta de destino.",
+        "Leitura cross-account não cria cópia segregada sob propriedade/controle da conta de compliance."
       ],
       "topics": [
         "s3-storage",
@@ -3003,19 +3003,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma empresa usa o Amazon CloudFront com origem em um Application Load Balancer na frente de servidores web EC2. Durante picos de tráfego, mesmo com o cache do CloudFront habilitado, a origem (ALB/EC2) sofre alta carga, pois cada localização de borda do CloudFront pelo mundo faz sua própria requisição de 'cache miss' para a origem ao buscar o mesmo objeto popular (quando seu cache regional ainda não o possui), multiplicando a carga sobre a origem. Como reduzir essa carga sem alterar o comportamento de cache por objeto?",
       "options": [
-        "Substituir o Application Load Balancer por um Network Load Balancer para suportar maior throughput na origem",
-        "Configurar múltiplas distribuições do CloudFront, uma por região geográfica, cada uma apontando para uma origem separada",
-        "Habilitar o Origin Shield do CloudFront, escolhendo uma região próxima à origem",
-        "Aumentar o TTL (Time to Live) do cache do CloudFront para o valor máximo em todos os objetos"
+        "Trocar ALB por NLB para absorver mais requests de cache miss.",
+        "Criar distribuições CloudFront independentes para cada macro-região.",
+        "Habilitar Origin Shield no origin e escolher Região próxima à origem.",
+        "Aumentar o TTL de todos os objetos ao máximo permitido."
       ],
       "correct": 2,
-      "explanation": "Correto. O Origin Shield atua como uma camada de cache centralizada adicional entre os caches de borda/regionais do CloudFront e a origem, consolidando requisições de modo que apenas uma requisição por objeto chegue à origem mesmo que múltiplas localizações de borda tenham 'cache miss' simultaneamente, reduzindo significativamente a carga sobre a origem.",
-      "hint": "Pense em uma camada de cache adicional, posicionada entre as localizações de borda e a origem, que consolide requisições duplicadas.",
+      "explanation": "NLB não reduz o número de cache misses que chegam à origem; apenas muda o tipo de balanceador. Múltiplas distribuições aumentam a complexidade e não cria camada consolidada de miss entre bordas. Origin Shield acrescenta uma camada central de cache e consolida requests de borda à origem; deve ser habilitado por origem e escolhido considerando latência/custo. TTL maior reduz misses, mas altera a política de frescor por objeto, contrariando a restrição.",
+      "hint": "A solução precisa consolidar cache misses sem mudar a validade de cada objeto.",
       "optionRationales": [
-        "Correto. O Origin Shield atua como uma camada de cache centralizada adicional entre os caches de borda/regionais do CloudFront e a origem, consolidando requisições de modo que apenas uma requisição por objeto chegue à origem mesmo que múltiplas localizações de borda tenham 'cache miss' simultaneamente, reduzindo significativamente a carga sobre a origem.",
-        "Incorreto. Aumentar o TTL reduz a frequência de cache misses ao longo do tempo, mas não resolve o problema de 'thundering herd' quando múltiplas localizações de borda erram o cache simultaneamente (ex.: logo após a expiração do TTL ou para conteúdo recém-popular); o Origin Shield resolve essa concentração de requisições independentemente da configuração de TTL.",
-        "Incorreto. Trocar o tipo de balanceador de carga aumenta a capacidade de throughput, mas não reduz o NÚMERO de requisições redundantes que chegam à origem a partir de múltiplas localizações de borda do CloudFront para o mesmo objeto — trata um sintoma, não a multiplicação de requisições em si.",
-        "Incorreto. Criar múltiplas distribuições/origens adiciona complexidade operacional (gerenciar múltiplas origens, invalidação de cache entre elas) e não resolve inerentemente o problema de múltiplas buscas na origem a partir de diferentes localizações de borda; o Origin Shield resolve isso dentro de uma ÚNICA distribuição."
+        "NLB não reduz o número de cache misses que chegam à origem; apenas muda o tipo de balanceador.",
+        "Múltiplas distribuições aumentam a complexidade e não cria camada consolidada de miss entre bordas.",
+        "Origin Shield acrescenta uma camada central de cache e consolida requests de borda à origem; deve ser habilitado por origem e escolhido considerando latência/custo.",
+        "TTL maior reduz misses, mas altera a política de frescor por objeto, contrariando a restrição."
       ],
       "topics": [
         "edge-dns",
@@ -3028,19 +3028,19 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação de alto tráfego usa o Amazon ElastiCache for Redis (cluster mode disabled, com primário e réplicas) para armazenar dados de sessão e resultados de consultas frequentes. Com o crescimento do tráfego, um único nó Redis se tornou um gargalo tanto para o tamanho total do dataset (excedendo a memória de um único nó) quanto para o throughput de escrita (todas as escritas vão para o mesmo primário). Como escalar horizontalmente para resolver ambos os problemas?",
       "options": [
-        "Aumentar o número de réplicas de leitura do cluster de shard único existente",
-        "Migrar do ElastiCache for Redis para o ElastiCache for Memcached, que suporta nativamente distribuição de escrita multi-nó",
-        "Trocar para um tipo de nó ElastiCache maior (escalonamento vertical) dentro do mesmo cluster de shard único",
-        "Habilitar o Cluster Mode (Cluster Mode Enabled) com múltiplos shards"
+        "Adicionar réplicas de leitura ao único shard Redis existente.",
+        "Migrar para Memcached para distribuir escritas sem alterar o modelo da aplicação.",
+        "Aumentar a classe do nó do shard único e manter todas as chaves no mesmo primário.",
+        "Habilitar cluster mode enabled e distribuir slots entre múltiplos shards Redis."
       ],
       "correct": 3,
-      "explanation": "Correto. O ElastiCache for Redis com cluster mode enabled particiona os dados entre múltiplos shards (cada um com seu próprio primário e réplicas opcionais), distribuindo tanto o dataset (via hash slots) quanto o throughput de escrita entre múltiplos nós primários, permitindo escalabilidade horizontal além da capacidade de memória e escrita de um único nó.",
-      "hint": "Pense em uma configuração do Redis que particiona os dados entre múltiplos nós primários, em vez de depender de um único primário com réplicas.",
+      "explanation": "Réplicas aumentam leitura e disponibilidade, mas escritas e memória do shard continuam limitadas pelo primário. Memcached distribui chaves, mas exige alterar semânticas e não é a escalabilidade Redis pedida. Escala vertical pode adiar o limite, mas não distribui dataset e escritas por múltiplos primários. Cluster mode enabled divide slots entre shards, cada um com seu primário, distribuindo memória e throughput de escrita; clientes precisam ser cluster-aware e padrões multi-key têm restrições.",
+      "hint": "Escala de leitura não remove o gargalo de escrita de um único primário.",
       "optionRationales": [
-        "Correto. O ElastiCache for Redis com cluster mode enabled particiona os dados entre múltiplos shards (cada um com seu próprio primário e réplicas opcionais), distribuindo tanto o dataset (via hash slots) quanto o throughput de escrita entre múltiplos nós primários, permitindo escalabilidade horizontal além da capacidade de memória e escrita de um único nó.",
-        "Incorreto. Adicionar mais réplicas de leitura aumenta a capacidade de LEITURA e fornece cópias adicionais dos dados, mas não resolve o limite de TAMANHO do dataset (ainda limitado pela memória do primário) nem o gargalo de THROUGHPUT DE ESCRITA (todas as escritas continuam indo para o único primário).",
-        "Incorreto. O escalonamento vertical (nó maior) pode aumentar temporariamente a capacidade, mas tem um limite superior (o maior tipo de nó disponível) e ainda representa um único ponto para todas as escritas; não fornece a mesma escalabilidade horizontal do sharding.",
-        "Incorreto. Embora o sharding do lado do cliente do Memcached distribua dados entre nós, trocar de engine é uma mudança arquitetural maior que perde recursos específicos do Redis (estruturas de dados, persistência, replicação) dos quais a aplicação pode depender; o Cluster Mode do Redis fornece escalabilidade de escrita horizontal equivalente nativamente dentro do Redis."
+        "Réplicas aumentam leitura e disponibilidade, mas escritas e memória do shard continuam limitadas pelo primário.",
+        "Memcached distribui chaves, mas exige alterar semânticas e não é a escalabilidade Redis pedida.",
+        "Escala vertical pode adiar o limite, mas não distribui dataset e escritas por múltiplos primários.",
+        "Cluster mode enabled divide slots entre shards, cada um com seu primário, distribuindo memória e throughput de escrita; clientes precisam ser cluster-aware e padrões multi-key têm restrições."
       ],
       "topics": [
         "databases",
