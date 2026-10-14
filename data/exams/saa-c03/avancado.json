@@ -1852,19 +1852,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa usa o AWS Backup para criar backups diários de volumes EBS e bancos de dados RDS em us-east-1. Por exigência regulatória de disaster recovery, cópias desses backups também devem ser armazenadas em us-west-2, de modo que os recursos possam ser restaurados em us-west-2 mesmo que us-east-1 (incluindo seus backups) fique completamente indisponível. Qual configuração atende a esse requisito de forma automatizada?",
       "options": [
-        "Configurar o cofre de backup em us-east-1 com replicação entre regiões habilitada, de forma semelhante à Cross-Region Replication do S3.",
-        "Habilitar o 'modo Multi-Region' do AWS Backup no nível da conta, que espelha automaticamente todos os cofres de backup para uma Região secundária.",
-        "Criar snapshots manuais dos volumes EBS e instâncias RDS e usar o console do EC2/RDS para copiar manualmente cada snapshot para us-west-2 após cada backup.",
-        "Configurar o plano de backup do AWS Backup com uma regra de 'cópia para destino' (copy rule) que copia automaticamente cada ponto de recuperação criado em us-east-1 para um cofre de backup (backup vault) em us-west-2."
+        "Configurar replicação no cofre de origem como uma regra CRR para todos os seus objetos internos.",
+        "Habilitar um modo de espelhamento global da conta para duplicar todos os cofres entre Regiões.",
+        "Copiar snapshots manualmente no console RDS e EC2 após cada execução do plano de backup.",
+        "Adicionar uma copy action ao plano AWS Backup apontando ao cofre da Região de recuperação."
       ],
       "correct": 3,
-      "explanation": "As 'copy rules' do AWS Backup, definidas dentro do plano de backup, copiam automaticamente cada ponto de recuperação para um cofre em outra Região assim que o backup é concluído, garantindo que existam cópias independentes na região de DR sem necessidade de ações manuais recorrentes.",
-      "hint": "Pense em qual elemento da configuração de um PLANO de backup (não do cofre) permite copiar automaticamente pontos de recuperação para outra região.",
+      "explanation": "Um cofre não tem um interruptor de espelhamento equivalente ao CRR do S3. Não há um modo de conta que replique automaticamente todos os cofres. Cópias manuais não atendem à automação solicitada. Uma copy action no plano envia pontos de recuperação elegíveis ao cofre de destino; permissões, chaves e suporte do tipo de backup devem ser conferidos.",
+      "hint": "A cópia regional é uma ação explícita do plano, com suporte e permissões próprios.",
       "optionRationales": [
-        "As 'copy rules' do AWS Backup, definidas dentro do plano de backup, copiam automaticamente cada ponto de recuperação para um cofre em outra Região assim que o backup é concluído, garantindo que existam cópias independentes na região de DR sem necessidade de ações manuais recorrentes.",
-        "Os cofres do AWS Backup não possuem um recurso de replicação automática no estilo S3 CRR no nível do cofre; cópias entre regiões são configuradas por meio de 'copy rules'/ações de cópia dentro do próprio plano de backup, não por replicação do cofre.",
-        "A cópia manual de snapshots, recurso por recurso, é operacionalmente inviável e propensa a erros para um requisito recorrente de DR; as copy rules do AWS Backup automatizam esse processo como parte do plano de backup regular.",
-        "O AWS Backup não possui um único alternador ('modo Multi-Region') no nível da conta que espelhe todos os cofres automaticamente; a cópia entre regiões deve ser configurada explicitamente por meio de copy rules em cada plano de backup."
+        "Um cofre não tem um interruptor de espelhamento equivalente ao CRR do S3.",
+        "Não há um modo de conta que replique automaticamente todos os cofres.",
+        "Cópias manuais não atendem à automação solicitada.",
+        "Uma copy action no plano envia pontos de recuperação elegíveis ao cofre de destino; permissões, chaves e suporte do tipo de backup devem ser conferidos."
       ],
       "topics": [
         "dr-backup",
@@ -1877,19 +1877,19 @@
       "domain": "resilient-architectures",
       "text": "Um fluxo de processamento de pedidos usa o AWS Step Functions para orquestrar múltiplas funções Lambda. Uma das funções falha ocasionalmente devido a throttling de um serviço downstream (erro transitório). A equipe de arquitetura quer que a state machine tente novamente esse passo automaticamente com backoff exponencial algumas vezes antes de desistir, e que, se todas as tentativas falharem, a execução seja direcionada para um ramo separado de 'revisão manual' em vez de falhar o fluxo inteiro. Qual configuração do Step Functions atende a esse requisito?",
       "options": [
-        "Configurar as próprias configurações de retry de 'invocação assíncrona' da função Lambda (2 tentativas automáticas), já que o Step Functions invoca o Lambda de forma assíncrona por padrão.",
-        "Usar uma fila SQS com uma política de redirecionamento (redrive policy) entre cada estado do Step Functions para lidar com as tentativas.",
-        "Configurar um campo 'Retry' no estado relevante com ErrorEquals correspondente à exceção de throttling, IntervalSeconds, BackoffRate e MaxAttempts apropriados para o backoff exponencial; e adicionalmente um campo 'Catch' no mesmo estado que direcione para o estado de 'revisão manual' caso as tentativas se esgotem.",
-        "Envolver o código da função Lambda em um bloco try/catch com um loop de retry personalizado usando atrasos do tipo Thread.sleep(), e fazer o Step Functions invocá-la apenas uma vez."
+        "Configurar retries de invocação assíncrona do Lambda e manter a integração request-response atual.",
+        "Inserir uma fila SQS antes de cada estado e usar somente sua política de redrive.",
+        "Definir Retry com backoff e limite no estado, seguido de Catch para revisão manual.",
+        "Repetir chamadas num loop dentro do Lambda e retornar erro após esgotar o tempo da função."
       ],
       "correct": 2,
-      "explanation": "Os campos 'Retry' e 'Catch' são recursos nativos da Amazon States Language: 'Retry' permite definir tentativas automáticas com backoff exponencial configurável para erros específicos, e 'Catch' permite capturar o erro remanescente (após as tentativas se esgotarem) e direcionar a execução para um estado alternativo (revisão manual), tudo isso visível no histórico de execução do Step Functions.",
-      "hint": "Pense nos dois campos da Amazon States Language projetados especificamente para tratamento de erros declarativo dentro de um estado da state machine, sem código adicional.",
+      "explanation": "A integração padrão request-response não usa automaticamente a política de invocação assíncrona do Lambda. Inserir filas muda a arquitetura e não configura o tratamento de erro daquele estado. Retry trata erros transitórios com backoff; Catch seleciona o ramo de erro quando o tratamento não recupera a tarefa. Retries no código exigem implementação própria e consomem tempo da função, sem configurar o ramo declarativo pedido.",
+      "hint": "O tratamento deve pertencer ao estado que falhou, preservando o restante do fluxo.",
       "optionRationales": [
-        "Os campos 'Retry' e 'Catch' são recursos nativos da Amazon States Language: 'Retry' permite definir tentativas automáticas com backoff exponencial configurável para erros específicos, e 'Catch' permite capturar o erro remanescente (após as tentativas se esgotarem) e direcionar a execução para um estado alternativo (revisão manual), tudo isso visível no histórico de execução do Step Functions.",
-        "Implementar a lógica de retry dentro do código da Lambda consome tempo de execução (e custo) da função durante as esperas, não oferece a visibilidade nativa do Step Functions sobre as tentativas no histórico de execução, e não suporta de forma limpa o requisito de 'direcionar para revisão manual após esgotar as tentativas' na camada de orquestração.",
-        "O Step Functions invoca o Lambda de forma SÍNCRONA por padrão (aguardando a resposta), não assíncrona; portanto, as configurações de retry de invocação assíncrona do Lambda não se aplicam — as tentativas devem ser configuradas na própria definição da state machine.",
-        "Introduzir filas SQS entre estados adiciona complexidade e latência desnecessárias; o Step Functions já suporta nativamente os campos Retry e Catch diretamente na definição da Amazon States Language, sem necessidade de infraestrutura externa de fila."
+        "A integração padrão request-response não usa automaticamente a política de invocação assíncrona do Lambda.",
+        "Inserir filas muda a arquitetura e não configura o tratamento de erro daquele estado.",
+        "Retry trata erros transitórios com backoff; Catch seleciona o ramo de erro quando o tratamento não recupera a tarefa.",
+        "Retries no código exigem implementação própria e consomem tempo da função, sem configurar o ramo declarativo pedido."
       ],
       "topics": [
         "app-integration",
@@ -1899,21 +1899,21 @@
     {
       "id": "saa-avc-079",
       "domain": "resilient-architectures",
-      "text": "Uma empresa de mídia armazena ativos de vídeo finais e imutáveis em um bucket S3 em us-east-1. Para disaster recovery, é necessário manter uma cópia automática de cada novo objeto em um bucket em eu-west-1, preservando as mesmas transições de storage class e configurações de criptografia, de modo que, se us-east-1 ficar indisponível, a cópia em eu-west-1 possa servir como fonte para recuperação. Qual configuração atende a esse requisito?",
+      "text": "Vídeos imutáveis são gravados continuamente em um bucket S3. Uma cópia regional deve acompanhar novos objetos para DR, usando SSE-KMS e uma política de transição de classes também no destino. Qual abordagem atende, considerando que regras e transições Lifecycle não são replicadas automaticamente?",
       "options": [
-        "Configurar a Replicação entre Regiões (CRR) do Amazon S3 do bucket em us-east-1 para um bucket em eu-west-1, com versionamento habilitado em ambos os buckets (pré-requisito da CRR) e uma regra de replicação que inclua os objetos, storage class e criptografia desejados (incluindo permissões adequadas da KMS key no destino, se SSE-KMS for usado).",
-        "Usar o AWS DataSync para realizar uma cópia única (one-time) do conteúdo do bucket para eu-west-1.",
-        "Configurar uma regra de Lifecycle do S3 para transicionar objetos para a classe de armazenamento S3 Glacier em eu-west-1 após 30 dias.",
-        "Habilitar o S3 Transfer Acceleration no bucket de us-east-1 para acelerar o acesso a partir de eu-west-1."
+        "Usar CRR entre buckets versionados, configurar a chave de destino e definir Lifecycle também no destino.",
+        "Executar uma tarefa DataSync uma única vez e manter o bucket de destino sem novas execuções.",
+        "Definir Lifecycle na origem para mover os vídeos para uma classe Glacier da Região de recuperação.",
+        "Habilitar Transfer Acceleration na origem e usar seu endpoint para acessar vídeos da outra Região."
       ],
       "correct": 0,
-      "explanation": "A Cross-Region Replication do S3 mantém automaticamente uma cópia de objetos novos e atualizados em um bucket de outra Região, preservando configurações como storage class e criptografia (com a configuração adequada de chaves KMS no destino); o versionamento é um pré-requisito tanto na origem quanto no destino.",
-      "hint": "Pense no recurso nativo do S3 projetado para manter cópias contínuas e automáticas de objetos em um bucket de outra Região, preservando configurações de armazenamento e criptografia.",
+      "explanation": "CRR replica objetos elegíveis de forma assíncrona entre buckets versionados; Lifecycle no destino é configurado separadamente e SSE-KMS exige permissões e configuração de chave apropriadas. Cópia única não acompanha novos objetos. Lifecycle muda a classe dentro do bucket; não cria uma cópia em outra Região. Transfer Acceleration otimiza transferência até o bucket, não replica objetos.",
+      "hint": "Diferencie replicação do objeto de configuração do ciclo de vida do bucket.",
       "optionRationales": [
-        "A Cross-Region Replication do S3 mantém automaticamente uma cópia de objetos novos e atualizados em um bucket de outra Região, preservando configurações como storage class e criptografia (com a configuração adequada de chaves KMS no destino); o versionamento é um pré-requisito tanto na origem quanto no destino.",
-        "O Transfer Acceleration acelera UPLOADS para o S3 a partir de clientes geograficamente distantes usando edge locations do CloudFront; ele não cria nem mantém uma cópia replicada dos objetos em outro bucket/Região.",
-        "Regras de Lifecycle do S3 transicionam objetos entre storage classes DENTRO do mesmo bucket/Região; elas não conseguem mover ou copiar objetos para um bucket em outra Região.",
-        "Uma cópia única do DataSync não replicaria automaticamente NOVOS objetos adicionados após a cópia inicial; a CRR fornece replicação contínua e automática de objetos novos e atualizados, conforme exigido."
+        "CRR replica objetos elegíveis de forma assíncrona entre buckets versionados; Lifecycle no destino é configurado separadamente e SSE-KMS exige permissões e configuração de chave apropriadas.",
+        "Cópia única não acompanha novos objetos.",
+        "Lifecycle muda a classe dentro do bucket; não cria uma cópia em outra Região.",
+        "Transfer Acceleration otimiza transferência até o bucket, não replica objetos."
       ],
       "topics": [
         "s3-storage",
@@ -1925,19 +1925,19 @@
       "domain": "resilient-architectures",
       "text": "Um sistema de processamento de pedidos usa uma fila SQS consumida por uma função Lambda. Ocasionalmente, uma mensagem malformada ('mensagem venenosa') faz a função Lambda falhar repetidamente, e o SQS continua redirecionando essa mesma mensagem para a função, consumindo invocações do Lambda e atrasando o processamento das demais mensagens válidas atrás dela na fila. A equipe quer que mensagens venenosas sejam automaticamente isoladas após algumas tentativas falhas, sem bloquear o processamento das mensagens válidas subsequentes. Qual configuração atende a esse requisito?",
       "options": [
-        "Reduzir o visibility timeout da fila SQS para 0 segundos, para que mensagens com falha sejam imediatamente reprocessadas.",
-        "Aumentar a concorrência reservada da função Lambda para que mais instâncias processem mensagens em paralelo, reduzindo o impacto da mensagem travada.",
-        "Configurar o período de retenção de mensagens da fila SQS para 1 minuto, para que mensagens problemáticas expirem rapidamente.",
-        "Configurar uma dead-letter queue (DLQ) para a fila SQS de origem, com uma redrive policy especificando maxReceiveCount (ex.: 3)."
+        "Reduzir visibility timeout para zero e manter as mensagens problemáticas na fila de origem.",
+        "Aumentar concorrência do Lambda sem alterar a política de tratamento das mensagens com falha.",
+        "Reduzir a retenção da fila de origem para expirar rapidamente todas as mensagens antigas.",
+        "Associar uma DLQ à fila SQS com redrive policy e maxReceiveCount adequado."
       ],
       "correct": 3,
-      "explanation": "Com uma DLQ e maxReceiveCount configurados, após uma mensagem ser recebida (e falhar no processamento) o número de vezes especificado, o SQS a move automaticamente para a DLQ, removendo-a da fila de origem; isso desbloqueia o processamento das mensagens válidas subsequentes e permite monitorar/inspecionar a DLQ separadamente.",
-      "hint": "Pense no mecanismo do SQS que isola automaticamente mensagens que falham repetidamente após um número configurável de tentativas, separando-as da fila principal.",
+      "explanation": "Timeout zero aumenta reentregas e concorrência sobre a mesma mensagem. Mais concorrência não isola a mensagem que falha repetidamente. Retenção curta descarta também mensagens válidas ainda não processadas. DLQ na fila de origem, com maxReceiveCount, isola mensagens após repetidas recepções; respostas parciais de lote podem reduzir reprocessamento de mensagens válidas.",
+      "hint": "A política deve mover apenas mensagens repetidamente malsucedidas para análise posterior.",
       "optionRationales": [
-        "Com uma DLQ e maxReceiveCount configurados, após uma mensagem ser recebida (e falhar no processamento) o número de vezes especificado, o SQS a move automaticamente para a DLQ, removendo-a da fila de origem; isso desbloqueia o processamento das mensagens válidas subsequentes e permite monitorar/inspecionar a DLQ separadamente.",
-        "Um visibility timeout de 0 tornaria a mensagem imediatamente visível para outros consumidores após cada tentativa falha, potencialmente causando um loop de retentativas ainda mais rápido na mensagem venenosa, consumindo invocações do Lambda mais rapidamente, sem isolá-la.",
-        "Aumentar a concorrência permite processar mais mensagens válidas em paralelo, mas não impede que a própria mensagem venenosa continue sendo redirecionada e reprocessada indefinidamente, continuando a consumir invocações.",
-        "Reduzir a retenção para 1 minuto faria com que TODAS as mensagens (incluindo válidas ainda não processadas) sejam excluídas após apenas um minuto, podendo causar perda de mensagens válidas antes que sejam processadas — uma medida excessivamente agressiva e não direcionada especificamente a mensagens venenosas."
+        "Timeout zero aumenta reentregas e concorrência sobre a mesma mensagem.",
+        "Mais concorrência não isola a mensagem que falha repetidamente.",
+        "Retenção curta descarta também mensagens válidas ainda não processadas.",
+        "DLQ na fila de origem, com maxReceiveCount, isola mensagens após repetidas recepções; respostas parciais de lote podem reduzir reprocessamento de mensagens válidas."
       ],
       "topics": [
         "serverless"
@@ -1948,19 +1948,19 @@
       "domain": "resilient-architectures",
       "text": "Uma aplicação usa o Amazon ElastiCache for Redis como armazenamento de sessões. A equipe de arquitetura exige que, se o nó primário do grupo de replicação Redis falhar (por exemplo, devido a uma interrupção de AZ), uma réplica seja promovida automaticamente a primário com mínima disrupção, sem que a aplicação precise ser reconfigurada com um novo endpoint. Qual configuração atende a esse requisito?",
       "options": [
-        "Criar dois clusters ElastiCache for Redis independentes em AZs diferentes e configurar a aplicação para escrever em ambos simultaneamente.",
-        "Realizar snapshots manuais do cluster Redis a cada poucos minutos e restaurar a partir do snapshot mais recente em um novo cluster caso o primário falhe.",
-        "Habilitar Multi-AZ com Automatic Failover no grupo de replicação do ElastiCache for Redis, com pelo menos uma réplica de leitura em outra Zona de Disponibilidade.",
-        "Usar o ElastiCache for Memcached em vez de Redis, já que o Memcached suporta nativamente replicação multi-nó com failover automático."
+        "Criar dois clusters Redis independentes e manter escritas simultâneas pela aplicação.",
+        "Fazer snapshots frequentes e restaurar outro cluster após detectar indisponibilidade.",
+        "Usar replication group Redis com réplica em outra AZ e Multi-AZ automatic failover.",
+        "Usar Memcached com nós em múltiplas AZs e depender da replicação automática entre eles."
       ],
       "correct": 2,
-      "explanation": "Com Multi-AZ e Automatic Failover habilitados, o ElastiCache detecta automaticamente a falha do nó primário e promove uma réplica a primário, atualizando o registro DNS do endpoint primário do grupo de replicação para apontar para o novo primário — a aplicação continua usando o mesmo endpoint configurado, sem reconfiguração manual.",
-      "hint": "Pense no recurso específico do ElastiCache for Redis que permite promoção automática de réplica para primário em caso de falha, preservando o endpoint usado pela aplicação.",
+      "explanation": "Clusters independentes exigem lógica própria de replicação e failover. Restaurar snapshot não promove uma réplica automaticamente e pode perder atualizações recentes. Multi-AZ com réplica e automatic failover promove um nó; o endpoint primário abstrai a mudança, mas clientes precisam reconectar. Replicação assíncrona pode perder dados. Memcached não oferece o mesmo mecanismo de replicação de sessões e promoção do replication group Redis.",
+      "hint": "Distribuir nós entre AZs não basta: é necessário um mecanismo de replicação e promoção.",
       "optionRationales": [
-        "Com Multi-AZ e Automatic Failover habilitados, o ElastiCache detecta automaticamente a falha do nó primário e promove uma réplica a primário, atualizando o registro DNS do endpoint primário do grupo de replicação para apontar para o novo primário — a aplicação continua usando o mesmo endpoint configurado, sem reconfiguração manual.",
-        "O Memcached é um cache distribuído em memória SEM replicação ou persistência embutida; ele não possui o conceito de nós primário/réplica nem failover automático, tornando-o inadequado para esse requisito — é o Redis (com grupos de replicação) que suporta Multi-AZ e failover automático.",
-        "Escrever em dois clusters independentes a partir da aplicação introduz complexidade e potencial inconsistência de dados entre os caches, e não é como o failover Multi-AZ nativo do ElastiCache foi projetado para funcionar; essa abordagem desloca a lógica de failover para a aplicação de forma desnecessária.",
-        "Snapshot manual seguido de restauração resultaria em perda significativa de dados (desde o último snapshot) e um RTO elevado (tempo para provisionar um novo cluster e restaurar), além de exigir intervenção manual — ao contrário do failover automático Multi-AZ, que é quase imediato e automatizado."
+        "Clusters independentes exigem lógica própria de replicação e failover.",
+        "Restaurar snapshot não promove uma réplica automaticamente e pode perder atualizações recentes.",
+        "Multi-AZ com réplica e automatic failover promove um nó; o endpoint primário abstrai a mudança, mas clientes precisam reconectar. Replicação assíncrona pode perder dados.",
+        "Memcached não oferece o mesmo mecanismo de replicação de sessões e promoção do replication group Redis."
       ],
       "topics": [
         "databases",
@@ -1972,19 +1972,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa usa o Amazon EFS para armazenamento de arquivos compartilhado de uma aplicação executada em instâncias EC2 em us-east-1. Para disaster recovery, é necessário manter uma réplica do sistema de arquivos em us-west-2, atualizada continuamente com baixo RPO, que possa ser promovida rapidamente a leitura-escrita caso us-east-1 fique indisponível. Qual abordagem atende a esse requisito?",
       "options": [
-        "Usar o Amazon EFS Replication para configurar replicação entre regiões a partir do sistema de arquivos de origem em us-east-1 para um novo sistema de arquivos de réplica somente leitura em us-west-2; em um evento de DR, promover a réplica a leitura-escrita.",
-        "Montar o mesmo sistema de arquivos EFS diretamente em instâncias EC2 localizadas em us-west-2.",
-        "Usar o AWS DataSync para realizar uma cópia única (one-time) do sistema de arquivos EFS para um novo sistema de arquivos EFS em us-west-2.",
-        "Usar o gerenciamento de ciclo de vida (Lifecycle Management) do EFS para mover arquivos para a classe de armazenamento EFS Infrequent Access em us-west-2."
+        "Configurar EFS Replication regional e preparar o procedimento de failover para o sistema de destino.",
+        "Montar o EFS original a partir de EC2 na Região de DR pela conectividade entre as VPCs.",
+        "Copiar os arquivos uma vez com DataSync e usar o destino como cópia de recuperação permanente.",
+        "Aplicar Lifecycle para EFS IA e usar essa classe como cópia regional de recuperação."
       ],
       "correct": 0,
-      "explanation": "O EFS Replication mantém replicação contínua e gerenciada entre regiões, com baixo RPO, criando automaticamente uma réplica somente leitura no destino; em caso de disaster recovery, essa réplica pode ser promovida a um sistema de arquivos independente de leitura-escrita, atendendo exatamente ao requisito.",
-      "hint": "Pense no recurso nativo do EFS, lançado especificamente para manter cópias continuamente sincronizadas de um sistema de arquivos em outra Região.",
+      "explanation": "EFS Replication mantém destino somente leitura durante a replicação; o procedimento de failover deve habilitar uso de leitura e escrita e remapeamento dos clientes. Montar o sistema original de outra Região não protege contra a perda da Região de origem. Cópia única fica defasada quando novos arquivos são gravados. Lifecycle muda classe de armazenamento, não replica o sistema para outra Região.",
+      "hint": "O destino precisa existir e receber atualizações antes do desastre.",
       "optionRationales": [
-        "O EFS Replication mantém replicação contínua e gerenciada entre regiões, com baixo RPO, criando automaticamente uma réplica somente leitura no destino; em caso de disaster recovery, essa réplica pode ser promovida a um sistema de arquivos independente de leitura-escrita, atendendo exatamente ao requisito.",
-        "Uma cópia única não mantém a réplica atualizada com as alterações contínuas feitas no sistema de arquivos de origem após a cópia inicial; o requisito de baixo RPO exige replicação contínua, não uma cópia pontual.",
-        "Sistemas de arquivos EFS e seus mount targets são recursos regionais; não é possível montar diretamente, entre regiões, o mesmo sistema de arquivos a partir de instâncias em outra Região sem usar um recurso de replicação como o EFS Replication.",
-        "O Lifecycle Management do EFS move arquivos entre classes de armazenamento DENTRO do mesmo sistema de arquivos/Região; ele não copia ou replica arquivos para um sistema de arquivos diferente em outra Região."
+        "EFS Replication mantém destino somente leitura durante a replicação; o procedimento de failover deve habilitar uso de leitura e escrita e remapeamento dos clientes.",
+        "Montar o sistema original de outra Região não protege contra a perda da Região de origem.",
+        "Cópia única fica defasada quando novos arquivos são gravados.",
+        "Lifecycle muda classe de armazenamento, não replica o sistema para outra Região."
       ],
       "topics": [
         "s3-storage",
@@ -1995,21 +1995,21 @@
     {
       "id": "saa-avc-083",
       "domain": "resilient-architectures",
-      "text": "Uma aplicação mantém um grande número de conexões persistentes a um banco Amazon RDS for MySQL em modo Multi-AZ. Durante um failover do Multi-AZ, a aplicação enfrenta erros de conexão e leva bastante tempo para se reconectar e se recuperar, causando indisponibilidade percebida pelos usuários. Qual abordagem reduz o tempo de indisponibilidade percebido pela aplicação durante o failover, sem reescrever a lógica de reconexão da aplicação?",
+      "text": "Uma aplicação RDS MySQL Multi-AZ já trata erros e retries de transações, mas demora para recuperar milhares de conexões após failover. Sem desenvolver um proxy próprio, qual serviço reduz esse impacto com gerenciamento de conexões?",
       "options": [
-        "Habilitar connection draining (deregistration delay) em um Application Load Balancer posicionado na frente do banco de dados.",
-        "Colocar o Amazon RDS Proxy na frente da instância RDS, mantendo um pool de conexões gerenciado.",
-        "Configurar a aplicação para usar uma Read Replica como endpoint de conexão primário.",
-        "Aumentar a classe da instância de banco de dados para um tipo maior, com mais vCPUs e memória."
+        "Colocar ALB na frente do endpoint MySQL e habilitar deregistration delay no target group.",
+        "Usar RDS Proxy como endpoint da aplicação para gerenciar o pool e acompanhar o failover.",
+        "Conectar a aplicação ao endpoint de uma read replica durante toda a operação normal.",
+        "Aumentar a instância RDS mantendo os mesmos clientes e o mesmo gerenciamento de conexões."
       ],
       "correct": 1,
-      "explanation": "O RDS Proxy mantém um pool de conexões com o banco de dados e, durante um failover do Multi-AZ, redireciona automaticamente as conexões para a nova instância primária, reduzindo significativamente o tempo de failover percebido pela aplicação sem exigir mudanças na lógica de retry da aplicação.",
-      "hint": "Pense no serviço gerenciado da AWS que atua como um pool de conexões entre a aplicação e o RDS, projetado especificamente para reduzir o impacto de failovers no tempo de reconexão.",
+      "explanation": "ALB não é um proxy do protocolo MySQL nem controla o failover do banco. RDS Proxy gerencia conexões e reduz impacto do failover; transações em andamento podem falhar e a aplicação ainda precisa tratar erros. Uma read replica não é substituto transparente do writer. Uma instância maior não resolve sozinha os efeitos de reconexão e descoberta do primário.",
+      "hint": "Reduzir a interrupção não significa garantir que toda transação em andamento sobreviva.",
       "optionRationales": [
-        "O RDS Proxy mantém um pool de conexões com o banco de dados e, durante um failover do Multi-AZ, redireciona automaticamente as conexões para a nova instância primária, reduzindo significativamente o tempo de failover percebido pela aplicação sem exigir mudanças na lógica de retry da aplicação.",
-        "Uma instância maior não melhora o tratamento de conexões durante o failover; o tempo de failover está relacionado à propagação de DNS e ao reestabelecimento de conexões, não à capacidade de processamento da instância.",
-        "Read Replicas são destinadas a descarregar tráfego de LEITURA; operações de escrita precisam ir para a instância primária, então usar uma read replica como endpoint primário de conexão não suportaria escritas e não resolveria o tratamento do failover.",
-        "ALBs não ficam na frente de conexões de banco de dados (bancos de dados usam conexões TCP diretas, não HTTP); connection draining é um recurso de ELB para listeners HTTP/TCP direcionados a targets de aplicação web, não se aplica a conexões diretas com o banco."
+        "ALB não é um proxy do protocolo MySQL nem controla o failover do banco.",
+        "RDS Proxy gerencia conexões e reduz impacto do failover; transações em andamento podem falhar e a aplicação ainda precisa tratar erros.",
+        "Uma read replica não é substituto transparente do writer.",
+        "Uma instância maior não resolve sozinha os efeitos de reconexão e descoberta do primário."
       ],
       "topics": [
         "databases",
@@ -2021,19 +2021,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa está escolhendo uma estratégia de disaster recovery para uma carga de trabalho crítica. Os requisitos são: RTO de poucos minutos, RPO de poucos minutos, e a empresa está disposta a pagar por uma infraestrutura pré-provisionada, porém reduzida (scaled-down), na região de DR, evitando o custo de manter uma cópia em escala total da produção rodando continuamente. Qual estratégia de DR é mais adequada?",
       "options": [
-        "Backup and restore — realizar backups regulares e restaurar a infraestrutura a partir deles durante um desastre.",
-        "Multi-site active/active — manter ambas as regiões executando tráfego de produção completo simultaneamente.",
-        "Warm standby — manter uma cópia funcional, porém reduzida (scaled-down), do ambiente de produção em execução contínua na região de DR, escalando-a para a capacidade total durante um desastre.",
-        "Pilot light — manter apenas a infraestrutura essencial (ex.: uma réplica de banco de dados) em execução na região de DR, provisionando os demais componentes somente durante um desastre."
+        "Manter backups regionais e restaurar toda a aplicação somente após declarar o desastre.",
+        "Operar duas pilhas em capacidade plena, atendendo produção simultaneamente nas duas Regiões.",
+        "Manter uma pilha funcional reduzida na Região de DR e escalá-la durante a recuperação.",
+        "Manter apenas dados e serviços essenciais ativos e provisionar a aplicação durante a recuperação."
       ],
       "correct": 2,
-      "explanation": "O warm standby mantém todos os componentes da arquitetura já em execução, mas em escala reduzida, na região de DR; durante um desastre, basta escalar essa infraestrutura para a capacidade total, alcançando RTO/RPO da ordem de minutos a um custo moderado — exatamente o equilíbrio buscado.",
-      "hint": "Pense na estratégia de DR que mantém todos os componentes da arquitetura já em execução, mas em capacidade reduzida, equilibrando custo e velocidade de recuperação.",
+      "explanation": "Backup/restore exige provisionamento e restauração, normalmente com recuperação mais demorada. Active-active implica capacidade ativa e operação que excedem o compromisso de custo descrito. Warm standby mantém aplicação funcional reduzida, escalável no desastre; tempos devem ser comprovados por testes. Pilot light mantém apenas componentes essenciais, exigindo ativar o restante da pilha durante a recuperação.",
+      "hint": "Observe se a aplicação completa já está funcional antes do desastre, mesmo com pouca capacidade.",
       "optionRationales": [
-        "O warm standby mantém todos os componentes da arquitetura já em execução, mas em escala reduzida, na região de DR; durante um desastre, basta escalar essa infraestrutura para a capacidade total, alcançando RTO/RPO da ordem de minutos a um custo moderado — exatamente o equilíbrio buscado.",
-        "No pilot light, componentes de computação/aplicação precisam ser provisionados e configurados do zero durante o desastre, o que normalmente resulta em RTO maior que poucos minutos; não atende tão bem ao requisito de RTO de minutos quanto o warm standby, que já mantém esses componentes em execução reduzida.",
-        "Backup and restore é a estratégia de menor custo, mas tipicamente apresenta o maior RTO/RPO, medidos em horas, já que toda a infraestrutura precisa ser criada a partir de backups durante o desastre — não atende ao requisito de RTO de minutos.",
-        "Multi-site active/active oferece o melhor RTO/RPO (próximo de zero), mas ao custo mais alto, exigindo infraestrutura em capacidade de produção total rodando continuamente em ambas as regiões; a empresa explicitamente busca uma infraestrutura 'reduzida' pré-provisionada, indicando que não está disposta a pagar pelo custo total do active/active."
+        "Backup/restore exige provisionamento e restauração, normalmente com recuperação mais demorada.",
+        "Active-active implica capacidade ativa e operação que excedem o compromisso de custo descrito.",
+        "Warm standby mantém aplicação funcional reduzida, escalável no desastre; tempos devem ser comprovados por testes.",
+        "Pilot light mantém apenas componentes essenciais, exigindo ativar o restante da pilha durante a recuperação."
       ],
       "topics": [
         "dr-backup"
@@ -2044,19 +2044,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa possui servidores VMware on-premises executando aplicações críticas. Ela deseja uma solução de DR que replique continuamente esses servidores (em nível de bloco) para a AWS, permitindo failover rápido — lançando instâncias de recuperação na AWS em poucos minutos — em caso de desastre on-premises, com mínimas alterações contínuas nos servidores de origem. Qual serviço da AWS atende a esse requisito?",
       "options": [
-        "AWS Elastic Disaster Recovery (AWS DRS).",
-        "AWS Storage Gateway (Volume Gateway) para replicar os discos das VMs on-premises para o S3, criando manualmente instâncias EC2 a partir desses volumes durante um desastre.",
-        "AWS Database Migration Service (DMS).",
-        "AWS Server Migration Service (SMS)."
+        "Usar AWS Elastic Disaster Recovery com replicação contínua e launch settings de recuperação.",
+        "Usar Volume Gateway com snapshots e reconstruir os servidores EC2 no momento do desastre.",
+        "Usar AWS DMS para replicar continuamente os bancos que executam dentro das máquinas virtuais.",
+        "Usar DataSync para copiar arquivos periodicamente e recriar as máquinas a partir de AMIs padrão."
       ],
       "correct": 0,
-      "explanation": "O AWS DRS realiza replicação contínua em nível de bloco de servidores on-premises (ou de outras nuvens) para uma área de staging de baixo custo na AWS; em caso de desastre, o DRS lança automaticamente instâncias de recuperação a partir dos dados replicados em poucos minutos, fornecendo baixo RTO/RPO para DR do tipo lift-and-shift.",
-      "hint": "Pense no serviço da AWS evoluído a partir de tecnologia de replicação contínua em nível de bloco, projetado especificamente para DR de lift-and-shift de servidores on-premises ou de outras nuvens.",
+      "explanation": "DRS replica blocos para uma área de staging e orquestra lançamento de instâncias de recuperação; requer preparação, agente e testes. Volume Gateway oferece armazenamento híbrido e snapshots, não a mesma orquestração de recuperação de servidores. DMS replica dados de bancos, não o sistema e os discos de uma VM completa. DataSync transfere arquivos/objetos, não oferece recuperação contínua de servidores por replicação de blocos.",
+      "hint": "O requisito é recuperar servidores completos, não somente bancos de dados ou arquivos.",
       "optionRationales": [
-        "O AWS DRS realiza replicação contínua em nível de bloco de servidores on-premises (ou de outras nuvens) para uma área de staging de baixo custo na AWS; em caso de desastre, o DRS lança automaticamente instâncias de recuperação a partir dos dados replicados em poucos minutos, fornecendo baixo RTO/RPO para DR do tipo lift-and-shift.",
-        "O DMS replica especificamente dados de BANCO DE DADOS, não imagens completas de servidores (incluindo sistema operacional, aplicações e configurações); é uma ferramenta de migração/replicação de bancos de dados, não uma solução de DR para servidores inteiros.",
-        "O SMS realiza replicação periódica e incremental de snapshots de VMs (menos frequente que a replicação contínua em nível de bloco), foi projetado principalmente para migração única, está descontinuado e não oferece o RPO baixo com replicação contínua nem o failover automatizado em minutos que o AWS DRS oferece.",
-        "O Volume Gateway replica VOLUMES para o S3 como snapshots, mas reconstruir servidores completos (sistema operacional, aplicações, configurações) a partir de snapshots de volume bruto durante um desastre é um processo manual, lento e propenso a erros, não uma solução de orquestração de DR pronta como o AWS DRS."
+        "DRS replica blocos para uma área de staging e orquestra lançamento de instâncias de recuperação; requer preparação, agente e testes.",
+        "Volume Gateway oferece armazenamento híbrido e snapshots, não a mesma orquestração de recuperação de servidores.",
+        "DMS replica dados de bancos, não o sistema e os discos de uma VM completa.",
+        "DataSync transfere arquivos/objetos, não oferece recuperação contínua de servidores por replicação de blocos."
       ],
       "topics": [
         "dr-backup",
@@ -2068,19 +2068,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa está migrando para a AWS uma aplicação on-premises que usa Apache ActiveMQ para mensageria (via protocolo JMS), e quer minimizar alterações de código na aplicação enquanto obtém alta disponibilidade entre Zonas de Disponibilidade com failover automático do broker de mensagens. Qual abordagem atende a esse requisito?",
       "options": [
-        "Executar dois brokers Amazon MQ independentes em AZs diferentes e configurar a aplicação para publicar mensagens em ambos.",
-        "Migrar a aplicação para usar o Amazon SQS, que é inerentemente altamente disponível.",
-        "Implantar o Amazon MQ em 'modo de cluster' com múltiplos brokers ativos compartilhando a carga.",
-        "Usar o Amazon MQ for ActiveMQ em modo de implantação 'active/standby' entre duas Zonas de Disponibilidade."
+        "Criar dois brokers ActiveMQ independentes e fazer a aplicação publicar em ambos.",
+        "Migrar os produtores e consumidores para a API nativa do Amazon SQS.",
+        "Usar um cluster Amazon MQ for RabbitMQ e preservar todas as configurações JMS atuais.",
+        "Usar Amazon MQ for ActiveMQ active/standby com endpoints de failover no cliente."
       ],
       "correct": 3,
-      "explanation": "No modo active/standby, o Amazon MQ replica os dados do armazenamento de mensagens do broker para um broker standby em outra AZ e realiza failover automático para o standby (mantendo o mesmo endpoint) caso o broker ativo fique indisponível — sem exigir alterações no protocolo da aplicação, que continua usando as APIs JMS/ActiveMQ.",
-      "hint": "Pense no modelo de alta disponibilidade que o Amazon MQ for ActiveMQ oferece nativamente entre Zonas de Disponibilidade, preservando o mesmo endpoint e protocolo.",
+      "explanation": "Brokers independentes exigem coordenação de estado e recuperação pela aplicação. SQS usa outro modelo de API; não é um broker ActiveMQ substituto sem adaptação. O modelo de cluster RabbitMQ não fornece compatibilidade ActiveMQ/JMS por si só. ActiveMQ active/standby distribui brokers entre AZs; o cliente deve usar transporte de failover e endpoints apropriados.",
+      "hint": "Compatibilidade do protocolo e modelo de implantação precisam atender ao mesmo tempo.",
       "optionRationales": [
-        "No modo active/standby, o Amazon MQ replica os dados do armazenamento de mensagens do broker para um broker standby em outra AZ e realiza failover automático para o standby (mantendo o mesmo endpoint) caso o broker ativo fique indisponível — sem exigir alterações no protocolo da aplicação, que continua usando as APIs JMS/ActiveMQ.",
-        "Embora o SQS seja altamente disponível, essa abordagem exigiria REESCREVER a aplicação para usar a API do SQS em vez do protocolo JMS/ActiveMQ, contrariando o requisito de minimizar alterações de código.",
-        "O Amazon MQ for ActiveMQ não oferece um modo de 'cluster' com múltiplos brokers simultaneamente ativos compartilhando as mesmas filas; seu modelo de alta disponibilidade para ActiveMQ é active/standby (um broker ativo + um standby) — o modo cluster com múltiplos nós ativos está disponível para o Amazon MQ for RabbitMQ.",
-        "Brokers independentes sem armazenamento/replicação compartilhados resultariam em mensagens divididas entre os brokers (sem estado de fila compartilhado), exigindo que os consumidores consumam de ambos — isso não fornece failover adequado e altera completamente a semântica de mensagens."
+        "Brokers independentes exigem coordenação de estado e recuperação pela aplicação.",
+        "SQS usa outro modelo de API; não é um broker ActiveMQ substituto sem adaptação.",
+        "O modelo de cluster RabbitMQ não fornece compatibilidade ActiveMQ/JMS por si só.",
+        "ActiveMQ active/standby distribui brokers entre AZs; o cliente deve usar transporte de failover e endpoints apropriados."
       ],
       "topics": [
         "app-integration"
@@ -2091,19 +2091,19 @@
       "domain": "resilient-architectures",
       "text": "Um Auto Scaling Group de uma aplicação crítica está distribuído em apenas 2 Zonas de Disponibilidade, com capacidade desejada de 10 instâncias (5 por AZ). Se uma AZ falhar, restam apenas 50% da capacidade total, sobrecarregando potencialmente a AZ sobrevivente. A equipe de arquitetura quer redesenhar para aumentar a resiliência a falhas de uma única AZ, mantendo a mesma capacidade total e com aumento mínimo de custo. Qual abordagem atende a esse objetivo?",
       "options": [
-        "Aumentar a capacidade desejada do Auto Scaling Group para 200% do necessário normalmente, mantendo a distribuição nas 2 AZs existentes.",
-        "Redesenhar a VPC e o Auto Scaling Group para abranger 3 Zonas de Disponibilidade, distribuindo a mesma capacidade total entre as 3 AZs em vez de 2.",
-        "Configurar o Auto Scaling Group com uma estratégia de posicionamento 'Single AZ' para simplificar a configuração de rede.",
-        "Usar o recurso de 'Capacity Rebalancing' do Auto Scaling configurado para instâncias On-Demand nas 2 AZs existentes."
+        "Dobrar a capacidade desejada e manter a distribuição apenas nas duas AZs atuais.",
+        "Distribuir as mesmas dez instâncias do ASG por sub-redes de três AZs.",
+        "Concentrar as dez instâncias numa única AZ com baixa latência entre os servidores.",
+        "Habilitar Capacity Rebalancing para as instâncias On-Demand nas duas AZs."
       ],
       "correct": 1,
-      "explanation": "Distribuindo a mesma capacidade total (10 instâncias) entre 3 AZs (aproximadamente 3-4 por AZ), se uma AZ falhar, as 2 AZs restantes retêm aproximadamente 2/3 da capacidade total (em vez de 50% com 2 AZs) — reduzindo o impacto de uma falha de AZ única, com custo adicional mínimo (mesmo número total de instâncias, apenas distribuídas entre mais AZs, exigindo a criação de sub-redes adicionais).",
-      "hint": "Pense em como o número de Zonas de Disponibilidade usadas afeta a fração da capacidade total que permanece disponível após a perda de uma única AZ.",
+      "explanation": "Dobrar capacidade aumenta custo e viola a manutenção da capacidade total. Distribuir dez instâncias em três AZs reduz a perda imediata numa única falha para três ou quatro instâncias, mas não garante capacidade plena sobrevivente. Concentrar tudo numa AZ agrava a perda potencial. Capacity Rebalancing responde a risco de interrupção Spot, não redistribui a capacidade On-Demand por uma terceira AZ.",
+      "hint": "Calcule a capacidade perdida imediatamente; reposição posterior depende de disponibilidade de lançamento.",
       "optionRationales": [
-        "Distribuindo a mesma capacidade total (10 instâncias) entre 3 AZs (aproximadamente 3-4 por AZ), se uma AZ falhar, as 2 AZs restantes retêm aproximadamente 2/3 da capacidade total (em vez de 50% com 2 AZs) — reduzindo o impacto de uma falha de AZ única, com custo adicional mínimo (mesmo número total de instâncias, apenas distribuídas entre mais AZs, exigindo a criação de sub-redes adicionais).",
-        "Dobrar a capacidade para superprovisionar contra falhas de AZ aumenta significativamente o custo (executando o dobro de instâncias necessárias o tempo todo), em comparação com simplesmente distribuir a mesma capacidade entre 3 AZs.",
-        "Executar deliberadamente em uma única AZ tornaria a disponibilidade de toda a aplicação dependente dessa AZ, o oposto de melhorar a resiliência.",
-        "O Capacity Rebalancing é específico para substituir proativamente Spot Instances com risco elevado de interrupção; ele não se aplica de forma significativa a instâncias On-Demand nem resolve o problema de distribuição de capacidade entre AZs descrito."
+        "Dobrar capacidade aumenta custo e viola a manutenção da capacidade total.",
+        "Distribuir dez instâncias em três AZs reduz a perda imediata numa única falha para três ou quatro instâncias, mas não garante capacidade plena sobrevivente.",
+        "Concentrar tudo numa AZ agrava a perda potencial.",
+        "Capacity Rebalancing responde a risco de interrupção Spot, não redistribui a capacidade On-Demand por uma terceira AZ."
       ],
       "topics": [
         "high-availability",
@@ -2115,19 +2115,19 @@
       "domain": "resilient-architectures",
       "text": "Um Network Load Balancer tem 2 Zonas de Disponibilidade registradas, mas com números diferentes de targets saudáveis em cada uma (AZ-A tem 8 targets, AZ-B tem 2 targets após um recente scale-in). Por padrão, o NLB distribui o tráfego de forma aproximadamente igual ENTRE AS AZs (50/50), não entre os targets individuais — fazendo com que os 2 targets da AZ-B recebam, cada um, muito mais tráfego que os 8 targets da AZ-A, sobrecarregando-os. Qual configuração corrige esse desbalanceamento?",
       "options": [
-        "Registrar manualmente targets adicionais 'placeholder' (fictícios) na AZ-B para equilibrar a contagem de targets.",
-        "Habilitar o modo 'Slow Start' no target group do NLB.",
-        "Substituir o Network Load Balancer por um Classic Load Balancer, que sempre balanceia igualmente entre todos os targets independentemente da AZ.",
-        "Habilitar Cross-Zone Load Balancing no Network Load Balancer."
+        "Registrar targets sem aplicação na AZ menor para igualar a contagem de destinos.",
+        "Aplicar slow start aos targets existentes sem alterar o escopo zonal de distribuição.",
+        "Ativar afinidade DNS zonal para manter cada cliente nos targets da sua AZ.",
+        "Habilitar cross-zone no NLB ou target group conforme a configuração suportada."
       ],
       "correct": 3,
-      "explanation": "Com o Cross-Zone Load Balancing habilitado, o NLB distribui o tráfego igualmente entre TODOS os targets saudáveis registrados, independentemente da AZ; assim, cada um dos 10 targets (somando as duas AZs) recebe aproximadamente a mesma fração do tráfego, em vez de o tráfego ser dividido primeiro igualmente por AZ.",
-      "hint": "Pense na configuração do NLB que determina se o tráfego é distribuído por AZ primeiro ou diretamente entre todos os targets saudáveis, independentemente de sua AZ.",
+      "explanation": "Targets fictícios não recebem tráfego útil e não corrigem a capacidade efetiva. Slow start não é a solução NLB para distribuir fluxos entre zonas. Afinidade zonal preserva a concentração, em vez de permitir uso do conjunto completo de targets. Cross-zone permite aos nós distribuir conexões aos targets saudáveis das AZs; não promete igualar bytes de fluxos de tamanhos diferentes.",
+      "hint": "A seleção precisa alcançar targets além da AZ do nó que recebeu a conexão.",
       "optionRationales": [
-        "Com o Cross-Zone Load Balancing habilitado, o NLB distribui o tráfego igualmente entre TODOS os targets saudáveis registrados, independentemente da AZ; assim, cada um dos 10 targets (somando as duas AZs) recebe aproximadamente a mesma fração do tráfego, em vez de o tráfego ser dividido primeiro igualmente por AZ.",
-        "O Slow Start aumenta gradualmente a proporção de requisições enviadas a targets recém-registrados durante um período de aquecimento configurável; ele não resolve o desbalanceamento de distribuição de tráfego entre AZs causado por contagens desiguais de targets por AZ.",
-        "Targets fictícios receberiam tráfego real de produção e não conseguiriam atendê-lo adequadamente (retornando erros) ou desperdiçariam recursos — uma solução inadequada em vez de corrigir o mecanismo de distribuição.",
-        "Embora o Classic Load Balancer tenha cross-zone load balancing habilitado por padrão, substituir o TIPO de load balancer é uma mudança desnecessariamente disruptiva (perdendo recursos específicos do NLB, como IPs estáticos e altíssima taxa de transferência) quando simplesmente habilitar a configuração de cross-zone já existente no NLB resolve o problema diretamente."
+        "Targets fictícios não recebem tráfego útil e não corrigem a capacidade efetiva.",
+        "Slow start não é a solução NLB para distribuir fluxos entre zonas.",
+        "Afinidade zonal preserva a concentração, em vez de permitir uso do conjunto completo de targets.",
+        "Cross-zone permite aos nós distribuir conexões aos targets saudáveis das AZs; não promete igualar bytes de fluxos de tamanhos diferentes."
       ],
       "topics": [
         "high-availability"
@@ -2136,21 +2136,21 @@
     {
       "id": "saa-avc-089",
       "domain": "resilient-architectures",
-      "text": "Uma equipe de desenvolvimento executou acidentalmente, há 2 horas, um script de migração defeituoso contra o banco Amazon RDS for MySQL de produção, corrompendo várias tabelas. É necessário recuperar o banco de dados para o estado exato IMEDIATAMENTE ANTES da execução do script defeituoso (um ponto no tempo específico, não necessariamente alinhado a um snapshot diário), com perda mínima de dados das transações ocorridas entre o último snapshot e esse ponto no tempo. Qual abordagem do RDS atende a esse requisito?",
+      "text": "Uma equipe de desenvolvimento executou acidentalmente, há 2 horas, um script de migração defeituoso contra o banco Amazon RDS for MySQL de produção, corrompendo várias tabelas. Os backups automatizados já estavam habilitados e o instante está na janela de retenção. É necessário recuperar o banco de dados para o estado exato IMEDIATAMENTE ANTES da execução do script defeituoso (um ponto no tempo específico, não necessariamente alinhado a um snapshot diário), com perda mínima de dados das transações ocorridas entre o último snapshot e esse ponto no tempo. Qual abordagem do RDS atende a esse requisito?",
       "options": [
-        "Habilitar o binary logging na instância RDS e reproduzir manualmente os binary logs até o ponto desejado na mesma instância.",
-        "Restaurar o snapshot diário automatizado mais recente, que contém os dados da janela de backup da noite anterior.",
-        "Usar a opção 'Reboot with failover' do RDS na implantação Multi-AZ para reverter para os dados do standby.",
-        "Usar os backups automatizados do RDS com Point-in-Time Recovery (PITR), restaurando uma NOVA instância para o timestamp exato imediatamente anterior à execução do script defeituoso."
+        "Ativar binary logs somente após o incidente e reaplicá-los na mesma instância.",
+        "Restaurar apenas o snapshot diário capturado antes das transações da manhã.",
+        "Forçar failover Multi-AZ e usar o standby como cópia anterior à migração.",
+        "Restaurar uma nova instância por PITR para o instante imediatamente anterior ao script."
       ],
       "correct": 3,
-      "explanation": "O PITR do RDS reproduz os logs de transação a partir do backup automatizado mais recente até o segundo exato especificado, criando uma nova instância com os dados como estavam naquele momento; essa nova instância pode então ser usada para redirecionar a aplicação ou migrar os dados necessários, atendendo ao requisito de recuperação para um ponto exato no tempo com perda mínima de dados.",
-      "hint": "Pense no recurso do RDS que permite restaurar uma nova instância para um timestamp exato, em vez de depender apenas do snapshot diário mais próximo.",
+      "explanation": "Replay manual exige preparação e não é o procedimento gerenciado de recuperação solicitado. Um snapshot diário perde transações entre sua captura e o instante desejado. A corrupção lógica também é replicada ao standby; failover não reverte o histórico. PITR usa backups e logs retidos para restaurar outra instância no ponto escolhido; o cutover e reconciliação de gravações posteriores precisam de planejamento.",
+      "hint": "Falha lógica replicada exige recuperar um estado anterior, não trocar de nó.",
       "optionRationales": [
-        "O PITR do RDS reproduz os logs de transação a partir do backup automatizado mais recente até o segundo exato especificado, criando uma nova instância com os dados como estavam naquele momento; essa nova instância pode então ser usada para redirecionar a aplicação ou migrar os dados necessários, atendendo ao requisito de recuperação para um ponto exato no tempo com perda mínima de dados.",
-        "O snapshot diário mais recente pode ter sido feito antes da execução do script em alguns casos, mas também pode ser de muitas horas antes do necessário (perdendo transações válidas adicionais) ou, se feito após o script, já conter a corrupção; o requisito pede recuperação para o PONTO EXATO no tempo imediatamente anterior ao script, não para o snapshot diário mais próximo.",
-        "O reboot with failover alterna para a instância standby, mas o standby é replicado de forma SÍNCRONA e também conteria os dados corrompidos pelo script defeituoso (já replicados para ele); essa opção não oferece nenhuma capacidade de recuperação para um ponto específico no tempo.",
-        "O RDS não expõe gerenciamento/reprodução manual direta de binary logs na instância de produção dessa forma para recuperação point-in-time do MySQL; o PITR via backups automatizados + logs de transação (restaurando para uma NOVA instância) é o mecanismo suportado pelo RDS."
+        "Replay manual exige preparação e não é o procedimento gerenciado de recuperação solicitado.",
+        "Um snapshot diário perde transações entre sua captura e o instante desejado.",
+        "A corrupção lógica também é replicada ao standby; failover não reverte o histórico.",
+        "PITR usa backups e logs retidos para restaurar outra instância no ponto escolhido; o cutover e reconciliação de gravações posteriores precisam de planejamento."
       ],
       "topics": [
         "databases",
@@ -2162,19 +2162,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa executa uma aplicação com tráfego intermitente no Amazon Aurora Serverless v2 (compatível com PostgreSQL), com variação significativa de tráfego ao longo do dia. Ela precisa que esse banco de dados mantenha alta disponibilidade com failover automático entre Zonas de Disponibilidade, semelhante ao Aurora provisionado, continuando a se beneficiar do escalonamento automático de capacidade do Aurora Serverless v2. Isso é possível, e como?",
       "options": [
-        "Não — o Aurora Serverless v2 suporta apenas uma instância writer em uma única AZ, sem opção de réplicas; para HA Multi-AZ, o cluster precisa ser convertido inteiramente para instâncias Aurora provisionadas.",
-        "Não — alcançar HA Multi-AZ exigiria roteirizar manualmente cópias de snapshots entre AZs e restaurar uma nova instância Serverless v2 a partir do snapshot caso a AZ primária falhe.",
-        "Sim, mas apenas usando o Aurora Global Database, com uma Região secundária configurada como o 'standby' Multi-AZ.",
-        "Sim — o Aurora Serverless v2 suporta implantações Multi-AZ adicionando uma ou mais Aurora Replicas (que também podem ser Serverless v2) em AZs diferentes dentro do mesmo cluster Aurora; o mecanismo de failover automático do Aurora promove uma réplica a writer caso a instância primária fique indisponível, enquanto cada instância Serverless v2 do cluster escala sua capacidade (ACUs) independentemente, de acordo com sua própria carga."
+        "Manter somente o writer e depender das cópias de armazenamento para ter uma réplica de compute pronta.",
+        "Agendar snapshots e restaurar uma nova instância serverless quando a AZ do writer falhar.",
+        "Criar um Global Database e usar outra Região como substituta da réplica em AZ local.",
+        "Adicionar Aurora Replicas Serverless v2 em outras AZs e configurar os tiers de promoção."
       ],
       "correct": 3,
-      "explanation": "O Aurora Serverless v2 pode coexistir com Aurora Replicas (Serverless v2 ou provisionadas) dentro do mesmo cluster, em AZs diferentes; o failover automático nativo do Aurora promove uma dessas réplicas a writer em caso de falha da instância primária, e cada instância continua escalando sua capacidade de forma independente — fornecendo Multi-AZ HA sem perder o escalonamento automático.",
-      "hint": "Pense em como o Aurora separa o conceito de 'instância dentro de um cluster' do conceito de 'modo de capacidade (provisionado vs. serverless)' — e se réplicas em outras AZs podem usar qualquer um desses modos.",
+      "explanation": "O armazenamento multi-AZ do cluster não substitui uma instância de réplica pronta para promoção. Snapshots não oferecem a promoção automática de uma réplica de compute. Global Database trata recuperação regional; não é necessário para HA entre AZs na mesma Região. Serverless v2 permite Aurora Replicas em outras AZs. Tiers 0/1 acompanham capacidade do writer para prontidão; tiers superiores podem escalar de forma mais independente.",
+      "hint": "Diferencie a redundância do armazenamento da disponibilidade de uma instância pronta para promoção.",
       "optionRationales": [
-        "O Aurora Serverless v2 pode coexistir com Aurora Replicas (Serverless v2 ou provisionadas) dentro do mesmo cluster, em AZs diferentes; o failover automático nativo do Aurora promove uma dessas réplicas a writer em caso de falha da instância primária, e cada instância continua escalando sua capacidade de forma independente — fornecendo Multi-AZ HA sem perder o escalonamento automático.",
-        "Essa afirmação está incorreta: instâncias Aurora Serverless v2 podem ser combinadas com outras instâncias Serverless v2 ou provisionadas como Aurora Replicas dentro do mesmo cluster, suportando Multi-AZ HA sem necessidade de conversão total para provisionado.",
-        "O Aurora Global Database é destinado a disaster recovery entre REGIÕES (regiões secundárias são somente leitura, e o failover envolve uma promoção que leva mais tempo que o Multi-AZ dentro da mesma região); é um recurso diferente da alta disponibilidade Multi-AZ dentro de uma única região via Aurora Replicas, e não é necessário apenas para obter Multi-AZ HA dentro de uma região.",
-        "Essa abordagem descreve um processo manual, lento e com RTO/RPO elevados; o mecanismo nativo de Aurora Replica + failover automático Multi-AZ do Aurora já fornece isso sem necessidade de scripts manuais de snapshot."
+        "O armazenamento multi-AZ do cluster não substitui uma instância de réplica pronta para promoção.",
+        "Snapshots não oferecem a promoção automática de uma réplica de compute.",
+        "Global Database trata recuperação regional; não é necessário para HA entre AZs na mesma Região.",
+        "Serverless v2 permite Aurora Replicas em outras AZs. Tiers 0/1 acompanham capacidade do writer para prontidão; tiers superiores podem escalar de forma mais independente."
       ],
       "topics": [
         "databases",
@@ -2187,19 +2187,19 @@
       "domain": "resilient-architectures",
       "text": "Três aplicações consumidoras independentes (analytics, detecção de fraude e arquivamento) leem do mesmo Amazon Kinesis Data Stream. Conforme o número de consumidores cresce, eles passam a competir pela taxa de leitura fixa de cada shard (2 MB/s, compartilhada entre todos os consumidores que usam GetRecords), causando latência de leitura crescente e throttling ocasional para todos — impactando o requisito de quase-tempo-real do consumidor de detecção de fraude. Como resolver isso sem aumentar excessivamente o número de shards (e o custo), garantindo que cada consumidor receba de forma confiável sua própria taxa de transferência dedicada por shard?",
       "options": [
-        "Aumentar o número de shards do Kinesis Data Stream proporcionalmente ao número de consumidores.",
-        "Configurar cada consumidor com um nome de 'Consumer Group' diferente, semelhante ao Apache Kafka, para receber taxa de leitura independente.",
-        "Fazer cada aplicação consumidora ler de uma fila SQS separada, populada por uma função Lambda acionada pelo Kinesis stream.",
-        "Habilitar o Enhanced Fan-Out e fazer com que cada consumidor se registre como consumidor de enhanced fan-out usando a API SubscribeToShard."
+        "Aumentar shards e manter todos os consumidores compartilhando GetRecords.",
+        "Criar um nome de aplicação distinto para cada consumidor que usa GetRecords.",
+        "Copiar eventos por Lambda para filas SQS dedicadas a cada aplicação.",
+        "Registrar consumidores enhanced fan-out e usar SubscribeToShard."
       ],
       "correct": 3,
-      "explanation": "Com o Enhanced Fan-Out, cada consumidor registrado recebe seu próprio pipe dedicado de 2 MB/s por shard (entregue via HTTP/2, por push), eliminando a disputa de taxa de transferência entre consumidores sem exigir shards adicionais.",
-      "hint": "Pense no recurso do Kinesis Data Streams que entrega registros via push (HTTP/2) e fornece a cada consumidor registrado sua própria taxa de transferência dedicada por shard.",
+      "explanation": "Mais shards aumenta capacidade agregada, mas não fornece o canal dedicado por consumidor solicitado. Um nome diferente de aplicação não altera o limite compartilhado GetRecords. Fanout customizado adiciona infraestrutura e muda o modelo de consumo do stream. Enhanced fan-out oferece throughput dedicado por consumidor registrado usando SubscribeToShard, sujeito aos limites do serviço.",
+      "hint": "Separe divisão por shard de isolamento da capacidade de leitura por consumidor.",
       "optionRationales": [
-        "Com o Enhanced Fan-Out, cada consumidor registrado recebe seu próprio pipe dedicado de 2 MB/s por shard (entregue via HTTP/2, por push), eliminando a disputa de taxa de transferência entre consumidores sem exigir shards adicionais.",
-        "Aumentar shards eleva a taxa de transferência total E o custo, mas no modelo de fan-out padrão (não-enhanced), a taxa de leitura por shard (2 MB/s) continua sendo COMPARTILHADA entre todos os consumidores que usam GetRecords naquele shard, independentemente do número total de shards — a disputa entre consumidores em um dado shard permanece.",
-        "Adicionar uma camada de fan-out via SQS+Lambda introduz latência, complexidade e custo adicionais, em comparação ao uso do recurso nativo Enhanced Fan-Out do Kinesis, projetado exatamente para esse problema de throughput com múltiplos consumidores.",
-        "O Amazon Kinesis Data Streams não possui um modelo nativo de particionamento por 'Consumer Group' como o Kafka, em que leituras são automaticamente isoladas; o recurso de isolamento de taxa de leitura no Kinesis é o Enhanced Fan-Out via SubscribeToShard."
+        "Mais shards aumenta capacidade agregada, mas não fornece o canal dedicado por consumidor solicitado.",
+        "Um nome diferente de aplicação não altera o limite compartilhado GetRecords.",
+        "Fanout customizado adiciona infraestrutura e muda o modelo de consumo do stream.",
+        "Enhanced fan-out oferece throughput dedicado por consumidor registrado usando SubscribeToShard, sujeito aos limites do serviço."
       ],
       "topics": [
         "analytics",
@@ -2211,19 +2211,19 @@
       "domain": "resilient-architectures",
       "text": "Um sistema de processamento de pedidos publica eventos 'OrderPlaced' em um tópico SNS, que faz fanout para 3 filas SQS consumidas por microsserviços independentes (Estoque, Faturamento e Envio). A política da fila SQS do serviço de Envio é ocasionalmente configurada incorretamente pela equipe responsável, fazendo com que as entregas do SNS para essa fila falhem; após esgotadas as tentativas de reenvio, essas notificações são PERDIDAS (a equipe de Envio não tem como saber quais eventos OrderPlaced deixaram de chegar). A equipe de arquitetura quer que entregas com falha para um assinante específico sejam capturadas para reprocessamento posterior, SEM exigir mudanças em como as assinaturas de Estoque e Faturamento operam. Qual configuração atende a esse requisito?",
       "options": [
-        "Configurar uma redrive policy com uma dead-letter queue (DLQ) especificamente na ASSINATURA SNS correspondente à fila SQS do Envio.",
-        "Mudar o tópico SNS para um tópico FIFO, de modo que as garantias de ordenação de entrega evitem falhas de entrega.",
-        "Adicionar um loop de retry no código do microsserviço de Envio para consultar repetidamente o SNS em busca de notificações perdidas.",
-        "Configurar uma única dead-letter queue no nível do TÓPICO SNS, compartilhada por todas as assinaturas."
+        "Configurar redrive policy e DLQ SQS na assinatura SNS do serviço de Envio.",
+        "Mudar o tópico para FIFO para que a ordenação corrija falhas de autorização de entrega.",
+        "Adicionar polling do tópico ao serviço de Envio para reler as notificações perdidas.",
+        "Configurar uma DLQ única no tópico sem alterar as configurações das assinaturas."
       ],
       "correct": 0,
-      "explanation": "As DLQs do SNS são configuradas por ASSINATURA (subscription), não no nível do tópico; após o SNS esgotar sua política de retentativas para entregas a essa assinatura específica, a notificação com falha é enviada para a DLQ configurada nessa assinatura, para inspeção/reprocessamento posterior — de forma independente das demais assinaturas (Estoque e Faturamento), que continuam operando normalmente.",
-      "hint": "Pense em qual nível de configuração do SNS — tópico ou assinatura individual — permite isolar o tratamento de falhas de entrega para um único assinante.",
+      "explanation": "A DLQ na assinatura captura falhas de entrega daquele assinante, com permissões adequadas para o SNS gravar nela. FIFO não corrige uma policy que proíbe entrega. SNS não oferece uma fila consultável pelo consumidor para recuperar notificações passadas. A política de redrive para esse propósito é da assinatura, não uma configuração única do tópico.",
+      "hint": "Diferencie falha de entrega ao assinante de falha ao processar uma mensagem já recebida na fila.",
       "optionRationales": [
-        "As DLQs do SNS são configuradas por ASSINATURA (subscription), não no nível do tópico; após o SNS esgotar sua política de retentativas para entregas a essa assinatura específica, a notificação com falha é enviada para a DLQ configurada nessa assinatura, para inspeção/reprocessamento posterior — de forma independente das demais assinaturas (Estoque e Faturamento), que continuam operando normalmente.",
-        "As dead-letter queues do SNS são configuradas por ASSINATURA, não no nível do tópico; uma DLQ compartilhada no nível do tópico não é como as redrive policies do SNS funcionam, e misturaria mensagens com falha de diferentes assinantes sem atribuição clara.",
-        "O SNS não oferece uma API para consumidores 'consultarem notificações perdidas'; o SNS realiza entrega por push para assinantes (SQS, Lambda, HTTP, etc.) e não é um log pull-based e replayable como o Kinesis.",
-        "Tópicos FIFO garantem ordenação e características de entrega exactly-once, mas não previnem nem resolvem falhas de entrega causadas por uma política de fila de assinante mal configurada; garantias de ordenação não estão relacionadas ao tratamento de falhas de entrega a um assinante específico."
+        "A DLQ na assinatura captura falhas de entrega daquele assinante, com permissões adequadas para o SNS gravar nela.",
+        "FIFO não corrige uma policy que proíbe entrega.",
+        "SNS não oferece uma fila consultável pelo consumidor para recuperar notificações passadas.",
+        "A política de redrive para esse propósito é da assinatura, não uma configuração única do tópico."
       ],
       "topics": [
         "serverless"
@@ -2234,19 +2234,19 @@
       "domain": "resilient-architectures",
       "text": "Uma aplicação em contêineres é executada como um serviço ECS no Fargate, com todas as tasks do serviço sendo lançadas atualmente em sub-redes de uma ÚNICA Zona de Disponibilidade (porque a configuração do serviço especifica apenas uma sub-rede). Se essa AZ sofrer uma interrupção, todas as tasks ficam indisponíveis. Como o serviço ECS deve ser configurado para garantir resiliência a uma falha de AZ única?",
       "options": [
-        "Aumentar o 'desired count' de tasks do serviço ECS para executar mais réplicas dentro da mesma AZ única.",
-        "Configurar um health check do Route 53 que reinicie automaticamente as tasks ECS em outra AZ se a AZ atual ficar não saudável.",
-        "Configurar a network configuration (awsvpcConfiguration) do serviço ECS para especificar sub-redes em MÚLTIPLAS Zonas de Disponibilidade.",
-        "Usar um Placement Group do EC2 com estratégia 'spread' para as instâncias subjacentes do cluster ECS."
+        "Aumentar desired count e manter somente a sub-rede da AZ atual.",
+        "Criar health check Route 53 e manter a rede ECS restrita à AZ atual.",
+        "Selecionar sub-redes em várias AZs e executar réplicas suficientes do serviço.",
+        "Configurar um placement group EC2 spread para a infraestrutura Fargate."
       ],
       "correct": 2,
-      "explanation": "O ECS distribui automaticamente as tasks do serviço entre as sub-redes/AZs especificadas; assim, uma falha de AZ afeta apenas as tasks em execução naquela AZ, e o ECS pode relançar as tasks perdidas nas AZs saudáveis restantes para manter a contagem desejada.",
-      "hint": "Pense em qual parte da configuração de rede do serviço ECS determina em quais Zonas de Disponibilidade suas tasks podem ser lançadas.",
+      "explanation": "Mais tasks na mesma AZ continuam expostas à mesma falha. Health check DNS não reconfigura automaticamente a rede do serviço ECS. Sub-redes em múltiplas AZs com réplicas suficientes permitem distribuir tasks; balanceamento e dependências também devem ser resilientes. Placement groups EC2 não configuram as instâncias subjacentes administradas pelo Fargate.",
+      "hint": "O serviço só pode distribuir tasks pelas sub-redes que sua configuração permite.",
       "optionRationales": [
-        "O ECS distribui automaticamente as tasks do serviço entre as sub-redes/AZs especificadas; assim, uma falha de AZ afeta apenas as tasks em execução naquela AZ, e o ECS pode relançar as tasks perdidas nas AZs saudáveis restantes para manter a contagem desejada.",
-        "Mais réplicas em uma ÚNICA AZ não fornece resiliência à falha dessa AZ; todas as réplicas ficariam indisponíveis simultaneamente se essa AZ falhar.",
-        "O Fargate não usa instâncias EC2 gerenciadas pelo cliente nem placement groups (é serverless); mesmo em ECS baseado em EC2, a distribuição entre AZs das tasks é controlada pelas sub-redes especificadas na configuração de rede do serviço e pelas estratégias de posicionamento de tasks, não por placement groups do EC2.",
-        "Health checks do Route 53 são usados para failover de DNS entre ENDPOINTS, não para acionar ações de agendamento/posicionamento de tasks do ECS; a distribuição de tasks entre AZs é determinada pela configuração de sub-redes do serviço, não pelo Route 53."
+        "Mais tasks na mesma AZ continuam expostas à mesma falha.",
+        "Health check DNS não reconfigura automaticamente a rede do serviço ECS.",
+        "Sub-redes em múltiplas AZs com réplicas suficientes permitem distribuir tasks; balanceamento e dependências também devem ser resilientes.",
+        "Placement groups EC2 não configuram as instâncias subjacentes administradas pelo Fargate."
       ],
       "topics": [
         "containers",
@@ -2259,19 +2259,19 @@
       "domain": "resilient-architectures",
       "text": "Um Auto Scaling Group executa servidores de aplicação que, ao serem terminados (por exemplo, durante um scale-in), precisam concluir um procedimento de encerramento ordenado — desregistrar de um service registry, gravar buffers em memória no S3 e notificar um sistema de monitoramento — levando até 3 minutos, ANTES que a instância seja efetivamente terminada. Atualmente, as instâncias são terminadas imediatamente no scale-in, causando perda de dados nos buffers. Como o ASG deve ser configurado para permitir que esse processo de encerramento gracioso seja concluído?",
       "options": [
-        "Configurar um lifecycle hook do Auto Scaling para a transição 'Terminating' (autoscaling:EC2_INSTANCE_TERMINATING).",
-        "Definir o 'shutdown behavior' das instâncias EC2 como 'stop' em vez de 'terminate'.",
-        "Usar o Amazon EventBridge para agendar uma função Lambda que execute as tarefas de limpeza 3 minutos ANTES de cada evento de scale-in programado.",
-        "Aumentar o health check grace period do Auto Scaling Group para 3 minutos."
+        "Criar termination lifecycle hook com timeout adequado e sinalizar conclusão após a limpeza.",
+        "Definir shutdown behavior=stop no template e manter o encerramento padrão do ASG.",
+        "Agendar uma Lambda de limpeza antes de horários previstos, sem hooks de ciclo de vida.",
+        "Aumentar health check grace period para três minutos e manter terminação padrão."
       ],
       "correct": 0,
-      "explanation": "O lifecycle hook coloca a instância no estado 'Terminating:Wait' por um timeout de heartbeat configurável (podendo cobrir os 3 minutos necessários, ou mais com registros de heartbeat); durante esse período, o script de encerramento da instância pode concluir suas tarefas de limpeza antes de sinalizar conclusão (CompleteLifecycleAction) ou antes que o timeout expire e a terminação prossiga.",
-      "hint": "Pense no mecanismo do Auto Scaling que coloca uma instância em um estado de espera durante uma transição (como terminação), permitindo que um script complete tarefas antes de a ação prosseguir.",
+      "explanation": "O termination lifecycle hook cria a etapa de espera; o consumidor executa a limpeza e sinaliza CompleteLifecycleAction, com timeout adequado. Shutdown behavior não substitui a decisão de terminação tomada pelo ASG. Uma agenda não antecipa scale-in dinâmico e não cria espera antes da terminação. Grace period se refere a health checks após lançamento, não ao encerramento.",
+      "hint": "É preciso colocar a transição em espera e sinalizar quando o trabalho terminar.",
       "optionRationales": [
-        "O lifecycle hook coloca a instância no estado 'Terminating:Wait' por um timeout de heartbeat configurável (podendo cobrir os 3 minutos necessários, ou mais com registros de heartbeat); durante esse período, o script de encerramento da instância pode concluir suas tarefas de limpeza antes de sinalizar conclusão (CompleteLifecycleAction) ou antes que o timeout expire e a terminação prossiga.",
-        "O health check grace period se aplica a instâncias recém-LANÇADAS (dando tempo para passarem nos health checks antes de serem consideradas para substituição), não a instâncias sendo TERMINADAS durante o scale-in; ele não atrasa nem controla o processo de terminação.",
-        "O atributo 'shutdown behavior' do EC2 controla o que acontece quando o SISTEMA OPERACIONAL inicia um shutdown (parar vs. terminar a instância), mas não fornece um hook para o ASG aguardar um procedimento de encerramento gracioso em nível de aplicação antes de prosseguir com a terminação do scale-in.",
-        "Essa abordagem exigiria prever precisamente QUANDO os eventos de scale-in ocorrerão (que são acionados por políticas de escalonamento dinâmico baseadas em métricas, não por um cronograma fixo), tornando essa abordagem não confiável; o próprio ASG precisa pausar a terminação via lifecycle hook, não depender de agendamento externo."
+        "O termination lifecycle hook cria a etapa de espera; o consumidor executa a limpeza e sinaliza CompleteLifecycleAction, com timeout adequado.",
+        "Shutdown behavior não substitui a decisão de terminação tomada pelo ASG.",
+        "Uma agenda não antecipa scale-in dinâmico e não cria espera antes da terminação.",
+        "Grace period se refere a health checks após lançamento, não ao encerramento."
       ],
       "topics": [
         "high-availability",
@@ -2282,21 +2282,21 @@
     {
       "id": "saa-avc-095",
       "domain": "resilient-architectures",
-      "text": "Uma empresa executa uma aplicação multi-região ativo-passivo (us-east-1 primária, eu-west-1 secundária), atualmente usando roteamento de failover simples do Route 53 com health checks. Ela quer um mecanismo mais robusto e auditável para INICIAR um failover regional que: (a) possa ser acionado de forma segura mesmo que o control plane/APIs da região 'com falha' estejam degradados (a decisão de failover não deve depender de a região não saudável estar acessível); (b) inclua mecanismos de segurança embutidos para evitar failover acidental simultâneo para múltiplas regiões ('split-brain'); e (c) forneça verificações de prontidão (readiness checks) para confirmar que a região secundária realmente pode suportar o tráfego total antes do failover. Qual capacidade da AWS atende a esses três requisitos?",
+      "text": "Uma aplicação ativo-passivo quer iniciar failover por um plano de dados altamente disponível, aplicar regras de segurança à combinação de controles de roteamento e identificar divergências de preparação da Região secundária. Testes de capacidade continuarão sendo realizados separadamente. Qual capacidade AWS reúne esses mecanismos?",
       "options": [
-        "AWS Global Accelerator com pesos de roteamento personalizados ajustados manualmente pelo console durante um evento de failover.",
-        "Amazon Route 53 Application Recovery Controller (ARC).",
-        "Política de roteamento de failover simples do Route 53 com um health check atualizado manualmente.",
-        "Runbooks de automação do AWS Systems Manager combinados com alarmes do CloudWatch para atualizar registros do Route 53 via API durante uma interrupção."
+        "Alterar pesos do Global Accelerator manualmente durante o incidente.",
+        "Usar Amazon Application Recovery Controller com routing controls, safety rules e readiness checks.",
+        "Editar registros de failover Route 53 pelo console após conferir health checks.",
+        "Executar um runbook SSM que recrie registros DNS usando APIs da Região afetada."
       ],
       "correct": 1,
-      "explanation": "O ARC fornece Routing Controls (interruptores simples de ligar/desligar que podem ser acionados com segurança mesmo durante uma interrupção regional, já que o control plane e o data plane do ARC são altamente distribuídos entre regiões e não dependem da saúde da região afetada), Routing Control Safety Rules (ex.: 'pelo menos um destes dois controles deve estar ON', evitando split-brain ou todos os controles desligados) e Readiness Checks (verificam continuamente se a região de recuperação tem recursos/configuração suficientes para assumir o tráfego).",
-      "hint": "Pense no serviço do Route 53 projetado especificamente para orquestrar failovers regionais de forma segura, auditável e independente da saúde da região afetada.",
+      "explanation": "Ajustar pesos do acelerador não fornece o conjunto de routing controls, safety rules e readiness checks pedido. ARC oferece routing controls de alta disponibilidade, safety rules e readiness checks; esses checks não provam por si só capacidade real e não bloqueiam automaticamente toda promoção. Failover DNS simples não inclui as mesmas safety rules e verificação de preparação. Runbooks customizados dependem das APIs e lógica implementadas, sem o conjunto gerenciado descrito.",
+      "hint": "Verificação de configuração e regras de roteamento ajudam a recuperação, mas não substituem testes de carga.",
       "optionRationales": [
-        "O ARC fornece Routing Controls (interruptores simples de ligar/desligar que podem ser acionados com segurança mesmo durante uma interrupção regional, já que o control plane e o data plane do ARC são altamente distribuídos entre regiões e não dependem da saúde da região afetada), Routing Control Safety Rules (ex.: 'pelo menos um destes dois controles deve estar ON', evitando split-brain ou todos os controles desligados) e Readiness Checks (verificam continuamente se a região de recuperação tem recursos/configuração suficientes para assumir o tráfego).",
-        "Esse é o mecanismo ATUAL, menos robusto, que a empresa quer substituir; o failover baseado apenas em health check padrão não fornece os interruptores explícitos e auditáveis de routing control, as regras de segurança contra split-brain, nem as readiness checks que o ARC adiciona.",
-        "Embora tecnicamente possível construir automação personalizada, essa é uma abordagem 'faça você mesmo' que não possui as regras de segurança específicas do ARC (prevenção de split-brain), readiness checks, nem um control plane altamente disponível e independente da saúde regional — o ARC é o serviço da AWS projetado especificamente para esse caso de uso.",
-        "O Global Accelerator fornece IPs anycast estáticos e pode redistribuir tráfego por peso entre endpoints, mas ajustar pesos manualmente durante uma interrupção não fornece os mecanismos estruturados de segurança de routing control, readiness checks, ou a garantia de acessibilidade do control plane durante uma interrupção regional que o ARC fornece especificamente."
+        "Ajustar pesos do acelerador não fornece o conjunto de routing controls, safety rules e readiness checks pedido.",
+        "ARC oferece routing controls de alta disponibilidade, safety rules e readiness checks; esses checks não provam por si só capacidade real e não bloqueiam automaticamente toda promoção.",
+        "Failover DNS simples não inclui as mesmas safety rules e verificação de preparação.",
+        "Runbooks customizados dependem das APIs e lógica implementadas, sem o conjunto gerenciado descrito."
       ],
       "topics": [
         "edge-dns",
@@ -2306,21 +2306,21 @@
     {
       "id": "saa-avc-096",
       "domain": "resilient-architectures",
-      "text": "Uma equipe de arquitetura quer validar proativamente que os mecanismos de resiliência da aplicação (substituição de instâncias não saudáveis pelo Auto Scaling, failover do RDS Multi-AZ, etc.) realmente funcionam como esperado, injetando deliberadamente falhas controladas (ex.: terminar uma porcentagem de instâncias EC2 de um ASG, ou acionar um failover do RDS) em um ambiente de staging de forma segura, monitorada e reversível — seguindo princípios de chaos engineering. Qual serviço da AWS é projetado especificamente para isso?",
+      "text": "Uma equipe de arquitetura quer validar proativamente que os mecanismos de resiliência da aplicação (substituição de instâncias não saudáveis pelo Auto Scaling, failover do RDS Multi-AZ, etc.) realmente funcionam como esperado, injetando deliberadamente falhas controladas (ex.: terminar uma porcentagem de instâncias EC2 de um ASG, ou acionar um failover do RDS) em um ambiente de staging de forma com escopo controlado, monitoramento e condições de parada — seguindo princípios de chaos engineering. Qual serviço da AWS é projetado especificamente para isso?",
       "options": [
-        "AWS Config com ações de remediação personalizadas configuradas para 'falhar' recursos para fins de teste.",
-        "Verificações de tolerância a falhas do AWS Trusted Advisor, executadas periodicamente contra o ambiente de staging.",
-        "Canários do Amazon CloudWatch Synthetics configurados para simular picos de tráfego contra a aplicação.",
-        "AWS Fault Injection Simulator (AWS FIS)."
+        "Criar regras Config de não conformidade e usar seus relatórios como experimentos de falha.",
+        "Executar as verificações de tolerância a falhas do Trusted Advisor no staging.",
+        "Executar canários CloudWatch Synthetics e interpretar falhas das sondagens como injeção.",
+        "Executar experimentos AWS FIS com alvos delimitados, alarmes e condições de parada."
       ],
       "correct": 3,
-      "explanation": "O AWS FIS é um serviço totalmente gerenciado para executar experimentos controlados de injeção de falhas (ex.: 'parar X% das instâncias EC2', 'acionar throttling de API', 'fazer failover de um cluster RDS Multi-AZ'), com 'stop conditions' baseadas em alarmes do CloudWatch que interrompem automaticamente o experimento caso causem impacto inesperado — suportando chaos engineering para validar resiliência.",
-      "hint": "Pense no serviço gerenciado da AWS criado especificamente para executar experimentos de chaos engineering com mecanismos de parada automática de segurança.",
+      "explanation": "Config avalia configurações e remedia desvios; não é o orquestrador de experimentos de falha. Trusted Advisor identifica recomendações, sem injetar falhas. Synthetics executa jornadas e verificações; não orquestra as ações de falha descritas. FIS define experimentos, alvos e condições de parada. Terminar uma instância não é reversível; a recuperação depende da arquitetura.",
+      "hint": "Condições de parada limitam o experimento, mas não desfazem automaticamente todos os seus efeitos.",
       "optionRationales": [
-        "O AWS FIS é um serviço totalmente gerenciado para executar experimentos controlados de injeção de falhas (ex.: 'parar X% das instâncias EC2', 'acionar throttling de API', 'fazer failover de um cluster RDS Multi-AZ'), com 'stop conditions' baseadas em alarmes do CloudWatch que interrompem automaticamente o experimento caso causem impacto inesperado — suportando chaos engineering para validar resiliência.",
-        "O AWS Config avalia configurações de recursos contra regras e pode acionar remediação para recursos NÃO CONFORMES; ele não foi projetado para injetar deliberadamente falhas em recursos saudáveis como parte de experimentos de chaos engineering.",
-        "Os canários do Synthetics são testes roteirizados que monitoram a disponibilidade/desempenho de endpoints de fora (monitoramento sintético); eles não injetam falhas em nível de infraestrutura (como terminar instâncias ou acionar failovers de banco de dados) no ambiente.",
-        "O Trusted Advisor fornece recomendações/verificações PASSIVAS sobre boas práticas de configuração (ex.: 'este ASG abrange apenas 1 AZ'); ele não injeta falhas ativamente nem executa experimentos controlados."
+        "Config avalia configurações e remedia desvios; não é o orquestrador de experimentos de falha.",
+        "Trusted Advisor identifica recomendações, sem injetar falhas.",
+        "Synthetics executa jornadas e verificações; não orquestra as ações de falha descritas.",
+        "FIS define experimentos, alvos e condições de parada. Terminar uma instância não é reversível; a recuperação depende da arquitetura."
       ],
       "topics": [
         "high-availability",
@@ -2332,19 +2332,19 @@
       "domain": "resilient-architectures",
       "text": "Uma instância EC2 standalone (fora de um Auto Scaling Group, por exemplo, uma aplicação legada que exige um Instance ID estável e volumes EBS/IP privado anexados) ocasionalmente fica inacessível devido a uma falha de hardware subjacente detectada pelos status checks do EC2 (não um problema em nível de sistema operacional). A equipe quer que essa instância seja automaticamente RECUPERADA (reiniciada em novo hardware subjacente, preservando o mesmo Instance ID, IP privado, Elastic IP e anexos de volumes EBS) quando essa falha de hardware for detectada — sem intervenção manual e sem usar um ASG. Qual configuração atende a esse requisito?",
       "options": [
-        "Criar um alarme do CloudWatch na métrica 'StatusCheckFailed_Instance', com a ação do alarme definida como 'Reboot this instance'.",
-        "Criar um alarme do CloudWatch na métrica 'StatusCheckFailed_System' da instância, com a ação do alarme definida como 'Recover this instance' (EC2 Auto Recovery).",
-        "Colocar a instância em um Auto Scaling Group com capacidade mínima, máxima e desejada definidas como 1.",
-        "Configurar o AWS Systems Manager Automation para executar um documento SSM que para e inicia a instância a cada hora como medida preventiva."
+        "Alarmar StatusCheckFailed_Instance e executar a ação Reboot na instância.",
+        "Alarmar StatusCheckFailed_System e usar Recover em uma instância compatível.",
+        "Colocar a carga em ASG de capacidade um e substituir a instância ao falhar.",
+        "Agendar Stop/Start por SSM a cada hora para evitar falhas futuras de hardware."
       ],
       "correct": 1,
-      "explanation": "A métrica StatusCheckFailed_System reflete problemas de hardware/hypervisor subjacentes (não verificações em nível de SO); ao acionar a ação 'Recover this instance', a AWS migra e reinicia automaticamente a instância em novo hardware subjacente, preservando seu Instance ID, IPs privados, Elastic IPs e anexos de volumes EBS.",
-      "hint": "Pense em qual métrica específica de status check do EC2 reflete falhas de hardware subjacente (em vez de problemas do sistema operacional), e em qual ação de alarme migra a instância preservando sua identidade.",
+      "explanation": "Instance status checks se referem ao software/rede da instância; reboot não é a ação de recuperação de hardware pedida. System check com Recover pode mover uma instância elegível para outro hardware mantendo os identificadores e recursos especificados; RAM não é preservada. ASG substitui a instância por outra com novo ID, contrariando o requisito. Reinícios agendados não são resposta específica à falha de sistema e causam interrupções desnecessárias.",
+      "hint": "Verifique o tipo de status check e se a ação recupera ou substitui a identidade da instância.",
       "optionRationales": [
-        "A métrica StatusCheckFailed_System reflete problemas de hardware/hypervisor subjacentes (não verificações em nível de SO); ao acionar a ação 'Recover this instance', a AWS migra e reinicia automaticamente a instância em novo hardware subjacente, preservando seu Instance ID, IPs privados, Elastic IPs e anexos de volumes EBS.",
-        "StatusCheckFailed_Instance reflete problemas em nível de SO/software no MESMO host subjacente; um simples reboot não ajudaria com uma falha de HARDWARE subjacente (a instância provavelmente falharia novamente no mesmo hardware defeituoso), e o reboot não migra a instância para novo hardware como o Auto Recovery faz.",
-        "Isso mudaria a identidade da instância na substituição: instâncias de substituição lançadas pelo ASG recebem um NOVO Instance ID (e normalmente um novo IP privado, a menos que se use uma ENI fixa), contrariando o requisito de 'preservar o mesmo Instance ID' — o Auto Recovery preserva a identidade da instância original, enquanto a substituição pelo ASG cria uma nova instância.",
-        "Um stop/start em horário fixo não é acionado por uma falha de hardware realmente detectada (é uma ação preventiva 'às escuras'), causando indisponibilidade desnecessária durante operação normal e não tratando especificamente falhas de hardware detectadas via status checks."
+        "Instance status checks se referem ao software/rede da instância; reboot não é a ação de recuperação de hardware pedida.",
+        "System check com Recover pode mover uma instância elegível para outro hardware mantendo os identificadores e recursos especificados; RAM não é preservada.",
+        "ASG substitui a instância por outra com novo ID, contrariando o requisito.",
+        "Reinícios agendados não são resposta específica à falha de sistema e causam interrupções desnecessárias."
       ],
       "topics": [
         "monitoring",
@@ -2357,19 +2357,19 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa executa uma API multi-região ativo-ativo usando API Gateway (endpoints regionais) + Lambda + DynamoDB Global Tables, implantada em us-east-1 e eu-west-1, com roteamento por latência do Route 53 direcionando usuários à região mais próxima saudável. O DynamoDB Global Tables usa resolução de conflitos 'last writer wins' com consistência eventual entre réplicas. Qual consideração arquitetural é mais importante para essa arquitetura ativo-ativo evitar perda silenciosa de dados/sobrescritas DURANTE A OPERAÇÃO NORMAL (não apenas durante failover)?",
       "options": [
-        "Configurar o DynamoDB Global Tables em modo de 'consistência forte' para a replicação entre regiões, prevenindo qualquer conflito.",
-        "Confiar no roteamento por latência do Route 53 para garantir que cada usuário seja sempre direcionado à mesma região, eliminando a possibilidade de escritas concorrentes entre regiões no mesmo item.",
-        "Usar transações do DynamoDB (TransactWriteItems) em toda escrita para garantir atomicidade entre as réplicas de ambas as regiões simultaneamente.",
-        "Projetar a aplicação de forma que, para itens que podem ser modificados por usuários em MÚLTIPLAS regiões, escritas no MESMO item a partir de regiões diferentes sejam minimizadas ou usem um padrão resiliente a conflitos (ex.: particionar itens para que cada um normalmente seja escrito apenas a partir de uma região 'dona', usar expressões condicionais, ou projetar atualizações idempotentes/aditivas)."
+        "Alterar in-place a global table existente de MREC para consistência forte global sem recriar a tabela.",
+        "Depender da política Route 53 de latência para fixar cada usuário permanentemente numa Região.",
+        "Usar TransactWriteItems em cada Região como mecanismo de bloqueio global entre todas as réplicas.",
+        "Definir uma Região escritora por item com failover coordenado ou modelar eventos sem sobrescrita concorrente."
       ],
       "correct": 3,
-      "explanation": "A resolução 'last writer wins' do DynamoDB Global Tables pode sobrescrever silenciosamente atualizações concorrentes ao mesmo item feitas em regiões diferentes, mesmo fora de um cenário de failover; portanto, o design ativo-ativo precisa considerar isso desde o início — por meio de particionamento por 'região dona', condições de escrita ou padrões de atualização que tolerem conflitos —, não apenas durante o failover.",
-      "hint": "Pense no modelo de resolução de conflitos do DynamoDB Global Tables e em como ele se comporta quando o MESMO item é escrito a partir de regiões diferentes em um curto intervalo de tempo, independentemente de haver ou não um failover em curso.",
+      "explanation": "O modo de consistência de uma global table existente não pode ser simplesmente alternado; MRSC tem requisitos próprios e não é uma configuração imediata para este cenário. Latência DNS não garante afinidade permanente nem exclusão mútua das gravações. Transações em MREC são regionais; não criam uma transação global síncrona entre réplicas. Definir ownership de escrita por item com coordenação de failover ou modelar eventos imutáveis evita depender de condicionais locais para resolver disputas globais.",
+      "hint": "Uma condição verificada localmente não cria exclusão mútua entre réplicas eventualmente consistentes.",
       "optionRationales": [
-        "A resolução 'last writer wins' do DynamoDB Global Tables pode sobrescrever silenciosamente atualizações concorrentes ao mesmo item feitas em regiões diferentes, mesmo fora de um cenário de failover; portanto, o design ativo-ativo precisa considerar isso desde o início — por meio de particionamento por 'região dona', condições de escrita ou padrões de atualização que tolerem conflitos —, não apenas durante o failover.",
-        "O DynamoDB Global Tables fornece, por design, consistência EVENTUAL para a replicação entre regiões; não existe uma opção de configuração de 'consistência forte' para réplicas entre regiões que impediria escritas concorrentes conflitantes provenientes de regiões diferentes.",
-        "O roteamento por latência otimiza para a região mais próxima com base em condições de rede, que podem mudar ao longo do tempo (ou variar para usuários próximos a uma fronteira entre regiões), e não GARANTE que um determinado usuário/item seja sempre roteado para uma região específica — é uma heurística, não um mecanismo de particionamento/consistência.",
-        "As transações do DynamoDB garantem atomicidade para múltiplas operações DENTRO de uma única réplica/tabela no momento da transação; elas não fornecem coordenação atômica/síncrona entre regiões para réplicas do Global Tables em regiões diferentes, que permanecem eventualmente consistentes."
+        "O modo de consistência de uma global table existente não pode ser simplesmente alternado; MRSC tem requisitos próprios e não é uma configuração imediata para este cenário.",
+        "Latência DNS não garante afinidade permanente nem exclusão mútua das gravações.",
+        "Transações em MREC são regionais; não criam uma transação global síncrona entre réplicas.",
+        "Definir ownership de escrita por item com coordenação de failover ou modelar eventos imutáveis evita depender de condicionais locais para resolver disputas globais."
       ],
       "topics": [
         "databases",
@@ -2380,21 +2380,21 @@
     {
       "id": "saa-avc-099",
       "domain": "resilient-architectures",
-      "text": "O plano de DR de uma empresa envolve replicar workloads de uma VPC na região primária (us-east-1) para uma VPC na região de DR (us-west-2). Ambas as VPCs estão anexadas aos respectivos AWS Transit Gateways regionais. A empresa precisa que recursos na VPC de us-east-1 consigam se comunicar com recursos na VPC de us-west-2 (para replicação contínua de dados e testes/validação de DR) através da rede backbone privada da AWS, sem passar pela internet pública e sem configurar VPN. O que deve ser configurado?",
+      "text": "O plano de DR de uma empresa envolve replicar workloads de uma VPC na região primária (us-east-1) para uma VPC na região de DR (us-west-2). Ambas as VPCs estão anexadas aos respectivos AWS Transit Gateways regionais. A empresa precisa que recursos na VPC de us-east-1 consigam se comunicar com recursos na VPC de us-west-2 (para replicação contínua de dados e testes/validação de DR) através da rede backbone privada da AWS, sem passar pela internet pública e sem configurar VPN. A política de rede exige usar os TGWs existentes, sem peering direto entre VPCs. O que deve ser configurado?",
       "options": [
-        "Habilitar o 'modo Multi-Region' em um dos Transit Gateways para que ele abranja automaticamente ambas as regiões.",
-        "Usar AWS Direct Connect com uma VIF privada em ambas as regiões para conectar os dois Transit Gateways.",
-        "Configurar VPC Peering diretamente entre a VPC de us-east-1 e a VPC de us-west-2, além dos anexos existentes ao Transit Gateway.",
-        "Configurar Transit Gateway Peering (anexo de peering entre regiões) entre os Transit Gateways de us-east-1 e us-west-2, e adicionar rotas apropriadas nas tabelas de rotas de cada Transit Gateway (e nas tabelas de rotas das VPCs anexadas) apontando para o anexo de peering em direção aos CIDRs da outra região."
+        "Habilitar extensão multi-Region do TGW primário para anexar diretamente a VPC remota.",
+        "Provisionar Direct Connect para conectar diretamente os TGWs sem um attachment de peering.",
+        "Criar VPC Peering diretamente entre as duas VPCs, contornando os TGWs existentes.",
+        "Criar peering inter-regional entre os TGWs e configurar rotas nos TGWs e nas VPCs."
       ],
       "correct": 3,
-      "explanation": "O Transit Gateway Peering fornece conectividade privada pela rede backbone global da AWS entre Transit Gateways de regiões diferentes; com as rotas apropriadas configuradas em ambos os lados, as VPCs anexadas a cada Transit Gateway podem se comunicar entre regiões sem internet ou VPN.",
-      "hint": "Pense no tipo de anexo (attachment) do Transit Gateway projetado especificamente para conectar dois Transit Gateways localizados em regiões diferentes pelo backbone da AWS.",
+      "explanation": "Transit Gateway é regional; não existe esse modo de expansão automática. Direct Connect não é necessário para unir esses TGWs e usa outra finalidade de conectividade. Peering VPC poderia conectar o par, mas contraria o requisito explícito de usar a malha de TGWs. TGW peering inter-regional com rotas apropriadas usa o backbone; rotas de peering precisam ser configuradas, não se presumir propagação automática.",
+      "hint": "Peering entre gateways e entre VPCs são desenhos distintos; observe a restrição arquitetural.",
       "optionRationales": [
-        "O Transit Gateway Peering fornece conectividade privada pela rede backbone global da AWS entre Transit Gateways de regiões diferentes; com as rotas apropriadas configuradas em ambos os lados, as VPCs anexadas a cada Transit Gateway podem se comunicar entre regiões sem internet ou VPN.",
-        "Embora o VPC Peering entre regiões seja tecnicamente possível e use o backbone da AWS, ele seria redundante/conflitante junto aos anexos existentes ao Transit Gateway (VPC Peering e anexos TGW para as mesmas VPCs podem criar complexidade de roteamento); o Transit Gateway Peering é a abordagem mais consistente quando ambas as VPCs já são gerenciadas via Transit Gateway, especialmente se mais VPCs/contas precisarem de conectividade semelhante no futuro.",
-        "O Direct Connect fornece conectividade entre redes ON-PREMISES e a AWS, não um mecanismo para conectar dois Transit Gateways da AWS em regiões diferentes entre si; é desnecessário e não resolve diretamente a conectividade TGW-para-TGW entre regiões.",
-        "Um recurso Transit Gateway é REGIONAL; não existe um 'modo Multi-Region' que estenda um único recurso Transit Gateway entre regiões — conectar Transit Gateways de regiões diferentes requer um anexo de peering explícito."
+        "Transit Gateway é regional; não existe esse modo de expansão automática.",
+        "Direct Connect não é necessário para unir esses TGWs e usa outra finalidade de conectividade.",
+        "Peering VPC poderia conectar o par, mas contraria o requisito explícito de usar a malha de TGWs.",
+        "TGW peering inter-regional com rotas apropriadas usa o backbone; rotas de peering precisam ser configuradas, não se presumir propagação automática."
       ],
       "topics": [
         "vpc",
@@ -2404,21 +2404,21 @@
     {
       "id": "saa-avc-100",
       "domain": "resilient-architectures",
-      "text": "Uma empresa executa o Amazon RDS for MySQL em uma implantação Multi-AZ tradicional (uma única standby). Durante eventos de failover, a indisponibilidade observada é de 60-120 segundos, e a instância standby não pode ser usada para tráfego de leitura (capacidade ociosa). A empresa quer reduzir o tempo de failover para menos de ~35 segundos E conseguir descarregar parte do tráfego de leitura para as instâncias standby, mantendo a arquitetura totalmente gerenciada pelo RDS (sem migrar para Aurora). Para qual configuração eles devem migrar?",
+      "text": "Uma empresa usa RDS MySQL Multi-AZ DB instance com um standby não legível. Ela quer um modelo RDS gerenciado com réplicas legíveis e failover tipicamente mais rápido, sem migrar para Aurora. As metas de recuperação serão verificadas em testes, sem exigir um limite absoluto por evento. Qual configuração atende?",
       "options": [
-        "Implantação RDS Multi-AZ DB Cluster, com um writer e DUAS instâncias standby legíveis distribuídas em 3 Zonas de Disponibilidade, usando um endpoint de leitura dedicado para as standbys.",
-        "Migrar para Read Replicas do RDS na mesma região, configuradas como standby do Multi-AZ.",
-        "Migrar para Aurora MySQL com uma única Aurora Replica.",
-        "Aumentar a classe de instância da implantação Multi-AZ tradicional para reduzir o tempo de failover."
+        "Migrar para RDS Multi-AZ DB cluster com writer e dois readers distribuídos em três AZs.",
+        "Adicionar read replicas comuns e tratá-las como standbys automáticos da instância atual.",
+        "Migrar para Aurora MySQL com Aurora Replicas em AZs diferentes do writer.",
+        "Aumentar a instância Multi-AZ tradicional e direcionar leituras para o standby existente."
       ],
       "correct": 0,
-      "explanation": "O Multi-AZ DB Cluster do RDS fornece um writer e duas standbys legíveis em AZs diferentes, com replicação semi-síncrona baseada em quorum que reduz o tempo de failover para tipicamente menos de 35 segundos; além disso, um endpoint de leitor (reader endpoint) dedicado permite distribuir tráfego de leitura para as standbys, ao contrário do Multi-AZ tradicional, em que a standby não é acessível.",
-      "hint": "Pense na variante mais recente de implantação Multi-AZ do RDS que adiciona uma segunda standby legível e reduz drasticamente o tempo de failover em comparação com o Multi-AZ tradicional de instância única.",
+      "explanation": "Multi-AZ DB cluster usa writer e dois readers em três AZs, com promoção e endpoint de leitura; o failover é tipicamente mais rápido, sem SLA de 35 segundos por evento. Read replicas comuns não substituem automaticamente o modelo de standby do Multi-AZ. Aurora atenderia a outros cenários, mas está excluído pelo requisito. Aumentar a instância tradicional não torna seu standby legível.",
+      "hint": "Multi-AZ DB instance e Multi-AZ DB cluster possuem topologias e endpoints distintos.",
       "optionRationales": [
-        "O Multi-AZ DB Cluster do RDS fornece um writer e duas standbys legíveis em AZs diferentes, com replicação semi-síncrona baseada em quorum que reduz o tempo de failover para tipicamente menos de 35 segundos; além disso, um endpoint de leitor (reader endpoint) dedicado permite distribuir tráfego de leitura para as standbys, ao contrário do Multi-AZ tradicional, em que a standby não é acessível.",
-        "Read Replicas usam replicação ASSÍNCRONA e não são automaticamente utilizadas para failover do Multi-AZ; seria necessária promoção manual, o que aumenta o tempo de failover, contrariando o requisito.",
-        "O Aurora é um motor de banco de dados diferente do RDS tradicional; o requisito explicitamente pede uma solução que permaneça totalmente gerenciada pelo RDS (sem migrar para Aurora), portanto essa opção contraria a restrição declarada.",
-        "O tempo de failover do Multi-AZ tradicional (baseado em atualização de DNS, ~60-120s) é, em grande parte, independente do tamanho da instância; aumentar a classe não reduziria o tempo para ~35s nem habilitaria tráfego de leitura na standby."
+        "Multi-AZ DB cluster usa writer e dois readers em três AZs, com promoção e endpoint de leitura; o failover é tipicamente mais rápido, sem SLA de 35 segundos por evento.",
+        "Read replicas comuns não substituem automaticamente o modelo de standby do Multi-AZ.",
+        "Aurora atenderia a outros cenários, mas está excluído pelo requisito.",
+        "Aumentar a instância tradicional não torna seu standby legível."
       ],
       "topics": [
         "databases",
@@ -2428,21 +2428,21 @@
     {
       "id": "saa-avc-101",
       "domain": "resilient-architectures",
-      "text": "Uma empresa executa o Apache Kafka no Amazon MSK para um pipeline crítico de streaming de eventos. O cluster MSK está atualmente provisionado com brokers em apenas UMA Zona de Disponibilidade. Para melhorar a resiliência contra falha de uma AZ (indisponibilidade de brokers causando eleições de líder de partição e potencial perda de mensagens em tópicos com fator de replicação 1), quais mudanças devem ser feitas?",
+      "text": "Um cluster MSK provisionado tem brokers em três AZs, mas tópicos críticos foram criados com fator de replicação um. A equipe quer tolerar falha de uma AZ com réplicas prontas para eleição e confirmação de escrita durável. Qual combinação é adequada?",
       "options": [
-        "Habilitar um recurso de 'replicação Multi-Region' do MSK para espelhar sincronamente o cluster para um cluster em outra AZ.",
-        "Configurar o MSK Connect com um sink connector que faça backup contínuo de todos os dados dos tópicos para o S3 a cada poucos minutos.",
-        "Reconfigurar o cluster MSK para implantar brokers em (pelo menos) 3 Zonas de Disponibilidade, e configurar os tópicos com fator de replicação de pelo menos 3 (com min.insync.replicas definido apropriadamente, ex.: 2), de modo que as réplicas de cada partição fiquem distribuídas entre múltiplas AZs/brokers.",
-        "Aumentar o número de partições de cada tópico dentro do cluster de AZ única."
+        "Configurar replicação regional e manter fator de replicação um nos tópicos do cluster primário.",
+        "Copiar eventos ao S3 por MSK Connect e restaurar os tópicos após falha de uma AZ.",
+        "Distribuir brokers e réplicas em três AZs, usar RF=3, min.insync.replicas=2 e produtores acks=all.",
+        "Aumentar partições e brokers, mantendo fator de replicação um para cada partição."
       ],
       "correct": 2,
-      "explanation": "Com brokers distribuídos em múltiplas AZs e fator de replicação ≥3, uma falha de AZ derruba apenas um subconjunto das réplicas de cada partição; o mecanismo de eleição de líder do Kafka promove uma réplica em sincronia (in-sync replica) em uma AZ saudável, sem perda de dados para escritas devidamente confirmadas (acks).",
-      "hint": "Pense em quais dois aspectos da configuração do MSK (posicionamento dos brokers e fator de replicação dos tópicos) determinam se as réplicas de uma partição sobrevivem à falha de uma única Zona de Disponibilidade.",
+      "explanation": "Replicação entre Regiões não substitui a distribuição correta das réplicas dos tópicos pelas AZs locais. Backup S3 é útil para retenção, não mantém réplicas prontas para eleição de líder. Brokers em três AZs, RF=3, min.insync.replicas=2 e acks=all sustentam confirmação com réplicas em múltiplas AZs; réplicas devem estar corretamente distribuídas. Mais partições com RF=1 continuam deixando cada partição com uma única cópia.",
+      "hint": "Distribuição dos brokers não replica automaticamente um tópico configurado com uma única cópia.",
       "optionRationales": [
-        "Com brokers distribuídos em múltiplas AZs e fator de replicação ≥3, uma falha de AZ derruba apenas um subconjunto das réplicas de cada partição; o mecanismo de eleição de líder do Kafka promove uma réplica em sincronia (in-sync replica) em uma AZ saudável, sem perda de dados para escritas devidamente confirmadas (acks).",
-        "Aumentar o número de partições melhora o PARALELISMO/throughput, mas não resolve a resiliência em nível de AZ se todos os brokers (e, portanto, todas as réplicas das partições) residirem na mesma AZ; uma falha de AZ ainda derrubaria todas as réplicas.",
-        "O MSK não possui um recurso de 'espelhamento síncrono Multi-Region' para resiliência intra-cluster entre AZs; a resiliência em nível de AZ vem do posicionamento de brokers entre AZs e da configuração do fator de replicação dentro de um único cluster regional — replicação entre regiões (para DR) é obtida via MSK Replicator/MirrorMaker, uma preocupação diferente da resiliência de AZ em uma única região.",
-        "Fazer backup para o S3 fornece um mecanismo de DR/recuperação para dados históricos, mas não resolve a resiliência/disponibilidade IMEDIATA do pipeline de streaming em produção contra uma falha de AZ (produtores/consumidores em andamento ainda seriam interrompidos); a correção precisa estar no posicionamento de brokers/réplicas do cluster."
+        "Replicação entre Regiões não substitui a distribuição correta das réplicas dos tópicos pelas AZs locais.",
+        "Backup S3 é útil para retenção, não mantém réplicas prontas para eleição de líder.",
+        "Brokers em três AZs, RF=3, min.insync.replicas=2 e acks=all sustentam confirmação com réplicas em múltiplas AZs; réplicas devem estar corretamente distribuídas.",
+        "Mais partições com RF=1 continuam deixando cada partição com uma única cópia."
       ],
       "topics": [
         "analytics"

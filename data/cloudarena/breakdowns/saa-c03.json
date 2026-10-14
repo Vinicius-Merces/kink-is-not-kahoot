@@ -30365,22 +30365,22 @@
       "questionId": "saa-avc-077",
       "options": [
         {
-          "matchText": "Configurar o cofre de backup em us-east-1 com replicação entre regiões habilitada, de forma semelhante à Cross-Region Replication do S3.",
+          "matchText": "Configurar replicação no cofre de origem como uma regra CRR para todos os seus objetos internos.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque 'replicação entre regiões do cofre, como a CRR do S3' descreve exatamente o resultado desejado — mas o AWS Backup não tem esse recurso de cofre com CRR automática; a cópia cross-region é feita por uma copy rule no PLANO de backup, que copia cada ponto de recuperação para o cofre de destino."
+          "reasonWrong": "Um cofre não tem um interruptor de espelhamento equivalente ao CRR do S3."
         },
         {
-          "matchText": "Habilitar o 'modo Multi-Region' do AWS Backup no nível da conta, que espelha automaticamente todos os cofres de backup para uma Região secundária.",
+          "matchText": "Habilitar um modo de espelhamento global da conta para duplicar todos os cofres entre Regiões.",
           "stage": "eliminate",
-          "reasonWrong": "Não existe 'modo Multi-Region' de conta que espelhe todos os cofres automaticamente — recurso inventado."
+          "reasonWrong": "Não há um modo de conta que replique automaticamente todos os cofres."
         },
         {
-          "matchText": "Criar snapshots manuais dos volumes EBS e instâncias RDS e usar o console do EC2/RDS para copiar manualmente cada snapshot para us-west-2 após cada backup.",
+          "matchText": "Copiar snapshots manualmente no console RDS e EC2 após cada execução do plano de backup.",
           "stage": "eliminate",
-          "reasonWrong": "Snapshots manuais copiados à mão a cada backup é processo manual e falível — o requisito é automatizado."
+          "reasonWrong": "Cópias manuais não atendem à automação solicitada."
         },
         {
-          "matchText": "Configurar o plano de backup do AWS Backup com uma regra de 'cópia para destino' (copy rule) que copia automaticamente cada ponto de recuperação criado em us-east-1 para um cofre de backup (backup vault) em us-west-2.",
+          "matchText": "Adicionar uma copy action ao plano AWS Backup apontando ao cofre da Região de recuperação.",
           "stage": "correct"
         }
       ],
@@ -30409,23 +30409,23 @@
       "questionId": "saa-avc-078",
       "options": [
         {
-          "matchText": "Configurar as próprias configurações de retry de 'invocação assíncrona' da função Lambda (2 tentativas automáticas), já que o Step Functions invoca o Lambda de forma assíncrona por padrão.",
+          "matchText": "Configurar retries de invocação assíncrona do Lambda e manter a integração request-response atual.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o retry de invocação assíncrona do Lambda TAMBÉM reenvia em erro — mas o Step Functions invoca a função de forma SÍNCRONA (Task), então esse retry não se aplica, e ele não faz o backoff exponencial nem o desvio para 'revisão manual' que o fluxo pede; isso é o Retry + Catch do próprio estado."
+          "reasonWrong": "A integração padrão request-response não usa automaticamente a política de invocação assíncrona do Lambda."
         },
         {
-          "matchText": "Usar uma fila SQS com uma política de redirecionamento (redrive policy) entre cada estado do Step Functions para lidar com as tentativas.",
+          "matchText": "Inserir uma fila SQS antes de cada estado e usar somente sua política de redrive.",
           "stage": "eliminate",
-          "reasonWrong": "Enfiar SQS com redrive entre estados reescreve a orquestração — o Step Functions já trata retry/catch nativamente."
+          "reasonWrong": "Inserir filas muda a arquitetura e não configura o tratamento de erro daquele estado."
         },
         {
-          "matchText": "Configurar um campo 'Retry' no estado relevante com ErrorEquals correspondente à exceção de throttling, IntervalSeconds, BackoffRate e MaxAttempts apropriados para o backoff exponencial; e adicionalmente um campo 'Catch' no mesmo estado que direcione para o estado de 'revisão manual' caso as tentativas se esgotem.",
+          "matchText": "Definir Retry com backoff e limite no estado, seguido de Catch para revisão manual.",
           "stage": "correct"
         },
         {
-          "matchText": "Envolver o código da função Lambda em um bloco try/catch com um loop de retry personalizado usando atrasos do tipo Thread.sleep(), e fazer o Step Functions invocá-la apenas uma vez.",
+          "matchText": "Repetir chamadas num loop dentro do Lambda e retornar erro após esgotar o tempo da função.",
           "stage": "eliminate",
-          "reasonWrong": "Thread.sleep dentro do Lambda queima tempo de execução pago e esconde o controle do fluxo — não é o retry declarativo do Step Functions."
+          "reasonWrong": "Retries no código exigem implementação própria e consomem tempo da função, sem configurar o ramo declarativo pedido."
         }
       ],
       "finalBlow": {
@@ -30453,41 +30453,41 @@
       "questionId": "saa-avc-079",
       "options": [
         {
-          "matchText": "Configurar a Replicação entre Regiões (CRR) do Amazon S3 do bucket em us-east-1 para um bucket em eu-west-1, com versionamento habilitado em ambos os buckets (pré-requisito da CRR) e uma regra de replicação que inclua os objetos, storage class e criptografia desejados (incluindo permissões adequadas da KMS key no destino, se SSE-KMS for usado).",
+          "matchText": "Usar CRR entre buckets versionados, configurar a chave de destino e definir Lifecycle também no destino.",
           "stage": "correct"
         },
         {
-          "matchText": "Usar o AWS DataSync para realizar uma cópia única (one-time) do conteúdo do bucket para eu-west-1.",
+          "matchText": "Executar uma tarefa DataSync uma única vez e manter o bucket de destino sem novas execuções.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o DataSync realmente copia objetos entre buckets de regiões diferentes — mas uma cópia ÚNICA (one-time) não mantém cada NOVO objeto replicado automaticamente: os ativos futuros ficariam de fora do DR; replicação contínua de novos objetos com storage class e criptografia preservadas é a Cross-Region Replication."
+          "reasonWrong": "Cópia única não acompanha novos objetos."
         },
         {
-          "matchText": "Configurar uma regra de Lifecycle do S3 para transicionar objetos para a classe de armazenamento S3 Glacier em eu-west-1 após 30 dias.",
+          "matchText": "Definir Lifecycle na origem para mover os vídeos para uma classe Glacier da Região de recuperação.",
           "stage": "eliminate",
-          "reasonWrong": "Lifecycle para Glacier muda a CLASSE dos objetos — não os copia para outra região."
+          "reasonWrong": "Lifecycle muda a classe dentro do bucket; não cria uma cópia em outra Região."
         },
         {
-          "matchText": "Habilitar o S3 Transfer Acceleration no bucket de us-east-1 para acelerar o acesso a partir de eu-west-1.",
+          "matchText": "Habilitar Transfer Acceleration na origem e usar seu endpoint para acessar vídeos da outra Região.",
           "stage": "eliminate",
-          "reasonWrong": "Transfer Acceleration acelera o acesso via edge — não cria cópia em eu-west-1."
+          "reasonWrong": "Transfer Acceleration otimiza transferência até o bucket, não replica objetos."
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque a CRR replica automaticamente cada novo objeto de us-east-1 para eu-west-1 (com versionamento nos dois buckets), preservando storage class e criptografia — cópia pronta para DR se a origem cair.",
+            "text": "CRR replica objetos elegíveis, mas o destino precisa de sua própria configuração Lifecycle.",
             "correct": true
           },
           {
-            "text": "Porque o DataSync one-time replica automaticamente cada novo objeto de us-east-1 para eu-west-1, preservando storage class e criptografia — cópia pronta para DR se a origem cair por inteiro.",
+            "text": "CRR copia automaticamente toda transição Lifecycle realizada posteriormente na origem.",
             "correct": false
           },
           {
-            "text": "Porque a Lifecycle para Glacier replica automaticamente cada novo objeto de us-east-1 para eu-west-1, preservando storage class e criptografia — cópia pronta para DR se a origem cair por inteiro.",
+            "text": "Transfer Acceleration mantém uma cópia durável de cada objeto na Região do consumidor.",
             "correct": false
           },
           {
-            "text": "Porque o Transfer Acceleration replica automaticamente cada novo objeto de us-east-1 para eu-west-1, preservando storage class e criptografia — cópia pronta para DR se a origem cair por inteiro.",
+            "text": "Lifecycle pode mover um objeto a outro bucket regional ao mudar sua classe de armazenamento.",
             "correct": false
           }
         ]
@@ -30497,22 +30497,22 @@
       "questionId": "saa-avc-080",
       "options": [
         {
-          "matchText": "Reduzir o visibility timeout da fila SQS para 0 segundos, para que mensagens com falha sejam imediatamente reprocessadas.",
+          "matchText": "Reduzir visibility timeout para zero e manter as mensagens problemáticas na fila de origem.",
           "stage": "eliminate",
-          "reasonWrong": "Visibility timeout 0 faz a mensagem venenosa reaparecer instantaneamente — piora o loop de falhas."
+          "reasonWrong": "Timeout zero aumenta reentregas e concorrência sobre a mesma mensagem."
         },
         {
-          "matchText": "Aumentar a concorrência reservada da função Lambda para que mais instâncias processem mensagens em paralelo, reduzindo o impacto da mensagem travada.",
+          "matchText": "Aumentar concorrência do Lambda sem alterar a política de tratamento das mensagens com falha.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque mais concorrência realmente processa outras mensagens em paralelo — mas NÃO isola a mensagem venenosa: ela continua voltando à fila, queimando invocações e sendo reprocessada em loop; isolar automaticamente após N falhas é a Dead Letter Queue com maxReceiveCount."
+          "reasonWrong": "Mais concorrência não isola a mensagem que falha repetidamente."
         },
         {
-          "matchText": "Configurar o período de retenção de mensagens da fila SQS para 1 minuto, para que mensagens problemáticas expirem rapidamente.",
+          "matchText": "Reduzir a retenção da fila de origem para expirar rapidamente todas as mensagens antigas.",
           "stage": "eliminate",
-          "reasonWrong": "Retenção de 1 minuto descartaria também as mensagens VÁLIDAS que não fossem processadas a tempo — perda de dados."
+          "reasonWrong": "Retenção curta descarta também mensagens válidas ainda não processadas."
         },
         {
-          "matchText": "Configurar uma dead-letter queue (DLQ) para a fila SQS de origem, com uma redrive policy especificando maxReceiveCount (ex.: 3).",
+          "matchText": "Associar uma DLQ à fila SQS com redrive policy e maxReceiveCount adequado.",
           "stage": "correct"
         }
       ],
@@ -30541,23 +30541,23 @@
       "questionId": "saa-avc-081",
       "options": [
         {
-          "matchText": "Criar dois clusters ElastiCache for Redis independentes em AZs diferentes e configurar a aplicação para escrever em ambos simultaneamente.",
+          "matchText": "Criar dois clusters Redis independentes e manter escritas simultâneas pela aplicação.",
           "stage": "eliminate",
-          "reasonWrong": "Dois clusters independentes com escrita dupla exigem lógica na aplicação e não dão failover com endpoint único."
+          "reasonWrong": "Clusters independentes exigem lógica própria de replicação e failover."
         },
         {
-          "matchText": "Realizar snapshots manuais do cluster Redis a cada poucos minutos e restaurar a partir do snapshot mais recente em um novo cluster caso o primário falhe.",
+          "matchText": "Fazer snapshots frequentes e restaurar outro cluster após detectar indisponibilidade.",
           "stage": "eliminate",
-          "reasonWrong": "Snapshot + restore é recuperação manual e lenta, com perda de sessões desde o último snapshot — não é failover automático."
+          "reasonWrong": "Restaurar snapshot não promove uma réplica automaticamente e pode perder atualizações recentes."
         },
         {
-          "matchText": "Habilitar Multi-AZ com Automatic Failover no grupo de replicação do ElastiCache for Redis, com pelo menos uma réplica de leitura em outra Zona de Disponibilidade.",
+          "matchText": "Usar replication group Redis com réplica em outra AZ e Multi-AZ automatic failover.",
           "stage": "correct"
         },
         {
-          "matchText": "Usar o ElastiCache for Memcached em vez de Redis, já que o Memcached suporta nativamente replicação multi-nó com failover automático.",
+          "matchText": "Usar Memcached com nós em múltiplas AZs e depender da replicação automática entre eles.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Memcached é o outro motor do ElastiCache — mas ele NÃO tem replicação nem failover automático: é multi-nó por sharding sem réplica promovível; promover réplica mantendo o mesmo endpoint em falha de AZ é o Redis com Multi-AZ e Automatic Failover."
+          "reasonWrong": "Memcached não oferece o mesmo mecanismo de replicação de sessões e promoção do replication group Redis."
         }
       ],
       "finalBlow": {
@@ -30585,23 +30585,23 @@
       "questionId": "saa-avc-082",
       "options": [
         {
-          "matchText": "Usar o Amazon EFS Replication para configurar replicação entre regiões a partir do sistema de arquivos de origem em us-east-1 para um novo sistema de arquivos de réplica somente leitura em us-west-2; em um evento de DR, promover a réplica a leitura-escrita.",
+          "matchText": "Configurar EFS Replication regional e preparar o procedimento de failover para o sistema de destino.",
           "stage": "correct"
         },
         {
-          "matchText": "Montar o mesmo sistema de arquivos EFS diretamente em instâncias EC2 localizadas em us-west-2.",
+          "matchText": "Montar o EFS original a partir de EC2 na Região de DR pela conectividade entre as VPCs.",
           "stage": "eliminate",
-          "reasonWrong": "Um EFS é regional — não se monta o MESMO file system em instâncias de outra região."
+          "reasonWrong": "Montar o sistema original de outra Região não protege contra a perda da Região de origem."
         },
         {
-          "matchText": "Usar o AWS DataSync para realizar uma cópia única (one-time) do sistema de arquivos EFS para um novo sistema de arquivos EFS em us-west-2.",
+          "matchText": "Copiar os arquivos uma vez com DataSync e usar o destino como cópia de recuperação permanente.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o DataSync copia de fato o EFS entre regiões — mas uma cópia ÚNICA não mantém a réplica atualizada continuamente: o RPO cresceria sem limite entre execuções; replicação contínua com baixo RPO e réplica promovível a leitura-escrita é o EFS Replication."
+          "reasonWrong": "Cópia única fica defasada quando novos arquivos são gravados."
         },
         {
-          "matchText": "Usar o gerenciamento de ciclo de vida (Lifecycle Management) do EFS para mover arquivos para a classe de armazenamento EFS Infrequent Access em us-west-2.",
+          "matchText": "Aplicar Lifecycle para EFS IA e usar essa classe como cópia regional de recuperação.",
           "stage": "eliminate",
-          "reasonWrong": "Lifecycle para Infrequent Access muda a classe de armazenamento — não replica para outra região."
+          "reasonWrong": "Lifecycle muda classe de armazenamento, não replica o sistema para outra Região."
         }
       ],
       "finalBlow": {
@@ -30629,23 +30629,23 @@
       "questionId": "saa-avc-083",
       "options": [
         {
-          "matchText": "Habilitar connection draining (deregistration delay) em um Application Load Balancer posicionado na frente do banco de dados.",
+          "matchText": "Colocar ALB na frente do endpoint MySQL e habilitar deregistration delay no target group.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque connection draining lida com conexões de fato — mas é recurso de ALB para desregistrar TARGETS HTTP graciosamente: um ALB não fica na frente de um banco MySQL; para amortecer o failover do RDS mantendo conexões, o pool gerenciado é o RDS Proxy."
+          "reasonWrong": "ALB não é um proxy do protocolo MySQL nem controla o failover do banco."
         },
         {
-          "matchText": "Colocar o Amazon RDS Proxy na frente da instância RDS, mantendo um pool de conexões gerenciado.",
+          "matchText": "Usar RDS Proxy como endpoint da aplicação para gerenciar o pool e acompanhar o failover.",
           "stage": "correct"
         },
         {
-          "matchText": "Configurar a aplicação para usar uma Read Replica como endpoint de conexão primário.",
+          "matchText": "Conectar a aplicação ao endpoint de uma read replica durante toda a operação normal.",
           "stage": "eliminate",
-          "reasonWrong": "Read Replica é para offload de LEITURA e replica de forma assíncrona — não acelera reconexão de escrita no failover."
+          "reasonWrong": "Uma read replica não é substituto transparente do writer."
         },
         {
-          "matchText": "Aumentar a classe da instância de banco de dados para um tipo maior, com mais vCPUs e memória.",
+          "matchText": "Aumentar a instância RDS mantendo os mesmos clientes e o mesmo gerenciamento de conexões.",
           "stage": "eliminate",
-          "reasonWrong": "Instância maior dá mais recursos — não muda o tempo de reconexão das conexões persistentes no failover."
+          "reasonWrong": "Uma instância maior não resolve sozinha os efeitos de reconexão e descoberta do primário."
         }
       ],
       "finalBlow": {
@@ -30673,23 +30673,23 @@
       "questionId": "saa-avc-084",
       "options": [
         {
-          "matchText": "Backup and restore — realizar backups regulares e restaurar a infraestrutura a partir deles durante um desastre.",
+          "matchText": "Manter backups regionais e restaurar toda a aplicação somente após declarar o desastre.",
           "stage": "eliminate",
-          "reasonWrong": "Backup and restore tem o maior RTO/RPO — reconstruir tudo do backup não cabe em 'poucos minutos'."
+          "reasonWrong": "Backup/restore exige provisionamento e restauração, normalmente com recuperação mais demorada."
         },
         {
-          "matchText": "Multi-site active/active — manter ambas as regiões executando tráfego de produção completo simultaneamente.",
+          "matchText": "Operar duas pilhas em capacidade plena, atendendo produção simultaneamente nas duas Regiões.",
           "stage": "eliminate",
-          "reasonWrong": "Multi-site active/active roda produção completa nas duas regiões — é o custo total que a empresa quer evitar."
+          "reasonWrong": "Active-active implica capacidade ativa e operação que excedem o compromisso de custo descrito."
         },
         {
-          "matchText": "Warm standby — manter uma cópia funcional, porém reduzida (scaled-down), do ambiente de produção em execução contínua na região de DR, escalando-a para a capacidade total durante um desastre.",
+          "matchText": "Manter uma pilha funcional reduzida na Região de DR e escalá-la durante a recuperação.",
           "stage": "correct"
         },
         {
-          "matchText": "Pilot light — manter apenas a infraestrutura essencial (ex.: uma réplica de banco de dados) em execução na região de DR, provisionando os demais componentes somente durante um desastre.",
+          "matchText": "Manter apenas dados e serviços essenciais ativos e provisionar a aplicação durante a recuperação.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Pilot light também mantém infraestrutura pré-provisionada e reduz custo — mas ele deixa rodando APENAS o essencial (ex.: réplica de banco), com o resto provisionado só no desastre: o RTO fica maior; uma cópia funcional reduzida rodando continuamente, pronta para escalar em minutos, é o Warm standby."
+          "reasonWrong": "Pilot light mantém apenas componentes essenciais, exigindo ativar o restante da pilha durante a recuperação."
         }
       ],
       "finalBlow": {
@@ -30717,23 +30717,23 @@
       "questionId": "saa-avc-085",
       "options": [
         {
-          "matchText": "AWS Elastic Disaster Recovery (AWS DRS).",
+          "matchText": "Usar AWS Elastic Disaster Recovery com replicação contínua e launch settings de recuperação.",
           "stage": "correct"
         },
         {
-          "matchText": "AWS Storage Gateway (Volume Gateway) para replicar os discos das VMs on-premises para o S3, criando manualmente instâncias EC2 a partir desses volumes durante um desastre.",
+          "matchText": "Usar Volume Gateway com snapshots e reconstruir os servidores EC2 no momento do desastre.",
           "stage": "eliminate",
-          "reasonWrong": "Volume Gateway para S3 + criar EC2 manualmente é lento e artesanal — não entrega failover em poucos minutos."
+          "reasonWrong": "Volume Gateway oferece armazenamento híbrido e snapshots, não a mesma orquestração de recuperação de servidores."
         },
         {
-          "matchText": "AWS Database Migration Service (DMS).",
+          "matchText": "Usar AWS DMS para replicar continuamente os bancos que executam dentro das máquinas virtuais.",
           "stage": "eliminate",
-          "reasonWrong": "DMS replica BANCOS DE DADOS — não servidores VMware inteiros em nível de bloco."
+          "reasonWrong": "DMS replica dados de bancos, não o sistema e os discos de uma VM completa."
         },
         {
-          "matchText": "AWS Server Migration Service (SMS).",
+          "matchText": "Usar DataSync para copiar arquivos periodicamente e recriar as máquinas a partir de AMIs padrão.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o SMS também replica servidores para a AWS em nível de bloco — mas ele foi feito para MIGRAÇÃO única (e está descontinuado): não é a plataforma de DR contínua com failover rápido e recuperação em minutos; replicação contínua para failover é o AWS Elastic Disaster Recovery (DRS)."
+          "reasonWrong": "DataSync transfere arquivos/objetos, não oferece recuperação contínua de servidores por replicação de blocos."
         }
       ],
       "finalBlow": {
@@ -30761,22 +30761,22 @@
       "questionId": "saa-avc-086",
       "options": [
         {
-          "matchText": "Executar dois brokers Amazon MQ independentes em AZs diferentes e configurar a aplicação para publicar mensagens em ambos.",
+          "matchText": "Criar dois brokers ActiveMQ independentes e fazer a aplicação publicar em ambos.",
           "stage": "eliminate",
-          "reasonWrong": "Dois brokers independentes com publicação dupla joga a complexidade de HA para a aplicação — não é failover gerenciado."
+          "reasonWrong": "Brokers independentes exigem coordenação de estado e recuperação pela aplicação."
         },
         {
-          "matchText": "Migrar a aplicação para usar o Amazon SQS, que é inerentemente altamente disponível.",
+          "matchText": "Migrar os produtores e consumidores para a API nativa do Amazon SQS.",
           "stage": "eliminate",
-          "reasonWrong": "Migrar para SQS troca o protocolo JMS/ActiveMQ — exige reescrever a mensageria, o oposto de minimizar alterações."
+          "reasonWrong": "SQS usa outro modelo de API; não é um broker ActiveMQ substituto sem adaptação."
         },
         {
-          "matchText": "Implantar o Amazon MQ em 'modo de cluster' com múltiplos brokers ativos compartilhando a carga.",
+          "matchText": "Usar um cluster Amazon MQ for RabbitMQ e preservar todas as configurações JMS atuais.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o 'modo de cluster' do Amazon MQ também é HA multi-broker — mas o cluster de brokers ATIVOS é o padrão do RabbitMQ; para ActiveMQ (JMS), a alta disponibilidade com failover automático entre AZs é o modo ACTIVE/STANDBY, que é o desenho correto aqui."
+          "reasonWrong": "O modelo de cluster RabbitMQ não fornece compatibilidade ActiveMQ/JMS por si só."
         },
         {
-          "matchText": "Usar o Amazon MQ for ActiveMQ em modo de implantação 'active/standby' entre duas Zonas de Disponibilidade.",
+          "matchText": "Usar Amazon MQ for ActiveMQ active/standby com endpoints de failover no cliente.",
           "stage": "correct"
         }
       ],
@@ -30805,23 +30805,23 @@
       "questionId": "saa-avc-087",
       "options": [
         {
-          "matchText": "Aumentar a capacidade desejada do Auto Scaling Group para 200% do necessário normalmente, mantendo a distribuição nas 2 AZs existentes.",
+          "matchText": "Dobrar a capacidade desejada e manter a distribuição apenas nas duas AZs atuais.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque 200% de capacidade REALMENTE evita a sobrecarga se uma AZ cair — mas ao custo de dobrar as instâncias permanentemente (aumento de custo alto), enquanto o requisito é mínimo aumento de custo; espalhar a MESMA capacidade em 3 AZs cobre a perda de uma AZ com só ~+50% de folga."
+          "reasonWrong": "Dobrar capacidade aumenta custo e viola a manutenção da capacidade total."
         },
         {
-          "matchText": "Redesenhar a VPC e o Auto Scaling Group para abranger 3 Zonas de Disponibilidade, distribuindo a mesma capacidade total entre as 3 AZs em vez de 2.",
+          "matchText": "Distribuir as mesmas dez instâncias do ASG por sub-redes de três AZs.",
           "stage": "correct"
         },
         {
-          "matchText": "Configurar o Auto Scaling Group com uma estratégia de posicionamento 'Single AZ' para simplificar a configuração de rede.",
+          "matchText": "Concentrar as dez instâncias numa única AZ com baixa latência entre os servidores.",
           "stage": "eliminate",
-          "reasonWrong": "'Single AZ' concentra tudo numa zona — elimina a resiliência a falha de AZ, o oposto do objetivo."
+          "reasonWrong": "Concentrar tudo numa AZ agrava a perda potencial."
         },
         {
-          "matchText": "Usar o recurso de 'Capacity Rebalancing' do Auto Scaling configurado para instâncias On-Demand nas 2 AZs existentes.",
+          "matchText": "Habilitar Capacity Rebalancing para as instâncias On-Demand nas duas AZs.",
           "stage": "eliminate",
-          "reasonWrong": "Capacity Rebalancing é para interrupções de instâncias SPOT — não protege contra a perda de uma AZ inteira."
+          "reasonWrong": "Capacity Rebalancing responde a risco de interrupção Spot, não redistribui a capacidade On-Demand por uma terceira AZ."
         }
       ],
       "finalBlow": {
@@ -30849,22 +30849,22 @@
       "questionId": "saa-avc-088",
       "options": [
         {
-          "matchText": "Registrar manualmente targets adicionais 'placeholder' (fictícios) na AZ-B para equilibrar a contagem de targets.",
+          "matchText": "Registrar targets sem aplicação na AZ menor para igualar a contagem de destinos.",
           "stage": "eliminate",
-          "reasonWrong": "Targets placeholder fictícios recebem tráfego real e o descartam — gambiarra que perde requisições."
+          "reasonWrong": "Targets fictícios não recebem tráfego útil e não corrigem a capacidade efetiva."
         },
         {
-          "matchText": "Habilitar o modo 'Slow Start' no target group do NLB.",
+          "matchText": "Aplicar slow start aos targets existentes sem alterar o escopo zonal de distribuição.",
           "stage": "eliminate",
-          "reasonWrong": "Slow Start apenas aquece targets novos gradualmente — não corrige a distribuição desigual entre AZs."
+          "reasonWrong": "Slow start não é a solução NLB para distribuir fluxos entre zonas."
         },
         {
-          "matchText": "Substituir o Network Load Balancer por um Classic Load Balancer, que sempre balanceia igualmente entre todos os targets independentemente da AZ.",
+          "matchText": "Ativar afinidade DNS zonal para manter cada cliente nos targets da sua AZ.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Classic Load Balancer de fato tinha comportamento de balanceamento diferente — mas trocar o tipo de balanceador é solução drástica e retrógrada; o desbalanceamento entre AZs desiguais se resolve LIGANDO o Cross-Zone Load Balancing no próprio NLB, que distribui entre todos os targets, não 50/50 por AZ."
+          "reasonWrong": "Afinidade zonal preserva a concentração, em vez de permitir uso do conjunto completo de targets."
         },
         {
-          "matchText": "Habilitar Cross-Zone Load Balancing no Network Load Balancer.",
+          "matchText": "Habilitar cross-zone no NLB ou target group conforme a configuração suportada.",
           "stage": "correct"
         }
       ],
@@ -30893,22 +30893,22 @@
       "questionId": "saa-avc-089",
       "options": [
         {
-          "matchText": "Habilitar o binary logging na instância RDS e reproduzir manualmente os binary logs até o ponto desejado na mesma instância.",
+          "matchText": "Ativar binary logs somente após o incidente e reaplicá-los na mesma instância.",
           "stage": "eliminate",
-          "reasonWrong": "Reproduzir binary logs manualmente é operação arriscada e trabalhosa — o PITR já usa esses logs de forma gerenciada."
+          "reasonWrong": "Replay manual exige preparação e não é o procedimento gerenciado de recuperação solicitado."
         },
         {
-          "matchText": "Restaurar o snapshot diário automatizado mais recente, que contém os dados da janela de backup da noite anterior.",
+          "matchText": "Restaurar apenas o snapshot diário capturado antes das transações da manhã.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque restaurar do backup é a família certa de solução — mas o snapshot diário só tem o estado da JANELA da noite anterior: perderia todas as transações até o script, e não permite escolher o ponto exato imediatamente antes dele; escolher o timestamp preciso é o Point-in-Time Recovery."
+          "reasonWrong": "Um snapshot diário perde transações entre sua captura e o instante desejado."
         },
         {
-          "matchText": "Usar a opção 'Reboot with failover' do RDS na implantação Multi-AZ para reverter para os dados do standby.",
+          "matchText": "Forçar failover Multi-AZ e usar o standby como cópia anterior à migração.",
           "stage": "eliminate",
-          "reasonWrong": "Reboot with failover troca primário por standby — mas o standby tem os MESMOS dados corrompidos (replicação síncrona)."
+          "reasonWrong": "A corrupção lógica também é replicada ao standby; failover não reverte o histórico."
         },
         {
-          "matchText": "Usar os backups automatizados do RDS com Point-in-Time Recovery (PITR), restaurando uma NOVA instância para o timestamp exato imediatamente anterior à execução do script defeituoso.",
+          "matchText": "Restaurar uma nova instância por PITR para o instante imediatamente anterior ao script.",
           "stage": "correct"
         }
       ],
@@ -30937,41 +30937,41 @@
       "questionId": "saa-avc-090",
       "options": [
         {
-          "matchText": "Não — o Aurora Serverless v2 suporta apenas uma instância writer em uma única AZ, sem opção de réplicas; para HA Multi-AZ, o cluster precisa ser convertido inteiramente para instâncias Aurora provisionadas.",
+          "matchText": "Manter somente o writer e depender das cópias de armazenamento para ter uma réplica de compute pronta.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque parte de uma limitação plausível — mas está ERRADA: o Aurora Serverless v2 NÃO fica preso a uma instância numa única AZ; ele participa de clusters Aurora normais e aceita réplicas em outras AZs, então não é preciso converter tudo para provisionado para ter HA Multi-AZ."
+          "reasonWrong": "O armazenamento multi-AZ do cluster não substitui uma instância de réplica pronta para promoção."
         },
         {
-          "matchText": "Não — alcançar HA Multi-AZ exigiria roteirizar manualmente cópias de snapshots entre AZs e restaurar uma nova instância Serverless v2 a partir do snapshot caso a AZ primária falhe.",
+          "matchText": "Agendar snapshots e restaurar uma nova instância serverless quando a AZ do writer falhar.",
           "stage": "eliminate",
-          "reasonWrong": "Roteirizar cópias de snapshot entre AZs à mão não é como o Aurora faz HA — o failover é nativo do cluster."
+          "reasonWrong": "Snapshots não oferecem a promoção automática de uma réplica de compute."
         },
         {
-          "matchText": "Sim, mas apenas usando o Aurora Global Database, com uma Região secundária configurada como o 'standby' Multi-AZ.",
+          "matchText": "Criar um Global Database e usar outra Região como substituta da réplica em AZ local.",
           "stage": "eliminate",
-          "reasonWrong": "Global Database é para recuperação entre REGIÕES — não é o mecanismo de HA Multi-AZ dentro de uma região."
+          "reasonWrong": "Global Database trata recuperação regional; não é necessário para HA entre AZs na mesma Região."
         },
         {
-          "matchText": "Sim — o Aurora Serverless v2 suporta implantações Multi-AZ adicionando uma ou mais Aurora Replicas (que também podem ser Serverless v2) em AZs diferentes dentro do mesmo cluster Aurora; o mecanismo de failover automático do Aurora promove uma réplica a writer caso a instância primária fique indisponível, enquanto cada instância Serverless v2 do cluster escala sua capacidade (ACUs) independentemente, de acordo com sua própria carga.",
+          "matchText": "Adicionar Aurora Replicas Serverless v2 em outras AZs e configurar os tiers de promoção.",
           "stage": "correct"
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque o Serverless v2 aceita Aurora Replicas em outras AZs no mesmo cluster: o failover nativo promove uma réplica a writer, e cada instância escala suas ACUs de forma independente.",
+            "text": "Aurora Replicas Serverless v2 podem ser promovidas, com comportamento de escala influenciado pelo tier.",
             "correct": true
           },
           {
-            "text": "Porque o Serverless v2 fica preso a uma instância numa AZ: sem réplicas, o cluster precisa ser convertido inteiro para provisionado para ter o failover Multi-AZ e o escalonamento por ACUs.",
+            "text": "Toda réplica Serverless v2 escala independentemente do writer, inclusive nos tiers 0 e 1.",
             "correct": false
           },
           {
-            "text": "Porque o Serverless v2 só obtém HA copiando snapshots entre AZs à mão: uma nova instância é restaurada na falha, e cada uma escala suas ACUs de forma independente no cluster.",
+            "text": "O armazenamento multi-AZ garante que um cluster só com writer tenha outro nó de compute já ativo.",
             "correct": false
           },
           {
-            "text": "Porque o Serverless v2 só obtém HA via Global Database com região standby: o failover promove a região secundária, e cada instância escala suas ACUs de forma independente.",
+            "text": "Serverless v2 precisa de uma Região secundária para promover uma réplica após falha de AZ.",
             "correct": false
           }
         ]
@@ -30981,22 +30981,22 @@
       "questionId": "saa-avc-091",
       "options": [
         {
-          "matchText": "Aumentar o número de shards do Kinesis Data Stream proporcionalmente ao número de consumidores.",
+          "matchText": "Aumentar shards e manter todos os consumidores compartilhando GetRecords.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque mais shards REALMENTE aumenta a vazão total — mas os consumidores continuam DIVIDINDO os 2 MB/s de cada shard entre si (throughput compartilhado), e o enunciado veta o aumento excessivo de shards/custo; taxa dedicada POR CONSUMIDOR por shard é o Enhanced Fan-Out."
+          "reasonWrong": "Mais shards aumenta capacidade agregada, mas não fornece o canal dedicado por consumidor solicitado."
         },
         {
-          "matchText": "Configurar cada consumidor com um nome de 'Consumer Group' diferente, semelhante ao Apache Kafka, para receber taxa de leitura independente.",
+          "matchText": "Criar um nome de aplicação distinto para cada consumidor que usa GetRecords.",
           "stage": "eliminate",
-          "reasonWrong": "Kinesis não tem 'Consumer Group' estilo Kafka que dê throughput dedicado só pelo nome — conceito trocado."
+          "reasonWrong": "Um nome diferente de aplicação não altera o limite compartilhado GetRecords."
         },
         {
-          "matchText": "Fazer cada aplicação consumidora ler de uma fila SQS separada, populada por uma função Lambda acionada pelo Kinesis stream.",
+          "matchText": "Copiar eventos por Lambda para filas SQS dedicadas a cada aplicação.",
           "stage": "eliminate",
-          "reasonWrong": "Inserir Lambda + SQS por consumidor adiciona custo e latência — não dá os 2 MB/s dedicados por shard nativamente."
+          "reasonWrong": "Fanout customizado adiciona infraestrutura e muda o modelo de consumo do stream."
         },
         {
-          "matchText": "Habilitar o Enhanced Fan-Out e fazer com que cada consumidor se registre como consumidor de enhanced fan-out usando a API SubscribeToShard.",
+          "matchText": "Registrar consumidores enhanced fan-out e usar SubscribeToShard.",
           "stage": "correct"
         }
       ],
@@ -31025,23 +31025,23 @@
       "questionId": "saa-avc-092",
       "options": [
         {
-          "matchText": "Configurar uma redrive policy com uma dead-letter queue (DLQ) especificamente na ASSINATURA SNS correspondente à fila SQS do Envio.",
+          "matchText": "Configurar redrive policy e DLQ SQS na assinatura SNS do serviço de Envio.",
           "stage": "correct"
         },
         {
-          "matchText": "Mudar o tópico SNS para um tópico FIFO, de modo que as garantias de ordenação de entrega evitem falhas de entrega.",
+          "matchText": "Mudar o tópico para FIFO para que a ordenação corrija falhas de autorização de entrega.",
           "stage": "eliminate",
-          "reasonWrong": "Tópico FIFO garante ordem/dedup — não impede falha de entrega por política de fila mal configurada."
+          "reasonWrong": "FIFO não corrige uma policy que proíbe entrega."
         },
         {
-          "matchText": "Adicionar um loop de retry no código do microsserviço de Envio para consultar repetidamente o SNS em busca de notificações perdidas.",
+          "matchText": "Adicionar polling do tópico ao serviço de Envio para reler as notificações perdidas.",
           "stage": "eliminate",
-          "reasonWrong": "Não se faz 'polling do SNS' por notificações perdidas — o SNS empurra; a captura de falhas é a DLQ da assinatura."
+          "reasonWrong": "SNS não oferece uma fila consultável pelo consumidor para recuperar notificações passadas."
         },
         {
-          "matchText": "Configurar uma única dead-letter queue no nível do TÓPICO SNS, compartilhada por todas as assinaturas.",
+          "matchText": "Configurar uma DLQ única no tópico sem alterar as configurações das assinaturas.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque uma DLQ para capturar entregas falhas é a ideia certa — mas o SNS anexa a redrive policy POR ASSINATURA, não 'no nível do tópico compartilhada por todas': para capturar só as falhas do Envio sem tocar em Estoque e Faturamento, a DLQ vai na ASSINATURA do Envio."
+          "reasonWrong": "A política de redrive para esse propósito é da assinatura, não uma configuração única do tópico."
         }
       ],
       "finalBlow": {
@@ -31069,23 +31069,23 @@
       "questionId": "saa-avc-093",
       "options": [
         {
-          "matchText": "Aumentar o 'desired count' de tasks do serviço ECS para executar mais réplicas dentro da mesma AZ única.",
+          "matchText": "Aumentar desired count e manter somente a sub-rede da AZ atual.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque mais réplicas dá mais disponibilidade em geral — mas todas continuam na MESMA AZ única: se essa AZ cair, todas as tasks somem juntas; resiliência a falha de AZ exige espalhar as tasks por sub-redes de MÚLTIPLAS AZs na configuração de rede do serviço."
+          "reasonWrong": "Mais tasks na mesma AZ continuam expostas à mesma falha."
         },
         {
-          "matchText": "Configurar um health check do Route 53 que reinicie automaticamente as tasks ECS em outra AZ se a AZ atual ficar não saudável.",
+          "matchText": "Criar health check Route 53 e manter a rede ECS restrita à AZ atual.",
           "stage": "eliminate",
-          "reasonWrong": "Route 53 não 'reinicia tasks ECS em outra AZ' — health check de DNS não orquestra o scheduler do ECS."
+          "reasonWrong": "Health check DNS não reconfigura automaticamente a rede do serviço ECS."
         },
         {
-          "matchText": "Configurar a network configuration (awsvpcConfiguration) do serviço ECS para especificar sub-redes em MÚLTIPLAS Zonas de Disponibilidade.",
+          "matchText": "Selecionar sub-redes em várias AZs e executar réplicas suficientes do serviço.",
           "stage": "correct"
         },
         {
-          "matchText": "Usar um Placement Group do EC2 com estratégia 'spread' para as instâncias subjacentes do cluster ECS.",
+          "matchText": "Configurar um placement group EC2 spread para a infraestrutura Fargate.",
           "stage": "eliminate",
-          "reasonWrong": "Placement Group 'spread' vale para instâncias EC2 do cluster — no Fargate não há instâncias suas, e não define AZ das tasks."
+          "reasonWrong": "Placement groups EC2 não configuram as instâncias subjacentes administradas pelo Fargate."
         }
       ],
       "finalBlow": {
@@ -31113,23 +31113,23 @@
       "questionId": "saa-avc-094",
       "options": [
         {
-          "matchText": "Configurar um lifecycle hook do Auto Scaling para a transição 'Terminating' (autoscaling:EC2_INSTANCE_TERMINATING).",
+          "matchText": "Criar termination lifecycle hook com timeout adequado e sinalizar conclusão após a limpeza.",
           "stage": "correct"
         },
         {
-          "matchText": "Definir o 'shutdown behavior' das instâncias EC2 como 'stop' em vez de 'terminate'.",
+          "matchText": "Definir shutdown behavior=stop no template e manter o encerramento padrão do ASG.",
           "stage": "eliminate",
-          "reasonWrong": "Shutdown behavior 'stop' vale para o encerramento do SO da instância — não controla o scale-in do ASG."
+          "reasonWrong": "Shutdown behavior não substitui a decisão de terminação tomada pelo ASG."
         },
         {
-          "matchText": "Usar o Amazon EventBridge para agendar uma função Lambda que execute as tarefas de limpeza 3 minutos ANTES de cada evento de scale-in programado.",
+          "matchText": "Agendar uma Lambda de limpeza antes de horários previstos, sem hooks de ciclo de vida.",
           "stage": "eliminate",
-          "reasonWrong": "Não há como agendar a limpeza '3 min antes' de um scale-in reativo — ele acontece por demanda, não em horário fixo."
+          "reasonWrong": "Uma agenda não antecipa scale-in dinâmico e não cria espera antes da terminação."
         },
         {
-          "matchText": "Aumentar o health check grace period do Auto Scaling Group para 3 minutos.",
+          "matchText": "Aumentar health check grace period para três minutos e manter terminação padrão.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o grace period também é um tempo de espera do ASG — mas ele adia a avaliação de SAÚDE após o LANÇAMENTO da instância; não segura a TERMINAÇÃO para o encerramento gracioso: reter a instância em 'Terminating' até a limpeza terminar é o lifecycle hook de terminação."
+          "reasonWrong": "Grace period se refere a health checks após lançamento, não ao encerramento."
         }
       ],
       "finalBlow": {
@@ -31157,23 +31157,23 @@
       "questionId": "saa-avc-095",
       "options": [
         {
-          "matchText": "AWS Global Accelerator com pesos de roteamento personalizados ajustados manualmente pelo console durante um evento de failover.",
+          "matchText": "Alterar pesos do Global Accelerator manualmente durante o incidente.",
           "stage": "eliminate",
-          "reasonWrong": "Global Accelerator com pesos ajustados à mão é manual e sem readiness/anti-split-brain."
+          "reasonWrong": "Ajustar pesos do acelerador não fornece o conjunto de routing controls, safety rules e readiness checks pedido."
         },
         {
-          "matchText": "Amazon Route 53 Application Recovery Controller (ARC).",
+          "matchText": "Usar Amazon Application Recovery Controller com routing controls, safety rules e readiness checks.",
           "stage": "correct"
         },
         {
-          "matchText": "Política de roteamento de failover simples do Route 53 com um health check atualizado manualmente.",
+          "matchText": "Editar registros de failover Route 53 pelo console após conferir health checks.",
           "stage": "eliminate",
-          "reasonWrong": "Failover simples com health check atualizado à mão é justamente o mecanismo frágil que se quer substituir."
+          "reasonWrong": "Failover DNS simples não inclui as mesmas safety rules e verificação de preparação."
         },
         {
-          "matchText": "Runbooks de automação do AWS Systems Manager combinados com alarmes do CloudWatch para atualizar registros do Route 53 via API durante uma interrupção.",
+          "matchText": "Executar um runbook SSM que recrie registros DNS usando APIs da Região afetada.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque runbooks do SSM + alarmes atualizando o Route 53 via API também automatizam o failover — mas a decisão depende de chamar APIs (potencialmente na região degradada), não tem trava embutida contra split-brain nem readiness checks; os três requisitos juntos são o Route 53 Application Recovery Controller."
+          "reasonWrong": "Runbooks customizados dependem das APIs e lógica implementadas, sem o conjunto gerenciado descrito."
         }
       ],
       "finalBlow": {
@@ -31201,22 +31201,22 @@
       "questionId": "saa-avc-096",
       "options": [
         {
-          "matchText": "AWS Config com ações de remediação personalizadas configuradas para 'falhar' recursos para fins de teste.",
+          "matchText": "Criar regras Config de não conformidade e usar seus relatórios como experimentos de falha.",
           "stage": "eliminate",
-          "reasonWrong": "Config remedia desvios de configuração — não injeta falhas de resiliência de forma controlada."
+          "reasonWrong": "Config avalia configurações e remedia desvios; não é o orquestrador de experimentos de falha."
         },
         {
-          "matchText": "Verificações de tolerância a falhas do AWS Trusted Advisor, executadas periodicamente contra o ambiente de staging.",
+          "matchText": "Executar as verificações de tolerância a falhas do Trusted Advisor no staging.",
           "stage": "eliminate",
-          "reasonWrong": "Trusted Advisor recomenda boas práticas de tolerância a falhas — não executa experimentos de injeção de falha."
+          "reasonWrong": "Trusted Advisor identifica recomendações, sem injetar falhas."
         },
         {
-          "matchText": "Canários do Amazon CloudWatch Synthetics configurados para simular picos de tráfego contra a aplicação.",
+          "matchText": "Executar canários CloudWatch Synthetics e interpretar falhas das sondagens como injeção.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque os canários do CloudWatch Synthetics também TESTAM a aplicação de forma monitorada — mas eles simulam TRÁFEGO/monitoram disponibilidade de fora; não INJETAM falhas controladas (terminar instâncias, forçar failover do RDS) com reversão segura; experimentos de chaos engineering são o AWS Fault Injection Simulator."
+          "reasonWrong": "Synthetics executa jornadas e verificações; não orquestra as ações de falha descritas."
         },
         {
-          "matchText": "AWS Fault Injection Simulator (AWS FIS).",
+          "matchText": "Executar experimentos AWS FIS com alvos delimitados, alarmes e condições de parada.",
           "stage": "correct"
         }
       ],
@@ -31245,23 +31245,23 @@
       "questionId": "saa-avc-097",
       "options": [
         {
-          "matchText": "Criar um alarme do CloudWatch na métrica 'StatusCheckFailed_Instance', com a ação do alarme definida como 'Reboot this instance'.",
+          "matchText": "Alarmar StatusCheckFailed_Instance e executar a ação Reboot na instância.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque também é alarme de status check com ação — mas mira o alvo ERRADO: StatusCheckFailed_Instance aponta problema NO SO/instância, e 'Reboot' reinicia no MESMO hardware; falha de HARDWARE subjacente é StatusCheckFailed_System, e a ação que recria em novo hardware preservando ID/IP/EBS é 'Recover'."
+          "reasonWrong": "Instance status checks se referem ao software/rede da instância; reboot não é a ação de recuperação de hardware pedida."
         },
         {
-          "matchText": "Criar um alarme do CloudWatch na métrica 'StatusCheckFailed_System' da instância, com a ação do alarme definida como 'Recover this instance' (EC2 Auto Recovery).",
+          "matchText": "Alarmar StatusCheckFailed_System e usar Recover em uma instância compatível.",
           "stage": "correct"
         },
         {
-          "matchText": "Colocar a instância em um Auto Scaling Group com capacidade mínima, máxima e desejada definidas como 1.",
+          "matchText": "Colocar a carga em ASG de capacidade um e substituir a instância ao falhar.",
           "stage": "eliminate",
-          "reasonWrong": "Pôr a instância num ASG viola o requisito (aplicação legada precisa de Instance ID estável, fora de ASG)."
+          "reasonWrong": "ASG substitui a instância por outra com novo ID, contrariando o requisito."
         },
         {
-          "matchText": "Configurar o AWS Systems Manager Automation para executar um documento SSM que para e inicia a instância a cada hora como medida preventiva.",
+          "matchText": "Agendar Stop/Start por SSM a cada hora para evitar falhas futuras de hardware.",
           "stage": "eliminate",
-          "reasonWrong": "Parar/iniciar de hora em hora é medida cega e disruptiva — não é recuperação disparada pela falha de hardware."
+          "reasonWrong": "Reinícios agendados não são resposta específica à falha de sistema e causam interrupções desnecessárias."
         }
       ],
       "finalBlow": {
@@ -31289,41 +31289,41 @@
       "questionId": "saa-avc-098",
       "options": [
         {
-          "matchText": "Configurar o DynamoDB Global Tables em modo de 'consistência forte' para a replicação entre regiões, prevenindo qualquer conflito.",
+          "matchText": "Alterar in-place a global table existente de MREC para consistência forte global sem recriar a tabela.",
           "stage": "eliminate",
-          "reasonWrong": "DynamoDB Global Tables não tem 'consistência forte entre regiões' — a replicação é eventual por definição."
+          "reasonWrong": "O modo de consistência de uma global table existente não pode ser simplesmente alternado; MRSC tem requisitos próprios e não é uma configuração imediata para este cenário."
         },
         {
-          "matchText": "Confiar no roteamento por latência do Route 53 para garantir que cada usuário seja sempre direcionado à mesma região, eliminando a possibilidade de escritas concorrentes entre regiões no mesmo item.",
+          "matchText": "Depender da política Route 53 de latência para fixar cada usuário permanentemente numa Região.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o roteamento por latência de fato costuma manter o usuário na mesma região — mas NÃO garante isso: mudanças de latência, viagens e failover levam o mesmo usuário a outra região, gerando escrita concorrente no mesmo item; contra a perda silenciosa com last-writer-wins, o desenho precisa ser resiliente a conflitos."
+          "reasonWrong": "Latência DNS não garante afinidade permanente nem exclusão mútua das gravações."
         },
         {
-          "matchText": "Usar transações do DynamoDB (TransactWriteItems) em toda escrita para garantir atomicidade entre as réplicas de ambas as regiões simultaneamente.",
+          "matchText": "Usar TransactWriteItems em cada Região como mecanismo de bloqueio global entre todas as réplicas.",
           "stage": "eliminate",
-          "reasonWrong": "TransactWriteItems dá atomicidade DENTRO de uma região — não coordena escritas entre réplicas de regiões diferentes."
+          "reasonWrong": "Transações em MREC são regionais; não criam uma transação global síncrona entre réplicas."
         },
         {
-          "matchText": "Projetar a aplicação de forma que, para itens que podem ser modificados por usuários em MÚLTIPLAS regiões, escritas no MESMO item a partir de regiões diferentes sejam minimizadas ou usem um padrão resiliente a conflitos (ex.: particionar itens para que cada um normalmente seja escrito apenas a partir de uma região 'dona', usar expressões condicionais, ou projetar atualizações idempotentes/aditivas).",
+          "matchText": "Definir uma Região escritora por item com failover coordenado ou modelar eventos sem sobrescrita concorrente.",
           "stage": "correct"
         }
       ],
       "finalBlow": {
         "justifications": [
           {
-            "text": "Porque com last-writer-wins e consistência eventual, escritas concorrentes no mesmo item entre regiões se sobrescrevem em silêncio: minimizá-las (item 'dono' por região, expressões condicionais, updates aditivos) é o que evita a perda.",
+            "text": "Em MREC, coordenação de ownership ou modelagem sem sobrescritas evita conflitos que condições locais não impedem.",
             "correct": true
           },
           {
-            "text": "Porque o roteamento por latência prende cada usuário à mesma região: escritas concorrentes no mesmo item entre regiões se sobrescrevem em silêncio, e fixar a região é o que evita a perda.",
+            "text": "Uma ConditionExpression aplicada nas duas Regiões funciona como um lock global síncrono.",
             "correct": false
           },
           {
-            "text": "Porque a consistência forte entre regiões impede conflitos: escritas concorrentes no mesmo item entre regiões se sobrescrevem em silêncio, e a replicação forte é o que evita a perda.",
+            "text": "TransactWriteItems confirma a transação atomicamente em todas as réplicas globais antes de responder.",
             "correct": false
           },
           {
-            "text": "Porque as transações entre réplicas garantem atomicidade global: escritas concorrentes no mesmo item entre regiões se sobrescrevem em silêncio, e o TransactWriteItems é o que evita a perda.",
+            "text": "O roteamento DNS por latência impede que um mesmo item receba escritas de Regiões diferentes.",
             "correct": false
           }
         ]
@@ -31333,22 +31333,22 @@
       "questionId": "saa-avc-099",
       "options": [
         {
-          "matchText": "Habilitar o 'modo Multi-Region' em um dos Transit Gateways para que ele abranja automaticamente ambas as regiões.",
+          "matchText": "Habilitar extensão multi-Region do TGW primário para anexar diretamente a VPC remota.",
           "stage": "eliminate",
-          "reasonWrong": "Não existe 'modo Multi-Region' que faça um TGW abranger duas regiões automaticamente — recurso inventado."
+          "reasonWrong": "Transit Gateway é regional; não existe esse modo de expansão automática."
         },
         {
-          "matchText": "Usar AWS Direct Connect com uma VIF privada em ambas as regiões para conectar os dois Transit Gateways.",
+          "matchText": "Provisionar Direct Connect para conectar diretamente os TGWs sem um attachment de peering.",
           "stage": "eliminate",
-          "reasonWrong": "Direct Connect é para conectar ON-PREMISES à AWS — não é o que liga dois TGWs de regiões diferentes pelo backbone."
+          "reasonWrong": "Direct Connect não é necessário para unir esses TGWs e usa outra finalidade de conectividade."
         },
         {
-          "matchText": "Configurar VPC Peering diretamente entre a VPC de us-east-1 e a VPC de us-west-2, além dos anexos existentes ao Transit Gateway.",
+          "matchText": "Criar VPC Peering diretamente entre as duas VPCs, contornando os TGWs existentes.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o VPC Peering entre regiões também usa o backbone privado da AWS sem VPN — mas ignora a topologia de Transit Gateway já existente e não escala (par a par por VPC); com TGWs regionais dos dois lados, o caminho nativo é o Transit Gateway Peering entre eles, com as rotas apontando para o anexo."
+          "reasonWrong": "Peering VPC poderia conectar o par, mas contraria o requisito explícito de usar a malha de TGWs."
         },
         {
-          "matchText": "Configurar Transit Gateway Peering (anexo de peering entre regiões) entre os Transit Gateways de us-east-1 e us-west-2, e adicionar rotas apropriadas nas tabelas de rotas de cada Transit Gateway (e nas tabelas de rotas das VPCs anexadas) apontando para o anexo de peering em direção aos CIDRs da outra região.",
+          "matchText": "Criar peering inter-regional entre os TGWs e configurar rotas nos TGWs e nas VPCs.",
           "stage": "correct"
         }
       ],
@@ -31377,23 +31377,23 @@
       "questionId": "saa-avc-100",
       "options": [
         {
-          "matchText": "Implantação RDS Multi-AZ DB Cluster, com um writer e DUAS instâncias standby legíveis distribuídas em 3 Zonas de Disponibilidade, usando um endpoint de leitura dedicado para as standbys.",
+          "matchText": "Migrar para RDS Multi-AZ DB cluster com writer e dois readers distribuídos em três AZs.",
           "stage": "correct"
         },
         {
-          "matchText": "Migrar para Read Replicas do RDS na mesma região, configuradas como standby do Multi-AZ.",
+          "matchText": "Adicionar read replicas comuns e tratá-las como standbys automáticos da instância atual.",
           "stage": "eliminate",
-          "reasonWrong": "Read Replicas comuns não são 'standby do Multi-AZ' e não fazem failover automático como standby síncrono."
+          "reasonWrong": "Read replicas comuns não substituem automaticamente o modelo de standby do Multi-AZ."
         },
         {
-          "matchText": "Migrar para Aurora MySQL com uma única Aurora Replica.",
+          "matchText": "Migrar para Aurora MySQL com Aurora Replicas em AZs diferentes do writer.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque o Aurora com réplica dá failover rápido e leitura na réplica — mas o requisito é explícito: manter gerenciado pelo RDS SEM migrar para Aurora; a versão RDS que reduz o failover para ~35s e permite leitura nas standbys é o Multi-AZ DB Cluster (writer + 2 standbys legíveis em 3 AZs)."
+          "reasonWrong": "Aurora atenderia a outros cenários, mas está excluído pelo requisito."
         },
         {
-          "matchText": "Aumentar a classe de instância da implantação Multi-AZ tradicional para reduzir o tempo de failover.",
+          "matchText": "Aumentar a instância Multi-AZ tradicional e direcionar leituras para o standby existente.",
           "stage": "eliminate",
-          "reasonWrong": "Instância maior não muda a mecânica do failover tradicional — segue nos 60-120s e sem leitura na standby."
+          "reasonWrong": "Aumentar a instância tradicional não torna seu standby legível."
         }
       ],
       "finalBlow": {
@@ -31421,23 +31421,23 @@
       "questionId": "saa-avc-101",
       "options": [
         {
-          "matchText": "Habilitar um recurso de 'replicação Multi-Region' do MSK para espelhar sincronamente o cluster para um cluster em outra AZ.",
+          "matchText": "Configurar replicação regional e manter fator de replicação um nos tópicos do cluster primário.",
           "stage": "trap",
-          "reasonWrong": "É a mais próxima porque 'replicação para outra AZ' parece resolver a resiliência de AZ — mas o recurso citado é MULTI-REGION (escopo errado: outra região, não outra AZ) e o MSK não faz espelhamento síncrono assim; resiliência a falha de AZ é distribuir brokers em 3 AZs com fator de replicação ≥3."
+          "reasonWrong": "Replicação entre Regiões não substitui a distribuição correta das réplicas dos tópicos pelas AZs locais."
         },
         {
-          "matchText": "Configurar o MSK Connect com um sink connector que faça backup contínuo de todos os dados dos tópicos para o S3 a cada poucos minutos.",
+          "matchText": "Copiar eventos ao S3 por MSK Connect e restaurar os tópicos após falha de uma AZ.",
           "stage": "eliminate",
-          "reasonWrong": "Backup contínuo para o S3 é recuperação posterior — não mantém o pipeline disponível na queda de uma AZ."
+          "reasonWrong": "Backup S3 é útil para retenção, não mantém réplicas prontas para eleição de líder."
         },
         {
-          "matchText": "Reconfigurar o cluster MSK para implantar brokers em (pelo menos) 3 Zonas de Disponibilidade, e configurar os tópicos com fator de replicação de pelo menos 3 (com min.insync.replicas definido apropriadamente, ex.: 2), de modo que as réplicas de cada partição fiquem distribuídas entre múltiplas AZs/brokers.",
+          "matchText": "Distribuir brokers e réplicas em três AZs, usar RF=3, min.insync.replicas=2 e produtores acks=all.",
           "stage": "correct"
         },
         {
-          "matchText": "Aumentar o número de partições de cada tópico dentro do cluster de AZ única.",
+          "matchText": "Aumentar partições e brokers, mantendo fator de replicação um para cada partição.",
           "stage": "eliminate",
-          "reasonWrong": "Mais partições no cluster de AZ única não adiciona redundância — todas continuam na mesma AZ vulnerável."
+          "reasonWrong": "Mais partições com RF=1 continuam deixando cada partição com uma única cópia."
         }
       ],
       "finalBlow": {
