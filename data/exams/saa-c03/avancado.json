@@ -30,10 +30,10 @@
       "domain": "secure-architectures",
       "text": "Uma empresa com várias contas AWS organizadas em uma OU no AWS Organizations precisa garantir que nenhuma conta-membro consiga criar recursos fora da Região 'sa-east-1', independentemente das permissões do IAM concedidas localmente. Qual é a abordagem correta?",
       "options": [
-        "Aplicar uma Service Control Policy (SCP) na OU que negue ações fora da Região permitida usando a chave de condição aws:RequestedRegion",
-        "Criar uma IAM Policy em cada conta restringindo a Região",
-        "Usar apenas tags de recursos para identificar a Região",
-        "Solicitar que cada equipe configure manualmente o console para a Região correta"
+        "Aplicar uma SCP na OU com Deny condicionado a aws:RequestedRegion, excetuando ações globais necessárias.",
+        "Aplicar políticas IAM com Deny regional a todas as roles existentes e novas em cada conta-membro.",
+        "Criar regras AWS Config para detectar recursos em Regiões não autorizadas e executar remediação.",
+        "Aplicar políticas de tag obrigatória na OU e impedir provisionamento de recursos sem a tag regional."
       ],
       "correct": 0,
       "explanation": "SCPs aplicadas a uma OU representam um limite de permissões que nenhuma política do IAM dentro das contas-membro pode ultrapassar; usar a condição aws:RequestedRegion permite negar ações fora da Região desejada em todas as contas da OU.",
@@ -47,10 +47,10 @@
       "domain": "secure-architectures",
       "text": "Uma aplicação multi-tenant no DynamoDB precisa garantir que cada usuário final só possa acessar os itens da tabela que pertencem a ele, identificados por uma partition key igual ao seu ID de usuário. Qual recurso permite aplicar essa restrição diretamente nas credenciais temporárias do usuário?",
       "options": [
-        "IAM Policy com condições baseadas em variáveis de política (LeadingKeys) combinada com Web Identity Federation",
-        "Usar apenas Security Groups para restringir o acesso",
-        "Criar uma tabela DynamoDB separada para cada usuário",
-        "Conceder acesso total ao DynamoDB para todos os usuários autenticados"
+        "Emitir credenciais federadas com política IAM que restrinja dynamodb:LeadingKeys ao identificador do usuário.",
+        "Criar uma política de recurso na tabela que limite acesso por atributos de sessão sem verificar a chave de partição.",
+        "Usar uma role compartilhada de leitura com filtro de itens aplicado exclusivamente pela aplicação cliente.",
+        "Criar um índice secundário global por identificador e permitir Query sem restrição de chave nas credenciais."
       ],
       "correct": 0,
       "explanation": "Políticas do IAM com condições como dynamodb:LeadingKeys permitem restringir o acesso de um usuário federado apenas aos itens cuja partition key corresponda ao seu próprio identificador, um padrão comum em aplicações multi-tenant.",
@@ -64,10 +64,10 @@
       "domain": "secure-architectures",
       "text": "Uma empresa precisa expor uma API privada que deve ser acessível apenas de dentro de sua VPC, sem passar pela internet pública. Qual configuração do Amazon API Gateway atende a esse requisito?",
       "options": [
-        "Expor a API diretamente via Elastic IP em uma instância EC2",
-        "API Gateway do tipo Privado, acessado via VPC Endpoint de Interface (PrivateLink)",
-        "API Gateway do tipo Regional, exposto publicamente",
-        "API Gateway do tipo Edge-Optimized"
+        "Publicar uma API Regional com política de recurso que aceite apenas os IPs privados da VPC.",
+        "Configurar uma API REST privada com endpoint de interface execute-api e política de recurso restritiva.",
+        "Publicar uma API Regional atrás de um domínio personalizado acessível por NAT Gateway da VPC.",
+        "Criar uma API edge-optimized e restringir chamadas com regras AWS WAF por faixa de origem."
       ],
       "correct": 1,
       "explanation": "APIs privadas do API Gateway só podem ser acessadas a partir de uma VPC por meio de um VPC Endpoint de interface (AWS PrivateLink), mantendo o tráfego fora da internet pública.",
@@ -81,10 +81,10 @@
       "domain": "resilient-architectures",
       "text": "Uma aplicação crítica usa o Amazon Aurora e precisa de um RPO (Recovery Point Objective) próximo de zero e RTO (Recovery Time Objective) baixo em caso de falha de uma Região inteira. Qual configuração é mais adequada?",
       "options": [
-        "Migrar para o Amazon DynamoDB sem alterar o restante da arquitetura",
-        "Backup manual mensal exportado para o S3",
-        "Aurora com uma única instância em uma AZ e snapshots diários",
-        "Aurora Global Database, com réplicas secundárias em outra Região com replicação com baixa latência"
+        "Manter Aurora Multi-AZ na Região primária e usar failover automático entre zonas de disponibilidade.",
+        "Restaurar snapshots automatizados do Aurora em outra Região após detectar uma falha regional.",
+        "Configurar réplicas de leitura Aurora apenas na Região primária e promover uma delas na falha.",
+        "Usar Aurora Global Database com cluster secundário em outra Região e procedimento de failover regional."
       ],
       "correct": 3,
       "explanation": "O Aurora Global Database replica dados entre Regiões com latência tipicamente abaixo de 1 segundo, permitindo RPO próximo de zero e recuperação rápida (RTO baixo) em caso de falha regional.",
@@ -98,10 +98,10 @@
       "domain": "resilient-architectures",
       "text": "Uma arquitetura serverless usa AWS Lambda integrado a um Amazon SQS Standard Queue. Os consumidores ocasionalmente processam a mesma mensagem mais de uma vez, causando efeitos colaterais duplicados. Qual é a explicação E a melhor mitigação?",
       "options": [
-        "O problema é causado pelo Lambda, que sempre processa cada mensagem exatamente 3 vezes",
-        "SQS Standard oferece entrega 'pelo menos uma vez' (at-least-once); a aplicação deve ser projetada para ser idempotente, ou usar uma fila FIFO com deduplicação se a ordem e unicidade forem críticas",
-        "SQS Standard garante exactly-once delivery; o problema está no código do consumidor, que deve ser corrigido sem alterações na fila",
-        "Não é possível resolver esse problema com SQS; é necessário migrar para o Kinesis"
+        "Ajustar apenas o visibility timeout do SQS Standard para impedir definitivamente entregas duplicadas.",
+        "Implementar consumidores idempotentes porque SQS Standard admite entregas repetidas; avaliar FIFO quando necessário.",
+        "Ativar deduplicação de conteúdo diretamente na fila Standard e manter o processamento sem idempotência.",
+        "Aumentar o tamanho do lote da integração SQS-Lambda para garantir uma execução única por mensagem."
       ],
       "correct": 1,
       "explanation": "Filas SQS Standard oferecem entrega 'at-least-once', podendo gerar mensagens duplicadas. A solução recomendada é tornar o processamento idempotente ou usar uma fila FIFO com deduplicação de conteúdo quando a unicidade for essencial.",
@@ -115,10 +115,10 @@
       "domain": "resilient-architectures",
       "text": "Uma empresa usa o Amazon S3 como origem do CloudFront e precisa garantir que, mesmo durante uma manutenção planejada na origem primária, as requisições sejam atendidas por uma origem secundária em outra Região. Qual recurso do CloudFront viabiliza isso?",
       "options": [
-        "Origin Failover com Origin Groups",
-        "Field-Level Encryption",
-        "Lambda@Edge apenas para cache",
-        "Signed URLs"
+        "Configurar um origin group no CloudFront com origem secundária e códigos HTTP elegíveis para failover.",
+        "Configurar políticas de cache separadas para duas origens, com alternância automática baseada em TTL.",
+        "Associar duas origens a um único comportamento e usar funções CloudFront para testar disponibilidade.",
+        "Criar uma distribuição adicional com a segunda origem e alternar o DNS somente após detecção externa."
       ],
       "correct": 0,
       "explanation": "Origin Groups no CloudFront permitem configurar uma origem primária e uma secundária; em caso de falhas (códigos de erro configuráveis), o CloudFront automaticamente faz failover para a origem secundária.",
@@ -131,10 +131,10 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação de processamento de vídeo precisa de armazenamento de altíssimo throughput e baixa latência compartilhado entre centenas de instâncias EC2 para cargas de trabalho de HPC. Qual serviço é mais adequado?",
       "options": [
-        "Amazon EBS gp2 com uma única instância",
-        "AWS Storage Gateway no modo Tape",
-        "Amazon FSx for Lustre",
-        "Amazon S3 Glacier Deep Archive"
+        "Usar Amazon EFS em modo de desempenho General Purpose para compartilhar arquivos via NFS entre instâncias.",
+        "Usar Amazon FSx for OpenZFS com volumes NFS e snapshots para compartilhamento entre instâncias EC2.",
+        "Usar Amazon FSx for Lustre para acesso paralelo a arquivos com alto throughput em cargas HPC.",
+        "Usar Amazon EBS io2 Block Express anexado a um nó de armazenamento que exporta arquivos por NFS."
       ],
       "correct": 2,
       "explanation": "O Amazon FSx for Lustre é otimizado para cargas de trabalho de computação de alto desempenho (HPC) que exigem throughput muito alto e baixa latência, podendo ser integrado ao S3 como camada de dados.",
@@ -147,10 +147,10 @@
       "domain": "high-performing-architectures",
       "text": "Uma aplicação global precisa rotear usuários para o endpoint de menor latência entre múltiplas Regiões, com failover automático caso uma Região fique indisponível. Qual política de roteamento do Route 53 é mais adequada?",
       "options": [
-        "Roteamento por Latência (Latency-based Routing) combinado com health checks",
-        "Roteamento Geográfico fixo, sem health checks",
-        "Roteamento Simples (Simple Routing)",
-        "Roteamento Ponderado (Weighted) com peso fixo de 100% para uma única Região"
+        "Configurar registros Route 53 com política de latência e health checks nos endpoints regionais.",
+        "Configurar registros geográficos por continente e health checks para redirecionar usuários em falhas.",
+        "Configurar registros ponderados com pesos iguais e health checks para distribuir tráfego entre Regiões.",
+        "Configurar registros de failover ativo-passivo e health checks para manter uma Região primária fixa."
       ],
       "correct": 0,
       "explanation": "O roteamento por latência direciona o usuário para a Região com menor latência; combinado com health checks, permite failover automático para outra Região saudável.",
@@ -164,10 +164,10 @@
       "domain": "high-performing-architectures",
       "text": "Uma tabela do DynamoDB enfrenta 'hot partitions' porque muitos itens compartilham a mesma partition key, causando throttling mesmo com capacidade provisionada suficiente. Qual estratégia de design resolve melhor esse problema?",
       "options": [
-        "Desativar o DynamoDB Streams",
-        "Aumentar indefinidamente a capacidade provisionada (RCU/WCU)",
-        "Redesenhar a partition key para distribuir melhor os itens (write sharding), por exemplo adicionando um sufixo aleatório ou calculado",
-        "Migrar a tabela inteira para o Amazon S3"
+        "Adicionar uma GSI com a mesma partition key para deslocar o tráfego de gravação para outro índice.",
+        "Aumentar a capacidade provisionada sem modificar a distribuição das chaves de partição da tabela.",
+        "Aplicar write sharding à chave de partição e adaptar as consultas para reunir os fragmentos necessários.",
+        "Ativar DynamoDB Streams e processar as gravações em lotes após persistência na tabela principal."
       ],
       "correct": 2,
       "explanation": "Hot partitions ocorrem quando a distribuição de chaves é desigual. A solução de design é distribuir a carga adicionando um sufixo (sharding) à partition key, espalhando os itens por mais partições físicas.",
@@ -199,10 +199,10 @@
       "domain": "cost-optimized-architectures",
       "text": "Uma empresa com múltiplas contas AWS quer otimizar custos aproveitando descontos por volume agregado de Savings Plans entre todas as contas. Qual recurso do AWS Organizations possibilita o compartilhamento de descontos entre contas-membro?",
       "options": [
-        "Consolidated Billing (faturamento consolidado)",
-        "AWS Config Aggregator",
-        "AWS Resource Access Manager apenas",
-        "Cross-account IAM Roles apenas"
+        "Ativar faturamento consolidado e compartilhamento de descontos elegíveis entre contas da organização.",
+        "Compartilhar relatórios do Cost Explorer entre contas para calcular descontos de Savings Plans em conjunto.",
+        "Compartilhar recursos com AWS RAM para agregar automaticamente o consumo faturável das contas.",
+        "Criar roles cross-account para que a conta pagadora aplique descontos diretamente via IAM."
       ],
       "correct": 0,
       "explanation": "O Consolidated Billing do AWS Organizations permite que descontos por volume e benefícios de Savings Plans/Reserved Instances sejam compartilhados entre as contas-membro, otimizando custos agregados.",
@@ -216,10 +216,10 @@
       "domain": "secure-architectures",
       "text": "Uma empresa SaaS B2B precisa permitir que sistemas de seus clientes corporativos (cada um com sua própria conta AWS) acessem temporariamente uma API interna que lê dados de um bucket Amazon S3, sem compartilhar credenciais de longa duração e sem criar um usuário IAM por cliente. Cada cliente deve fornecer um identificador único para evitar o problema do 'confused deputy'. Qual arquitetura atende a esses requisitos com o menor risco de segurança?",
       "options": [
-        "Criar um usuário IAM dedicado para cada cliente na conta da SaaS, gerando Access Keys de longa duração e compartilhando-as via e-mail criptografado.",
-        "Criar uma IAM Role na conta da SaaS com uma política de confiança (trust policy) que permita sts:AssumeRole pelas contas dos clientes, exigindo um valor de ExternalId único por cliente na condição da política.",
-        "Tornar o bucket S3 público com uma política que permita leitura de qualquer principal autenticado na AWS (Principal: \"*\" com condição aws:PrincipalType=AWS).",
-        "Configurar AWS Organizations para colocar a conta de cada cliente como membro da organização da SaaS e usar uma SCP para liberar o acesso ao bucket."
+        "Criar roles de acesso em cada conta cliente e conceder acesso direto ao bucket por política de recurso, sem ExternalId.",
+        "Criar role na conta SaaS com trust policy para contas clientes e condição sts:ExternalId exclusiva por cliente.",
+        "Emitir credenciais STS na conta SaaS e entregá-las aos clientes por uma API autenticada com token estático.",
+        "Permitir AssumeRole entre contas clientes e SaaS usando apenas restrição por AWS principal, sem identificador externo."
       ],
       "correct": 1,
       "explanation": "O uso de AssumeRole entre contas com a condição sts:ExternalId é o padrão recomendado pela AWS para integrações de terceiros, pois gera credenciais temporárias via STS e o ExternalId único por cliente impede que um cliente mal-intencionado induza a SaaS a assumir a role em nome de outro cliente (confused deputy).",
