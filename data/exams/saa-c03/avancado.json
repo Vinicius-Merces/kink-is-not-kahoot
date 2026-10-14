@@ -612,19 +612,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa está migrando para uma arquitetura de microsserviços em contêineres, onde centenas de serviços precisam se autenticar mutuamente usando mTLS (TLS mútuo) com certificados de curta duração, emitidos por uma Autoridade Certificadora (CA) privada interna. A empresa não quer operar sua própria infraestrutura de PKI (geração de chaves raiz, armazenamento seguro, listas de revogação), mas precisa manter total controle sobre a hierarquia de certificados, que nunca devem ser expostos publicamente. Qual serviço atende a esse requisito?",
       "options": [
-        "AWS Certificate Manager Private Certificate Authority (ACM Private CA), criando uma hierarquia de CA privada para emitir certificados de curta duração para os microsserviços, com integração ao ACM para gerenciamento do ciclo de vida.",
-        "Configurar uma CA raiz própria usando OpenSSL em uma instância EC2 dedicada, armazenando a chave privada da CA em um volume EBS criptografado e distribuindo os certificados manualmente para cada microsserviço.",
-        "AWS Certificate Manager (ACM) público, solicitando certificados públicos validados por DNS para cada um dos microsserviços internos.",
-        "Armazenar um único certificado wildcard no AWS Secrets Manager e compartilhá-lo entre todos os microsserviços para autenticação mTLS."
+        "Usar AWS Private CA com emissão automatizada pelas APIs e integração de certificados em cada microsserviço.",
+        "Usar certificados públicos ACM com validação DNS e exportá-los para os contêineres de cada microsserviço.",
+        "Usar uma autoridade certificadora em EC2 com suas chaves protegidas por um cluster CloudHSM dedicado.",
+        "Usar Secrets Manager para distribuir certificados e Lambda para operar uma hierarquia de CA própria."
       ],
       "correct": 0,
-      "explanation": "O ACM Private CA fornece uma infraestrutura de PKI totalmente gerenciada para emissão de certificados privados (não confiáveis publicamente), permitindo criar hierarquias de CA raiz/subordinada, emitir certificados de curta duração para mTLS entre microsserviços, e integra-se ao ACM para distribuição e renovação, sem que a empresa precise operar sua própria infraestrutura de CA.",
-      "hint": "Procure o serviço gerenciado da AWS que oferece uma autoridade certificadora privada completa, sem exigir que a empresa opere sua própria infraestrutura de chave raiz.",
+      "explanation": "AWS Private CA administra a infraestrutura da CA. Certificados de curta duração podem ser emitidos pelas APIs e integrados aos workloads; ACM não emite certificados a partir de uma CA em modo short-lived. ACM público emite certificados sob confiança pública, não uma hierarquia privada administrada pela empresa. CloudHSM protege chaves, mas ainda exige operar o software e os processos da autoridade certificadora. Secrets Manager armazena material secreto; não fornece emissão e administração de uma hierarquia de CA.",
+      "hint": "Diferencie proteger a chave da CA de gerenciar a infraestrutura de emissão.",
       "optionRationales": [
-        "O ACM Private CA fornece uma infraestrutura de PKI totalmente gerenciada para emissão de certificados privados (não confiáveis publicamente), permitindo criar hierarquias de CA raiz/subordinada, emitir certificados de curta duração para mTLS entre microsserviços, e integra-se ao ACM para distribuição e renovação, sem que a empresa precise operar sua própria infraestrutura de CA.",
-        "Certificados públicos do ACM exigem validação de domínio publicamente resolvível e são destinados a endpoints expostos publicamente; emitir centenas de certificados públicos para comunicação interna entre microsserviços não é apropriado, escalável nem alinhado ao requisito de que os certificados nunca sejam expostos publicamente.",
-        "Essa abordagem exige que a empresa opere sua própria infraestrutura de PKI, incluindo geração e proteção da chave raiz, emissão, distribuição e revogação de certificados, indo exatamente contra o requisito de não operar infraestrutura de CA própria.",
-        "O AWS Secrets Manager armazena segredos, mas não emite certificados nem gerencia uma hierarquia de CA; além disso, compartilhar um único certificado wildcard entre centenas de serviços elimina a identidade individual exigida pelo mTLS e cria um único ponto de falha caso seja comprometido."
+        "AWS Private CA administra a infraestrutura da CA. Certificados de curta duração podem ser emitidos pelas APIs e integrados aos workloads; ACM não emite certificados a partir de uma CA em modo short-lived.",
+        "ACM público emite certificados sob confiança pública, não uma hierarquia privada administrada pela empresa.",
+        "CloudHSM protege chaves, mas ainda exige operar o software e os processos da autoridade certificadora.",
+        "Secrets Manager armazena material secreto; não fornece emissão e administração de uma hierarquia de CA."
       ],
       "topics": [
         "security-services",
@@ -634,21 +634,21 @@
     {
       "id": "saa-avc-027",
       "domain": "secure-architectures",
-      "text": "Uma plataforma interna permite que equipes de desenvolvimento criem suas próprias IAM roles e políticas para os microsserviços que constroem (modelo self-service). A equipe de plataforma precisa garantir que, independentemente de quão permissiva seja a política que uma equipe anexe a uma role criada por ela, essa role NUNCA possa, por exemplo, acessar dados de faturamento, criar novos usuários IAM ou acessar recursos de outras equipes — um limite máximo de permissões que se aplica a todas as roles criadas dessa forma. Qual mecanismo do IAM atende a esse requisito?",
+      "text": "Equipes podem criar roles de execução e anexar suas próprias políticas IAM. A plataforma controla as políticas de recurso e não permite concessões diretas a ARN de sessão que contornem limites de identidade. Como impor um teto preventivo às permissões das roles criadas, impedindo que as equipes removam esse teto?",
       "options": [
-        "Configurar uma permissions boundary (limite de permissões) padronizada e exigir, via política IAM com condição em iam:CreateRole, que toda role criada pelas equipes tenha essa boundary anexada; as permissões efetivas da role serão a intersecção entre sua política e a boundary.",
-        "Criar Service Control Policies (SCPs) individuais para cada equipe de desenvolvimento, restringindo as ações que cada equipe pode incluir em suas próprias políticas IAM.",
-        "Criar uma única IAM role compartilhada com a política AdministratorAccess que todas as equipes de desenvolvimento assumem para implantar seus microsserviços.",
-        "Conceder a política gerenciada AdministratorAccess a todas as equipes de desenvolvimento e depender de revisões manuais de código de infraestrutura (IaC) antes do deploy para detectar permissões excessivas."
+        "Exigir permissions boundary na criação das roles e impedir que desenvolvedores alterem ou removam esse limite.",
+        "Anexar uma política gerenciada de menor privilégio às roles e permitir políticas adicionais criadas pelas equipes.",
+        "Entregar credenciais com session policy limitada aos desenvolvedores, sem restringir as roles que eles criam.",
+        "Validar as políticas das roles com Access Analyzer e encaminhar findings para revisão posterior da plataforma."
       ],
       "correct": 0,
-      "explanation": "Permissions boundaries definem o limite máximo de permissões que uma identidade gerenciada (role ou usuário) pode ter; ao exigir, via condição em iam:CreateRole, que toda role criada por equipes inclua essa boundary, garante-se que, independentemente da política anexada pela equipe, as permissões efetivas nunca excedam o que a boundary permite — exatamente o requisito de um teto de permissões para criação self-service de roles.",
-      "hint": "Pense no mecanismo do IAM que define um teto de permissões aplicado à intersecção com a política anexada à identidade, permitindo delegação segura da criação de roles.",
+      "explanation": "A boundary limita permissões concedidas por políticas de identidade; exigir sua anexação e proteger sua alteração evita removê-la no fluxo self-service. Concessões diretas a sessões por políticas de recurso precisam de controles adicionais. Políticas gerenciadas concedem permissões; não limitam outra política mais permissiva anexada à role. Session policies limitam a sessão especificada, mas não obrigam todas as sessões futuras das roles criadas a usar o mesmo limite. Access Analyzer identifica problemas de política, mas não substitui o limite preventivo aplicado à role.",
+      "hint": "O teto deve ser obrigatório na criação e protegido contra alteração posterior.",
       "optionRationales": [
-        "Permissions boundaries definem o limite máximo de permissões que uma identidade gerenciada (role ou usuário) pode ter; ao exigir, via condição em iam:CreateRole, que toda role criada por equipes inclua essa boundary, garante-se que, independentemente da política anexada pela equipe, as permissões efetivas nunca excedam o que a boundary permite — exatamente o requisito de um teto de permissões para criação self-service de roles.",
-        "SCPs são aplicadas no nível de conta ou OU dentro do AWS Organizations e afetam todos os principals da conta de forma homogênea; elas não foram desenhadas para impor, de forma diferenciada, um teto de permissões específico para roles criadas dinamicamente por diferentes equipes dentro da mesma conta.",
-        "Conceder AdministratorAccess viola o princípio de menor privilégio desde o início, e depender de revisão manual de código é um processo reativo e sujeito a erro humano, não uma garantia técnica de que o limite de permissões nunca será excedido.",
-        "Compartilhar uma única role com AdministratorAccess entre todas as equipes elimina qualquer isolamento de permissões entre equipes, viola o princípio de menor privilégio e não oferece nenhum mecanismo de limite máximo configurável por role."
+        "A boundary limita permissões concedidas por políticas de identidade; exigir sua anexação e proteger sua alteração evita removê-la no fluxo self-service. Concessões diretas a sessões por políticas de recurso precisam de controles adicionais.",
+        "Políticas gerenciadas concedem permissões; não limitam outra política mais permissiva anexada à role.",
+        "Session policies limitam a sessão especificada, mas não obrigam todas as sessões futuras das roles criadas a usar o mesmo limite.",
+        "Access Analyzer identifica problemas de política, mas não substitui o limite preventivo aplicado à role."
       ],
       "topics": [
         "iam"
@@ -659,19 +659,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa SaaS B2B oferece um serviço de análise de dados que roda atrás de um Network Load Balancer em sua própria VPC. Ela precisa permitir que centenas de clientes corporativos, cada um com sua própria VPC (muitas com blocos CIDR sobrepostos entre si), acessem esse serviço de forma privada — o tráfego nunca deve atravessar a internet pública, e a SaaS não pode expor toda a sua VPC interna para os clientes. Qual arquitetura atende a esse requisito de forma escalável?",
       "options": [
-        "Expor o Network Load Balancer publicamente com um Elastic IP e restringir o acesso através de uma lista de IPs permitidos (allowlist) nos Security Groups.",
-        "Estabelecer VPC Peering entre a VPC da SaaS e a VPC de cada um dos centenas de clientes.",
-        "Conectar a VPC da SaaS e as VPCs de todos os clientes a um AWS Transit Gateway compartilhado.",
-        "Criar um AWS PrivateLink VPC Endpoint Service apontando para o Network Load Balancer existente, e cada cliente cria um Interface VPC Endpoint em sua própria VPC para se conectar ao serviço."
+        "Expor o NLB pela internet e restringir os clientes por IPs de saída e autenticação mTLS.",
+        "Criar VPC Peerings para os clientes e publicar o nome privado do NLB por zonas DNS privadas.",
+        "Conectar clientes e provedor a um Transit Gateway e propagar suas rotas sem tradução de endereços.",
+        "Publicar um endpoint service com o NLB e criar interface endpoints autorizados nas VPCs dos clientes."
       ],
       "correct": 3,
-      "explanation": "O AWS PrivateLink permite que um provedor de serviço exponha uma aplicação através de um VPC Endpoint Service apoiado em um NLB; clientes consomem o serviço criando Interface VPC Endpoints em suas próprias VPCs, sem necessidade de peering, sem expor a VPC inteira do provedor, sem atravessar a internet pública, e funciona mesmo com CIDRs sobrepostos entre as VPCs dos clientes, pois não há roteamento de rede direto entre elas.",
-      "hint": "Pense no mecanismo de conectividade privada projetado especificamente para modelos de provedor/consumidor de serviço (SaaS), que não exige CIDRs compatíveis entre as redes envolvidas.",
+      "explanation": "Um NLB público com allowlist continua expondo um endpoint público e exige gerenciar IPs de clientes. Peering exige CIDRs não sobrepostos e oferece conectividade de rede além da exposição de um serviço. Conectividade roteada por TGW não resolve diretamente CIDRs sobrepostos sem tradução ou redesenho. PrivateLink expõe o serviço por ENIs nas VPCs consumidoras, sem exigir rotas entre seus CIDRs e a rede do provedor.",
+      "hint": "A exposição de um serviço não precisa implicar conectividade roteada entre redes inteiras.",
       "optionRationales": [
-        "O AWS PrivateLink permite que um provedor de serviço exponha uma aplicação através de um VPC Endpoint Service apoiado em um NLB; clientes consomem o serviço criando Interface VPC Endpoints em suas próprias VPCs, sem necessidade de peering, sem expor a VPC inteira do provedor, sem atravessar a internet pública, e funciona mesmo com CIDRs sobrepostos entre as VPCs dos clientes, pois não há roteamento de rede direto entre elas.",
-        "VPC Peering exige blocos CIDR não sobrepostos entre as VPCs conectadas (o que não é garantido entre os clientes), expõe rotas de rede mais amplas do que apenas o serviço específico, e não escala bem para gerenciar centenas de conexões de peering individuais.",
-        "O Transit Gateway centraliza o roteamento entre múltiplas VPCs, mas também exige CIDRs não sobrepostos entre as VPCs conectadas e cria conectividade de rede mais ampla do que o necessário para apenas consumir um serviço específico, além de exigir que os clientes compartilhem conectividade de rede com a infraestrutura da SaaS.",
-        "Expor o NLB publicamente faz com que o tráfego atravesse a internet pública, o que viola diretamente o requisito de que o tráfego nunca deve passar pela internet pública, além de exigir manutenção constante de uma allowlist de IPs de centenas de clientes."
+        "Um NLB público com allowlist continua expondo um endpoint público e exige gerenciar IPs de clientes.",
+        "Peering exige CIDRs não sobrepostos e oferece conectividade de rede além da exposição de um serviço.",
+        "Conectividade roteada por TGW não resolve diretamente CIDRs sobrepostos sem tradução ou redesenho.",
+        "PrivateLink expõe o serviço por ENIs nas VPCs consumidoras, sem exigir rotas entre seus CIDRs e a rede do provedor."
       ],
       "topics": [
         "vpc",
@@ -683,19 +683,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa opera dezenas de VPCs espalhadas por múltiplas contas AWS, todas conectadas a um AWS Transit Gateway em uma topologia hub-and-spoke. A equipe de segurança precisa inspecionar de forma centralizada e com estado (stateful) todo o tráfego de saída para a internet originado dessas VPCs, incluindo capacidades de prevenção de intrusão (IPS) e filtragem de domínios maliciosos, antes que o tráfego saia através de um NAT Gateway compartilhado. Qual arquitetura atende a esse requisito?",
       "options": [
-        "Configurar regras de negação (deny) nos Security Groups de cada VPC spoke para bloquear domínios maliciosos conhecidos.",
-        "Implantar o AWS Network Firewall em uma VPC de inspeção centralizada conectada ao Transit Gateway, configurando as tabelas de rotas das VPCs spoke para enviar o tráfego de saída através da VPC de inspeção antes de alcançar o NAT Gateway.",
-        "Implantar um NAT Gateway individual em cada VPC spoke e analisar os VPC Flow Logs com Amazon Athena para identificar tráfego suspeito.",
-        "Associar uma Web ACL do AWS WAF a cada VPC spoke para inspecionar todo o tráfego de saída."
+        "Centralizar o NAT em uma VPC de egress e associar uma Web ACL WAF ao Transit Gateway.",
+        "Inserir Network Firewall numa VPC de inspeção, com rotas simétricas pelo firewall antes do NAT.",
+        "Centralizar NAT e Flow Logs, com consultas Athena e alarmes para detectar conexões suspeitas.",
+        "Centralizar DNS Firewall e usar suas listas de domínio como único controle de IPS do tráfego."
       ],
       "correct": 1,
-      "explanation": "O AWS Network Firewall oferece inspeção stateful de tráfego com regras de prevenção de intrusão (compatíveis com Suricata) e filtragem de domínios; ao centralizá-lo em uma VPC de inspeção conectada via Transit Gateway em topologia hub-and-spoke, todo o tráfego de saída das VPCs spoke pode ser roteado através dele antes de alcançar o NAT Gateway, atendendo ao requisito de inspeção centralizada com estado.",
-      "hint": "Pense no serviço de firewall de rede com estado, com capacidades de IPS e filtragem de domínio, que pode ser centralizado em uma topologia hub-and-spoke baseada em Transit Gateway.",
+      "explanation": "WAF inspeciona requisições HTTP em integrações suportadas, não é um firewall de egress genérico inserido no TGW. Uma VPC de inspeção com Network Firewall pode inspecionar egress. Rotas simétricas, endpoints por AZ e appliance mode no attachment quando aplicável evitam desvios do estado. Flow Logs permite observação, mas a consulta posterior não bloqueia uma conexão maliciosa. DNS Firewall filtra consultas DNS, não executa IPS no tráfego de saída que usa os endereços resolvidos.",
+      "hint": "O firewall stateful precisa ver ida e volta da conexão no caminho de inspeção adequado.",
       "optionRationales": [
-        "O AWS Network Firewall oferece inspeção stateful de tráfego com regras de prevenção de intrusão (compatíveis com Suricata) e filtragem de domínios; ao centralizá-lo em uma VPC de inspeção conectada via Transit Gateway em topologia hub-and-spoke, todo o tráfego de saída das VPCs spoke pode ser roteado através dele antes de alcançar o NAT Gateway, atendendo ao requisito de inspeção centralizada com estado.",
-        "Security Groups não suportam regras de negação (apenas allow) e não possuem capacidade de filtragem de domínios ou prevenção de intrusão; essa abordagem é tecnicamente inviável para o requisito apresentado.",
-        "VPC Flow Logs com Athena fornecem visibilidade após o fato (forense/analítica), mas não oferecem inspeção em tempo real com capacidades de IPS nem bloqueiam ativamente tráfego malicioso antes que ele saia para a internet.",
-        "O AWS WAF opera na camada de aplicação e só pode ser associado a recursos específicos como CloudFront, ALB, API Gateway ou AppSync; ele não pode ser associado a uma VPC para inspecionar tráfego de saída geral em nível de rede."
+        "WAF inspeciona requisições HTTP em integrações suportadas, não é um firewall de egress genérico inserido no TGW.",
+        "Uma VPC de inspeção com Network Firewall pode inspecionar egress. Rotas simétricas, endpoints por AZ e appliance mode no attachment quando aplicável evitam desvios do estado.",
+        "Flow Logs permite observação, mas a consulta posterior não bloqueia uma conexão maliciosa.",
+        "DNS Firewall filtra consultas DNS, não executa IPS no tráfego de saída que usa os endereços resolvidos."
       ],
       "topics": [
         "vpc",
@@ -706,21 +706,21 @@
     {
       "id": "saa-avc-030",
       "domain": "secure-architectures",
-      "text": "A política de segurança de uma empresa proíbe terminantemente a abertura de qualquer porta de entrada (inbound) em Security Groups para acesso administrativo (SSH/RDP), incluindo a partir de bastion hosts, e exige que todos os comandos executados por administradores em instâncias EC2 sejam registrados e auditáveis. As instâncias ficam em sub-redes privadas, sem IP público. Qual solução atende a TODOS esses requisitos?",
+      "text": "Administradores precisam abrir sessões de shell interativas nativas em instâncias EC2 privadas, sem permitir portas de entrada para administração. O conteúdo dessas sessões deve ser registrado. SSH e port forwarding não serão permitidos. Qual solução atende, com conectividade privada de saída aos serviços necessários?",
       "options": [
-        "Configurar uma conexão AWS Site-to-Site VPN entre a rede corporativa e a VPC, e permitir SSH diretamente para os IPs privados das instâncias através da VPN.",
-        "Usar o AWS Systems Manager Session Manager, com o SSM Agent instalado nas instâncias e uma role IAM com as permissões necessárias, permitindo conexões de shell via console/CLI sem necessidade de portas de entrada abertas, e habilitando o registro das sessões no Amazon CloudWatch Logs ou Amazon S3.",
-        "Implantar um bastion host em uma sub-rede pública com um Security Group que permita SSH (porta 22) apenas a partir da faixa de IPs corporativa.",
-        "Usar o EC2 Instance Connect para estabelecer conexões SSH temporárias autenticadas via IAM."
+        "Usar Site-to-Site VPN para SSH privado e registrar autenticações por CloudTrail na conta.",
+        "Usar Session Manager com IAM, SSM Agent, endpoints de saída e registro de sessões de shell.",
+        "Usar bastion privado com SSH e registrar as chamadas AssumeRole que autorizam o administrador.",
+        "Usar EC2 Instance Connect Endpoint e CloudTrail para registrar o conteúdo completo da sessão SSH."
       ],
       "correct": 1,
-      "explanation": "O Session Manager estabelece a conexão através de chamadas de saída (outbound HTTPS) do SSM Agent para o serviço Systems Manager (ou via VPC Interface Endpoint), eliminando completamente a necessidade de portas de entrada abertas em Security Groups, IPs públicos ou bastion hosts, e registra todos os comandos e saídas das sessões para auditoria completa.",
-      "hint": "Pense no serviço gerenciado que estabelece sessões administrativas usando apenas conexões de saída da instância, eliminando a necessidade de portas de entrada e fornecendo logs de sessão nativos.",
+      "explanation": "VPN privada não elimina a necessidade de permitir a conexão SSH de entrada na instância. Session Manager inicia o canal pelo agente, usando conectividade de saída e IAM, e pode registrar sessões de shell nativas no S3 ou CloudWatch Logs. O bastion ainda depende de portas SSH de entrada nos destinos. Instance Connect autentica o acesso SSH, mas continua necessitando conectividade até a porta do serviço.",
+      "hint": "Auditar chamadas de abertura de sessão não equivale a registrar o conteúdo do terminal.",
       "optionRationales": [
-        "O Session Manager estabelece a conexão através de chamadas de saída (outbound HTTPS) do SSM Agent para o serviço Systems Manager (ou via VPC Interface Endpoint), eliminando completamente a necessidade de portas de entrada abertas em Security Groups, IPs públicos ou bastion hosts, e registra todos os comandos e saídas das sessões para auditoria completa.",
-        "Mesmo restrita a uma faixa de IPs corporativa, essa abordagem ainda exige uma regra de entrada aberta na porta 22, violando diretamente a política que proíbe qualquer porta de entrada para acesso administrativo, além de adicionar um host adicional para gerenciar e proteger.",
-        "Embora a VPN forneça um túnel criptografado, ainda seria necessário abrir a porta 22 nos Security Groups para o CIDR da VPN, violando a política de nenhuma porta de entrada para acesso administrativo, e essa abordagem não oferece registro nativo de comandos executados nas sessões.",
-        "O EC2 Instance Connect ainda depende de uma conexão SSH tradicional na porta 22, exigindo uma regra de entrada no Security Group liberando essa porta para as faixas de IP do serviço, e não fornece registro nativo de comandos de sessão equivalente ao Session Manager."
+        "VPN privada não elimina a necessidade de permitir a conexão SSH de entrada na instância.",
+        "Session Manager inicia o canal pelo agente, usando conectividade de saída e IAM, e pode registrar sessões de shell nativas no S3 ou CloudWatch Logs.",
+        "O bastion ainda depende de portas SSH de entrada nos destinos.",
+        "Instance Connect autentica o acesso SSH, mas continua necessitando conectividade até a porta do serviço."
       ],
       "topics": [
         "vpc",
@@ -733,19 +733,19 @@
       "domain": "secure-architectures",
       "text": "Uma aplicação criptografa dados no lado do cliente usando uma chave gerenciada pelo cliente (CMK) do AWS KMS na região us-east-1 antes de replicar os dados criptografados para a região eu-west-1, como parte de uma estratégia de recuperação de desastres. O requisito é que, durante uma indisponibilidade completa da região us-east-1, a aplicação na região eu-west-1 consiga descriptografar os dados imediatamente, sem realizar nenhuma chamada de API para a região us-east-1. Qual configuração do KMS atende a esse requisito?",
       "options": [
-        "Durante o failover, descriptografar todos os dados replicados usando a CMK de us-east-1 antes da indisponibilidade e re-criptografá-los com uma nova CMK criada em eu-west-1.",
-        "Usar a AWS managed key padrão (aws/s3) em ambas as regiões, já que chaves gerenciadas pela AWS são automaticamente replicadas entre regiões.",
-        "Criar uma chave multi-Region do KMS (multi-Region key) com a chave primária em us-east-1 e uma chave de réplica em eu-west-1, compartilhando o mesmo material criptográfico e ID de chave relacionado.",
-        "Criar uma CMK de região única em us-east-1 e usar grants do KMS para conceder permissões de descriptografia a principals na conta usada pela aplicação em eu-west-1."
+        "Criar chaves regionais independentes com o mesmo alias e usar o alias local na aplicação de recuperação.",
+        "Usar aws/s3 em cada Região e configurar o SDK para escolher automaticamente a chave regional disponível.",
+        "Criar uma chave multi-Region e sua réplica, autorizando a aplicação a usar a réplica local no failover.",
+        "Manter a chave regional original e conceder um grant à role da aplicação executada na Região secundária."
       ],
       "correct": 2,
-      "explanation": "Chaves multi-Region do KMS permitem criar uma chave primária em uma região e réplicas em outras regiões que compartilham o mesmo material criptográfico; dados criptografados com a chave primária podem ser descriptografados usando a chave de réplica local em eu-west-1, sem nenhuma chamada de API para us-east-1, mesmo durante uma indisponibilidade total da região primária.",
-      "hint": "Pense no recurso do KMS que permite que o mesmo material de chave exista de forma independente em múltiplas regiões, eliminando a dependência de chamadas entre regiões durante a descriptografia.",
+      "explanation": "Um alias igual em duas Regiões não torna iguais as chaves regionais independentes. Chaves AWS gerenciadas não se tornam um par multi-Region relacionado por terem o mesmo alias. Chaves multi-Region relacionadas compartilham material e identificador, permitindo operação local com permissões configuradas em cada Região. Um grant concede permissão para a chave regional original, sem torná-la disponível durante a falha daquela Região.",
+      "hint": "Autorização e nome de chave não substituem disponibilidade local do material criptográfico.",
       "optionRationales": [
-        "Chaves multi-Region do KMS permitem criar uma chave primária em uma região e réplicas em outras regiões que compartilham o mesmo material criptográfico; dados criptografados com a chave primária podem ser descriptografados usando a chave de réplica local em eu-west-1, sem nenhuma chamada de API para us-east-1, mesmo durante uma indisponibilidade total da região primária.",
-        "Chaves KMS de região única existem apenas na região onde foram criadas; mesmo com grants concedendo permissões, a operação kms:Decrypt para essa chave ainda precisaria ser executada contra o endpoint do KMS em us-east-1, o que seria impossível durante uma indisponibilidade total dessa região.",
-        "AWS managed keys são específicas de cada região e conta de serviço, e não são replicadas entre regiões; cada região possui sua própria AWS managed key independente, que não compartilha material criptográfico com a de outra região.",
-        "Essa abordagem exigiria pré-processar e re-criptografar todos os dados antecipadamente (não atende ao cenário de indisponibilidade súbita) e não resolve o requisito de que a descriptografia ocorra sem dependência da região us-east-1 no momento do failover."
+        "Um alias igual em duas Regiões não torna iguais as chaves regionais independentes.",
+        "Chaves AWS gerenciadas não se tornam um par multi-Region relacionado por terem o mesmo alias.",
+        "Chaves multi-Region relacionadas compartilham material e identificador, permitindo operação local com permissões configuradas em cada Região.",
+        "Um grant concede permissão para a chave regional original, sem torná-la disponível durante a falha daquela Região."
       ],
       "topics": [
         "security-services"
@@ -756,19 +756,19 @@
       "domain": "secure-architectures",
       "text": "A Conta A possui um snapshot do Amazon EBS criptografado com uma chave gerenciada pelo cliente (CMK) do AWS KMS pertencente à Conta A. A equipe precisa compartilhar esse snapshot com a Conta B para que ela possa criar volumes EBS e lançar instâncias EC2 a partir dele. Quais ações são necessárias para que a Conta B consiga usar esse snapshot criptografado com sucesso?",
       "options": [
-        "Tornar o snapshot público para que qualquer conta AWS possa usá-lo, simplificando o processo de compartilhamento.",
-        "Modificar as permissões do snapshot para compartilhá-lo com a Conta B, e atualizar a política da CMK da Conta A (ou adicionar um grant) para permitir que principals da Conta B usem as ações kms:CreateGrant, kms:Decrypt e kms:DescribeKey sobre essa chave.",
-        "Criar uma cópia não criptografada do snapshot na Conta A antes de compartilhá-lo com a Conta B, eliminando a dependência do KMS.",
-        "Apenas modificar as permissões do snapshot na Conta A para compartilhá-lo com o ID da Conta B, sem nenhuma alteração no KMS, já que o compartilhamento de snapshot já inclui automaticamente o acesso à chave de criptografia associada."
+        "Autorizar uso da chave KMS pela Conta B e manter o snapshot restrito à Conta A.",
+        "Compartilhar o snapshot e autorizar o uso da chave KMS em A e as operações necessárias por IAM em B.",
+        "Compartilhar o snapshot e permitir Decrypt por IAM em B, sem autorização sobre a chave na Conta A.",
+        "Compartilhar o snapshot com B e usar uma chave KMS de B apenas no lançamento do volume."
       ],
       "correct": 1,
-      "explanation": "Compartilhar apenas a permissão do snapshot não é suficiente quando ele está criptografado com uma CMK do cliente: a Conta B também precisa de permissão para usar a CMK da Conta A para descriptografar os dados do snapshot, o que requer atualizar a política da chave (ou criar um grant) concedendo as ações necessárias do KMS aos principals da Conta B.",
-      "hint": "Lembre-se de que compartilhar um recurso criptografado entre contas envolve duas camadas de permissão distintas: a permissão sobre o próprio recurso e a permissão sobre a chave que o criptografa.",
+      "explanation": "Compartilhar a chave sem compartilhar o snapshot deixa a Conta B sem autorização sobre o snapshot. São necessários compartilhamento do snapshot, autorização KMS na Conta A e permissões IAM na Conta B para as operações de uso/cópia; o conjunto deve cobrir os grants exigidos pelo EBS. Permissão IAM na Conta B não substitui autorização sobre a chave na Conta A. Compartilhar o snapshot não concede automaticamente uso da chave que protege os dados.",
+      "hint": "O objeto compartilhado e a chave que o protege têm controles de acesso distintos.",
       "optionRationales": [
-        "Compartilhar apenas a permissão do snapshot não é suficiente quando ele está criptografado com uma CMK do cliente: a Conta B também precisa de permissão para usar a CMK da Conta A para descriptografar os dados do snapshot, o que requer atualizar a política da chave (ou criar um grant) concedendo as ações necessárias do KMS aos principals da Conta B.",
-        "O compartilhamento de um snapshot criptografado não concede automaticamente acesso à CMK usada para criptografá-lo; sem permissões explícitas na política da chave (ou um grant) para a Conta B, as tentativas de copiar ou usar o snapshot falharão por falta de permissão no KMS.",
-        "A AWS não permite tornar público um snapshot criptografado com uma CMK do cliente — esse tipo de compartilhamento é bloqueado por design para proteger o material de chave; além disso, tornar um snapshot público é uma má prática de segurança que exporia os dados a qualquer conta AWS.",
-        "Criar uma cópia não criptografada do snapshot violaria requisitos de conformidade que exigem criptografia em repouso para os dados, sendo uma solução que sacrifica segurança apenas para evitar a configuração correta de permissões entre contas no KMS."
+        "Compartilhar a chave sem compartilhar o snapshot deixa a Conta B sem autorização sobre o snapshot.",
+        "São necessários compartilhamento do snapshot, autorização KMS na Conta A e permissões IAM na Conta B para as operações de uso/cópia; o conjunto deve cobrir os grants exigidos pelo EBS.",
+        "Permissão IAM na Conta B não substitui autorização sobre a chave na Conta A.",
+        "Compartilhar o snapshot não concede automaticamente uso da chave que protege os dados."
       ],
       "topics": [
         "security-services",
@@ -780,19 +780,19 @@
       "domain": "secure-architectures",
       "text": "A equipe de segurança de uma organização com 30 contas AWS precisa de visibilidade contínua sobre quais recursos — buckets S3, IAM roles, chaves do KMS, funções Lambda e filas SQS — estão acessíveis a partir de fora da organização (contas externas) ou publicamente, para identificar exposições não intencionais o quanto antes. A solução deve analisar continuamente as políticas baseadas em recurso e gerar findings automaticamente. Qual serviço foi projetado especificamente para esse propósito?",
       "options": [
-        "Revisar manualmente as políticas baseadas em recurso de cada conta a cada trimestre, documentando os achados em um relatório de auditoria.",
-        "AWS IAM Access Analyzer, com um analyzer configurado no nível da organização, que avalia continuamente as políticas baseadas em recurso e gera findings sempre que um recurso é compartilhado com uma entidade externa à organização ou ao conjunto de contas confiáveis.",
-        "Criar regras customizadas no AWS Config para cada tipo de recurso (S3, IAM, KMS, Lambda, SQS) que verifiquem manualmente se as políticas de recurso contêm o ID da organização.",
-        "AWS Trusted Advisor, habilitado em cada uma das 30 contas, revisando as verificações de segurança relacionadas a permissões de bucket S3."
+        "Habilitar Security Hub com o padrão CIS e usar apenas os controles de postura já habilitados.",
+        "Criar um external access analyzer do IAM Access Analyzer com a organização como zona de confiança.",
+        "Criar regras Config customizadas que procurem o ID da organização em cada documento de política.",
+        "Habilitar GuardDuty em todas as contas e procurar findings de uso de credenciais por contas externas."
       ],
       "correct": 1,
-      "explanation": "O IAM Access Analyzer usa raciocínio lógico automatizado (provable security) para analisar políticas baseadas em recurso de S3, IAM roles, chaves do KMS, funções Lambda, filas SQS e outros tipos de recurso, gerando findings contínuos sempre que detecta acesso concedido a entidades fora da 'zona de confiança' (a organização ou conta), exatamente o que o requisito descreve.",
-      "hint": "Pense no serviço do IAM que usa análise lógica automatizada de políticas para identificar continuamente recursos compartilhados com entidades fora de uma zona de confiança definida.",
+      "explanation": "Security Hub agrega findings e controles, mas o analisador especializado de políticas externas é o Access Analyzer. Um external access analyzer organizacional usa a organização como zona de confiança para identificar acesso externo em recursos suportados. Config registra e avalia configuração; replicar análise de políticas por regras customizadas exige mais desenvolvimento. GuardDuty detecta ameaças pelo comportamento e telemetria, não substitui análise estática de acesso externo.",
+      "hint": "Procure análise de permissões potenciais, inclusive quando nenhuma chamada ao recurso ocorreu.",
       "optionRationales": [
-        "O IAM Access Analyzer usa raciocínio lógico automatizado (provable security) para analisar políticas baseadas em recurso de S3, IAM roles, chaves do KMS, funções Lambda, filas SQS e outros tipos de recurso, gerando findings contínuos sempre que detecta acesso concedido a entidades fora da 'zona de confiança' (a organização ou conta), exatamente o que o requisito descreve.",
-        "O Trusted Advisor oferece algumas verificações relacionadas a buckets S3 com acesso público, mas não cobre de forma abrangente e contínua IAM roles, chaves do KMS, funções Lambda e filas SQS quanto a acesso externo, nem oferece a mesma análise lógica de políticas em escala de organização.",
-        "Embora tecnicamente possível, desenvolver e manter regras customizadas do Config para replicar essa análise de políticas para cada tipo de recurso exigiria esforço de desenvolvimento significativo, reimplementando uma capacidade que o IAM Access Analyzer já oferece de forma nativa e gerenciada.",
-        "Um processo de revisão manual trimestral não fornece visibilidade contínua e não escala para 30 contas com múltiplos tipos de recurso, deixando uma janela significativa entre a criação de uma exposição não intencional e sua detecção."
+        "Security Hub agrega findings e controles, mas o analisador especializado de políticas externas é o Access Analyzer.",
+        "Um external access analyzer organizacional usa a organização como zona de confiança para identificar acesso externo em recursos suportados.",
+        "Config registra e avalia configuração; replicar análise de políticas por regras customizadas exige mais desenvolvimento.",
+        "GuardDuty detecta ameaças pelo comportamento e telemetria, não substitui análise estática de acesso externo."
       ],
       "topics": [
         "serverless",
@@ -803,21 +803,21 @@
     {
       "id": "saa-avc-034",
       "domain": "secure-architectures",
-      "text": "Uma instituição financeira, sob exigências regulatórias estritas, precisa que o material criptográfico usado para proteger dados de clientes seja armazenado em módulos de segurança de hardware (HSM) validados em FIPS 140-2 Nível 3, de uso exclusivo (single-tenant) da empresa, com controle administrativo total sobre o HSM — de forma que nem mesmo a AWS tenha acesso ao material de chave ou às operações administrativas do dispositivo. Qual serviço atende a esse requisito específico?",
+      "text": "Uma instituição precisa manter chaves em HSMs dedicados, single-tenant, com validação FIPS Nível 3 aplicável ao modelo escolhido e controle dos usuários criptográficos pela própria empresa. Gerenciar uma key policy em infraestrutura compartilhada não é suficiente. Qual serviço atende?",
       "options": [
-        "Amazon S3 com criptografia do lado do servidor usando chaves fornecidas pelo cliente (SSE-C), eliminando a necessidade de um HSM gerenciado pela AWS.",
-        "AWS CloudHSM, provisionando um cluster de HSMs dedicados (single-tenant) dentro da VPC da empresa, com a empresa mantendo controle administrativo exclusivo sobre o cluster.",
-        "AWS KMS com chaves gerenciadas pelo cliente (Customer Managed Keys), que também utilizam HSMs validados em FIPS 140-2 Nível 3 internamente.",
-        "AWS Secrets Manager, configurado com criptografia adicional usando uma CMK dedicada do KMS."
+        "Usar SSE-C no S3 e guardar as chaves de criptografia em um cofre de segredos da aplicação.",
+        "Usar um cluster AWS CloudHSM com HSMs dedicados e administração criptográfica pelo cliente.",
+        "Usar uma chave KMS gerenciada pelo cliente em um key store padrão com política restrita.",
+        "Usar Secrets Manager com chave KMS exclusiva por aplicação e auditoria de acesso no CloudTrail."
       ],
       "correct": 1,
-      "explanation": "O AWS CloudHSM fornece instâncias de HSM dedicadas e single-tenant validadas em FIPS 140-2 Nível 3, provisionadas dentro da VPC do cliente; a empresa tem controle administrativo total sobre o cluster (incluindo gerenciamento de usuários do HSM), e a AWS não tem acesso ao material de chave nem às credenciais administrativas do dispositivo, atendendo precisamente ao requisito de exclusividade e controle total.",
-      "hint": "A diferença essencial está entre um serviço de criptografia totalmente gerenciado e multi-tenant versus um hardware dedicado de uso exclusivo, sob controle administrativo total do cliente.",
+      "explanation": "SSE-C define como fornecer chaves ao S3, mas não entrega uma infraestrutura HSM dedicada. CloudHSM oferece HSMs dedicados com administração criptográfica pelo cliente; o cliente ainda é responsável por usuários, integração e disponibilidade do cluster. Uma chave gerenciada pelo cliente no KMS não implica um HSM dedicado com administração direta do dispositivo. Secrets Manager guarda segredos usando criptografia; não fornece controle administrativo de HSM dedicado.",
+      "hint": "Diferencie administrar uma chave lógica de administrar usuários e operações de um HSM dedicado.",
       "optionRationales": [
-        "O AWS CloudHSM fornece instâncias de HSM dedicadas e single-tenant validadas em FIPS 140-2 Nível 3, provisionadas dentro da VPC do cliente; a empresa tem controle administrativo total sobre o cluster (incluindo gerenciamento de usuários do HSM), e a AWS não tem acesso ao material de chave nem às credenciais administrativas do dispositivo, atendendo precisamente ao requisito de exclusividade e controle total.",
-        "Embora o AWS KMS utilize HSMs validados em FIPS 140-2 Nível 3 internamente, trata-se de um serviço gerenciado e multi-tenant operado pela AWS, onde a AWS controla a infraestrutura do HSM subjacente; o cliente não obtém controle administrativo exclusivo do dispositivo de hardware, o que não atende ao requisito de exclusividade total.",
-        "O AWS Secrets Manager é um serviço de armazenamento e rotação de segredos que internamente usa o KMS para criptografia; ele não fornece, por si só, um módulo de segurança de hardware dedicado e de uso exclusivo do cliente.",
-        "SSE-C exige que o cliente gerencie e forneça as chaves de criptografia em cada requisição, transferindo toda a responsabilidade de armazenamento seguro de chaves para fora da AWS, sem fornecer nenhuma infraestrutura de HSM validada, o que não atende ao requisito de um HSM FIPS 140-2 Nível 3 dedicado."
+        "SSE-C define como fornecer chaves ao S3, mas não entrega uma infraestrutura HSM dedicada.",
+        "CloudHSM oferece HSMs dedicados com administração criptográfica pelo cliente; o cliente ainda é responsável por usuários, integração e disponibilidade do cluster.",
+        "Uma chave gerenciada pelo cliente no KMS não implica um HSM dedicado com administração direta do dispositivo.",
+        "Secrets Manager guarda segredos usando criptografia; não fornece controle administrativo de HSM dedicado."
       ],
       "topics": [
         "security-services",
@@ -827,21 +827,21 @@
     {
       "id": "saa-avc-035",
       "domain": "secure-architectures",
-      "text": "Uma empresa quer garantir que, independentemente de como um administrador autenticou inicialmente, qualquer tentativa de excluir buckets S3 de produção ou encerrar instâncias EC2 marcadas com a tag Environment=production exija que a sessão atual tenha sido autenticada com autenticação multifator (MFA) — caso contrário, a ação deve ser explicitamente negada. Qual abordagem implementa esse controle?",
+      "text": "Operadores usam usuários IAM, sem federação ou Identity Center. Eles podem usar chaves de longa duração ou credenciais STS GetSessionToken com MFA. Mesmo com AdministratorAccess, TerminateInstances em EC2 com Environment=production deve ser negado se o contexto não comprovar MFA. Qual controle atende?",
       "options": [
-        "Anexar às roles administrativas uma política IAM com uma instrução Deny para as ações s3:DeleteBucket e ec2:TerminateInstances (com condição de tag), usando a condição BoolIfExists do tipo \"aws:MultiFactorAuthPresent\": \"false\".",
-        "Configurar a política de senhas do IAM (IAM password policy) para exigir que todos os usuários IAM habilitem MFA antes de fazer login no console.",
-        "Habilitar o AWS IAM Identity Center com exigência de MFA para login federado no portal de acesso da AWS.",
-        "Habilitar o Amazon S3 Versioning e a proteção contra encerramento (Termination Protection) em todas as instâncias EC2 de produção."
+        "Adicionar Deny para TerminateInstances em recursos production com BoolIfExists MultiFactorAuthPresent=false.",
+        "Adicionar Deny para TerminateInstances em recursos production com Bool MultiFactorAuthPresent=false.",
+        "Adicionar Allow para TerminateInstances em recursos production com Bool MultiFactorAuthPresent=true.",
+        "Aplicar uma IAM password policy mais forte e manter AdministratorAccess para os operadores."
       ],
       "correct": 0,
-      "explanation": "A condição global aws:MultiFactorAuthPresent permite verificar, no momento da chamada da API, se a sessão atual foi autenticada com MFA; uma instrução Deny com BoolIfExists e essa condição definida como false bloqueia a ação especificamente quando a sessão não possui MFA, independentemente de como a sessão foi originalmente estabelecida, atendendo ao requisito de verificação no momento da ação.",
-      "hint": "Procure a condição de política do IAM que verifica, no momento exato da chamada de API, se a sessão atual foi autenticada com um segundo fator.",
+      "explanation": "Deny com BoolIfExists=false rejeita credenciais sem MFA comprovado e também contexto ausente. As permissões Allow para a operação continuam necessárias. Bool=false só casa com a chave presente e falsa; credenciais de longa duração podem não trazer essa chave. Uma condição Allow com MFA não neutraliza outro Allow administrativo já existente. Password policy trata requisitos de senha, não impõe MFA nas chamadas API.",
+      "hint": "Verifique o comportamento da condição quando a chave de contexto está ausente.",
       "optionRationales": [
-        "A condição global aws:MultiFactorAuthPresent permite verificar, no momento da chamada da API, se a sessão atual foi autenticada com MFA; uma instrução Deny com BoolIfExists e essa condição definida como false bloqueia a ação especificamente quando a sessão não possui MFA, independentemente de como a sessão foi originalmente estabelecida, atendendo ao requisito de verificação no momento da ação.",
-        "Exigir MFA no login do console garante que a sessão inicial seja autenticada com MFA, mas não impõe uma verificação específica no momento de cada chamada de API sensível, nem se aplica a acesso programático via chaves de acesso de longa duração, que não passam pelo fluxo de login do console.",
-        "Exigir MFA no login federado do IAM Identity Center protege o estabelecimento inicial da sessão, mas não impede que essa sessão (ou outras sessões sem MFA) realize ações destrutivas específicas como excluir buckets de produção ou encerrar instâncias EC2, pois não há uma condição de política vinculando a ação à presença de MFA na sessão.",
-        "Versionamento do S3 e proteção contra encerramento ajudam a mitigar erros operacionais e permitem recuperação após exclusões acidentais, mas não impõem nenhuma exigência de MFA no momento da ação nem negam explicitamente a operação para sessões sem MFA."
+        "Deny com BoolIfExists=false rejeita credenciais sem MFA comprovado e também contexto ausente. As permissões Allow para a operação continuam necessárias.",
+        "Bool=false só casa com a chave presente e falsa; credenciais de longa duração podem não trazer essa chave.",
+        "Uma condição Allow com MFA não neutraliza outro Allow administrativo já existente.",
+        "Password policy trata requisitos de senha, não impõe MFA nas chamadas API."
       ],
       "topics": [
         "iam",
@@ -852,21 +852,21 @@
     {
       "id": "saa-avc-036",
       "domain": "secure-architectures",
-      "text": "Uma empresa hospeda um site estático em um bucket Amazon S3 totalmente privado (com Block Public Access habilitado) e o distribui através do Amazon CloudFront. O requisito de segurança é que o bucket NUNCA possa ser acessado diretamente através de sua URL do S3 — mesmo que alguém descubra o nome do bucket — e que o acesso só seja possível através da distribuição CloudFront específica da empresa. Qual configuração atende a esse requisito sem comprometer o Block Public Access do bucket?",
+      "text": "Um site serve objetos de um bucket S3 privado, com Block Public Access, por uma distribuição CloudFront específica. Espectadores anônimos não devem acessar os objetos pela URL direta do S3. As permissões administrativas são controladas separadamente. Qual configuração autoriza a distribuição a ler a origem?",
       "options": [
-        "Configurar o Origin Access Control (OAC) na distribuição CloudFront para o S3 origin, e atualizar a política do bucket para permitir s3:GetObject apenas quando a requisição vier dessa distribuição específica, usando uma condição com aws:SourceArn referenciando o ARN da distribuição.",
-        "Tornar o bucket público com uma política que permita s3:GetObject para qualquer principal, confiando que os usuários só conhecerão a URL do CloudFront.",
-        "Configurar URLs assinadas (signed URLs) no CloudFront, mas deixar as permissões padrão do bucket S3 inalteradas (privado, sem política adicional para o CloudFront).",
-        "Criar uma política de bucket que restrinja o acesso com base no cabeçalho HTTP Referer enviado pelas requisições originadas do CloudFront."
+        "Usar origem REST S3 com OAC e permitir GetObject ao CloudFront condicionado ao ARN da distribuição.",
+        "Usar o endpoint de website S3 como origem e associar OAC para autenticar a leitura dos objetos privados.",
+        "Exigir URLs assinadas do CloudFront e manter o bucket privado sem conceder acesso à distribuição.",
+        "Usar uma política de bucket baseada em Referer para aceitar os pedidos encaminhados pela distribuição."
       ],
       "correct": 0,
-      "explanation": "O Origin Access Control (OAC) permite que o CloudFront assine as requisições ao S3 usando SigV4; a política do bucket pode then restringir s3:GetObject exclusivamente a requisições assinadas pela distribuição CloudFront específica (via aws:SourceArn), mantendo o Block Public Access habilitado e garantindo que apenas o CloudFront, e não a URL direta do S3, consiga acessar os objetos.",
-      "hint": "Procure o mecanismo moderno que permite ao CloudFront assinar criptograficamente suas requisições ao S3, possibilitando que a política do bucket confie exclusivamente nessa distribuição específica.",
+      "explanation": "OAC assina o acesso à origem REST S3; bucket policy com principal CloudFront e SourceArn restringe a distribuição autorizada. O endpoint de website S3 não suporta OAC como origem REST privada. URLs assinadas controlam o espectador, mas não concedem permissão para CloudFront ler o bucket. Referer pode ser forjado; não fornece a identidade criptográfica da distribuição e não substitui OAC.",
+      "hint": "A autorização da origem é diferente da autenticação de quem visita o site.",
       "optionRationales": [
-        "O Origin Access Control (OAC) permite que o CloudFront assine as requisições ao S3 usando SigV4; a política do bucket pode then restringir s3:GetObject exclusivamente a requisições assinadas pela distribuição CloudFront específica (via aws:SourceArn), mantendo o Block Public Access habilitado e garantindo que apenas o CloudFront, e não a URL direta do S3, consiga acessar os objetos.",
-        "Tornar o bucket público permite que qualquer pessoa que descubra a URL direta do S3 (não apenas a URL do CloudFront) acesse os objetos diretamente, violando o requisito explícito de que o bucket nunca deve ser acessível via sua URL direta, além de exigir desabilitar o Block Public Access.",
-        "Sem uma política de bucket que conceda explicitamente permissão de leitura ao CloudFront (via OAC ou OAI), o bucket privado também negaria acesso ao próprio CloudFront, resultando em erros de acesso negado para os usuários finais e quebrando o site.",
-        "Restringir o acesso com base no cabeçalho Referer é uma técnica legada e facilmente contornável, pois esse cabeçalho pode ser falsificado em requisições diretas ao S3, não oferecendo uma garantia de segurança equivalente à assinatura criptográfica de requisições fornecida pelo Origin Access Control."
+        "OAC assina o acesso à origem REST S3; bucket policy com principal CloudFront e SourceArn restringe a distribuição autorizada.",
+        "O endpoint de website S3 não suporta OAC como origem REST privada.",
+        "URLs assinadas controlam o espectador, mas não concedem permissão para CloudFront ler o bucket.",
+        "Referer pode ser forjado; não fornece a identidade criptográfica da distribuição e não substitui OAC."
       ],
       "topics": [
         "s3-storage",
@@ -878,19 +878,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa precisa estabelecer, dentro de poucos dias, conectividade criptografada entre seu data center on-premises e uma VPC na AWS para um novo projeto com necessidade de banda moderada (abaixo de 1.25 Gbps). A criptografia em trânsito é um requisito obrigatório, e a empresa não pode esperar o tempo típico de provisionamento de um circuito físico dedicado. Qual solução atende a esses requisitos de prazo, banda e criptografia?",
       "options": [
-        "Configurar VPC Peering entre a VPC da AWS e uma VPC emulada on-premises usando VMware Cloud on AWS.",
-        "Estabelecer uma conexão AWS Site-to-Site VPN entre um customer gateway on-premises e um virtual private gateway (ou Transit Gateway) na AWS, utilizando túneis IPsec sobre a internet pública.",
-        "Provisionar uma conexão AWS Direct Connect e configurar uma VPN IPsec sobre uma Virtual Interface privada (VPN over Direct Connect).",
-        "Provisionar uma conexão AWS Direct Connect com MACsec habilitado para garantir criptografia na camada de enlace."
+        "Configurar VPC Peering e publicar as rotas do data center na tabela de rotas da VPC.",
+        "Estabelecer Site-to-Site VPN IPsec usando a conexão de internet existente do data center.",
+        "Provisionar Direct Connect e transportar uma VPN IPsec pelo novo circuito privado.",
+        "Provisionar Direct Connect elegível a MACsec e habilitar criptografia no enlace dedicado."
       ],
       "correct": 1,
-      "explanation": "O AWS Site-to-Site VPN pode ser provisionado em minutos a horas, sem depender de instalação de circuito físico, fornece criptografia IPsec nativa em trânsito sobre a internet pública, e atende confortavelmente a requisitos de banda moderada (cada túnel suporta até aproximadamente 1.25 Gbps), tornando-se a opção ideal para conectividade rápida e criptografada.",
-      "hint": "Compare o tempo de provisionamento de uma conexão física dedicada com o de um túnel criptografado estabelecido sobre a internet pública.",
+      "explanation": "Peering conecta VPCs; não é uma conexão IPsec entre o customer gateway do data center e a AWS. Site-to-Site VPN usa IPsec sobre conectividade existente, dispensando esperar um circuito dedicado. VPN sobre Direct Connect pode fornecer criptografia, mas depende do circuito que não está disponível no prazo. MACsec em conexões Direct Connect elegíveis exige provisionamento físico, incompatível com o prazo.",
+      "hint": "A alternativa precisa satisfazer simultaneamente criptografia e prazo de implantação.",
       "optionRationales": [
-        "O AWS Site-to-Site VPN pode ser provisionado em minutos a horas, sem depender de instalação de circuito físico, fornece criptografia IPsec nativa em trânsito sobre a internet pública, e atende confortavelmente a requisitos de banda moderada (cada túnel suporta até aproximadamente 1.25 Gbps), tornando-se a opção ideal para conectividade rápida e criptografada.",
-        "O AWS Direct Connect requer o provisionamento de um cross-connect físico em um local de parceiro, processo que tipicamente leva semanas a meses, o que não atende ao requisito de estabelecer a conectividade em poucos dias, independentemente do suporte a criptografia via MACsec.",
-        "Essa abordagem ainda depende do provisionamento físico de uma conexão Direct Connect como pré-requisito, mantendo o mesmo problema de prazo de semanas a meses, além de adicionar complexidade desnecessária para uma necessidade de banda moderada e prazo curto.",
-        "VPC Peering conecta VPCs dentro da AWS (incluindo ambientes VMware Cloud on AWS hospedados na AWS), mas não é o mecanismo padrão para conectar um data center on-premises tradicional à AWS, e não resolve o requisito de conectividade híbrida direta com criptografia em trânsito."
+        "Peering conecta VPCs; não é uma conexão IPsec entre o customer gateway do data center e a AWS.",
+        "Site-to-Site VPN usa IPsec sobre conectividade existente, dispensando esperar um circuito dedicado.",
+        "VPN sobre Direct Connect pode fornecer criptografia, mas depende do circuito que não está disponível no prazo.",
+        "MACsec em conexões Direct Connect elegíveis exige provisionamento físico, incompatível com o prazo."
       ],
       "topics": [
         "hybrid-networking",
@@ -903,19 +903,19 @@
       "domain": "secure-architectures",
       "text": "Uma empresa criou um VPC Interface Endpoint para o AWS Secrets Manager, permitindo que instâncias EC2 em sub-redes privadas recuperem segredos sem acesso à internet. A role IAM das instâncias possui permissões amplas no Secrets Manager (secretsmanager:GetSecretValue em recursos \"*\"), pois é compartilhada com outras finalidades. A equipe de segurança quer adicionar uma camada extra de defesa em profundidade para que, especificamente através DESSE endpoint, somente os segredos de um caminho específico (ex.: arn:aws:secretsmanager:*:111122223333:secret:prod/app/*) possam ser recuperados, bloqueando qualquer outra chamada feita por esse caminho de rede. Qual configuração implementa essa camada adicional?",
       "options": [
-        "Reduzir o escopo da política IAM da role das instâncias EC2 para permitir secretsmanager:GetSecretValue apenas nos ARNs sob prod/app/*.",
-        "Configurar o Security Group associado à interface de rede (ENI) do endpoint para permitir apenas tráfego na porta 443 originado da sub-rede privada.",
-        "Anexar uma política de endpoint (VPC Endpoint Policy) ao Interface Endpoint do Secrets Manager que permita secretsmanager:GetSecretValue apenas para os ARNs de segredo sob o caminho prod/app/*, negando implicitamente todas as outras ações e recursos para chamadas feitas através desse endpoint.",
-        "Configurar Network ACLs na sub-rede para bloquear todo o tráfego destinado às faixas de IP do Secrets Manager, exceto para os endereços associados aos segredos sob prod/app/*."
+        "Restringir a política IAM da role EC2 aos segredos prod/app em todas as chamadas ao serviço.",
+        "Restringir o Security Group do endpoint a HTTPS da sub-rede que contém os consumidores.",
+        "Permitir apenas GetSecretValue nos ARNs prod/app na política desse endpoint de interface.",
+        "Restringir a política de cada segredo prod/app ao identificador do endpoint autorizado."
       ],
       "correct": 2,
-      "explanation": "Políticas de VPC Endpoint atuam como uma camada de permissão adicional e independente da política IAM: uma chamada só é permitida se TANTO a política IAM da identidade QUANTO a política do endpoint permitirem. Restringir a política do endpoint aos ARNs sob prod/app/* garante que, mesmo que a role IAM tenha permissões mais amplas, qualquer chamada via esse endpoint para outros segredos seja negada — uma defesa em profundidade específica ao caminho de rede.",
-      "hint": "Pense na camada de política que se aplica especificamente ao tráfego que passa por um VPC Endpoint, atuando em conjunto (e não em substituição) às permissões IAM da identidade.",
+      "explanation": "Reduzir a role afeta todos os caminhos de acesso, não a camada adicional específica deste endpoint. Security Groups filtram protocolo, portas e origens; não identificam o ARN do segredo solicitado. Endpoint policy limita as ações e recursos autorizados por aquele caminho e não substitui IAM ou key policy. Uma política no segredo vale para aquele recurso, mas não impede que outros segredos permissivos sejam acessados pelo endpoint.",
+      "hint": "Identifique qual política restringe o caminho de acesso, em vez de apenas uma identidade ou um recurso.",
       "optionRationales": [
-        "Políticas de VPC Endpoint atuam como uma camada de permissão adicional e independente da política IAM: uma chamada só é permitida se TANTO a política IAM da identidade QUANTO a política do endpoint permitirem. Restringir a política do endpoint aos ARNs sob prod/app/* garante que, mesmo que a role IAM tenha permissões mais amplas, qualquer chamada via esse endpoint para outros segredos seja negada — uma defesa em profundidade específica ao caminho de rede.",
-        "Security Groups controlam o acesso em nível de rede (endereços IP e portas), mas não têm conhecimento sobre quais ações da API ou quais ARNs de recursos estão sendo solicitados dentro do tráfego HTTPS, não atendendo ao requisito de restringir quais segredos específicos podem ser recuperados.",
-        "Embora seja uma boa prática de menor privilégio, essa mudança altera as permissões da identidade de forma global (afetando qualquer caminho de acesso, não apenas este endpoint) e não adiciona a camada de defesa em profundidade específica ao caminho de rede do VPC Endpoint solicitada pela equipe de segurança.",
-        "Os endereços IP dos endpoints de serviços AWS não são granularmente atribuídos por recurso (segredo) individual, e NACLs operam apenas com endereços IP e portas, sendo impossível usar essa abordagem para restringir o acesso a segredos específicos por ARN."
+        "Reduzir a role afeta todos os caminhos de acesso, não a camada adicional específica deste endpoint.",
+        "Security Groups filtram protocolo, portas e origens; não identificam o ARN do segredo solicitado.",
+        "Endpoint policy limita as ações e recursos autorizados por aquele caminho e não substitui IAM ou key policy.",
+        "Uma política no segredo vale para aquele recurso, mas não impede que outros segredos permissivos sejam acessados pelo endpoint."
       ],
       "topics": [
         "vpc",
@@ -928,19 +928,19 @@
       "domain": "secure-architectures",
       "text": "Uma equipe de DevSecOps precisa de varredura contínua e automatizada de vulnerabilidades (CVEs) em pacotes de sistema operacional de instâncias EC2, em imagens de contêiner armazenadas no Amazon ECR (incluindo no momento do push) e em funções AWS Lambda, com os findings centralizados no AWS Security Hub, sem que a equipe precise operar nenhuma infraestrutura de varredura própria. Qual serviço atende a esse requisito?",
       "options": [
-        "AWS Trusted Advisor, com o plano Business, que realiza varredura de vulnerabilidades CVE em pacotes de sistema operacional, imagens de contêiner e código de funções Lambda.",
-        "Amazon Inspector, habilitado para descoberta e varredura contínua de instâncias EC2 (via SSM Agent), imagens no Amazon ECR e funções Lambda, com integração nativa ao AWS Security Hub.",
-        "Amazon GuardDuty, analisando logs do CloudTrail, VPC Flow Logs e logs de DNS para identificar vulnerabilidades de software conhecidas (CVEs) em instâncias EC2 e imagens ECR.",
-        "Desenvolver uma função AWS Lambda customizada que executa uma ferramenta de varredura de código aberto a cada push no ECR, armazenando os resultados em um bucket S3."
+        "Habilitar verificações de segurança do Trusted Advisor e agregar seus resultados no Security Hub.",
+        "Habilitar Amazon Inspector para EC2, varredura aprimorada ECR e Lambda, com integração Security Hub.",
+        "Habilitar GuardDuty com proteção de runtime e enviar os findings dos workloads ao Security Hub.",
+        "Executar um scanner em Lambda a cada push no ECR e publicar os resultados em findings customizados."
       ],
       "correct": 1,
-      "explanation": "O Amazon Inspector descobre automaticamente instâncias EC2, repositórios ECR e funções Lambda elegíveis, executando varreduras contínuas de vulnerabilidades (CVEs) de software e, no caso de EC2, também avaliação de exposição de rede; os findings são enviados automaticamente ao Security Hub, sem necessidade de infraestrutura de varredura gerenciada pelo cliente.",
-      "hint": "Pense no serviço cujo propósito principal é a varredura contínua de vulnerabilidades de software (CVEs) em cargas de trabalho de computação, com integração nativa ao hub central de findings de segurança.",
+      "explanation": "Trusted Advisor fornece verificações de boas práticas, não a cobertura de varredura CVE descrita. Inspector oferece varreduras nos tipos de workload suportados e integração dos findings com Security Hub; modos e cobertura devem ser habilitados conforme o recurso. GuardDuty detecta ameaças; não é o serviço primário de inventário e avaliação contínua de CVEs. A rotina de ECR cobre somente imagens e exige operação de ferramenta própria, deixando EC2 e Lambda sem cobertura.",
+      "hint": "Diferencie vulnerabilidade de software de indícios de exploração ou comportamento malicioso.",
       "optionRationales": [
-        "O Amazon Inspector descobre automaticamente instâncias EC2, repositórios ECR e funções Lambda elegíveis, executando varreduras contínuas de vulnerabilidades (CVEs) de software e, no caso de EC2, também avaliação de exposição de rede; os findings são enviados automaticamente ao Security Hub, sem necessidade de infraestrutura de varredura gerenciada pelo cliente.",
-        "O Trusted Advisor fornece verificações gerais de boas práticas (custo, segurança básica, performance, limites de serviço), mas não realiza varredura profunda de vulnerabilidades CVE em pacotes de SO, imagens de contêiner ou dependências de código de funções Lambda.",
-        "O GuardDuty é um serviço de detecção de ameaças baseado em análise comportamental de logs (CloudTrail, VPC Flow Logs, DNS), identificando atividades suspeitas em tempo de execução, mas não realiza varredura estática de vulnerabilidades (CVEs) em pacotes de software instalados ou imagens de contêiner.",
-        "Essa abordagem exige desenvolvimento, manutenção e operação de uma pipeline de varredura customizada, reimplementando com esforço significativo uma capacidade que o Amazon Inspector já oferece de forma nativa, gerenciada e integrada ao Security Hub."
+        "Trusted Advisor fornece verificações de boas práticas, não a cobertura de varredura CVE descrita.",
+        "Inspector oferece varreduras nos tipos de workload suportados e integração dos findings com Security Hub; modos e cobertura devem ser habilitados conforme o recurso.",
+        "GuardDuty detecta ameaças; não é o serviço primário de inventário e avaliação contínua de CVEs.",
+        "A rotina de ECR cobre somente imagens e exige operação de ferramenta própria, deixando EC2 e Lambda sem cobertura."
       ],
       "topics": [
         "security-services",
@@ -951,21 +951,21 @@
     {
       "id": "saa-avc-040",
       "domain": "secure-architectures",
-      "text": "Uma instituição financeira precisa armazenar backups críticos no Amazon S3 por um período regulatório obrigatório de 7 anos, durante o qual NENHUM usuário — incluindo o usuário root da conta e administradores com AdministratorAccess — pode excluir ou sobrescrever esses objetos, como proteção contra ransomware e ameaças internas. Qual configuração garante essa imutabilidade durante todo o período de retenção?",
+      "text": "Backups no S3 precisam ter suas versões preservadas por sete anos. Nenhuma identidade, inclusive root, pode excluir permanentemente ou reduzir a retenção dessas versões durante o prazo. Criar uma nova versão com a mesma chave não deve remover a anterior. Qual configuração atende?",
       "options": [
-        "Habilitar o S3 Object Lock no modo Compliance (Compliance mode) com um período de retenção de 7 anos para os objetos.",
-        "Habilitar o S3 Object Lock no modo Governance (Governance mode) com um período de retenção de 7 anos para os objetos.",
-        "Habilitar o S3 Versioning combinado com MFA Delete no bucket.",
-        "Configurar uma política de ciclo de vida (Lifecycle Policy) que transicione os objetos para a classe de armazenamento S3 Glacier Deep Archive após 30 dias."
+        "Aplicar Object Lock Compliance às versões dos backups, com retenção de sete anos.",
+        "Aplicar Object Lock Governance às versões dos backups, com retenção de sete anos.",
+        "Habilitar Versioning e MFA Delete no bucket que armazena os backups regulatórios.",
+        "Transicionar os backups ao Glacier Deep Archive com Lifecycle após trinta dias."
       ],
       "correct": 0,
-      "explanation": "O S3 Object Lock no modo Compliance impede que qualquer principal — incluindo o usuário root e administradores com permissões totais — exclua ou sobrescreva objetos durante o período de retenção definido; nem mesmo a alteração do período de retenção para um valor menor é permitida nesse modo, atendendo integralmente ao requisito regulatório de imutabilidade.",
-      "hint": "Pense no recurso do S3 que oferece dois modos de proteção WORM (write-once-read-many), onde apenas um deles impede absolutamente qualquer exclusão, mesmo por administradores, durante o período de retenção.",
+      "explanation": "Compliance impede exclusão de uma versão protegida durante a retenção, inclusive por root. Novas versões da mesma chave continuam possíveis. Governance permite bypass por identidades com permissão apropriada. Versioning e MFA Delete não garantem retenção imutável contra todos os administradores. A classe de armazenamento muda custo e tempo de recuperação, não impõe retenção WORM.",
+      "hint": "O requisito é retenção da versão mesmo contra identidades privilegiadas.",
       "optionRationales": [
-        "O S3 Object Lock no modo Compliance impede que qualquer principal — incluindo o usuário root e administradores com permissões totais — exclua ou sobrescreva objetos durante o período de retenção definido; nem mesmo a alteração do período de retenção para um valor menor é permitida nesse modo, atendendo integralmente ao requisito regulatório de imutabilidade.",
-        "No modo Governance, usuários com a permissão s3:BypassGovernanceRetention (que pode ser concedida a administradores) podem excluir ou sobrescrever objetos antes do término do período de retenção, não atendendo ao requisito de que NENHUM usuário, incluindo administradores, possa fazer isso.",
-        "O MFA Delete exige um segundo fator para excluir versões de objetos ou alterar a configuração de versionamento, mas não impõe um período de retenção fixo nem impede que uma conta com acesso ao dispositivo MFA (incluindo o root) desabilite essa proteção e exclua os dados antes dos 7 anos.",
-        "O Glacier Deep Archive é uma classe de armazenamento de baixo custo para retenção de longo prazo, mas não fornece, por si só, nenhuma garantia de imutabilidade (WORM); objetos nessa classe ainda podem ser excluídos por usuários com permissões suficientes."
+        "Compliance impede exclusão de uma versão protegida durante a retenção, inclusive por root. Novas versões da mesma chave continuam possíveis.",
+        "Governance permite bypass por identidades com permissão apropriada.",
+        "Versioning e MFA Delete não garantem retenção imutável contra todos os administradores.",
+        "A classe de armazenamento muda custo e tempo de recuperação, não impõe retenção WORM."
       ],
       "topics": [
         "s3-storage",
@@ -975,21 +975,21 @@
     {
       "id": "saa-avc-041",
       "domain": "secure-architectures",
-      "text": "Uma empresa possui uma instância Amazon RDS para MySQL em produção que foi criada SEM criptografia de armazenamento habilitada. Uma nova exigência de compliance determina que os dados em repouso desse banco devem ser criptografados com uma chave do KMS, com o mínimo de downtime possível. Qual sequência de ações permite atender a essa exigência?",
+      "text": "Uma instância RDS MySQL sem criptografia deve ser migrada para armazenamento criptografado. A empresa aceita uma janela com escritas suspensas para o snapshot final e não usará DMS nem replicação lógica. Qual procedimento nativo baseado em snapshot preserva os dados e permite a migração?",
       "options": [
-        "Criar um snapshot manual da instância RDS e restaurar uma nova instância diretamente a partir desse snapshot, mantendo as configurações padrão.",
-        "Acessar o console do RDS, selecionar a instância existente, escolher 'Modify' e habilitar a opção 'Enable encryption', aplicando a alteração imediatamente.",
-        "Criar um snapshot manual da instância RDS não criptografada, copiar esse snapshot habilitando a criptografia e especificando uma chave do KMS, e então restaurar uma nova instância RDS a partir do snapshot criptografado, promovendo-a para produção em uma janela de manutenção.",
-        "Acessar o console do EC2, localizar os volumes EBS subjacentes à instância RDS e habilitar a criptografia diretamente nesses volumes."
+        "Restaurar o snapshot não criptografado mantendo as configurações de armazenamento padrão.",
+        "Modificar a instância RDS existente para habilitar criptografia de armazenamento in-place.",
+        "Copiar o snapshot com criptografia KMS, restaurar outra instância e redirecionar os clientes.",
+        "Localizar os volumes EBS subjacentes ao RDS e habilitar criptografia diretamente no EC2."
       ],
       "correct": 2,
-      "explanation": "A criptografia de armazenamento do RDS não pode ser habilitada em uma instância existente; o caminho suportado é criar um snapshot da instância não criptografada, copiá-lo especificando uma chave do KMS (o que gera uma cópia criptografada do snapshot) e restaurar uma nova instância a partir dessa cópia criptografada, com o downtime limitado à janela de corte (cutover) para a nova instância.",
-      "hint": "A configuração de criptografia de armazenamento do RDS é definida na criação da instância (ou restauração); pense em qual etapa intermediária do processo de snapshot permite introduzir a criptografia que não existia originalmente.",
+      "explanation": "Restaurar um snapshot não criptografado sem criar a cópia criptografada não habilita criptografia. RDS não permite ligar criptografia de armazenamento in-place em uma instância originalmente não criptografada. A cópia criptografada do snapshot permite restaurar uma nova instância criptografada; congelar escritas para o snapshot final evita perder alterações. EBS subjacente ao RDS é administrado pelo serviço, sem alteração direta pelo console EC2.",
+      "hint": "Distinga modificação in-place de restauração a partir de uma cópia criptografada.",
       "optionRationales": [
-        "A criptografia de armazenamento do RDS não pode ser habilitada em uma instância existente; o caminho suportado é criar um snapshot da instância não criptografada, copiá-lo especificando uma chave do KMS (o que gera uma cópia criptografada do snapshot) e restaurar uma nova instância a partir dessa cópia criptografada, com o downtime limitado à janela de corte (cutover) para a nova instância.",
-        "A opção de criptografia de armazenamento do RDS não está disponível para modificação em uma instância já existente e não criptografada; essa configuração só pode ser definida no momento da criação da instância ou ao restaurar a partir de um snapshot.",
-        "Instâncias RDS são totalmente gerenciadas pela AWS, e os volumes de armazenamento subjacentes não são expostos ou acessíveis diretamente pelo cliente através do console do EC2 para modificação.",
-        "Restaurar um snapshot sem realizar a etapa intermediária de cópia com criptografia explicitamente habilitada resulta em uma nova instância igualmente não criptografada, pois um snapshot de uma instância não criptografada também é não criptografado por padrão."
+        "Restaurar um snapshot não criptografado sem criar a cópia criptografada não habilita criptografia.",
+        "RDS não permite ligar criptografia de armazenamento in-place em uma instância originalmente não criptografada.",
+        "A cópia criptografada do snapshot permite restaurar uma nova instância criptografada; congelar escritas para o snapshot final evita perder alterações.",
+        "EBS subjacente ao RDS é administrado pelo serviço, sem alteração direta pelo console EC2."
       ],
       "topics": [
         "security-services",
@@ -1000,21 +1000,21 @@
     {
       "id": "saa-avc-042",
       "domain": "secure-architectures",
-      "text": "Uma organização com 40 contas no AWS Organizations precisa que TODOS os eventos do CloudTrail de TODAS as contas (atuais e futuras) sejam entregues automaticamente a um único bucket S3 centralizado em uma conta dedicada de 'arquivo de logs', sem que administradores das contas-membro possam desabilitar essa coleta ou modificar a trilha. Qual configuração atende a esse requisito?",
+      "text": "Uma organização quer centralizar eventos de gerenciamento de leitura e escrita do CloudTrail de todas as contas-membro, atuais e futuras, nas Regiões habilitadas. Administradores locais não podem alterar a trilha organizacional. Qual solução entrega os logs a um bucket na conta de arquivo de logs?",
       "options": [
-        "Configurar assinaturas entre contas (cross-account subscriptions) do Amazon CloudWatch Logs, enviando os logs de cada conta para a conta de arquivo de logs.",
-        "Criar uma organization trail do AWS CloudTrail na conta de gerenciamento (ou em uma conta com administrador delegado), configurada para entregar logs a um bucket S3 na conta de arquivo de logs; a organization trail é aplicada automaticamente a todas as contas-membro, atuais e futuras, e só pode ser gerenciada pela conta de gerenciamento/administrador delegado.",
-        "Criar trilhas individuais do CloudTrail em cada uma das 40 contas, cada uma configurada para entregar logs ao bucket S3 da conta de arquivo de logs através de uma política de bucket que permita escrita entre contas.",
-        "Configurar um AWS Config aggregator na conta de arquivo de logs para coletar os eventos do CloudTrail de todas as 40 contas."
+        "Criar subscriptions do CloudWatch Logs das contas para um destino central de logs.",
+        "Criar organization trail multi-Region com entrega ao bucket da conta de arquivo de logs.",
+        "Criar trilhas locais em todas as contas e conceder escrita no mesmo bucket central.",
+        "Criar um Config aggregator organizacional e apontá-lo para o bucket central de auditoria."
       ],
       "correct": 1,
-      "explanation": "Uma organization trail criada com a opção 'Apply trail to all accounts in my organization' é automaticamente habilitada em todas as contas-membro (incluindo novas contas criadas posteriormente), entrega logs a um bucket S3 centralizado, e administradores de contas-membro não podem desabilitá-la ou modificá-la — apenas a conta de gerenciamento ou o administrador delegado do CloudTrail tem esse controle.",
-      "hint": "Pense no tipo específico de trilha do CloudTrail que, quando criada na conta de gerenciamento com uma opção específica, se propaga automaticamente para todas as contas da organização e não pode ser alterada por elas.",
+      "explanation": "CloudWatch Logs subscriptions não criam nem protegem a coleta CloudTrail em novas contas. Organization trail aplica a configuração às contas-membro; os administradores locais não administram a trilha da organização. É preciso selecionar Regiões e eventos adequados. Trilhas locais exigem governança por conta e podem ser alteradas por seus administradores. Config aggregator agrega avaliações e inventário, não os eventos de API do CloudTrail.",
+      "hint": "A coleta deve ser gerenciada pela organização, não por uma configuração independente em cada conta.",
       "optionRationales": [
-        "Uma organization trail criada com a opção 'Apply trail to all accounts in my organization' é automaticamente habilitada em todas as contas-membro (incluindo novas contas criadas posteriormente), entrega logs a um bucket S3 centralizado, e administradores de contas-membro não podem desabilitá-la ou modificá-la — apenas a conta de gerenciamento ou o administrador delegado do CloudTrail tem esse controle.",
-        "Embora tecnicamente cada trilha individual pudesse ser configurada para escrever no bucket centralizado, essa abordagem exige configuração e manutenção separadas em 40 contas, e administradores de cada conta-membro ainda teriam permissão para desabilitar ou modificar suas próprias trilhas locais, o que não atende ao requisito de que eles não possam fazer isso.",
-        "Assinaturas do CloudWatch Logs transmitem eventos de log entre contas, mas não substituem a criação e a aplicação centralizada de uma trilha do CloudTrail em toda a organização, nem impedem que administradores de contas-membro desabilitem suas próprias trilhas ou a entrega de logs.",
-        "Os aggregators do AWS Config coletam dados de configuração e conformidade de recursos (não eventos de API do CloudTrail) de múltiplas contas e regiões; eles não são o mecanismo usado para centralizar a entrega de logs do CloudTrail."
+        "CloudWatch Logs subscriptions não criam nem protegem a coleta CloudTrail em novas contas.",
+        "Organization trail aplica a configuração às contas-membro; os administradores locais não administram a trilha da organização. É preciso selecionar Regiões e eventos adequados.",
+        "Trilhas locais exigem governança por conta e podem ser alteradas por seus administradores.",
+        "Config aggregator agrega avaliações e inventário, não os eventos de API do CloudTrail."
       ],
       "topics": [
         "s3-storage",
@@ -1025,21 +1025,21 @@
     {
       "id": "saa-avc-043",
       "domain": "secure-architectures",
-      "text": "A equipe de segurança de uma empresa quer impedir, no nível de resolução de DNS, que recursos dentro de uma VPC consigam resolver nomes de domínio conhecidos por hospedar malware ou servidores de comando e controle, e também garantir que uma sub-rede isolada (usada para processamento de dados sensíveis) só possa resolver um conjunto específico de domínios permitidos (allowlist), bloqueando qualquer outra resolução de DNS. Qual serviço implementa esse controle diretamente na camada de resolução de DNS da VPC?",
+      "text": "Uma VPC dedicada ao processamento sensível usa o Route 53 Resolver. Todas as suas cargas devem resolver somente domínios autorizados e bloquear domínios maliciosos. A saída para resolvedores alternativos é controlada separadamente. Qual serviço aplica essa filtragem diretamente no Resolver da VPC?",
       "options": [
-        "AWS Network Firewall, configurado apenas com regras de filtragem de domínio baseadas em SNI para o tráfego HTTPS da VPC.",
-        "Uma função AWS Lambda customizada que processa os VPC Flow Logs em tempo real, identificando e reportando consultas a domínios maliciosos.",
-        "Amazon GuardDuty, configurado para analisar os logs de consulta DNS da VPC e bloquear automaticamente domínios maliciosos identificados.",
-        "Amazon Route 53 Resolver DNS Firewall, associando à VPC um grupo de regras com uma lista de domínios gerenciada de inteligência de ameaças (para bloquear domínios maliciosos conhecidos) e uma lista de domínios customizada (allowlist) para a sub-rede isolada."
+        "Aplicar regras de domínio por SNI no Network Firewall da rota de saída da VPC.",
+        "Consultar Flow Logs por Lambda e emitir alertas quando houver tráfego para destinos suspeitos.",
+        "Habilitar GuardDuty e usar os findings DNS como política preventiva do Resolver.",
+        "Associar regras DNS Firewall à VPC, com listas de domínio e prioridades de permitir e bloquear."
       ],
       "correct": 3,
-      "explanation": "O Route 53 Resolver DNS Firewall opera diretamente na camada de resolução de DNS da VPC, permitindo associar listas de domínios gerenciadas (com feeds de inteligência de ameaças atualizados pela AWS) para bloquear domínios maliciosos conhecidos, além de listas de domínios customizadas que podem implementar um modelo de allowlist (bloqueando tudo que não estiver na lista) para sub-redes específicas.",
-      "hint": "Pense no serviço gerenciado de DNS da AWS que oferece um firewall com listas de domínios (gerenciadas e customizadas) aplicado diretamente às consultas de resolução de nomes originadas na VPC.",
+      "explanation": "SNI filtra conexões TLS encaminhadas pelo firewall, não consultas no Resolver da VPC. Flow Logs registra metadados de tráfego, sem bloquear consultas ou fornecer o conteúdo DNS necessário. GuardDuty produz findings; não aplica por si só uma allowlist ao Resolver. DNS Firewall associa grupos de regras à VPC e filtra consultas que passam pelo Resolver; prioridades devem permitir domínios autorizados antes do bloqueio geral.",
+      "hint": "A associação do conjunto de regras deve corresponder ao escopo real da proteção DNS.",
       "optionRationales": [
-        "O Route 53 Resolver DNS Firewall opera diretamente na camada de resolução de DNS da VPC, permitindo associar listas de domínios gerenciadas (com feeds de inteligência de ameaças atualizados pela AWS) para bloquear domínios maliciosos conhecidos, além de listas de domínios customizadas que podem implementar um modelo de allowlist (bloqueando tudo que não estiver na lista) para sub-redes específicas.",
-        "O AWS Network Firewall pode filtrar domínios inspecionando o campo SNI de conexões TLS já estabelecidas, mas isso ocorre após a resolução de DNS ter ocorrido e se aplica apenas a tráfego HTTPS, não bloqueando a própria consulta DNS nem cobrindo outros protocolos que dependem de resolução de nomes.",
-        "O GuardDuty analisa logs de consulta DNS para gerar findings de detecção (por exemplo, uma instância consultando um domínio associado a C2), mas é um serviço de detecção passiva — ele não tem a capacidade de bloquear ativamente a resolução de uma consulta DNS.",
-        "Processar VPC Flow Logs é uma abordagem reativa e analítica (após o fato), incapaz de bloquear em tempo real a resolução de uma consulta DNS antes que a conexão subsequente seja estabelecida."
+        "SNI filtra conexões TLS encaminhadas pelo firewall, não consultas no Resolver da VPC.",
+        "Flow Logs registra metadados de tráfego, sem bloquear consultas ou fornecer o conteúdo DNS necessário.",
+        "GuardDuty produz findings; não aplica por si só uma allowlist ao Resolver.",
+        "DNS Firewall associa grupos de regras à VPC e filtra consultas que passam pelo Resolver; prioridades devem permitir domínios autorizados antes do bloqueio geral."
       ],
       "topics": [
         "vpc",
@@ -1052,19 +1052,19 @@
       "domain": "secure-architectures",
       "text": "Um site de e-commerce, servido através do Amazon CloudFront e de um Application Load Balancer, está sofrendo dois problemas simultâneos: bots automatizados estão raspando (scraping) os preços de produtos em alta frequência, e outros bots estão realizando tentativas de credential stuffing nas páginas de login, utilizando IPs e user agents que mudam constantemente. A empresa quer detectar e gerenciar esse tráfego de bots de forma granular — permitindo bots legítimos (como crawlers de motores de busca) mas bloqueando ou desafiando (CAPTCHA) os demais — sem escrever um grande conjunto de regras customizadas. Qual solução atende a esse requisito?",
       "options": [
-        "Criar regras baseadas em taxa (rate-based rules) no AWS WAF que bloqueiem qualquer IP que exceda um determinado número de requisições por minuto.",
-        "Habilitar a autenticação adaptativa (adaptive authentication) do Amazon Cognito para detectar tentativas de login com credenciais comprometidas.",
-        "Habilitar o grupo de regras gerenciadas AWS WAF Bot Control na Web ACL associada ao CloudFront/ALB, configurando regras para permitir bots verificados (como crawlers de busca) e bloquear ou desafiar (CAPTCHA) categorias de bots indesejados, como scrapers e ferramentas de automação.",
-        "Assinar o AWS Shield Advanced, que automaticamente classifica e bloqueia tráfego de bots de scraping e credential stuffing como parte de sua proteção contra DDoS."
+        "Aplicar uma regra WAF de taxa por IP em todas as páginas e liberar os IPs abaixo do limite.",
+        "Habilitar autenticação adaptativa no Cognito e usar o resultado para proteger as páginas públicas.",
+        "Usar WAF Bot Control para classificar bots, com ações seletivas e proteção ATP no login quando aplicável.",
+        "Ativar Shield Advanced e usar apenas sua proteção DDoS para identificar scrapers e credenciais comprometidas."
       ],
       "correct": 2,
-      "explanation": "O AWS WAF Bot Control classifica automaticamente o tráfego entrante por categorias de bots (verificados, scrapers, ferramentas de automação, etc.) usando assinaturas mantidas pela AWS, permitindo que a empresa crie regras granulares para permitir bots legítimos (como crawlers de busca verificados) enquanto bloqueia ou aplica desafios CAPTCHA a bots de scraping e credential stuffing, sem a necessidade de escrever um grande conjunto de regras customizadas do zero.",
-      "hint": "Procure o grupo de regras gerenciadas do AWS WAF criado especificamente para classificar tráfego de bots em categorias e permitir ações diferenciadas (permitir, bloquear, desafiar) por categoria.",
+      "explanation": "Rate limits são úteis, mas uma regra apenas por IP não classifica bots que distribuem o tráfego entre endereços. Autenticação adaptativa protege login, não o scraping geral de páginas do site. Bot Control oferece classificação e ações sobre bots; ATP pode complementar a proteção de login contra uso de credenciais comprometidas. Shield Advanced protege contra DDoS, mas não substitui a seleção de regras de classificação de bots e proteção de login.",
+      "hint": "Separar automação legítima de abuso requer sinais além da contagem de requisições por IP.",
       "optionRationales": [
-        "O AWS WAF Bot Control classifica automaticamente o tráfego entrante por categorias de bots (verificados, scrapers, ferramentas de automação, etc.) usando assinaturas mantidas pela AWS, permitindo que a empresa crie regras granulares para permitir bots legítimos (como crawlers de busca verificados) enquanto bloqueia ou aplica desafios CAPTCHA a bots de scraping e credential stuffing, sem a necessidade de escrever um grande conjunto de regras customizadas do zero.",
-        "O AWS Shield Advanced foca em mitigação de ataques DDoS volumétricos e de protocolo (camadas 3/4) e de aplicação (camada 7), mas não realiza classificação granular de tipos de bots (scrapers, crawlers, ferramentas de automação) nem oferece desafios CAPTCHA — essa é a funcionalidade do AWS WAF Bot Control.",
-        "Regras baseadas em taxa ajudam a mitigar abuso volumétrico de um único IP, mas não conseguem distinguir entre tipos de bots (bom vs. malicioso) nem lidar efetivamente com ataques distribuídos e de baixa frequência por IP (como credential stuffing distribuído entre muitos IPs), que é justamente o cenário descrito.",
-        "A autenticação adaptativa do Cognito ajuda a detectar e responder a tentativas de login suspeitas no próprio fluxo de autenticação da aplicação, mas não trata o tráfego de scraping em páginas que não exigem login, nem opera na camada de borda (CloudFront/WAF) onde o tráfego de bots em geral deveria ser gerenciado."
+        "Rate limits são úteis, mas uma regra apenas por IP não classifica bots que distribuem o tráfego entre endereços.",
+        "Autenticação adaptativa protege login, não o scraping geral de páginas do site.",
+        "Bot Control oferece classificação e ações sobre bots; ATP pode complementar a proteção de login contra uso de credenciais comprometidas.",
+        "Shield Advanced protege contra DDoS, mas não substitui a seleção de regras de classificação de bots e proteção de login."
       ],
       "topics": [
         "high-availability",
@@ -1075,21 +1075,21 @@
     {
       "id": "saa-avc-045",
       "domain": "secure-architectures",
-      "text": "A partir de agora, uma empresa quer garantir que TODOS os novos volumes EBS, snapshots e cópias de snapshots para outras regiões, criados em uma determinada região da AWS, sejam automaticamente criptografados com uma chave do KMS — sem depender de que desenvolvedores marquem manualmente uma opção de criptografia em cada lançamento de instância EC2 ou criação de volume. Qual configuração atende a esse requisito de forma transparente, sem interromper fluxos de trabalho existentes?",
+      "text": "Uma conta quer criptografar por padrão todos os novos volumes EBS e cópias de snapshots criados em duas Regiões aprovadas, inclusive cópias recebidas de outras Regiões. Não é necessário converter recursos existentes. Como aplicar o padrão sem exigir que cada desenvolvedor marque a opção em todas as solicitações?",
       "options": [
-        "Adicionar uma tag 'encrypted=true' a todas as AMIs usadas pela empresa, fazendo com que volumes lançados a partir delas sejam automaticamente criptografados.",
-        "Criar uma regra do AWS Config ('encrypted-volumes') com remediação automática que cripto­grafe volumes não conformes após sua criação.",
-        "Criar uma Service Control Policy (SCP) que negue a ação ec2:CreateVolume a menos que o parâmetro Encrypted seja igual a true.",
-        "Habilitar a configuração 'EBS encryption by default' no nível de conta para a região desejada, opcionalmente especificando uma CMK do KMS como chave padrão para novos volumes e snapshots."
+        "Marcar as AMIs com encrypted=true e propagar a tag para volumes lançados pelas equipes.",
+        "Avaliar encrypted-volumes no Config e substituir os volumes detectados como não conformes.",
+        "Aplicar uma SCP que negue criações de volumes quando a solicitação não indicar criptografia.",
+        "Habilitar EBS encryption by default em cada Região de destino e definir a chave KMS padrão."
       ],
       "correct": 3,
-      "explanation": "A configuração 'EBS encryption by default' faz com que todos os novos volumes EBS e snapshots criados na região (incluindo os criados implicitamente pelo lançamento de instâncias EC2) sejam automaticamente criptografados, sem exigir nenhuma ação adicional dos desenvolvedores, e permite especificar uma CMK customizada como padrão.",
-      "hint": "Procure uma configuração no nível de conta/região do serviço EC2 que altere o comportamento padrão de criação de novos volumes e snapshots, sem exigir ação explícita em cada operação.",
+      "explanation": "Tags de AMI não habilitam criptografia automaticamente. Remediar depois da criação não é o mesmo que estabelecer um padrão de criptografia para o provisionamento. Uma SCP pode bloquear criação não conforme, mas não transforma a solicitação em criação criptografada. Encryption by default é uma configuração regional por conta para novos volumes e cópias de snapshots; recursos existentes não são convertidos.",
+      "hint": "Observe a granularidade regional da configuração e sua diferença para uma regra que apenas rejeita solicitações.",
       "optionRationales": [
-        "A configuração 'EBS encryption by default' faz com que todos os novos volumes EBS e snapshots criados na região (incluindo os criados implicitamente pelo lançamento de instâncias EC2) sejam automaticamente criptografados, sem exigir nenhuma ação adicional dos desenvolvedores, e permite especificar uma CMK customizada como padrão.",
-        "Embora essa SCP bloqueasse a criação de volumes não criptografados, ela também bloquearia, de forma disruptiva, qualquer fluxo de trabalho existente (como AMIs e launch templates) que não especifique explicitamente o parâmetro Encrypted=true, quebrando lançamentos legítimos em vez de aplicar a criptografia de forma transparente.",
-        "Essa abordagem é reativa: o volume é criado sem criptografia e só é tratado depois, e a remediação para criptografia do EBS normalmente exige substituir o volume (criar um novo volume criptografado e migrar os dados), causando interrupção, em vez de garantir a criptografia já no momento da criação.",
-        "Tags em AMIs são apenas metadados informativos e não controlam o comportamento de criptografia dos volumes EBS criados a partir delas; a criptografia é determinada pelas configurações do volume/conta, não por tags na AMI de origem."
+        "Tags de AMI não habilitam criptografia automaticamente.",
+        "Remediar depois da criação não é o mesmo que estabelecer um padrão de criptografia para o provisionamento.",
+        "Uma SCP pode bloquear criação não conforme, mas não transforma a solicitação em criação criptografada.",
+        "Encryption by default é uma configuração regional por conta para novos volumes e cópias de snapshots; recursos existentes não são convertidos."
       ],
       "topics": [
         "s3-storage",
@@ -1102,19 +1102,19 @@
       "domain": "secure-architectures",
       "text": "O Amazon GuardDuty gera um finding indicando que uma instância EC2 está se comunicando com um endereço IP associado a infraestrutura maliciosa conhecida, sugerindo possível comprometimento. A equipe de segurança quer que, automaticamente a partir desse finding, seja realizada uma varredura de malware nos volumes EBS anexados a essa instância especificamente, sem impactar a performance da instância em execução e sem precisar instalar agentes de antivírus permanentes em todas as instâncias da frota. Qual capacidade atende a esse requisito?",
       "options": [
-        "Habilitar o GuardDuty Malware Protection for EC2, que, ao detectar um finding de possível comprometimento em uma instância, automaticamente realiza uma varredura de malware sem agente (agentless) nos volumes EBS anexados, por meio de snapshots, gerando um finding de malware separado.",
-        "Usar o Amazon Inspector para realizar a varredura de malware nos volumes EBS da instância comprometida.",
-        "Instalar um agente de antivírus de terceiros em todas as instâncias EC2 da frota e agendar varreduras completas de disco todas as noites via AWS Systems Manager.",
-        "Usar o Amazon Macie para varrer os volumes EBS da instância em busca de assinaturas de malware."
+        "Habilitar GuardDuty Malware Protection for EC2 para varredura baseada em findings elegíveis.",
+        "Habilitar Inspector em EC2 para tratar findings GuardDuty com uma varredura de assinaturas de malware.",
+        "Executar antivírus nas instâncias via SSM quando EventBridge receber um finding do GuardDuty.",
+        "Classificar os volumes EBS no Macie e correlacionar os resultados com os findings GuardDuty."
       ],
       "correct": 0,
-      "explanation": "O GuardDuty Malware Protection for EC2 é acionado automaticamente por findings de comprometimento do GuardDuty, realizando uma varredura agentless (via snapshot dos volumes EBS) em busca de malware, sem impacto na instância em execução e sem exigir agentes permanentes instalados em toda a frota.",
-      "hint": "Pense na funcionalidade do serviço de detecção de ameaças que, ao identificar um possível comprometimento, dispara automaticamente uma varredura sem agente do armazenamento associado ao recurso afetado.",
+      "explanation": "Malware Protection for EC2 pode disparar scans a partir de findings elegíveis, usando snapshots sem instalar agente antivírus na instância. Inspector identifica vulnerabilidades; CVE não equivale à presença de malware no disco. A solução com agente exige instalação e operação na frota, contrariando o requisito. Macie classifica dados no S3, não examina os volumes EBS por esse fluxo.",
+      "hint": "Vulnerabilidades, classificação de dados e detecção de malware são capacidades diferentes.",
       "optionRationales": [
-        "O GuardDuty Malware Protection for EC2 é acionado automaticamente por findings de comprometimento do GuardDuty, realizando uma varredura agentless (via snapshot dos volumes EBS) em busca de malware, sem impacto na instância em execução e sem exigir agentes permanentes instalados em toda a frota.",
-        "Essa abordagem realiza varreduras programadas em toda a frota independentemente de qualquer finding do GuardDuty, adiciona overhead de performance contínuo às instâncias em execução e não está acoplada automaticamente ao evento de detecção de comprometimento.",
-        "O Amazon Inspector é focado em avaliação de vulnerabilidades (CVEs) em pacotes de software instalados e exposição de rede, não em varredura de assinaturas de malware no conteúdo de volumes de disco.",
-        "O Amazon Macie é projetado para descoberta e classificação de dados sensíveis (como PII) armazenados no Amazon S3, não para varredura de malware em volumes EBS."
+        "Malware Protection for EC2 pode disparar scans a partir de findings elegíveis, usando snapshots sem instalar agente antivírus na instância.",
+        "Inspector identifica vulnerabilidades; CVE não equivale à presença de malware no disco.",
+        "A solução com agente exige instalação e operação na frota, contrariando o requisito.",
+        "Macie classifica dados no S3, não examina os volumes EBS por esse fluxo."
       ],
       "topics": [
         "s3-storage",
@@ -1127,19 +1127,19 @@
       "domain": "secure-architectures",
       "text": "Os desenvolvedores de uma empresa se autenticam usando o Active Directory corporativo (provedor de identidade SAML 2.0). Eles precisam executar comandos da AWS CLI e chamadas de SDK (não apenas acessar o console) utilizando credenciais temporárias derivadas de sua identidade corporativa, sem que sejam criados usuários IAM ou Access Keys de longa duração para cada desenvolvedor. Qual arquitetura atende a esse requisito?",
       "options": [
-        "Configurar o AWS IAM Identity Center, mas orientar os desenvolvedores a usarem apenas o portal de acesso da AWS em um navegador para acesso ao console, evitando o uso da CLI.",
-        "Criar um usuário IAM individual para cada desenvolvedor, com o nome de usuário correspondendo ao seu nome de usuário no Active Directory, e gerar Access Keys de longa duração para uso na CLI.",
-        "Configurar um provedor de identidade SAML 2.0 no IAM apontando para o Active Directory corporativo, criar IAM roles com uma política de confiança que permita federação SAML, e os desenvolvedores usam a operação AWS STS AssumeRoleWithSAML (via ferramentas que processam a asserção SAML) para obter credenciais temporárias para uso na CLI e em SDKs.",
-        "Configurar Amazon Cognito Identity Pools com o Active Directory corporativo como um provedor de identidade SAML, emitindo credenciais do STS para uso na CLI."
+        "Integrar Identity Center ao diretório e permitir apenas o portal de console aos desenvolvedores.",
+        "Sincronizar nomes do diretório com usuários IAM e distribuir suas access keys para uso na CLI.",
+        "Configurar federação SAML no IAM e trocar a asserção por credenciais via AssumeRoleWithSAML.",
+        "Enviar a asserção SAML ao GetSessionToken para gerar credenciais sem role federada."
       ],
       "correct": 2,
-      "explanation": "A federação SAML 2.0 com o IAM permite que asserções SAML emitidas pelo Active Directory corporativo sejam trocadas, via AWS STS AssumeRoleWithSAML, por credenciais temporárias (Access Key, Secret Key, Session Token) que podem ser usadas diretamente pela AWS CLI e SDKs, sem a necessidade de usuários IAM ou Access Keys de longa duração.",
-      "hint": "Pense na operação do AWS STS especificamente desenhada para trocar uma asserção SAML por credenciais temporárias utilizáveis pela AWS CLI e SDKs.",
+      "explanation": "Identity Center com configuração CLI seria uma alternativa válida, mas restringir o uso ao console não atende ao fluxo solicitado. Chaves IAM de longa duração não atendem ao requisito de credenciais temporárias federadas. AssumeRoleWithSAML recebe uma asserção válida e retorna credenciais temporárias para CLI e SDKs. GetSessionToken requer credenciais IAM para a chamada; não troca uma asserção SAML por credenciais federadas.",
+      "hint": "Verifique qual operação STS aceita a asserção de federação usada no cenário.",
       "optionRationales": [
-        "A federação SAML 2.0 com o IAM permite que asserções SAML emitidas pelo Active Directory corporativo sejam trocadas, via AWS STS AssumeRoleWithSAML, por credenciais temporárias (Access Key, Secret Key, Session Token) que podem ser usadas diretamente pela AWS CLI e SDKs, sem a necessidade de usuários IAM ou Access Keys de longa duração.",
-        "Criar usuários IAM individuais com Access Keys de longa duração é exatamente o que o requisito busca evitar, além de não aproveitar a federação com o Active Directory corporativo nem fornecer credenciais temporárias.",
-        "Cognito Identity Pools foram projetados para fornecer credenciais temporárias a identidades de usuários finais de aplicações (mobile/web), não para federação de força de trabalho corporativa com acesso à AWS CLI/SDK; a federação SAML direta com o IAM via AssumeRoleWithSAML é o mecanismo apropriado para esse caso de uso.",
-        "Orientar os desenvolvedores a evitar a CLI não atende ao requisito explícito de que eles precisam executar comandos da AWS CLI e chamadas de SDK usando suas identidades corporativas; a solução deve viabilizar esse acesso programático, não contorná-lo."
+        "Identity Center com configuração CLI seria uma alternativa válida, mas restringir o uso ao console não atende ao fluxo solicitado.",
+        "Chaves IAM de longa duração não atendem ao requisito de credenciais temporárias federadas.",
+        "AssumeRoleWithSAML recebe uma asserção válida e retorna credenciais temporárias para CLI e SDKs.",
+        "GetSessionToken requer credenciais IAM para a chamada; não troca uma asserção SAML por credenciais federadas."
       ],
       "topics": [
         "iam"
@@ -1150,19 +1150,19 @@
       "domain": "secure-architectures",
       "text": "A equipe central de rede de uma empresa mantém um AWS Transit Gateway e sub-redes compartilhadas em uma conta dedicada de 'rede', dentro do AWS Organizations. Dezenas de contas de aplicação na organização precisam anexar suas VPCs a esse Transit Gateway e lançar recursos nas sub-redes compartilhadas, sem que a equipe de rede precise conceder acesso total à sua conta nem recriar os recursos em cada conta de aplicação. Qual serviço permite esse compartilhamento de forma segura e centralizada?",
       "options": [
-        "Criar IAM roles entre contas que permitam que as contas de aplicação assumam uma role na conta de rede para criar seus recursos diretamente nessa conta.",
-        "AWS Resource Access Manager (RAM), compartilhando o Transit Gateway e as sub-redes da conta de rede com as contas (ou OUs) de aplicação na organização, permitindo que cada conta crie seus próprios anexos e recursos usando os recursos compartilhados.",
-        "Estabelecer VPC Peering entre a VPC da conta de rede e a VPC de cada uma das dezenas de contas de aplicação.",
-        "Recriar manualmente a configuração do Transit Gateway em cada uma das contas de aplicação."
+        "Criar roles na conta de rede para as equipes lançarem todos os recursos assumindo essas roles.",
+        "Compartilhar Transit Gateway e sub-redes via RAM com as contas ou OUs participantes da organização.",
+        "Estabelecer Peerings e propagar rotas das sub-redes da conta de rede às contas participantes.",
+        "Implantar Transit Gateways separados por StackSets e replicar as sub-redes em cada conta."
       ],
       "correct": 1,
-      "explanation": "O AWS RAM permite compartilhar recursos como Transit Gateways e sub-redes diretamente com outras contas ou OUs dentro do AWS Organizations; as contas de aplicação podem então criar anexos ao Transit Gateway ou lançar recursos nas sub-redes compartilhadas a partir de suas próprias contas, sem duplicar a infraestrutura nem receber acesso total à conta de rede.",
-      "hint": "Pense no serviço criado especificamente para compartilhar recursos da AWS entre contas de uma organização sem duplicá-los nem conceder acesso total à conta proprietária.",
+      "explanation": "Assumir uma role na conta de rede criaria recursos sob a propriedade dessa conta, não da participante. RAM compartilha os recursos suportados; participantes mantêm seus próprios recursos e responsabilidades no modelo de VPC compartilhada. Peering oferece conectividade, mas não permite lançar recursos da conta participante nas sub-redes da outra conta. Recriar TGWs elimina o modelo centralizado e não compartilha as sub-redes existentes.",
+      "hint": "Conectividade entre redes não é a mesma coisa que compartilhar a infraestrutura com propriedade separada dos recursos.",
       "optionRationales": [
-        "O AWS RAM permite compartilhar recursos como Transit Gateways e sub-redes diretamente com outras contas ou OUs dentro do AWS Organizations; as contas de aplicação podem então criar anexos ao Transit Gateway ou lançar recursos nas sub-redes compartilhadas a partir de suas próprias contas, sem duplicar a infraestrutura nem receber acesso total à conta de rede.",
-        "Essa abordagem faria com que os recursos das equipes de aplicação fossem criados dentro da conta de rede (violando o isolamento de contas) e não permite que cada conta de aplicação use o Transit Gateway compartilhado a partir de sua própria VPC, que é o objetivo real.",
-        "VPC Peering não compartilha o próprio Transit Gateway, exigiria dezenas de conexões de peering individuais (não escalável) e conexões de peering não são transitivas, não substituindo a funcionalidade de um Transit Gateway compartilhado.",
-        "Duplicar a configuração do Transit Gateway em cada conta cria desvio de configuração (configuration drift), aumenta drasticamente o custo e a complexidade operacional, e elimina o propósito de uma gestão de rede centralizada."
+        "Assumir uma role na conta de rede criaria recursos sob a propriedade dessa conta, não da participante.",
+        "RAM compartilha os recursos suportados; participantes mantêm seus próprios recursos e responsabilidades no modelo de VPC compartilhada.",
+        "Peering oferece conectividade, mas não permite lançar recursos da conta participante nas sub-redes da outra conta.",
+        "Recriar TGWs elimina o modelo centralizado e não compartilha as sub-redes existentes."
       ],
       "topics": [
         "governance",
@@ -1173,21 +1173,21 @@
     {
       "id": "saa-avc-049",
       "domain": "secure-architectures",
-      "text": "A equipe de segurança de uma organização com 50 contas no AWS Organizations precisa garantir que uma Web ACL do AWS WAF, com grupos de regras gerenciadas contra SQL injection e XSS, seja aplicada automaticamente a TODOS os Application Load Balancers e distribuições CloudFront existentes e futuros, em todas as contas — sem que administradores das contas-membro possam remover ou modificar essas regras de base. Além disso, a equipe quer que qualquer Security Group em qualquer conta que permita SSH irrestrito (0.0.0.0/0 na porta 22) seja automaticamente identificado e corrigido. Qual serviço atende a esses dois requisitos?",
+      "text": "Uma organização quer administrar regras WAF de base para ALBs e CloudFront existentes e futuros e detectar e remediar Security Groups com SSH irrestrito. A solução deve restaurar conformidade automaticamente quando houver desvios, com AWS Config e pré-requisitos organizacionais habilitados. Qual serviço centraliza esses controles?",
       "options": [
-        "AWS Firewall Manager, configurado com uma conta administradora via AWS Organizations, definindo uma política de WAF que aplica a Web ACL base a todos os ALBs e distribuições CloudFront no escopo, e uma política de Security Group que audita e remedia automaticamente regras que permitam SSH irrestrito.",
-        "Criar Service Control Policies (SCPs) que neguem as ações wafv2:DeleteWebACL e ec2:RevokeSecurityGroupIngress em toda a organização.",
-        "Implantar um Conformance Pack do AWS Config com uma regra customizada que sinalize Security Groups com SSH aberto para revisão manual pela equipe de segurança.",
-        "Criar e anexar manualmente a mesma Web ACL a cada ALB e distribuição CloudFront em cada uma das 50 contas."
+        "Configurar políticas Firewall Manager de WAF e de auditoria de Security Groups com remediação automática.",
+        "Negar DeleteWebACL e RevokeSecurityGroupIngress por SCP e manter as configurações atuais dos recursos.",
+        "Implantar regras Config para identificar SSH aberto e enviar findings para revisão da equipe central.",
+        "Copiar Web ACLs manualmente para cada conta e revisar mensalmente os Security Groups existentes."
       ],
       "correct": 0,
-      "explanation": "O AWS Firewall Manager permite que uma conta administradora defina políticas de segurança (WAF, Security Groups, Shield Advanced, Network Firewall) que são aplicadas automaticamente a recursos em todas as contas da organização, incluindo recursos criados no futuro; administradores de contas-membro não podem remover essas políticas, e políticas de Security Group podem identificar e remediar automaticamente configurações não conformes, como SSH aberto para 0.0.0.0/0.",
-      "hint": "Pense no serviço de segurança projetado especificamente para implantar e impor centralmente políticas de WAF, Shield e Security Groups em todos os recursos de uma organização AWS, com remediação automática.",
+      "explanation": "Firewall Manager centraliza políticas WAF e de Security Group no escopo organizacional, com remediação configurada. Prevenção absoluta de alterações pode exigir guardrails adicionais. Negar exclusões não implanta as regras nem corrige SSH aberto; negar RevokeSecurityGroupIngress ainda pode impedir a correção. Avaliação para revisão manual não cumpre a remediação automática nem a distribuição WAF. Implantação manual não acompanha automaticamente recursos futuros e mantém esforço por conta.",
+      "hint": "A solução precisa administrar políticas e remediação em múltiplas contas, não apenas produzir findings.",
       "optionRationales": [
-        "O AWS Firewall Manager permite que uma conta administradora defina políticas de segurança (WAF, Security Groups, Shield Advanced, Network Firewall) que são aplicadas automaticamente a recursos em todas as contas da organização, incluindo recursos criados no futuro; administradores de contas-membro não podem remover essas políticas, e políticas de Security Group podem identificar e remediar automaticamente configurações não conformes, como SSH aberto para 0.0.0.0/0.",
-        "Essa abordagem manual não escala, não se aplica automaticamente a recursos criados no futuro, e administradores de cada conta-membro ainda teriam permissão para remover ou modificar a Web ACL associada aos seus próprios recursos.",
-        "SCPs podem restringir quais ações são permitidas, mas não têm a capacidade de criar e aplicar Web ACLs do WAF a recursos específicos nem de remediar automaticamente Security Groups não conformes; elas são um mecanismo de negação, não de implantação ou remediação.",
-        "Essa abordagem é puramente detectiva (sinaliza para revisão manual) e não implanta automaticamente a Web ACL base nos ALBs/CloudFront em toda a organização nem corrige automaticamente os Security Groups não conformes."
+        "Firewall Manager centraliza políticas WAF e de Security Group no escopo organizacional, com remediação configurada. Prevenção absoluta de alterações pode exigir guardrails adicionais.",
+        "Negar exclusões não implanta as regras nem corrige SSH aberto; negar RevokeSecurityGroupIngress ainda pode impedir a correção.",
+        "Avaliação para revisão manual não cumpre a remediação automática nem a distribuição WAF.",
+        "Implantação manual não acompanha automaticamente recursos futuros e mantém esforço por conta."
       ],
       "topics": [
         "security-services",
@@ -1200,19 +1200,19 @@
       "domain": "secure-architectures",
       "text": "Uma grande empresa com milhares de funcionários distribuídos em dezenas de departamentos e centenas de projetos quer evitar criar um Permission Set do IAM Identity Center para cada combinação de departamento e projeto (o que resultaria em centenas de Permission Sets). Em vez disso, deseja que o acesso aos recursos seja determinado dinamicamente, comparando atributos do usuário (como department=Financas, costCenter=1234), vindos do provedor de identidade corporativo, com tags aplicadas aos próprios recursos da AWS. Qual abordagem atende a esse requisito de forma escalável?",
       "options": [
-        "Configurar o IAM Identity Center com Attributes for Access Control (ABAC), mapeando atributos do provedor de identidade SAML (como department e costCenter) para tags de sessão, e criar um pequeno número de Permission Sets cujas políticas IAM usem condições aws:PrincipalTag comparadas a tags de recurso (aws:ResourceTag).",
-        "Criar um Permission Set do IAM Identity Center separado para cada combinação de departamento e projeto, cada um com uma lista fixa de ARNs de recursos permitidos.",
-        "Usar Service Control Policies (SCPs) no AWS Organizations para conceder dinamicamente acesso com base nos atributos de departamento do usuário.",
-        "Criar um usuário IAM individual para cada funcionário, com políticas inline referenciando especificamente os recursos do departamento desse funcionário."
+        "Mapear atributos do IdP para session tags e comparar PrincipalTag com ResourceTag nos permission sets.",
+        "Criar permission sets por departamento e projeto com listas explícitas dos ARNs autorizados.",
+        "Conceder o acesso de cada departamento por SCP e omitir permissões dos permission sets.",
+        "Criar usuários IAM por funcionário e manter políticas inline com os recursos de seu projeto."
       ],
       "correct": 0,
-      "explanation": "O ABAC no IAM Identity Center mapeia atributos do usuário vindos do IdP para tags de sessão; políticas IAM com condições aws:PrincipalTag comparadas a aws:ResourceTag permitem que o acesso seja concedido dinamicamente com base na correspondência de atributos, eliminando a necessidade de um Permission Set por combinação de departamento/projeto e escalando automaticamente conforme novos departamentos ou projetos surgem.",
-      "hint": "Pense no modelo de controle de acesso em que as permissões são determinadas dinamicamente pela correspondência entre atributos (tags) do usuário e tags do recurso, em vez de listas fixas de permissões por grupo.",
+      "explanation": "ABAC combina atributos confiáveis da sessão com tags dos recursos; é preciso proteger quem pode alterar esses atributos e tags. Listas fixas por combinação de equipe e projeto recriam a explosão de permission sets que se deseja evitar. SCP limita permissões, não concede acesso por si só. Políticas individuais exigem manutenção por funcionário e não usam o modelo federado escalável solicitado.",
+      "hint": "Atributos só são uma fronteira segura se os usuários não puderem atribuir a si próprios valores privilegiados.",
       "optionRationales": [
-        "O ABAC no IAM Identity Center mapeia atributos do usuário vindos do IdP para tags de sessão; políticas IAM com condições aws:PrincipalTag comparadas a aws:ResourceTag permitem que o acesso seja concedido dinamicamente com base na correspondência de atributos, eliminando a necessidade de um Permission Set por combinação de departamento/projeto e escalando automaticamente conforme novos departamentos ou projetos surgem.",
-        "Essa abordagem resulta em uma explosão combinatória de Permission Sets (potencialmente centenas), com alto custo de manutenção e que não escala conforme departamentos e projetos mudam — exatamente o problema que a empresa quer evitar.",
-        "SCPs definem apenas o limite máximo de permissões para contas/OUs e não avaliam tags de sessão de usuários individuais vindas de um provedor de identidade SAML para conceder acesso dinamicamente; elas não substituem políticas IAM baseadas em ABAC.",
-        "Essa abordagem reintroduz o gerenciamento individual de usuários IAM em escala massiva, com políticas que precisam ser mantidas manualmente para cada funcionário — exatamente o tipo de sobrecarga administrativa que o IAM Identity Center com ABAC foi desenhado para eliminar."
+        "ABAC combina atributos confiáveis da sessão com tags dos recursos; é preciso proteger quem pode alterar esses atributos e tags.",
+        "Listas fixas por combinação de equipe e projeto recriam a explosão de permission sets que se deseja evitar.",
+        "SCP limita permissões, não concede acesso por si só.",
+        "Políticas individuais exigem manutenção por funcionário e não usam o modelo federado escalável solicitado."
       ],
       "topics": [
         "iam"
@@ -1221,21 +1221,21 @@
     {
       "id": "saa-avc-051",
       "domain": "secure-architectures",
-      "text": "Uma conta central de segurança armazena credenciais de um banco de dados compartilhado no AWS Secrets Manager, criptografadas com uma CMK do KMS. Múltiplas contas de aplicação precisam recuperar esse MESMO segredo em tempo de execução (por exemplo, credenciais de uma read replica compartilhada), e a empresa exige que a rotação do segredo, feita uma única vez na conta central, seja refletida automaticamente para todos os consumidores — sem duplicar o segredo em cada conta. Qual configuração atende a esse requisito?",
+      "text": "Um segredo central no Secrets Manager é criptografado com uma chave KMS gerenciada pelo cliente. Aplicações de outras contas devem lê-lo diretamente com suas próprias roles, sem assumir uma role na conta central nem duplicar o valor. Qual configuração permite consumir a versão atual após a rotação?",
       "options": [
-        "Exportar o valor do segredo e armazenar uma cópia dele no Secrets Manager de cada conta de aplicação.",
-        "Criar uma IAM role na conta de segurança com permissão para ler o segredo, e fazer com que as contas de aplicação chamem AssumeRole na conta de segurança toda vez que precisarem do segredo.",
-        "Anexar ao segredo no Secrets Manager (na conta central) uma política baseada em recurso (resource policy) concedendo secretsmanager:GetSecretValue às IAM roles das contas de aplicação, e atualizar a política da CMK do KMS para permitir kms:Decrypt a essas mesmas roles.",
-        "Usar o AWS Resource Access Manager (RAM) para compartilhar o segredo do Secrets Manager com as contas de aplicação."
+        "Copiar o segredo para cada conta e agendar sincronização das versões após cada rotação.",
+        "Permitir que as aplicações assumam uma role leitora dentro da conta central de segurança.",
+        "Autorizar as roles consumidoras por resource policy, IAM e key policy da chave KMS do segredo.",
+        "Autorizar as roles por resource policy e IAM, mantendo a chave KMS acessível só à conta central."
       ],
       "correct": 2,
-      "explanation": "Políticas baseadas em recurso no Secrets Manager permitem que principals de outras contas chamem GetSecretValue diretamente sobre o segredo centralizado, sem duplicação; como o segredo é criptografado com uma CMK, a política da chave também precisa conceder kms:Decrypt às roles das contas de aplicação. A rotação feita uma única vez na conta central é refletida imediatamente para todos os consumidores, pois todos leem o mesmo segredo.",
-      "hint": "Pense no tipo de política que pode ser anexada diretamente ao próprio segredo para conceder acesso entre contas, sem duplicar o segredo nem criar saltos adicionais de autenticação.",
+      "explanation": "Duplicar o segredo exige sincronizar todas as cópias a cada rotação. AssumeRole poderia resolver acesso compartilhado, mas viola a exigência de usar diretamente a identidade da conta de aplicação. O acesso direto exige autorização na política do segredo e na IAM da consumidora, além de autorização de decrypt na chave KMS gerenciada pelo cliente. A política do segredo não substitui a autorização KMS para descriptografar seu valor.",
+      "hint": "A autorização precisa atravessar tanto a fronteira de conta do segredo quanto a da chave criptográfica.",
       "optionRationales": [
-        "Políticas baseadas em recurso no Secrets Manager permitem que principals de outras contas chamem GetSecretValue diretamente sobre o segredo centralizado, sem duplicação; como o segredo é criptografado com uma CMK, a política da chave também precisa conceder kms:Decrypt às roles das contas de aplicação. A rotação feita uma única vez na conta central é refletida imediatamente para todos os consumidores, pois todos leem o mesmo segredo.",
-        "Duplicar o segredo em cada conta cria múltiplas fontes de verdade; quando a rotação ocorrer na conta central, as cópias nas contas de aplicação ficarão desatualizadas, exigindo sincronização manual e violando o requisito de que a rotação seja refletida automaticamente para todos os consumidores.",
-        "O AWS Secrets Manager não é um tipo de recurso suportado para compartilhamento via AWS RAM; o compartilhamento entre contas de segredos é feito através de políticas baseadas em recurso (resource policies) anexadas diretamente ao segredo.",
-        "Essa abordagem adiciona uma camada extra de indireção (assumir uma role em outra conta a cada chamada) e concentra todas as chamadas de todas as contas consumidoras através do STS da conta de segurança, criando complexidade e uma potencial dependência centralizada desnecessária, quando uma política de recurso direta no segredo resolveria isso de forma mais simples."
+        "Duplicar o segredo exige sincronizar todas as cópias a cada rotação.",
+        "AssumeRole poderia resolver acesso compartilhado, mas viola a exigência de usar diretamente a identidade da conta de aplicação.",
+        "O acesso direto exige autorização na política do segredo e na IAM da consumidora, além de autorização de decrypt na chave KMS gerenciada pelo cliente.",
+        "A política do segredo não substitui a autorização KMS para descriptografar seu valor."
       ],
       "topics": [
         "security-services",
