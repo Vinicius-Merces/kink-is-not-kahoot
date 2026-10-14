@@ -69,3 +69,17 @@ O nome registrado no código continua **Sentinela da Fortaleza**. Os demais inim
 
 - 14/10/2026: concept art e 16 poses do novo herói e da Sentinela aprovadas; teste local de tempos e enquadramento aprovado.
 - A integração GitHub do código só estará totalmente operacional quando os **dois PNGs mestres** também estiverem versionados nos caminhos documentados.
+
+
+## Vitória do herói masculino (extensão aprovada)
+
+Além dos 16 frames padrão, o herói masculino utiliza uma animação extra de **vitória** com quatro quadros dispostos em uma linha horizontal, em `images/arena/hero/masculino/victory.png`.
+
+- Duração total: **1000 ms** (250 ms por quadro).
+- Gatilho: `animateHero('victory')` ao vencer o encontro.
+- Estado final: retorna ao `idle` por meio de `onComplete`.
+- O PNG original aprovado tem resolução **2172 × 724 px**, com transparência RGBA.
+- O carregamento é opcional: falha do arquivo da vitória não deve bloquear ataque, defesa ou morte do herói. Enquanto o PNG não estiver presente, o renderer mantém a pose de idle como fallback.
+- O recorte segue o padrão geral de 15 px internos em cada lateral e 20 px no topo, mas com **uma única linha** em vez de quatro.
+
+**Status dos arquivos:** Código de suporte inserido na `main` em 14/10/2026; é obrigatório versionar o PNG aprovado no caminho acima e confirmar o deploy na SquareCloud antes de considerar a animação disponibilizada online.
