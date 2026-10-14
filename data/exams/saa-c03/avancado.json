@@ -28,7 +28,7 @@
     {
       "id": "saa-avc-001",
       "domain": "secure-architectures",
-      "text": "Uma empresa com várias contas AWS organizadas em uma OU no AWS Organizations precisa garantir que nenhuma conta-membro consiga criar recursos fora da Região 'sa-east-1', independentemente das permissões do IAM concedidas localmente. Qual é a abordagem correta?",
+      "text": "Uma organização precisa impedir que usuários e roles IAM comuns de suas contas-membro provisionem recursos regionais fora de sa-east-1, mesmo com AdministratorAccess local. Serviços globais necessários terão exceções explícitas; roles vinculadas a serviços estão fora deste controle. Qual abordagem aplica essa barreira centralmente?",
       "options": [
         "Aplicar uma SCP na OU com Deny condicionado a aws:RequestedRegion, excetuando ações globais necessárias.",
         "Aplicar políticas IAM com Deny regional a todas as roles existentes e novas em cada conta-membro.",
@@ -36,11 +36,18 @@
         "Aplicar políticas de tag obrigatória na OU e impedir provisionamento de recursos sem a tag regional."
       ],
       "correct": 0,
-      "explanation": "SCPs aplicadas a uma OU representam um limite de permissões que nenhuma política do IAM dentro das contas-membro pode ultrapassar; usar a condição aws:RequestedRegion permite negar ações fora da Região desejada em todas as contas da OU.",
+      "explanation": "A negação explícita da SCP limita identidades das contas-membro, inclusive root, sem depender das políticas locais. Serviços globais e roles vinculadas a serviços exigem tratamento próprio. Políticas locais podem ser alteradas por administradores da conta; não estabelecem a barreira organizacional solicitada. Config detecta desvios após o provisionamento; remediar não equivale a impedir a criação. Políticas de tags padronizam valores e chaves, mas não substituem uma restrição de Região por SCP.",
       "topics": [
         "governance",
         "iam"
-      ]
+      ],
+      "optionRationales": [
+        "A negação explícita da SCP limita identidades das contas-membro, inclusive root, sem depender das políticas locais. Serviços globais e roles vinculadas a serviços exigem tratamento próprio.",
+        "Políticas locais podem ser alteradas por administradores da conta; não estabelecem a barreira organizacional solicitada.",
+        "Config detecta desvios após o provisionamento; remediar não equivale a impedir a criação.",
+        "Políticas de tags padronizam valores e chaves, mas não substituem uma restrição de Região por SCP."
+      ],
+      "hint": "Diferencie limites organizacionais de permissões locais e controles detectivos."
     },
     {
       "id": "saa-avc-002",
@@ -53,11 +60,18 @@
         "Criar um índice secundário global por identificador e permitir Query sem restrição de chave nas credenciais."
       ],
       "correct": 0,
-      "explanation": "Políticas do IAM com condições como dynamodb:LeadingKeys permitem restringir o acesso de um usuário federado apenas aos itens cuja partition key corresponda ao seu próprio identificador, um padrão comum em aplicações multi-tenant.",
+      "explanation": "dynamodb:LeadingKeys pode limitar as chaves de partição acessíveis nas operações autorizadas, usando o identificador confiável da sessão. Restringir quem assume a sessão sem vincular as chaves acessadas ao usuário não implementa isolamento por item. O filtro do cliente pode ser contornado usando as credenciais diretamente nas APIs. Um índice muda o caminho de consulta, mas não cria autorização por usuário.",
       "topics": [
         "iam",
         "databases"
-      ]
+      ],
+      "optionRationales": [
+        "dynamodb:LeadingKeys pode limitar as chaves de partição acessíveis nas operações autorizadas, usando o identificador confiável da sessão.",
+        "Restringir quem assume a sessão sem vincular as chaves acessadas ao usuário não implementa isolamento por item.",
+        "O filtro do cliente pode ser contornado usando as credenciais diretamente nas APIs.",
+        "Um índice muda o caminho de consulta, mas não cria autorização por usuário."
+      ],
+      "hint": "O isolamento deve ser aplicado à chave dos itens na autorização da API, não apenas na consulta do cliente."
     },
     {
       "id": "saa-avc-003",
@@ -70,11 +84,18 @@
         "Criar uma API edge-optimized e restringir chamadas com regras AWS WAF por faixa de origem."
       ],
       "correct": 1,
-      "explanation": "APIs privadas do API Gateway só podem ser acessadas a partir de uma VPC por meio de um VPC Endpoint de interface (AWS PrivateLink), mantendo o tráfego fora da internet pública.",
+      "explanation": "IPs privados não identificam a origem de chamadas ao endpoint público Regional por NAT. A API REST privada é acessada pelo endpoint execute-api; a política pode limitar aws:SourceVpce ao endpoint autorizado. NAT oferece acesso ao endpoint público e não transforma a API em privada. WAF filtra requisições HTTP, mas a distribuição edge-optimized continua usando um endpoint público.",
       "topics": [
         "vpc",
         "app-integration"
-      ]
+      ],
+      "optionRationales": [
+        "IPs privados não identificam a origem de chamadas ao endpoint público Regional por NAT.",
+        "A API REST privada é acessada pelo endpoint execute-api; a política pode limitar aws:SourceVpce ao endpoint autorizado.",
+        "NAT oferece acesso ao endpoint público e não transforma a API em privada.",
+        "WAF filtra requisições HTTP, mas a distribuição edge-optimized continua usando um endpoint público."
+      ],
+      "hint": "Diferencie a exposição do endpoint do controle de quem pode invocá-lo."
     },
     {
       "id": "saa-avc-005",
@@ -87,11 +108,18 @@
         "Usar Aurora Global Database com cluster secundário em outra Região e procedimento de failover regional."
       ],
       "correct": 3,
-      "explanation": "O Aurora Global Database replica dados entre Regiões com latência tipicamente abaixo de 1 segundo, permitindo RPO próximo de zero e recuperação rápida (RTO baixo) em caso de falha regional.",
+      "explanation": "Multi-AZ protege contra falhas de zona dentro da mesma Região. Restaurar snapshots implica tempo de restauração e um RPO limitado pelo snapshot disponível. Réplicas na mesma Região compartilham a exposição a uma interrupção regional. Global Database mantém uma secundária regional pronta; a replicação assíncrona reduz o RPO, mas não garante perda zero em failover não planejado.",
       "topics": [
         "databases",
         "dr-backup"
-      ]
+      ],
+      "optionRationales": [
+        "Multi-AZ protege contra falhas de zona dentro da mesma Região.",
+        "Restaurar snapshots implica tempo de restauração e um RPO limitado pelo snapshot disponível.",
+        "Réplicas na mesma Região compartilham a exposição a uma interrupção regional.",
+        "Global Database mantém uma secundária regional pronta; a replicação assíncrona reduz o RPO, mas não garante perda zero em failover não planejado."
+      ],
+      "hint": "Compare proteção zonal com uma cópia regional continuamente atualizada."
     },
     {
       "id": "saa-avc-006",
@@ -104,16 +132,23 @@
         "Aumentar o tamanho do lote da integração SQS-Lambda para garantir uma execução única por mensagem."
       ],
       "correct": 1,
-      "explanation": "Filas SQS Standard oferecem entrega 'at-least-once', podendo gerar mensagens duplicadas. A solução recomendada é tornar o processamento idempotente ou usar uma fila FIFO com deduplicação de conteúdo quando a unicidade for essencial.",
+      "explanation": "O timeout deve cobrir o processamento, mas não elimina a semântica de entrega pelo menos uma vez. Idempotência evita repetir efeitos após reentregas. FIFO pode apoiar ordem e deduplicação de envio, mas não dispensa idempotência do consumidor. Deduplicação de conteúdo é um recurso de filas FIFO, não de Standard. Lotes maiores mudam throughput e comportamento de falhas, não garantem execução única.",
       "topics": [
         "serverless",
         "app-integration"
-      ]
+      ],
+      "optionRationales": [
+        "O timeout deve cobrir o processamento, mas não elimina a semântica de entrega pelo menos uma vez.",
+        "Idempotência evita repetir efeitos após reentregas. FIFO pode apoiar ordem e deduplicação de envio, mas não dispensa idempotência do consumidor.",
+        "Deduplicação de conteúdo é um recurso de filas FIFO, não de Standard.",
+        "Lotes maiores mudam throughput e comportamento de falhas, não garantem execução única."
+      ],
+      "hint": "Separe deduplicação do envio de mensagens da garantia de não repetir efeitos no consumidor."
     },
     {
       "id": "saa-avc-007",
       "domain": "resilient-architectures",
-      "text": "Uma empresa usa o Amazon S3 como origem do CloudFront e precisa garantir que, mesmo durante uma manutenção planejada na origem primária, as requisições sejam atendidas por uma origem secundária em outra Região. Qual recurso do CloudFront viabiliza isso?",
+      "text": "Uma distribuição CloudFront serve objetos S3 por GET e HEAD. Durante manutenção, a origem primária pode retornar 503. Os mesmos objetos estão disponíveis em um bucket secundário em outra Região. Qual recurso permite encaminhar essas requisições à secundária automaticamente dentro da distribuição?",
       "options": [
         "Configurar um origin group no CloudFront com origem secundária e códigos HTTP elegíveis para failover.",
         "Configurar políticas de cache separadas para duas origens, com alternância automática baseada em TTL.",
@@ -121,15 +156,22 @@
         "Criar uma distribuição adicional com a segunda origem e alternar o DNS somente após detecção externa."
       ],
       "correct": 0,
-      "explanation": "Origin Groups no CloudFront permitem configurar uma origem primária e uma secundária; em caso de falhas (códigos de erro configuráveis), o CloudFront automaticamente faz failover para a origem secundária.",
+      "explanation": "Origin groups fazem failover para a origem secundária nos erros configurados; o mecanismo se aplica a GET, HEAD e OPTIONS. TTL controla validade do cache, não seleção automática de origem secundária por erro. CloudFront Functions não fornece sondagens de disponibilidade da origem como mecanismo nativo de failover. Uma segunda distribuição exige orquestração externa e mudança DNS; não é o recurso de failover dentro da distribuição.",
       "topics": [
         "edge-dns"
-      ]
+      ],
+      "optionRationales": [
+        "Origin groups fazem failover para a origem secundária nos erros configurados; o mecanismo se aplica a GET, HEAD e OPTIONS.",
+        "TTL controla validade do cache, não seleção automática de origem secundária por erro.",
+        "CloudFront Functions não fornece sondagens de disponibilidade da origem como mecanismo nativo de failover.",
+        "Uma segunda distribuição exige orquestração externa e mudança DNS; não é o recurso de failover dentro da distribuição."
+      ],
+      "hint": "O mecanismo deve reagir a erros da origem e respeitar os métodos HTTP suportados."
     },
     {
       "id": "saa-avc-008",
       "domain": "high-performing-architectures",
-      "text": "Uma aplicação de processamento de vídeo precisa de armazenamento de altíssimo throughput e baixa latência compartilhado entre centenas de instâncias EC2 para cargas de trabalho de HPC. Qual serviço é mais adequado?",
+      "text": "Um pipeline HPC de vídeo em centenas de instâncias EC2 processa simultaneamente grandes conjuntos de arquivos no S3. Ele exige um sistema de arquivos paralelo gerenciado, acesso POSIX e importação/exportação integrada com S3, sem construir servidores de arquivos. Qual solução atende melhor?",
       "options": [
         "Usar Amazon EFS em modo de desempenho General Purpose para compartilhar arquivos via NFS entre instâncias.",
         "Usar Amazon FSx for OpenZFS com volumes NFS e snapshots para compartilhamento entre instâncias EC2.",
@@ -137,10 +179,17 @@
         "Usar Amazon EBS io2 Block Express anexado a um nó de armazenamento que exporta arquivos por NFS."
       ],
       "correct": 2,
-      "explanation": "O Amazon FSx for Lustre é otimizado para cargas de trabalho de computação de alto desempenho (HPC) que exigem throughput muito alto e baixa latência, podendo ser integrado ao S3 como camada de dados.",
+      "explanation": "EFS oferece arquivos NFS compartilhados, mas não o sistema de arquivos paralelo solicitado. OpenZFS atende compartilhamento NFS e snapshots; não é um sistema paralelo Lustre para o pipeline descrito. FSx for Lustre oferece acesso paralelo de alto throughput e integração com conjuntos de dados no S3. Um servidor NFS sobre EBS centraliza a camada de arquivos e exige operação própria, em vez do sistema paralelo gerenciado.",
       "topics": [
         "s3-storage"
-      ]
+      ],
+      "optionRationales": [
+        "EFS oferece arquivos NFS compartilhados, mas não o sistema de arquivos paralelo solicitado.",
+        "OpenZFS atende compartilhamento NFS e snapshots; não é um sistema paralelo Lustre para o pipeline descrito.",
+        "FSx for Lustre oferece acesso paralelo de alto throughput e integração com conjuntos de dados no S3.",
+        "Um servidor NFS sobre EBS centraliza a camada de arquivos e exige operação própria, em vez do sistema paralelo gerenciado."
+      ],
+      "hint": "Considere o modelo de acesso paralelo e a integração com o conjunto de dados, além da capacidade do volume."
     },
     {
       "id": "saa-avc-009",
@@ -153,11 +202,18 @@
         "Configurar registros de failover ativo-passivo e health checks para manter uma Região primária fixa."
       ],
       "correct": 0,
-      "explanation": "O roteamento por latência direciona o usuário para a Região com menor latência; combinado com health checks, permite failover automático para outra Região saudável.",
+      "explanation": "A política de latência seleciona a Região segundo medições do Route 53; health checks retiram endpoints não saudáveis das respostas elegíveis. Geolocalização escolhe por localização geográfica, que não equivale à menor latência. Pesos definem proporções de respostas DNS, não comparam latência. Failover ativo-passivo privilegia uma Região fixa em vez de escolher a de menor latência.",
       "topics": [
         "edge-dns",
         "high-availability"
-      ]
+      ],
+      "optionRationales": [
+        "A política de latência seleciona a Região segundo medições do Route 53; health checks retiram endpoints não saudáveis das respostas elegíveis.",
+        "Geolocalização escolhe por localização geográfica, que não equivale à menor latência.",
+        "Pesos definem proporções de respostas DNS, não comparam latência.",
+        "Failover ativo-passivo privilegia uma Região fixa em vez de escolher a de menor latência."
+      ],
+      "hint": "A política precisa combinar o critério de escolha com a avaliação de saúde; caches DNS ainda afetam a convergência."
     },
     {
       "id": "saa-avc-010",
@@ -170,16 +226,23 @@
         "Ativar DynamoDB Streams e processar as gravações em lotes após persistência na tabela principal."
       ],
       "correct": 2,
-      "explanation": "Hot partitions ocorrem quando a distribuição de chaves é desigual. A solução de design é distribuir a carga adicionando um sufixo (sharding) à partition key, espalhando os itens por mais partições físicas.",
+      "explanation": "Um GSI com a mesma chave pode repetir a concentração de escrita e adiciona consumo para manter o índice. Capacidade total maior não elimina o limite concentrado de uma partição quente. Write sharding distribui gravações entre chaves; as leituras precisam reunir os fragmentos. Streams é posterior à gravação; não redistribui a carga que já atingiu a tabela.",
       "topics": [
         "databases",
         "analytics"
-      ]
+      ],
+      "optionRationales": [
+        "Um GSI com a mesma chave pode repetir a concentração de escrita e adiciona consumo para manter o índice.",
+        "Capacidade total maior não elimina o limite concentrado de uma partição quente.",
+        "Write sharding distribui gravações entre chaves; as leituras precisam reunir os fragmentos.",
+        "Streams é posterior à gravação; não redistribui a carga que já atingiu a tabela."
+      ],
+      "hint": "Procure alterar a distribuição de escrita, considerando o custo correspondente nas leituras."
     },
     {
       "id": "saa-avc-011",
       "domain": "cost-optimized-architectures",
-      "text": "Uma empresa executa cargas de trabalho de processamento em lote (batch) que podem ser pausadas e retomadas, distribuídas em milhares de instâncias EC2 de diversos tipos, com o objetivo de minimizar custo. Qual abordagem combina economia e resiliência a interrupções?",
+      "text": "Uma empresa executa lotes variáveis de tarefas de duas horas, que salvam checkpoints e podem ser retomadas, mas não podem ser divididas em funções menores sem redesenho. Há milhares de workers EC2 compatíveis com várias famílias. Qual estratégia reduz custo mantendo capacidade complementar para períodos de baixa disponibilidade Spot?",
       "options": [
         "Executar o processamento em instâncias On-Demand diversificadas entre tipos e zonas, com Auto Scaling para adequar a capacidade à fila.",
         "Combinar instâncias Spot de vários tipos e zonas com estratégia capacity-optimized e capacidade On-Demand complementar no Auto Scaling.",
@@ -187,17 +250,24 @@
         "Executar os lotes em funções Lambda disparadas por eventos, dividindo o processamento em tarefas independentes de curta duração."
       ],
       "correct": 1,
-      "explanation": "Combinar Spot Instances de múltiplos tipos/AZs com a estratégia 'capacity-optimized' e um fallback On-Demand reduz custos significativamente para cargas tolerantes a interrupções, mantendo resiliência.",
+      "explanation": "On-Demand diversificado é resiliente, mas não aproveita o desconto Spot para trabalho tolerante a interrupções. Spot diversificado reduz exposição a um único pool; checkpoints e capacidade On-Demand complementar apoiam a continuidade. Reservar o pico implica compromisso de gasto que pode ficar ocioso fora dos picos. As tarefas descritas ultrapassam o limite de execução de uma função Lambda e não podem ser decompostas sem redesenho.",
       "topics": [
         "ec2-compute",
         "cost",
         "high-availability"
-      ]
+      ],
+      "optionRationales": [
+        "On-Demand diversificado é resiliente, mas não aproveita o desconto Spot para trabalho tolerante a interrupções.",
+        "Spot diversificado reduz exposição a um único pool; checkpoints e capacidade On-Demand complementar apoiam a continuidade.",
+        "Reservar o pico implica compromisso de gasto que pode ficar ocioso fora dos picos.",
+        "As tarefas descritas ultrapassam o limite de execução de uma função Lambda e não podem ser decompostas sem redesenho."
+      ],
+      "hint": "Combine tolerância a interrupções, diversidade de capacidade e uma base de capacidade sem compromisso de longo prazo."
     },
     {
       "id": "saa-avc-012",
       "domain": "cost-optimized-architectures",
-      "text": "Uma empresa com múltiplas contas AWS quer otimizar custos aproveitando descontos por volume agregado de Savings Plans entre todas as contas. Qual recurso do AWS Organizations possibilita o compartilhamento de descontos entre contas-membro?",
+      "text": "Uma organização quer que benefícios elegíveis dos Savings Plans de uma conta também cubram uso de outras contas-membro, quando disponíveis. Qual configuração permite esse compartilhamento?",
       "options": [
         "Ativar faturamento consolidado e compartilhamento de descontos elegíveis entre contas da organização.",
         "Compartilhar relatórios do Cost Explorer entre contas para calcular descontos de Savings Plans em conjunto.",
@@ -205,30 +275,37 @@
         "Criar roles cross-account para que a conta pagadora aplique descontos diretamente via IAM."
       ],
       "correct": 0,
-      "explanation": "O Consolidated Billing do AWS Organizations permite que descontos por volume e benefícios de Savings Plans/Reserved Instances sejam compartilhados entre as contas-membro, otimizando custos agregados.",
+      "explanation": "Faturamento consolidado com compartilhamento habilitado permite aplicar benefícios elegíveis entre contas; Savings Plans são compromissos de gasto, não descontos por volume em si. Cost Explorer analisa custos, mas compartilhar relatórios não altera a aplicação dos benefícios. RAM compartilha recursos suportados, não benefícios de faturamento. IAM autoriza ações, mas não define a distribuição de descontos de Savings Plans.",
       "topics": [
         "governance",
         "cost"
-      ]
+      ],
+      "optionRationales": [
+        "Faturamento consolidado com compartilhamento habilitado permite aplicar benefícios elegíveis entre contas; Savings Plans são compromissos de gasto, não descontos por volume em si.",
+        "Cost Explorer analisa custos, mas compartilhar relatórios não altera a aplicação dos benefícios.",
+        "RAM compartilha recursos suportados, não benefícios de faturamento.",
+        "IAM autoriza ações, mas não define a distribuição de descontos de Savings Plans."
+      ],
+      "hint": "Diferencie autorização de acesso, análise de custos e regras de faturamento."
     },
     {
       "id": "saa-avc-013",
       "domain": "secure-architectures",
-      "text": "Uma empresa SaaS B2B precisa permitir que sistemas de seus clientes corporativos (cada um com sua própria conta AWS) acessem temporariamente uma API interna que lê dados de um bucket Amazon S3, sem compartilhar credenciais de longa duração e sem criar um usuário IAM por cliente. Cada cliente deve fornecer um identificador único para evitar o problema do 'confused deputy'. Qual arquitetura atende a esses requisitos com o menor risco de segurança?",
+      "text": "Uma SaaS consulta buckets S3 nas contas AWS de seus clientes por meio de uma role central. Um cliente não deve conseguir induzir a SaaS a acessar o bucket de outro fornecendo o ARN de sua role. Sem chaves de longa duração, qual desenho mitiga esse problema de confused deputy?",
       "options": [
-        "Criar roles de acesso em cada conta cliente e conceder acesso direto ao bucket por política de recurso, sem ExternalId.",
-        "Criar role na conta SaaS com trust policy para contas clientes e condição sts:ExternalId exclusiva por cliente.",
-        "Emitir credenciais STS na conta SaaS e entregá-las aos clientes por uma API autenticada com token estático.",
-        "Permitir AssumeRole entre contas clientes e SaaS usando apenas restrição por AWS principal, sem identificador externo."
+        "Criar roles nos clientes confiando na role da SaaS e autorizar AssumeRole apenas pelo principal.",
+        "Criar roles nos clientes confiando na SaaS, condicionadas ao ExternalId exclusivo gerado pela SaaS.",
+        "Criar roles nos clientes confiando na SaaS e aceitar ExternalIds escolhidos e reutilizáveis pelos clientes.",
+        "Criar uma role na SaaS para os clientes assumirem, com ExternalId próprio para leitura dos seus buckets."
       ],
       "correct": 1,
-      "explanation": "O uso de AssumeRole entre contas com a condição sts:ExternalId é o padrão recomendado pela AWS para integrações de terceiros, pois gera credenciais temporárias via STS e o ExternalId único por cliente impede que um cliente mal-intencionado induza a SaaS a assumir a role em nome de outro cliente (confused deputy).",
-      "hint": "Pense no padrão de acesso entre contas que usa credenciais temporárias via STS e uma condição que identifica de forma única quem está solicitando o acesso.",
+      "explanation": "Uma trust policy que identifica apenas a SaaS não vincula a chamada ao cliente que a originou. O cliente cria a role; a SaaS gera um ExternalId exclusivo por cliente e o envia em AssumeRole. A trust policy confere principal e ExternalId. O identificador deve ser controlado pela SaaS e exclusivo por cliente; permitir que clientes reutilizem o mesmo valor enfraquece a separação. Uma role na SaaS assumida pelo cliente inverte o fluxo requerido para leitura dos recursos do cliente.",
+      "hint": "Identifique quem assume a role, onde ficam os recursos e quem controla o identificador de cada cliente.",
       "optionRationales": [
-        "O uso de AssumeRole entre contas com a condição sts:ExternalId é o padrão recomendado pela AWS para integrações de terceiros, pois gera credenciais temporárias via STS e o ExternalId único por cliente impede que um cliente mal-intencionado induza a SaaS a assumir a role em nome de outro cliente (confused deputy).",
-        "Access Keys de longa duração violam o princípio de menor exposição de credenciais, exigem rotação manual constante e não escalam operacionalmente para múltiplos clientes, além de não resolverem o problema do confused deputy.",
-        "Tornar o bucket acessível a qualquer principal autenticado na AWS expõe os dados a todas as contas AWS do mundo, uma falha grave de segurança que não atende ao requisito de acesso restrito por cliente.",
-        "Não é viável nem desejável adicionar contas de clientes externos à organização AWS da SaaS, pois isso implica em gestão centralizada de faturamento e governança que o cliente não aceitaria, além de SCPs não concederem permissões, apenas restringem o que já é permitido."
+        "Uma trust policy que identifica apenas a SaaS não vincula a chamada ao cliente que a originou.",
+        "O cliente cria a role; a SaaS gera um ExternalId exclusivo por cliente e o envia em AssumeRole. A trust policy confere principal e ExternalId.",
+        "O identificador deve ser controlado pela SaaS e exclusivo por cliente; permitir que clientes reutilizem o mesmo valor enfraquece a separação.",
+        "Uma role na SaaS assumida pelo cliente inverte o fluxo requerido para leitura dos recursos do cliente."
       ],
       "topics": [
         "iam",
@@ -238,7 +315,7 @@
     {
       "id": "saa-avc-014",
       "domain": "secure-architectures",
-      "text": "Uma instituição financeira armazena dados extremamente sensíveis criptografados com o Amazon S3 usando SSE-KMS. A política de compliance exige que a empresa tenha controle total sobre o ciclo de vida das chaves de criptografia, incluindo a capacidade de desabilitar imediatamente uma chave para tornar todos os objetos associados inacessíveis (kill switch), além de auditar detalhadamente cada operação de criptografia/descriptografia. Qual abordagem atende a esses requisitos?",
+      "text": "Uma instituição usa SSE-KMS no S3 e precisa administrar a política e o ciclo de vida da chave, desabilitar seu uso em novas operações criptográficas e auditar as chamadas ao KMS. A equipe reconhece a consistência eventual e os efeitos de cache, sem exigir bloqueio instantâneo de todo objeto. Qual abordagem atende?",
       "options": [
         "Usar uma chave KMS gerenciada pelo cliente para SSE-KMS, controlar sua desativação e auditar chamadas ao KMS no CloudTrail.",
         "Usar a chave AWS gerenciada aws/s3 para SSE-KMS e aplicar política de bucket que permita desabilitar a chave sob demanda.",
@@ -246,13 +323,13 @@
         "Usar SSE-KMS com a chave aws/s3 e restringir sua utilização por uma key policy personalizada mantida pela empresa."
       ],
       "correct": 0,
-      "explanation": "Customer Managed Keys no KMS dão ao cliente controle total sobre a key policy, rotação, habilitação/desabilitação e exclusão da chave; todas as chamadas kms:Decrypt e kms:GenerateDataKey são registradas individualmente no CloudTrail, permitindo auditoria granular e um 'kill switch' imediato ao desabilitar a chave.",
-      "hint": "O controle granular sobre habilitar/desabilitar e auditar uma chave de criptografia está diretamente ligado a quem é o 'dono' administrativo da chave no serviço de gerenciamento de chaves.",
+      "explanation": "A chave gerenciada pelo cliente permite controlar políticas e desativação, e CloudTrail registra chamadas ao KMS. Consistência eventual e chaves de dados já disponíveis impedem prometer bloqueio instantâneo de todo acesso. A chave aws/s3 é gerenciada pela AWS; uma política de bucket não concede controle sobre sua desativação. SSE-S3 não fornece uma chave KMS que o cliente possa administrar e desativar. O cliente não edita livremente a política de uma chave AWS gerenciada como aws/s3.",
+      "hint": "Verifique quem administra a chave e distinga uso da chave KMS de uso de chaves de dados em cache.",
       "optionRationales": [
-        "Customer Managed Keys no KMS dão ao cliente controle total sobre a key policy, rotação, habilitação/desabilitação e exclusão da chave; todas as chamadas kms:Decrypt e kms:GenerateDataKey são registradas individualmente no CloudTrail, permitindo auditoria granular e um 'kill switch' imediato ao desabilitar a chave.",
-        "Embora SSE-S3 também use AES-256, as chaves são totalmente gerenciadas pela AWS sem políticas de chave configuráveis pelo cliente, sem capacidade de desabilitação granular pelo cliente e sem registro individual de uso de chave no CloudTrail, não atendendo aos requisitos de controle e auditoria.",
-        "AWS managed keys não podem ser desabilitadas, ter sua política editada ou serem excluídas pelo cliente; o ciclo de vida é inteiramente controlado pela AWS, o que não satisfaz o requisito de 'kill switch' imediato sob controle do cliente.",
-        "Construir um sistema de gerenciamento de chaves customizado introduz riscos operacionais e de segurança significativamente maiores do que usar o KMS, que já é validado para FIPS 140-2 e oferece HSMs gerenciados, sem necessidade de reinventar essa infraestrutura."
+        "A chave gerenciada pelo cliente permite controlar políticas e desativação, e CloudTrail registra chamadas ao KMS. Consistência eventual e chaves de dados já disponíveis impedem prometer bloqueio instantâneo de todo acesso.",
+        "A chave aws/s3 é gerenciada pela AWS; uma política de bucket não concede controle sobre sua desativação.",
+        "SSE-S3 não fornece uma chave KMS que o cliente possa administrar e desativar.",
+        "O cliente não edita livremente a política de uma chave AWS gerenciada como aws/s3."
       ],
       "topics": [
         "security-services",
@@ -271,13 +348,13 @@
         "Adicionar NAT Gateway e restringir o bucket ao IP público de saída do NAT por meio da condição aws:SourceIp."
       ],
       "correct": 2,
-      "explanation": "O Gateway VPC Endpoint para S3 permite tráfego privado entre a VPC e o S3 sem usar NAT Gateway ou Internet Gateway, e a condição aws:SourceVpce na política do bucket garante que, mesmo com credenciais válidas, o acesso só seja permitido se originado por esse endpoint específico, bloqueando tentativas externas.",
-      "hint": "Considere um mecanismo de rede que mantenha o tráfego para um serviço AWS dentro do backbone da AWS e uma condição de política de recurso baseada na origem desse tráfego.",
+      "explanation": "Permissões da role não fornecem conectividade privada nem impedem uso das credenciais por outra origem. Endpoints de outros serviços não transportam operações de objeto do S3. O gateway endpoint fornece a rota privada e o Deny por aws:SourceVpce impõe o caminho autorizado; permissões IAM continuam necessárias. Um IP de saída identifica o NAT, não o endpoint privado exigido, e a arquitetura pressupõe ausência de NAT.",
+      "hint": "São necessários tanto um caminho de rede quanto uma restrição de autorização baseada nesse caminho.",
       "optionRationales": [
-        "O Gateway VPC Endpoint para S3 permite tráfego privado entre a VPC e o S3 sem usar NAT Gateway ou Internet Gateway, e a condição aws:SourceVpce na política do bucket garante que, mesmo com credenciais válidas, o acesso só seja permitido se originado por esse endpoint específico, bloqueando tentativas externas.",
-        "Embora o NAT Gateway permita que instâncias em sub-redes privadas acessem o S3 pela internet pública (via seu endpoint público), isso viola o requisito de que o tráfego nunca atravesse a internet pública e não restringe o acesso ao bucket por origem de rede.",
-        "Permissões IAM controlam 'quem' pode acessar, mas não impedem que as mesmas credenciais sejam usadas de fora da VPC caso sejam comprometidas; o requisito explícito de restringir pela origem de rede exige uma condição baseada em VPC Endpoint na política do recurso.",
-        "O AWS Direct Connect é projetado para conectar data centers on-premises à AWS via circuito dedicado, não sendo o mecanismo apropriado para tráfego privado entre recursos dentro da própria VPC e serviços AWS regionais como o S3, que é resolvido via VPC Endpoints."
+        "Permissões da role não fornecem conectividade privada nem impedem uso das credenciais por outra origem.",
+        "Endpoints de outros serviços não transportam operações de objeto do S3.",
+        "O gateway endpoint fornece a rota privada e o Deny por aws:SourceVpce impõe o caminho autorizado; permissões IAM continuam necessárias.",
+        "Um IP de saída identifica o NAT, não o endpoint privado exigido, e a arquitetura pressupõe ausência de NAT."
       ],
       "topics": [
         "vpc",
@@ -288,7 +365,7 @@
     {
       "id": "saa-avc-016",
       "domain": "secure-architectures",
-      "text": "Uma equipe de desenvolvimento armazena a senha de um banco de dados Amazon RDS para PostgreSQL no AWS Secrets Manager. A política de segurança exige rotação automática das credenciais a cada 30 dias sem downtime da aplicação e sem intervenção manual, além de versionamento das credenciais para permitir rollback em caso de falha na rotação. Qual solução atende integralmente a esse requisito com o menor esforço de implementação?",
+      "text": "Uma aplicação deve continuar usando senha para acessar RDS PostgreSQL. A senha fica no Secrets Manager, e os clientes recarregam credenciais após falhas de autenticação. É preciso rotacioná-la a cada 30 dias, manter versões e permitir transição com usuários alternados, reduzindo interrupções. Qual solução exige menos implementação?",
       "options": [
         "Habilitar rotação automática no Secrets Manager para o RDS, com fluxo de rotação por Lambda e versões do segredo.",
         "Armazenar a credencial como SecureString no Parameter Store e agendar uma automação de alteração de senha.",
@@ -296,13 +373,13 @@
         "Criar agendamento EventBridge que atualize o segredo e a senha do banco por script mantido pela equipe."
       ],
       "correct": 0,
-      "explanation": "O AWS Secrets Manager possui templates de função Lambda de rotação prontos especificamente para o Amazon RDS, que implementam a estratégia de rotação em múltiplas etapas (createSecret, setSecret, testSecret, finishSecret) com versionamento automático (AWSCURRENT/AWSPENDING/AWSPREVIOUS), permitindo rotação sem downtime e rollback através das versões do segredo.",
-      "hint": "Procure o serviço que já vem com integração e funções de rotação pré-construídas especificamente para bancos de dados gerenciados da AWS.",
+      "explanation": "A rotação Lambda integrada ao Secrets Manager mantém versões e testa novas credenciais; a estratégia de usuários alternados, com clientes que atualizam o segredo, reduz falhas na transição. Parameter Store armazena SecureString, mas a rotação do banco e o controle de transição exigem automação adicional. IAM DB Authentication é outra estratégia de autenticação; não cumpre o requisito de continuar rotacionando a senha armazenada. Uma implementação própria exige manter etapas de atualização, teste, recuperação e versão que o fluxo de rotação já organiza.",
+      "hint": "A rotação deve coordenar banco, versões do segredo e atualização das credenciais pelo consumidor.",
       "optionRationales": [
-        "O AWS Secrets Manager possui templates de função Lambda de rotação prontos especificamente para o Amazon RDS, que implementam a estratégia de rotação em múltiplas etapas (createSecret, setSecret, testSecret, finishSecret) com versionamento automático (AWSCURRENT/AWSPENDING/AWSPREVIOUS), permitindo rotação sem downtime e rollback através das versões do segredo.",
-        "O Parameter Store não possui rotação automática nativa integrada ao ciclo de vida do RDS; uma solução baseada em cron job manual em EC2 introduz um ponto único de falha, esforço operacional alto e risco de inconsistência entre o segredo armazenado e a senha real do banco.",
-        "Desabilitar a autenticação por senha sem configurar autenticação alternativa (como IAM Database Authentication) deixaria o banco inacessível ou inseguro; Security Groups controlam acesso de rede, não substituem a necessidade de credenciais de autenticação no banco.",
-        "Armazenar credenciais diretamente no código-fonte é uma prática insegura clássica que expõe segredos no histórico de versionamento e em qualquer ambiente onde o código seja implantado, além de não fornecer rotação automática nem versionamento seguro."
+        "A rotação Lambda integrada ao Secrets Manager mantém versões e testa novas credenciais; a estratégia de usuários alternados, com clientes que atualizam o segredo, reduz falhas na transição.",
+        "Parameter Store armazena SecureString, mas a rotação do banco e o controle de transição exigem automação adicional.",
+        "IAM DB Authentication é outra estratégia de autenticação; não cumpre o requisito de continuar rotacionando a senha armazenada.",
+        "Uma implementação própria exige manter etapas de atualização, teste, recuperação e versão que o fluxo de rotação já organiza."
       ],
       "topics": [
         "databases",
@@ -321,13 +398,13 @@
         "Usar regras de Security Group para limitar requisições HTTP por IP e AWS Firewall Manager para bloquear SQL injection."
       ],
       "correct": 0,
-      "explanation": "O AWS WAF com regras gerenciadas (Managed Rule Groups) bloqueia padrões conhecidos de SQL injection, enquanto uma rate-based rule mitiga HTTP floods limitando requisições por IP de origem; o AWS Shield Advanced adiciona proteção avançada contra DDoS em camadas 3/4/7 e dá acesso ao DDoS Response Team (DRT) durante incidentes.",
-      "hint": "Pense em uma camada de filtragem de aplicação que entende padrões de requisição HTTP combinada com um serviço de proteção contra DDoS que inclua suporte humano especializado.",
+      "explanation": "WAF trata padrões HTTP e regras de taxa; Shield Advanced acrescenta proteção e acesso à equipe especializada, observadas as condições de suporte. NACL não inspeciona payload SQL em HTTP. Shield Standard não dá o acesso à equipe especializada solicitado. Security Groups não implementam contagem de requisições HTTP; Firewall Manager distribui políticas, não substitui as regras WAF.",
+      "hint": "Diferencie proteção DDoS, inspeção de aplicação e administração central das políticas.",
       "optionRationales": [
-        "O AWS WAF com regras gerenciadas (Managed Rule Groups) bloqueia padrões conhecidos de SQL injection, enquanto uma rate-based rule mitiga HTTP floods limitando requisições por IP de origem; o AWS Shield Advanced adiciona proteção avançada contra DDoS em camadas 3/4/7 e dá acesso ao DDoS Response Team (DRT) durante incidentes.",
-        "O AWS Shield Standard protege automaticamente contra os ataques DDoS mais comuns de rede e transporte (camadas 3 e 4), mas não inclui proteção contra ataques de camada de aplicação como SQL injection nem oferece acesso ao DDoS Response Team, que é um benefício exclusivo do Shield Advanced.",
-        "Bloquear as portas 80 e 443 tornaria a aplicação web completamente inacessível a usuários legítimos, sendo uma solução inviável que não distingue tráfego malicioso de tráfego legítimo.",
-        "Restringir o acesso a uma lista fixa de IPs não é viável para uma aplicação web pública com usuários diversos e não mitiga ataques de SQL injection nem oferece suporte especializado contra DDoS, além de eliminar os benefícios de escalabilidade e distribuição de tráfego do ALB."
+        "WAF trata padrões HTTP e regras de taxa; Shield Advanced acrescenta proteção e acesso à equipe especializada, observadas as condições de suporte.",
+        "NACL não inspeciona payload SQL em HTTP.",
+        "Shield Standard não dá o acesso à equipe especializada solicitado.",
+        "Security Groups não implementam contagem de requisições HTTP; Firewall Manager distribui políticas, não substitui as regras WAF."
       ],
       "topics": [
         "security-services",
@@ -346,13 +423,13 @@
         "Criar roles IAM federadas SAML em cada conta e manter as atribuições de acesso diretamente nas trust policies."
       ],
       "correct": 0,
-      "explanation": "O IAM Identity Center centraliza a autenticação federada via SAML com o Entra ID e permite definir Permission Sets (conjuntos de permissões reutilizáveis, como ReadOnly, AdministratorAccess ou customizadas) atribuídos a grupos de usuários por conta, eliminando a necessidade de usuários IAM individuais e fornecendo um portal de acesso único (AWS access portal).",
-      "hint": "O serviço certo centraliza federação SAML corporativa e usa 'conjuntos de permissões' reutilizáveis aplicáveis a múltiplas contas dentro de uma organização.",
+      "explanation": "Identity Center centraliza federação, grupos e permission sets nas contas atribuídas. User Pools é voltado a identidades de aplicações; não distribui permission sets de workforce em múltiplas contas. Usuários locais independentes quebram a integração corporativa pedida e aumentam administração. Federação SAML por conta é possível, mas exige mais manutenção de roles e atribuições do que Identity Center.",
+      "hint": "A solução deve centralizar atribuições de workforce entre contas, além de autenticar os usuários.",
       "optionRationales": [
-        "O IAM Identity Center centraliza a autenticação federada via SAML com o Entra ID e permite definir Permission Sets (conjuntos de permissões reutilizáveis, como ReadOnly, AdministratorAccess ou customizadas) atribuídos a grupos de usuários por conta, eliminando a necessidade de usuários IAM individuais e fornecendo um portal de acesso único (AWS access portal).",
-        "Essa abordagem é operacionalmente inviável em escala, exigindo gestão manual de 100.000 identidades, sem single sign-on real e violando boas práticas de gestão centralizada de identidade.",
-        "SCPs definem o limite máximo de permissões que contas-membro podem ter, mas não concedem permissões a identidades nem fornecem autenticação ou federação de usuários; elas não substituem um sistema de gerenciamento de acesso de usuários.",
-        "O Amazon Cognito é voltado para autenticação de usuários finais de aplicações (mobile/web), não para federação de identidade corporativa de funcionários acessando o console e múltiplas contas AWS via SSO; o IAM Identity Center é o serviço projetado para esse caso de uso."
+        "Identity Center centraliza federação, grupos e permission sets nas contas atribuídas.",
+        "User Pools é voltado a identidades de aplicações; não distribui permission sets de workforce em múltiplas contas.",
+        "Usuários locais independentes quebram a integração corporativa pedida e aumentam administração.",
+        "Federação SAML por conta é possível, mas exige mais manutenção de roles e atribuições do que Identity Center."
       ],
       "topics": [
         "iam",
@@ -370,13 +447,13 @@
         "Autenticar com Google e Facebook no aplicativo e armazenar chaves IAM de um usuário técnico para acessar os dados."
       ],
       "correct": 0,
-      "explanation": "Cognito User Pools gerencia a federação com provedores de identidade externos (Google, Facebook) sem backend próprio, enquanto Identity Pools fornece credenciais temporárias do STS; políticas IAM com a variável cognito-identity.amazonaws.com:sub permitem restringir o acesso de cada usuário a seus próprios objetos S3 (por prefixo) e itens do DynamoDB (por partition key), sem credenciais de longa duração.",
-      "hint": "Pense no serviço voltado para identidades de usuários finais de aplicações que combina provedores de identidade sociais com a emissão de credenciais temporárias da AWS.",
+      "explanation": "User Pools pode federar login social; Identity Pools troca a identidade por credenciais AWS temporárias cujas políticas isolam os dados. Tokens de User Pools não são credenciais AWS assinadas para chamadas diretas a S3 e DynamoDB. Identity Center administra acesso de workforce, não é o fluxo de login social de clientes móveis descrito. Uma chave técnica embarcada pode ser extraída e não oferece identidade isolada por usuário.",
+      "hint": "Diferencie token de identidade de credenciais AWS temporárias autorizadas a acessar recursos.",
       "optionRationales": [
-        "Cognito User Pools gerencia a federação com provedores de identidade externos (Google, Facebook) sem backend próprio, enquanto Identity Pools fornece credenciais temporárias do STS; políticas IAM com a variável cognito-identity.amazonaws.com:sub permitem restringir o acesso de cada usuário a seus próprios objetos S3 (por prefixo) e itens do DynamoDB (por partition key), sem credenciais de longa duração.",
-        "Embutir Access Keys de longa duração em um aplicativo móvel é uma prática extremamente insegura, pois o código pode ser descompilado, expondo credenciais com acesso total ao S3 e DynamoDB para qualquer usuário do app, sem isolamento entre usuários.",
-        "Construir e manter um servidor de autenticação customizado adiciona complexidade operacional e risco de segurança desnecessários quando o Cognito já oferece essa funcionalidade de forma gerenciada, além de gerar Access Keys permanentes ser uma prática não recomendada.",
-        "O IAM Identity Center é projetado para fornecer acesso de força de trabalho (funcionários) ao console e contas da AWS via SSO corporativo, não para autenticação de usuários finais de aplicações consumer; o Amazon Cognito é o serviço apropriado para esse caso de uso."
+        "User Pools pode federar login social; Identity Pools troca a identidade por credenciais AWS temporárias cujas políticas isolam os dados.",
+        "Tokens de User Pools não são credenciais AWS assinadas para chamadas diretas a S3 e DynamoDB.",
+        "Identity Center administra acesso de workforce, não é o fluxo de login social de clientes móveis descrito.",
+        "Uma chave técnica embarcada pode ser extraída e não oferece identidade isolada por usuário."
       ],
       "topics": [
         "iam",
@@ -395,13 +472,13 @@
         "Emitir certificado público no ACM validado por DNS, associá-lo ao listener HTTPS e redirecionar HTTP para HTTPS."
       ],
       "correct": 3,
-      "explanation": "Certificados emitidos pelo ACM com validação DNS são renovados automaticamente pela AWS antes da expiração, sem qualquer intervenção manual, desde que o registro CNAME de validação permaneça no Route 53 (ou DNS equivalente); o ALB suporta regras de listener para redirecionar HTTP para HTTPS nativamente.",
-      "hint": "Procure o serviço gerenciado de certificados da AWS que se integra nativamente a balanceadores de carga e renova certificados automaticamente quando emitidos com validação por DNS.",
+      "explanation": "Certificados importados exigem renovação e reimportação pelo cliente. DNSSEC protege respostas DNS, não criptografa a sessão HTTP. Uma CA privada não é confiável por navegadores públicos sem distribuir sua cadeia de confiança. ACM renova certificados públicos elegíveis e em uso com validação DNS mantida; o listener redireciona HTTP para HTTPS.",
+      "hint": "Confiança pública, renovação do certificado e redirecionamento HTTP são requisitos distintos.",
       "optionRationales": [
-        "Certificados emitidos pelo ACM com validação DNS são renovados automaticamente pela AWS antes da expiração, sem qualquer intervenção manual, desde que o registro CNAME de validação permaneça no Route 53 (ou DNS equivalente); o ALB suporta regras de listener para redirecionar HTTP para HTTPS nativamente.",
-        "Certificados carregados manualmente no IAM (Server Certificate Store) não são renovados automaticamente; a equipe precisaria repetir o processo manual de compra, upload e associação antes de cada expiração, aumentando o esforço operacional e o risco de expiração não detectada.",
-        "Certificados autoassinados não são confiáveis por navegadores e exigem que os usuários ignorem avisos de segurança, além de também precisarem de renovação manual, o que não atende a requisitos de produção para um site público de e-commerce.",
-        "DNSSEC protege a integridade das respostas DNS contra falsificação, mas não fornece criptografia da camada de transporte (TLS) para o tráfego HTTP entre o navegador e o ALB; é um mecanismo de segurança de DNS, não um substituto para certificados TLS."
+        "Certificados importados exigem renovação e reimportação pelo cliente.",
+        "DNSSEC protege respostas DNS, não criptografa a sessão HTTP.",
+        "Uma CA privada não é confiável por navegadores públicos sem distribuir sua cadeia de confiança.",
+        "ACM renova certificados públicos elegíveis e em uso com validação DNS mantida; o listener redireciona HTTP para HTTPS."
       ],
       "topics": [
         "high-availability",
@@ -419,13 +496,13 @@
         "Criar regras AWS Config para detectar trilhas desabilitadas e automatizar sua reativação nas contas afetadas."
       ],
       "correct": 1,
-      "explanation": "SCPs definem o limite máximo de permissões para todas as identidades de uma conta-membro, incluindo o usuário root, e não podem ser substituídas por políticas IAM locais; uma SCP de negação explícita (deny) nessas ações bloqueia preventivamente qualquer tentativa, mesmo por administradores com credenciais comprometidas.",
-      "hint": "Pense no único tipo de política capaz de restringir permissões mesmo para o usuário root de uma conta-membro, de forma centralizada em toda a organização.",
+      "explanation": "A validação de integridade permite detectar alteração dos logs, mas não impede parar a coleta. O Deny da SCP restringe as identidades das contas-membro, inclusive root; não se aplica à conta de gerenciamento nem a roles vinculadas a serviços. A política só nas roles administrativas não restringe root e não estabelece um limite organizacional. Config detecta e pode remediar desvios depois do evento, sem prevenção da chamada proibida.",
+      "hint": "O controle precisa limitar até identidades privilegiadas nas contas-membro.",
       "optionRationales": [
-        "SCPs definem o limite máximo de permissões para todas as identidades de uma conta-membro, incluindo o usuário root, e não podem ser substituídas por políticas IAM locais; uma SCP de negação explícita (deny) nessas ações bloqueia preventivamente qualquer tentativa, mesmo por administradores com credenciais comprometidas.",
-        "Políticas IAM não se aplicam ao usuário root da conta e podem ser modificadas ou removidas por um administrador com permissões suficientes (incluindo um atacante com credenciais comprometidas), não oferecendo uma garantia preventiva abrangente como uma SCP.",
-        "O AWS Config com essa regra apenas detecta e notifica após o fato (abordagem reativa/detectiva), não impedindo que a ação de desabilitar o CloudTrail ocorra, o que não atende ao requisito de prevenção.",
-        "A validação de integridade de log apenas garante que os arquivos de log armazenados não foram alterados após serem gravados, mas não impede que alguém pare o logging ou exclua a trilha do CloudTrail antes que novos eventos sejam registrados."
+        "A validação de integridade permite detectar alteração dos logs, mas não impede parar a coleta.",
+        "O Deny da SCP restringe as identidades das contas-membro, inclusive root; não se aplica à conta de gerenciamento nem a roles vinculadas a serviços.",
+        "A política só nas roles administrativas não restringe root e não estabelece um limite organizacional.",
+        "Config detecta e pode remediar desvios depois do evento, sem prevenção da chamada proibida."
       ],
       "topics": [
         "governance",
@@ -444,13 +521,13 @@
         "Criar regras AWS Config por conta com relatórios agregados, mas sem configuração de remediação automática."
       ],
       "correct": 1,
-      "explanation": "Conformance Packs do AWS Config podem ser implantados em toda a organização a partir da conta de gerenciamento, agrupando regras de compliance (como verificação de acesso público em buckets S3) com remediações automáticas via SSM Automation, corrigindo desvios de configuração sem intervenção manual e em escala.",
-      "hint": "Procure um serviço que avalia continuamente a configuração de recursos contra um conjunto de regras predefinidas e pode ser combinado com automações de correção, implantável centralmente em toda a organização.",
+      "explanation": "O painel e os alertas não executam a correção automática requerida. Conformance Packs agrupam regras e remediações SSM; a implantação organizacional reduz manutenção por conta, com permissões e gravação Config configuradas. Consultas customizadas podem apoiar auditoria, mas exigem desenvolver e manter a lógica de avaliação e correção. Agregação centraliza resultados, não executa uma remediação que não foi configurada.",
+      "hint": "Diferencie agregação de evidências de um pacote de regras com ações de remediação.",
       "optionRationales": [
-        "Conformance Packs do AWS Config podem ser implantados em toda a organização a partir da conta de gerenciamento, agrupando regras de compliance (como verificação de acesso público em buckets S3) com remediações automáticas via SSM Automation, corrigindo desvios de configuração sem intervenção manual e em escala.",
-        "O Trusted Advisor fornece verificações úteis sobre buckets S3 com acesso público, mas não oferece remediação automática nem agregação nativa em escala de organização com aplicação contínua de políticas; depende de revisão manual periódica, não sendo uma solução automatizada e contínua.",
-        "O CloudTrail com Athena permite análises forenses e investigativas após o fato, mas não avalia continuamente a configuração de recursos contra um framework de compliance nem executa remediação automática.",
-        "Um processo manual baseado em planilhas não escala para 25 contas, não detecta desvios em tempo real e não oferece nenhuma remediação automática, indo contra o requisito de correção automática de buckets não conformes."
+        "O painel e os alertas não executam a correção automática requerida.",
+        "Conformance Packs agrupam regras e remediações SSM; a implantação organizacional reduz manutenção por conta, com permissões e gravação Config configuradas.",
+        "Consultas customizadas podem apoiar auditoria, mas exigem desenvolver e manter a lógica de avaliação e correção.",
+        "Agregação centraliza resultados, não executa uma remediação que não foi configurada."
       ],
       "topics": [
         "s3-storage",
@@ -469,13 +546,13 @@
         "Designar administrador delegado do GuardDuty no Organizations e habilitar monitoramento organizacional centralizado."
       ],
       "correct": 3,
-      "explanation": "O Amazon GuardDuty suporta integração nativa com o AWS Organizations, permitindo que uma conta de segurança seja designada como administrador delegado e habilite automaticamente o GuardDuty em todas as contas-membro (atuais e futuras), agregando todos os findings de ameaça (como comunicação com IPs maliciosos conhecidos ou mineração de criptomoedas) em um único local.",
-      "hint": "Pense no serviço de detecção de ameaças que possui um modelo de administrador delegado nativo do AWS Organizations para habilitação automática em massa.",
+      "explanation": "Consultas customizadas precisam implementar e manter correlações de inteligência de ameaças. Macie classifica dados sensíveis no S3; não substitui detecção de comportamento de rede e credenciais. Agregação de notificações não elimina habilitação e administração individual por conta. Administrador delegado e auto-habilitação do GuardDuty centralizam contas e findings; é preciso configurar as Regiões e planos de proteção pertinentes.",
+      "hint": "A administração organizacional deve reduzir o esforço de habilitação, não apenas reunir alertas.",
       "optionRationales": [
-        "O Amazon GuardDuty suporta integração nativa com o AWS Organizations, permitindo que uma conta de segurança seja designada como administrador delegado e habilite automaticamente o GuardDuty em todas as contas-membro (atuais e futuras), agregando todos os findings de ameaça (como comunicação com IPs maliciosos conhecidos ou mineração de criptomoedas) em um único local.",
-        "Habilitar e configurar o GuardDuty individualmente em 35 contas é operacionalmente custoso, propenso a inconsistências de configuração entre contas e não oferece uma visão agregada e centralizada dos findings, exigindo que a equipe de segurança monitore múltiplas caixas de entrada.",
-        "O Amazon Macie é focado na descoberta e classificação de dados sensíveis armazenados no Amazon S3 (como PII), não em detecção de ameaças de rede como comunicação com infraestrutura de comando e controle ou mineração de criptomoedas, que é o domínio do GuardDuty.",
-        "O CloudTrail Lake permite consultar eventos de API históricos, mas não realiza análise comportamental e de inteligência de ameaças em tempo real (como correlação com feeds de IPs maliciosos) que o GuardDuty fornece nativamente."
+        "Consultas customizadas precisam implementar e manter correlações de inteligência de ameaças.",
+        "Macie classifica dados sensíveis no S3; não substitui detecção de comportamento de rede e credenciais.",
+        "Agregação de notificações não elimina habilitação e administração individual por conta.",
+        "Administrador delegado e auto-habilitação do GuardDuty centralizam contas e findings; é preciso configurar as Regiões e planos de proteção pertinentes."
       ],
       "topics": [
         "governance",
@@ -487,19 +564,19 @@
       "domain": "secure-architectures",
       "text": "A equipe de segurança de uma organização com 35 contas AWS precisa de um único painel (single pane of glass) que agregue automaticamente os findings de segurança gerados pelo Amazon GuardDuty, AWS Config e Amazon Inspector em todas as contas, e que avalie continuamente a postura de segurança dessas contas contra o padrão CIS AWS Foundations Benchmark, atribuindo uma pontuação de conformidade. Qual serviço foi projetado especificamente para esse propósito?",
       "options": [
-        "AWS Security Hub, configurado com administrador delegado via AWS Organizations e agregação entre regiões, com o padrão de segurança CIS AWS Foundations Benchmark habilitado.",
-        "Amazon Detective, configurado como administrador delegado via AWS Organizations para calcular a pontuação de conformidade CIS de todas as contas.",
-        "AWS Audit Manager, coletando evidências automaticamente de GuardDuty, Config e Inspector para gerar a pontuação de conformidade CIS em tempo real.",
-        "Desenvolver funções AWS Lambda customizadas que consultam periodicamente as APIs do GuardDuty, Config e Inspector em cada conta, armazenando os resultados em uma tabela do Amazon DynamoDB e visualizando-os em um dashboard do Amazon QuickSight."
+        "Usar Security Hub com administrador delegado, agregação regional e controles do padrão CIS habilitados.",
+        "Usar Detective com administrador delegado e grafos de comportamento para análise de findings entre contas.",
+        "Usar Audit Manager com avaliações CIS e coleta automatizada de evidências dos serviços de segurança.",
+        "Usar EventBridge e Lambda para reunir findings no S3 e construir um painel de conformidade no QuickSight."
       ],
       "correct": 0,
-      "explanation": "O AWS Security Hub foi projetado para agregar automaticamente findings de múltiplos serviços (GuardDuty, Config, Inspector, Macie e outros) em um formato padronizado (AWS Security Finding Format), suporta administrador delegado para toda a organização, agregação entre regiões e calcula uma pontuação de conformidade contínua contra padrões como o CIS AWS Foundations Benchmark.",
-      "hint": "Procure o serviço cujo propósito principal é agregar findings de segurança de múltiplos serviços da AWS em um formato padronizado e pontuar a conformidade contra benchmarks reconhecidos.",
+      "explanation": "Security Hub agrega findings e avalia controles dos padrões habilitados, com administração organizacional e agregação regional. Detective apoia investigação e correlação de evidências, não calcula a pontuação CIS solicitada. Audit Manager organiza evidências de auditoria, não substitui o painel operacional de postura e seus controles. A solução customizada exige desenvolver integrações e cálculo de conformidade já disponíveis no serviço gerenciado.",
+      "hint": "Considere a finalidade do serviço: investigar incidentes, produzir evidências ou avaliar postura continuamente.",
       "optionRationales": [
-        "O AWS Security Hub foi projetado para agregar automaticamente findings de múltiplos serviços (GuardDuty, Config, Inspector, Macie e outros) em um formato padronizado (AWS Security Finding Format), suporta administrador delegado para toda a organização, agregação entre regiões e calcula uma pontuação de conformidade contínua contra padrões como o CIS AWS Foundations Benchmark.",
-        "O Amazon Detective é uma ferramenta de investigação que ajuda a analisar e visualizar relações entre findings de segurança para descobrir a causa raiz de incidentes, mas não agrega findings de múltiplos serviços em um painel único nem calcula pontuações de conformidade contra benchmarks como o CIS.",
-        "O AWS Audit Manager coleta evidências de forma contínua para apoiar auditorias formais em relação a frameworks regulatórios, mas seu propósito é a geração de relatórios de evidência para auditores, não funcionar como um painel operacional em tempo real que agrega findings de segurança de múltiplos serviços.",
-        "Construir essa solução customizada reimplementaria, com esforço de desenvolvimento e manutenção significativos, uma funcionalidade que o AWS Security Hub já oferece de forma nativa, gerenciada e com suporte a múltiplas contas via Organizations."
+        "Security Hub agrega findings e avalia controles dos padrões habilitados, com administração organizacional e agregação regional.",
+        "Detective apoia investigação e correlação de evidências, não calcula a pontuação CIS solicitada.",
+        "Audit Manager organiza evidências de auditoria, não substitui o painel operacional de postura e seus controles.",
+        "A solução customizada exige desenvolver integrações e cálculo de conformidade já disponíveis no serviço gerenciado."
       ],
       "topics": [
         "security-services",
@@ -511,19 +588,19 @@
       "domain": "secure-architectures",
       "text": "Durante uma investigação, a equipe de segurança identificou que um endereço IP específico está realizando tentativas repetidas de força bruta contra a porta 22 (SSH) de várias instâncias EC2 em uma sub-rede. A equipe precisa bloquear IMEDIATAMENTE todo o tráfego originado desse IP para TODAS as instâncias da sub-rede (atuais e futuras), sem precisar editar a configuração de cada Security Group individualmente, já que existem dezenas de Security Groups diferentes em uso. Qual mecanismo permite isso?",
       "options": [
-        "Criar uma Web ACL do AWS WAF associada às instâncias EC2 com uma regra que bloqueie o endereço IP na porta 22.",
-        "Adicionar uma regra de negação (deny) para o endereço IP de origem na Network ACL associada à sub-rede, com uma prioridade (número de regra) menor que as regras de permissão existentes.",
-        "Remover o Internet Gateway da VPC para cortar toda a conectividade externa até que o ataque cesse.",
-        "Adicionar uma regra de negação (deny) para o endereço IP de origem na porta 22 em cada um dos Security Groups associados às instâncias da sub-rede."
+        "Adicionar um IP set à Web ACL do ALB que atende as aplicações da sub-rede.",
+        "Adicionar um Deny de entrada na NACL para o IP, antes das regras Allow existentes.",
+        "Adicionar uma rota de descarte para o IP na tabela associada à sub-rede.",
+        "Adicionar um Deny de saída na NACL para a porta de destino 22 desse IP."
       ],
       "correct": 1,
-      "explanation": "Network ACLs operam no nível da sub-rede, são stateless e suportam regras explícitas de DENY, sendo avaliadas antes dos Security Groups; uma regra de deny com número de prioridade baixo (avaliada primeiro) bloqueia imediatamente o tráfego desse IP para todas as instâncias da sub-rede, atuais e futuras, sem necessidade de alterar múltiplos Security Groups.",
-      "hint": "Pense no componente de segurança de rede que opera no nível da sub-rede, é avaliado antes dos Security Groups e é o único que suporta regras explícitas de negação.",
+      "explanation": "WAF inspeciona HTTP/HTTPS nos recursos suportados; não filtra SSH direto nas instâncias. Uma regra NACL de entrada Deny para o IP, avaliada antes dos Allows, abrange o tráfego que entra na sub-rede e preserva as demais origens. Um filtro na tabela de rotas trabalha com destinos e não é um bloqueio de origem aplicado às conexões de entrada. Uma regra só de saída para a porta de destino 22 não bloqueia os pacotes de entrada do atacante; respostas SSH usam a porta efêmera do cliente.",
+      "hint": "Observe direção do tráfego, camada inspecionada e ordem de avaliação das regras.",
       "optionRationales": [
-        "Network ACLs operam no nível da sub-rede, são stateless e suportam regras explícitas de DENY, sendo avaliadas antes dos Security Groups; uma regra de deny com número de prioridade baixo (avaliada primeiro) bloqueia imediatamente o tráfego desse IP para todas as instâncias da sub-rede, atuais e futuras, sem necessidade de alterar múltiplos Security Groups.",
-        "Security Groups suportam apenas regras de permissão (allow); não é possível criar uma regra de 'deny' em um Security Group, tornando essa abordagem tecnicamente inviável, além de exigir edição de dezenas de Security Groups individualmente.",
-        "Remover o Internet Gateway interromperia toda a conectividade de entrada e saída da internet para a VPC inteira, afetando usuários e serviços legítimos, uma ação desproporcional comparada a bloquear um único IP malicioso.",
-        "O AWS WAF opera na camada de aplicação (HTTP/HTTPS) e só pode ser associado a Amazon CloudFront, Application Load Balancer, API Gateway ou AWS AppSync, não podendo filtrar tráfego SSH (porta 22) diretamente para instâncias EC2."
+        "WAF inspeciona HTTP/HTTPS nos recursos suportados; não filtra SSH direto nas instâncias.",
+        "Uma regra NACL de entrada Deny para o IP, avaliada antes dos Allows, abrange o tráfego que entra na sub-rede e preserva as demais origens.",
+        "Um filtro na tabela de rotas trabalha com destinos e não é um bloqueio de origem aplicado às conexões de entrada.",
+        "Uma regra só de saída para a porta de destino 22 não bloqueia os pacotes de entrada do atacante; respostas SSH usam a porta efêmera do cliente."
       ],
       "topics": [
         "vpc",
