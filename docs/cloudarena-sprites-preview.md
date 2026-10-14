@@ -1,28 +1,31 @@
-# CloudArena: prévia de sprites
+# CloudArena | Implementação de sprites (branch de preview)
 
-Esta branch prepara o motor do CloudArena para o novo herói masculino (4 quadros por estado) e animações de 4 quadros da Sentinela da Fortaleza, inimigo comum SAA-C03 / secure-architectures.
+O padrão completo está em [cloudarena-sprites.md](cloudarena-sprites.md).
 
-## Assets necessários
+## Implementado em código
 
-Os arquivos binários foram entregues como pacote ZIP nesta conversa; eles **ainda precisam ser copiados para a branch** antes de publicar uma prévia online:
+- Herói masculino: tentativa de carregar `images/arena/hero/masculino/cloudarena-sheet.png`, com fallback seguro para o atlas masculino antigo enquanto o arquivo aprovado não estiver presente.
+- Sentinela da Fortaleza: animação 4×4 via `images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png`, com fallback para a representação antiga em caso de arquivo ausente.
+- Player em canvas com imagem pré-carregada; idle 1 segundo; attack, hurt e death 500 ms.
+- Recorte calculado pelas dimensões reais do PNG e insets de 15 px nas laterais e 20 px no topo.
+- Layout responsivo para os novos canvas.
 
-- `images/arena/hero/masculino/{idle,attack,hurt,death,victory}.png`
-- `images/arena/hero/masculino/atlas.json`
-- `images/arena/enemies/secure-architectures/{idle,attack,hurt,death}.png`
-- `images/arena/enemies/secure-architectures/atlas.json`
+## Pendente para integração visual real
 
-As folhas têm 4 células de 450×450 cada (1800×450), contendo pelo menos 50 px de margem transparente por célula. A animação `victory` do herói é temporária.
+**Os dois PNGs aprovados nesta conversa ainda precisam entrar no GitHub.** O conector de escrita conseguiu alterar código e documentação, mas não transferiu automaticamente os binários existentes no contêiner desta conversa. Não considerar a substituição visual concluída antes de confirmar os arquivos no repositório.
 
-## Chefe Vorgrath
+O arquivo de teste aprovado nesta conversa, `cloudarena_teste_corrigido_v2.zip`, contém `assets/hero_sheet.png` e `assets/enemy_sheet.png`. Existe um instalador no repositório:
 
-O conceito do chefe foi aprovado visualmente, mas não existe um spritesheet final de 16 poses pronto para integração. Não renomear ou substituir o chefe existente até que os 16 frames sejam gerados e aprovados.
+```bash
+python scripts/install_cloudarena_art.py /caminho/para/cloudarena_teste_corrigido_v2.zip
+```
 
-## Testes antes de deploy
+Esse comando instala as duas imagens nos caminhos usados pelo código; **não** cria commit ou deploy automaticamente. Depois, testar o carregamento real em uma branch de preview.
 
-1. Copiar os arquivos PNG e atlas.json para os caminhos acima.
-2. Testar o HTML de prévia local incluído no ZIP fornecido na conversa.
-3. Abrir a SAA-C03 e verificar a Sentinela nos quatro estados.
-4. Conferir se herói e inimigo não apresentam recorte, pulos de alinhamento ou sobreposição de frames.
-5. Corrigir o timing do golpe e a animação de vitória, se necessário.
+## Chefe
 
-Esta branch não altera o banco de questões e não publica em produção.
+O conceito visual **Vorgrath, o Corruptor das Arquiteturas Seguras**, fica reservado. O chefe atual não foi substituído porque não há spritesheet aprovado de 16 frames para ele.
+
+## Publicação
+
+Nenhum merge nem deploy deve ser feito antes de conferir PNGs, renderização, falhas de rede, mobile e compatibilidade dos demais personagens.
