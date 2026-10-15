@@ -712,6 +712,13 @@
                 { name: 'Guardião de Permissões', url: 'images/arena/enemies/secure-architectures/guardiao-permissoes-sheet.png', ready: true },
             ],
         },
+        {
+            from: 21,
+            to: 30,
+            variants: [
+                { name: 'Draco do Tráfego', url: 'images/arena/enemies/networking/draco-do-trafego-sheet.jpg', ready: true },
+            ],
+        },
     ];
     let activeEnemySprite = null;
     function activeCommonEnemyTier() {
