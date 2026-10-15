@@ -10,6 +10,7 @@ SHEETS = (
     ROOT / "images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png",
     ROOT / "images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png",
     ROOT / "images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png",
+    ROOT / "images/arena/enemies/secure-architectures/guardiao-permissoes-sheet.png",
 )
 VICTORY_SHEET = ROOT / "images/arena/hero/masculino/victory.png"
 GRID = 4
@@ -74,7 +75,7 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("OK: 3 inimigos 4x4 e vitória masculina de 4 frames estão válidos e transparentes.")
+    print("OK: 4 inimigos 4x4 e vitória masculina de 4 frames estão válidos e transparentes.")
     return 0
 
 

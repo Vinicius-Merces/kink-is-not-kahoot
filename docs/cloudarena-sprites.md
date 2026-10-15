@@ -87,13 +87,14 @@ Além dos 16 frames padrão, o herói masculino utiliza uma animação extra de 
 
 ## Segundo inimigo comum: Arquimago das Chaves
 
-A arena SAA-C03, domínio `secure-architectures`, usa temporariamente somente os três inimigos comuns já aprovados para a fase de testes:
+A arena SAA-C03, domínio `secure-architectures`, usa temporariamente somente os quatro inimigos comuns já aprovados para a fase de testes:
 
 - **Sentinela GuardDuty**, com escudo e lança azul.
 - **Sentinela Multi-AZ**, com escudo e martelo de energia.
 - **Arquimago das Chaves**, com cajado de cristal e magia de autenticação, voltado para a esquerda.
+- **Guardião de Permissões**, com espada-chave e selo holográfico de políticas, voltado para a esquerda.
 
-O `js/cloudarena.js` alterna somente entre os três nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e cada personagem só entra na rotação depois que seu PNG foi carregado. Novos inimigos podem ser acrescentados posteriormente na mesma lista.
+O `js/cloudarena.js` alterna somente entre os quatro nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e cada personagem só entra na rotação depois que seu PNG foi carregado. Novos inimigos podem ser acrescentados posteriormente na mesma lista.
 
 **Spritesheets e temporização:** os três arquivos usam grade de 4×4 e fundo transparente. O renderer calcula as células usando as dimensões reais de cada PNG. `idle` tem quatro frames e fecha o loop em 1 segundo; `attack`, `hurt` e `death` têm quatro frames e duram 0,5 segundo cada. `attack` e `hurt` retornam ao `idle`; `death` segura no último quadro.
 
@@ -102,5 +103,6 @@ Caminhos dos assets:
 - `images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png`
 - `images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png`
 - `images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png`
+- `images/arena/enemies/secure-architectures/guardiao-permissoes-sheet.png`
 
 **Situação de publicação:** os três PNGs finais transparentes estão versionados na `main`. O Arquimago usa a última arte aprovada, orientada para a esquerda; a prancha de apresentação com fundo e rótulos não é carregada pelo site. A rotação considera somente variantes cujo asset foi carregado e mantém chefes fora dessa lista.
