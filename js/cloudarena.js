@@ -692,6 +692,11 @@
             ready: true,
         },
         {
+            name: 'Sentinela CloudShield',
+            url: 'images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png',
+            ready: false,
+        },
+        {
             name: 'Arquimago das Chaves',
             url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png',
             ready: false,

@@ -8,8 +8,10 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 SHEETS = (
     ROOT / "images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png",
+    ROOT / "images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png",
     ROOT / "images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png",
 )
+VICTORY_SHEET = ROOT / "images/arena/hero/masculino/victory.png"
 GRID = 4
 MIN_TRANSPARENT_RATIO = 0.10
 
@@ -45,14 +47,34 @@ def validate(path: Path) -> list[str]:
     return errors
 
 
+def validate_victory(path: Path) -> list[str]:
+    errors = []
+    if not path.exists():
+        return [f"arquivo ausente: {path.relative_to(ROOT)}"]
+    with Image.open(path) as source:
+        if source.format != "PNG" or "transparency" not in source.info and source.mode != "RGBA":
+            return [f"{path.name}: esperado PNG com canal alfa"]
+        image = source.convert("RGBA")
+        width, height = image.size
+        if width != 2172 or height != 724:
+            errors.append(f"{path.name}: esperado asset aprovado 2172x724, recebido {width}x{height}")
+        alpha = image.getchannel("A")
+        for frame in range(4):
+            x0, x1 = round(frame * width / 4), round((frame + 1) * width / 4)
+            if alpha.crop((x0, 0, x1, height)).getbbox() is None:
+                errors.append(f"{path.name}: frame de vitória {frame + 1} vazio")
+    return errors
+
+
 def main() -> int:
     errors = [error for sheet in SHEETS for error in validate(sheet)]
+    errors.extend(validate_victory(VICTORY_SHEET))
     if errors:
         print("FALHOU: validação dos sprites do CloudArena")
         for error in errors:
             print(f"- {error}")
         return 1
-    print("OK: 2 spritesheets RGBA transparentes e 16 frames válidos por personagem.")
+    print("OK: 3 inimigos 4x4 e vitória masculina de 4 frames estão válidos e transparentes.")
     return 0
 
 

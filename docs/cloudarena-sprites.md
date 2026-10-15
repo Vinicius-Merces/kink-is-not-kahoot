@@ -82,23 +82,25 @@ Além dos 16 frames padrão, o herói masculino utiliza uma animação extra de 
 - O carregamento é opcional: falha do arquivo da vitória não deve bloquear ataque, defesa ou morte do herói. Enquanto o PNG não estiver presente, o renderer mantém a pose de idle como fallback.
 - O recorte segue o padrão geral de 15 px internos em cada lateral e 20 px no topo, mas com **uma única linha** em vez de quatro.
 
-**Status dos arquivos:** Código de suporte inserido na `main` em 14/10/2026; é obrigatório versionar o PNG aprovado no caminho acima e confirmar o deploy na SquareCloud antes de considerar a animação disponibilizada online.
+**Status dos arquivos:** o PNG aprovado de 2172 × 724 px está versionado no caminho acima. O arquivo legado de 361 × 150 px não deve ser usado como animação de vitória do renderer 4×1.
 
 
 ## Segundo inimigo comum: Arquimago das Chaves
 
-A arena SAA-C03, domínio `secure-architectures`, disponibiliza os dois inimigos comuns:
+A arena SAA-C03, domínio `secure-architectures`, usa temporariamente somente os três inimigos comuns já aprovados para a fase de testes:
 
 - **Sentinela da Fortaleza**, com escudo e lança azul.
+- **Sentinela CloudShield**, com escudo e martelo de energia.
 - **Arquimago das Chaves**, com cajado de cristal e magia de autenticação, voltado para a esquerda.
 
-O `js/cloudarena.js` alterna entre ambos nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e o Arquimago só é selecionado quando o PNG aprovado estiver carregável. Sem esse arquivo, permanece a Sentinela.
+O `js/cloudarena.js` alterna somente entre os três nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e cada personagem só entra na rotação depois que seu PNG foi carregado. Novos inimigos podem ser acrescentados posteriormente na mesma lista.
 
-**Spritesheets e temporização:** os dois arquivos usam grade de 4×4, fundo transparente, tamanho de célula 440×440 px (PNG final 1760×1760). As poses foram recortadas individualmente e recentralizadas, com pelo menos 60 px de área transparente nas bordas da célula na preparação. `idle` tem quatro frames e fecha o loop em 1 segundo; `attack`, `hurt` e `death` têm quatro frames e duram 0,5 segundo cada. `attack` e `hurt` retornam ao `idle`; `death` segura no último quadro.
+**Spritesheets e temporização:** os três arquivos usam grade de 4×4 e fundo transparente. O renderer calcula as células usando as dimensões reais de cada PNG. `idle` tem quatro frames e fecha o loop em 1 segundo; `attack`, `hurt` e `death` têm quatro frames e duram 0,5 segundo cada. `attack` e `hurt` retornam ao `idle`; `death` segura no último quadro.
 
 Caminhos dos assets:
 
 - `images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png`
+- `images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png`
 - `images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png`
 
-**Situação de publicação:** os dois PNGs finais transparentes estão versionados na `main`. O Arquimago usa a última arte aprovada, orientada para a esquerda; a prancha de apresentação com fundo e rótulos não é carregada pelo site. A rotação considera somente variantes cujo asset foi carregado e mantém chefes fora dessa lista.
+**Situação de publicação:** os três PNGs finais transparentes estão versionados na `main`. O Arquimago usa a última arte aprovada, orientada para a esquerda; a prancha de apresentação com fundo e rótulos não é carregada pelo site. A rotação considera somente variantes cujo asset foi carregado e mantém chefes fora dessa lista.
