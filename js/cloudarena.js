@@ -1,4 +1,4 @@
-Warning: truncated output (original token count: 21707)
+Warning: truncated output (original token count: 21705)
 Total output lines: 1757
 
 /**
@@ -690,12 +690,12 @@ Total output lines: 1757
     // padrão 4x4 e timings; a escolha alterna por encontro, não por frame.
     const SECURE_ENEMY_VARIANTS = [
         {
-            name: 'Sentinela da Fortaleza',
+            name: 'Sentinela GuardDuty',
             url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png',
             ready: true,
         },
         {
-            name: 'Sentinela da Resiliência',
+            name: 'Sentinela Multi-AZ',
             url: 'images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png',
             ready: false,
         },
@@ -813,7 +813,7 @@ Total output lines: 1757
         showToast(`🏆 Conquista: ${label}`);
     }
 
-    function checkThematicAchievemen…1707 tokens truncated…       for (let i = 0; i < hits; i++) heroHit();
+    function checkThematicAchievements(certId,…1705 tokens truncated…       for (let i = 0; i < hits; i++) heroHit();
         let died = false;
         for (let i = 0; i < mistakes && !died; i++) died = applyHeroDamage(battle.certId);
         battle.eliminatedTexts = [...battle.selected];

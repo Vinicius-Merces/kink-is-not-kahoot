@@ -8,7 +8,7 @@
 - Os **inimigos** ficam à direita, olhando para a esquerda.
 - Inimigos comuns: fantasia com elementos de AWS/nuvem ligados ao nome e ao domínio.
 - Chefes: visual mais épico. Conceito reservado: **Vorgrath, o Corruptor das Arquiteturas Seguras**, para `saa-c03 / secure-architectures`.
-- Primeiro inimigo aprovado: **Sentinela da Fortaleza** (`saa-c03 / secure-architectures`), com lança de energia azul, escudo e símbolos de proteção.
+- Primeiro inimigo aprovado: **Sentinela GuardDuty** (`saa-c03 / secure-architectures`), com lança de energia azul, escudo e símbolos de proteção.
 - Herói masculino: guardião de armadura escura/dourada com efeitos ciano. Herói feminino mantém assets legados até haver equivalente aprovado.
 
 ## Formato mestre
@@ -52,7 +52,7 @@ Arquivos **mestres, sem recompressão ou redesenho**, derivados das artes aprova
 - `images/arena/hero/masculino/cloudarena-sheet.png` (herói masculino, 4×4)
 - `images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png` (inimigo comum, 4×4)
 
-O nome registrado no código continua **Sentinela da Fortaleza**. Os demais inimigos e chefes permanecem com seus próprios nomes e sprites existentes. Não substituir o chefe por Vorgrath até os 16 frames dele estarem aprovados.
+O nome registrado no código é **Sentinela GuardDuty**, recuperado da pool legada. Os demais inimigos e chefes permanecem com seus próprios nomes e sprites existentes. Não substituir o chefe por Vorgrath até os 16 frames dele estarem aprovados.
 
 ## Validação obrigatória antes de publicar
 
@@ -89,8 +89,8 @@ Além dos 16 frames padrão, o herói masculino utiliza uma animação extra de 
 
 A arena SAA-C03, domínio `secure-architectures`, usa temporariamente somente os três inimigos comuns já aprovados para a fase de testes:
 
-- **Sentinela da Fortaleza**, com escudo e lança azul.
-- **Sentinela da Resiliência**, com escudo e martelo de energia.
+- **Sentinela GuardDuty**, com escudo e lança azul.
+- **Sentinela Multi-AZ**, com escudo e martelo de energia.
 - **Arquimago das Chaves**, com cajado de cristal e magia de autenticação, voltado para a esquerda.
 
 O `js/cloudarena.js` alterna somente entre os três nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e cada personagem só entra na rotação depois que seu PNG foi carregado. Novos inimigos podem ser acrescentados posteriormente na mesma lista.
