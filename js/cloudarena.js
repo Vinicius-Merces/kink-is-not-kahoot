@@ -690,6 +690,12 @@
         { name: 'Arquimago das Chaves', url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png' },
     ];
     let activeEnemySprite = null;
+    // Não selecionar o Arquimago até o PNG ter sido publicado e carregado.
+    // Isso preserva a Sentinela e evita nome/arte divergentes no site.
+    let mageAssetReady = false;
+    const mageAssetProbe = new Image();
+    mageAssetProbe.onload = () => { mageAssetReady = true; };
+    mageAssetProbe.src = SECURE_ENEMY_VARIANTS[1].url;
     function animatedEnemyEnabled() {
         return battle && battle.certId === 'saa-c03'
             && battle.domain === 'secure-architectures' && !battle.boss;
@@ -697,8 +703,13 @@
     function chosenEnemyVariant() {
         if (!animatedEnemyEnabled()) return null;
         const a = state.arenas[battle.certId];
-        // Encontros pares: Sentinela. Ímpares: Arquimago.
-        return SECURE_ENEMY_VARIANTS[(a.enemiesDefeated || 0) % SECURE_ENEMY_VARIANTS.length];
+        // Congela a variante durante toda a batalha. Nunca exibir nome do
+        // Arquimago se o arquivo aprovado ainda não estiver disponível.
+        if (!battle._secureEnemyVariant) {
+            const alternate = (a.enemiesDefeated || 0) % 2 === 1 && mageAssetReady;
+            battle._secureEnemyVariant = SECURE_ENEMY_VARIANTS[alternate ? 1 : 0];
+        }
+        return battle._secureEnemyVariant;
     }
     class AnimatedArenaEnemy extends FourByFourSprite {
         constructor(canvas, variant) {
