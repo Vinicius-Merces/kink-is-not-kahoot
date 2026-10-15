@@ -717,6 +717,7 @@
             to: 30,
             variants: [
                 { name: 'Draco do Tráfego', url: 'images/arena/enemies/networking/draco-do-trafego-sheet.jpg', ready: true },
+                { name: 'Aegis, o Draco do Firewall', url: 'images/arena/enemies/networking/aegis-draco-firewall-sheet.webp', ready: true },
             ],
         },
     ];
