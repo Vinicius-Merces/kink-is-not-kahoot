@@ -83,3 +83,22 @@ Além dos 16 frames padrão, o herói masculino utiliza uma animação extra de 
 - O recorte segue o padrão geral de 15 px internos em cada lateral e 20 px no topo, mas com **uma única linha** em vez de quatro.
 
 **Status dos arquivos:** Código de suporte inserido na `main` em 14/10/2026; é obrigatório versionar o PNG aprovado no caminho acima e confirmar o deploy na SquareCloud antes de considerar a animação disponibilizada online.
+
+
+## Segundo inimigo comum: Arquimago das Chaves
+
+A arena SAA-C03, domínio `secure-architectures`, disponibiliza os dois inimigos comuns:
+
+- **Sentinela da Fortaleza**, com escudo e lança azul.
+- **Arquimago das Chaves**, com cajado de cristal e magia de autenticação, voltado para a esquerda.
+
+O `js/cloudarena.js` alterna entre ambos nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e o Arquimago só é selecionado quando o PNG aprovado estiver carregável. Sem esse arquivo, permanece a Sentinela.
+
+**Spritesheets e temporização:** os dois arquivos usam grade de 4×4, fundo transparente, tamanho de célula 440×440 px (PNG final 1760×1760). As poses foram recortadas individualmente e recentralizadas, com pelo menos 60 px de área transparente nas bordas da célula na preparação. `idle` tem quatro frames e fecha o loop em 1 segundo; `attack`, `hurt` e `death` têm quatro frames e duram 0,5 segundo cada. `attack` e `hurt` retornam ao `idle`; `death` segura no último quadro.
+
+Caminhos dos assets:
+
+- `images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png`
+- `images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png`
+
+**Situação de publicação:** Código enviado para a `main`. O arquivo do Arquimago ainda precisa ser enviado ao GitHub para habilitar o personagem. A presença de código na `main` não confirma deploy efetivo na SquareCloud. O pacote `cloudarena_2_inimigos_integracao.zip` com os PNGs e teste HTML foi entregue na conversa.
