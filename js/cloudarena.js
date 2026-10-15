@@ -697,54 +697,44 @@
     }
 
 
-    // Inimigos animados de Arquiteturas Seguras. Os dois dividem o mesmo
-    // padrão 4x4 e timings; a escolha alterna por encontro, não por frame.
-    const SECURE_ENEMY_VARIANTS = [
+    // Cada bloco de dez níveis possui uma pool própria. A seleção fica
+    // congelada durante o encontro e evita o mesmo inimigo em aparições seguidas.
+    // Os quatro assets desta primeira pool já estão publicados; os próximos
+    // blocos serão ativados somente junto de suas artes finais, sem fallback.
+    const SAA_COMMON_ENEMY_TIERS = [
         {
-            name: 'Sentinela GuardDuty',
-            url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png',
-            ready: true,
-        },
-        {
-            name: 'Sentinela Multi-AZ',
-            url: 'images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png',
-            ready: false,
-        },
-        {
-            name: 'Arquimago das Chaves',
-            url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png',
-            ready: false,
-        },
-        {
-            name: 'Guardião de Permissões',
-            url: 'images/arena/enemies/secure-architectures/guardiao-permissoes-sheet.png',
-            ready: false,
+            from: 1,
+            to: 10,
+            variants: [
+                { name: 'Sentinela GuardDuty', url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png', ready: true },
+                { name: 'Sentinela Multi-AZ', url: 'images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png', ready: true },
+                { name: 'Arquimago das Chaves', url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png', ready: true },
+                { name: 'Guardião de Permissões', url: 'images/arena/enemies/secure-architectures/guardiao-permissoes-sheet.png', ready: true },
+            ],
         },
     ];
     let activeEnemySprite = null;
-    // Cada novo inimigo entra na rotação apenas depois de seu PNG carregar.
-    // Assim um asset ausente nunca produz nome/arte divergentes no encontro.
-    SECURE_ENEMY_VARIANTS.slice(1).forEach(variant => {
-        const probe = new Image();
-        probe.onload = () => { variant.ready = true; };
-        probe.onerror = () => { variant.ready = false; };
-        probe.src = variant.url;
-    });
+    function activeCommonEnemyTier() {
+        if (!battle || battle.boss || battle.certId !== 'saa-c03') return null;
+        const level = state.arenas[battle.certId]?.currentLevel || 1;
+        return SAA_COMMON_ENEMY_TIERS.find(tier => level >= tier.from && level <= tier.to) || null;
+    }
     function animatedEnemyEnabled() {
-        return battle && battle.certId === 'saa-c03'
-            && battle.domain === 'secure-architectures' && !battle.boss;
+        return !!activeCommonEnemyTier();
     }
     function chosenEnemyVariant() {
-        if (!animatedEnemyEnabled()) return null;
+        const tier = activeCommonEnemyTier();
+        if (!tier) return null;
         const a = state.arenas[battle.certId];
-        // Congela a variante durante toda a batalha. Nunca exibir nome do
-        // Arquimago se o arquivo aprovado ainda não estiver disponível.
-        if (!battle._secureEnemyVariant) {
-            const available = SECURE_ENEMY_VARIANTS.filter(variant => variant.ready);
-            const index = (a.enemiesDefeated || 0) % available.length;
-            battle._secureEnemyVariant = available[index];
+        if (!battle._commonEnemyVariant) {
+            const available = tier.variants.filter(variant => variant.ready);
+            const alternatives = available.filter(variant => variant.name !== a.lastCommonEnemyName);
+            const candidates = alternatives.length ? alternatives : available;
+            battle._commonEnemyVariant = candidates[Math.floor(Math.random() * candidates.length)];
+            a.lastCommonEnemyName = battle._commonEnemyVariant.name;
+            saveState();
         }
-        return battle._secureEnemyVariant;
+        return battle._commonEnemyVariant;
     }
     class AnimatedArenaEnemy extends FourByFourSprite {
         constructor(canvas, variant) {
