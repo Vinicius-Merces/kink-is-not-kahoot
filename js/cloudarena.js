@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 21707)
+Total output lines: 1757
+
 /**
  * CloudArena — modo de estudo gamificado (RPG de batalha por turnos).
  *
@@ -692,7 +695,7 @@
             ready: true,
         },
         {
-            name: 'Sentinela CloudShield',
+            name: 'Sentinela da Resiliência',
             url: 'images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png',
             ready: false,
         },
@@ -810,169 +813,7 @@
         showToast(`🏆 Conquista: ${label}`);
     }
 
-    function checkThematicAchievements(certId, a) {
-        // Multi-AZ: pelo menos 1 vitória nas 4 arenas
-        const wonAll = Object.keys(ARENAS).every(id =>
-            (state.arenas[id].enemiesDefeated > 0) || (state.arenas[id].bestLevelReached > 0));
-        if (wonAll) unlock('multi-az', 'Multi-AZ');
-        // Auto Scaling: 10 level-ups na mesma run
-        if (a.heroLevelUpsThisRun >= 10) unlock('auto-scaling', 'Auto Scaling');
-        // Reservado: 7 dias diferentes
-        const today = new Date().toISOString().slice(0, 10);
-        state.playDays = state.playDays || [];
-        if (!state.playDays.includes(today)) state.playDays.push(today);
-        if (state.playDays.length >= 7) unlock('reserved', 'Reservado');
-    }
-
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = 'arena-toast';
-        t.textContent = msg;
-        document.body.appendChild(t);
-        requestAnimationFrame(() => t.classList.add('show'));
-        setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3200);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    // Batalha — máquina de estados dos 3 golpes (spec seção 2)
-    // ════════════════════════════════════════════════════════════════════
-    function startEncounter(certId) {
-        const a = state.arenas[certId];
-        const boss = isBossLevel(certId, a.currentLevel);
-        const hp = boss ? bossHp(certId) : HP_NORMAL;
-        const totalRounds = hp / 4; // spec: rounds = HP ÷ 4
-
-        // Retomada de sessão (spec 7.1): se fechou o navegador no meio de uma
-        // batalha, reabre a MESMA pergunta do início (round/HP do chefe também).
-        const pending = a.pendingEncounter;
-        if (pending && findQuestionById(certId, pending.questionId)) {
-            battle = {
-                certId, boss: pending.boss,
-                enemyMaxHp: pending.enemyMaxHp, enemyHp: pending.enemyHp,
-                totalRounds: pending.totalRounds, round: pending.round,
-                tookDamage: false, golpe1Mistake: false,
-                enteredWithHp: a.heroCurrentHp,
-                question: null, domain: null, attackName: null,
-            };
-            openQuestion(findQuestionById(certId, pending.questionId));
-            return;
-        }
-
-        battle = {
-            certId, boss,
-            enemyMaxHp: hp, enemyHp: hp,
-            totalRounds, round: 1,
-            tookDamage: false,          // dano tomado no encontro inteiro
-            golpe1Mistake: false,       // para Well-Architected
-            enteredWithHp: a.heroCurrentHp,
-            question: null,
-            domain: null,
-            attackName: null,
-        };
-        nextRound();
-    }
-
-    function findQuestionById(certId, qid) {
-        const data = arenaData[certId];
-        if (!data) return null;
-        for (const lvl of LEVELS) {
-            const q = data.pools[lvl].find(x => x.id === qid);
-            if (q) return q;
-        }
-        return null;
-    }
-
-    function nextRound() {
-        const a = state.arenas[battle.certId];
-        const difficulty = pickDifficulty(battle.certId, a.currentLevel, battle.boss);
-        const q = drawQuestion(battle.certId, difficulty);
-        if (!q) {
-            renderNoContent(battle.certId);
-            return;
-        }
-        openQuestion(q);
-    }
-
-    function openQuestion(q) {
-        const a = state.arenas[battle.certId];
-        // embaralha as justificativas por batalha — no arquivo a correta vem
-        // sempre primeiro, e a ordem fixa entregaria a resposta
-        const justs = (q.justifications || []).slice();
-        for (let i = justs.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [justs[i], justs[j]] = [justs[j], justs[i]];
-        }
-        battle.question = Object.assign({}, q, { justifications: justs });
-        battle.domain = q.domain;
-        battle.attackName = q.attackName || 'Nuvem';
-        battle.phase = 'eliminate';
-        battle.selected = new Set();
-        battle.eliminatedTexts = [];
-        battle.disabledJusts = new Set();
-        // persiste o encontro em andamento para retomada exata
-        a.pendingEncounter = {
-            questionId: q.id, boss: battle.boss, round: battle.round,
-            totalRounds: battle.totalRounds,
-            enemyHp: battle.enemyHp, enemyMaxHp: battle.enemyMaxHp,
-        };
-        saveState();
-        renderBattle();
-    }
-
-    function heroHit() { // herói causa 1 de dano fixo (spec 7.2)
-        battle.enemyHp = Math.max(0, battle.enemyHp - 1);
-    }
-
-    // Aplica o dano do inimigo no estado (sem animação — a coreografia roda
-    // depois do re-render, via playExchange). Retorna true se o herói morreu.
-    function applyHeroDamage(certId) {
-        const dmg = enemyDamage(certId);
-        const a = state.arenas[certId];
-        a.heroCurrentHp = Math.round(Math.max(0, a.heroCurrentHp - dmg) * 10) / 10;
-        a.lowestHpRatio = Math.min(a.lowestHpRatio, a.heroCurrentHp / heroMaxHp(a));
-        battle.tookDamage = true;
-        a.noDamageStreak = 0;
-        saveState();
-        return a.heroCurrentHp <= 0;
-    }
-
-    /**
-     * Coreografia pós-resolução de um golpe: primeiro o re-render já
-     * aconteceu, então as animações rodam por cima da tela nova.
-     * Ordem: ataque do herói (se acertou algo) -> ataque do inimigo (se
-     * errou algo) -> morte/game over se o HP zerou.
-     */
-    function playExchange(didHit, tookHits, died) {
-        const steps = [];
-        if (didHit) {
-            steps.push(next => heroAttack(() => { animateEnemyHurt(); setTimeout(next, 700); }));
-        }
-        if (tookHits > 0) {
-            steps.push(next => animateEnemyAttack(died, next));
-        }
-        let k = 0;
-        const next = () => {
-            if (k < steps.length) { steps[k++](next); return; }
-            if (died) setTimeout(() => gameOver(battle.certId), 350);
-        };
-        next();
-    }
-
-    // Golpe 1 — eliminação de exatamente 2
-    function confirmElimination() {
-        if (battle.selected.size !== 2) return;
-        let hits = 0, mistakes = 0;
-        for (const text of battle.selected) {
-            const opt = battle.question.options.find(o => o.text === text);
-            if (opt.stage === 'eliminate') {
-                hits++;
-            } else {
-                // eliminou a correta ou a armadilha — dano no jogador
-                battle.golpe1Mistake = true;
-                mistakes++;
-            }
-        }
-        for (let i = 0; i < hits; i++) heroHit();
+    function checkThematicAchievemen…1707 tokens truncated…       for (let i = 0; i < hits; i++) heroHit();
         let died = false;
         for (let i = 0; i < mistakes && !died; i++) died = applyHeroDamage(battle.certId);
         battle.eliminatedTexts = [...battle.selected];

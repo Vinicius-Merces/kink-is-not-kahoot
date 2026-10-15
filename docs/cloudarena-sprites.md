@@ -90,7 +90,7 @@ Além dos 16 frames padrão, o herói masculino utiliza uma animação extra de 
 A arena SAA-C03, domínio `secure-architectures`, usa temporariamente somente os três inimigos comuns já aprovados para a fase de testes:
 
 - **Sentinela da Fortaleza**, com escudo e lança azul.
-- **Sentinela CloudShield**, com escudo e martelo de energia.
+- **Sentinela da Resiliência**, com escudo e martelo de energia.
 - **Arquimago das Chaves**, com cajado de cristal e magia de autenticação, voltado para a esquerda.
 
 O `js/cloudarena.js` alterna somente entre os três nos encontros regulares. Os chefes continuam independentes. A variação fica fixa durante cada encontro e cada personagem só entra na rotação depois que seu PNG foi carregado. Novos inimigos podem ser acrescentados posteriormente na mesma lista.
