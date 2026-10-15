@@ -683,12 +683,26 @@
     }
 
 
-    // Inimigo SAA-C03 secure-architectures: Sentinela da Fortaleza.
-    // PNG único 4x4 aprovado. Os outros inimigos usam os arquivos anteriores.
+    // Inimigos animados de Arquiteturas Seguras. Os dois dividem o mesmo
+    // padrão 4x4 e timings; a escolha alterna por encontro, não por frame.
+    const SECURE_ENEMY_VARIANTS = [
+        { name: 'Sentinela da Fortaleza', url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png' },
+        { name: 'Arquimago das Chaves', url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png' },
+    ];
     let activeEnemySprite = null;
+    function animatedEnemyEnabled() {
+        return battle && battle.certId === 'saa-c03'
+            && battle.domain === 'secure-architectures' && !battle.boss;
+    }
+    function chosenEnemyVariant() {
+        if (!animatedEnemyEnabled()) return null;
+        const a = state.arenas[battle.certId];
+        // Encontros pares: Sentinela. Ímpares: Arquimago.
+        return SECURE_ENEMY_VARIANTS[(a.enemiesDefeated || 0) % SECURE_ENEMY_VARIANTS.length];
+    }
     class AnimatedArenaEnemy extends FourByFourSprite {
-        constructor(canvas) {
-            super('images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png');
+        constructor(canvas, variant) {
+            super(variant.url);
             this.attach(canvas);
         }
         async load() {
@@ -703,19 +717,16 @@
             return this;
         }
     }
-    function previewEnemyEnabled() {
-        return battle && battle.certId === 'saa-c03' &&
-            battle.domain === 'secure-architectures' && !battle.boss;
-    }
     function startPreviewEnemy() {
         const canvas = $('#enemyCanvas');
-        if (!canvas) return;
+        const variant = chosenEnemyVariant();
+        if (!canvas || !variant) return;
         if (activeEnemySprite) activeEnemySprite.stop();
-        const anim = new AnimatedArenaEnemy(canvas);
+        const anim = new AnimatedArenaEnemy(canvas, variant);
         activeEnemySprite = anim;
         anim.load().catch(error => {
-            console.warn('[CloudArena] Sentinela sem spritesheet novo; mantendo fallback:', error.message);
-            if (!canvas.isConnected) return;
+            console.warn('[CloudArena] Sprite do inimigo não carregou; usando fallback:', error.message);
+            if (!canvas.isConnected || activeEnemySprite !== anim) return;
             canvas.style.display = 'none';
             const img = $('#enemySprite');
             if (img) setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
@@ -757,7 +768,9 @@
     function enemyInfo(certId, domain, boss) {
         const byDomain = DOMAIN_ENEMIES[certId] || {};
         const entry = byDomain[domain] || FALLBACK_ENEMY;
-        return { name: boss ? entry.boss : entry.common, emoji: entry.emoji };
+        const variant = !boss && battle && battle.certId === certId && battle.domain === domain
+            ? chosenEnemyVariant() : null;
+        return { name: variant ? variant.name : (boss ? entry.boss : entry.common), emoji: entry.emoji };
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -1198,7 +1211,7 @@
     }
 
     function animateEnemyHurt() {
-        if (previewEnemyEnabled()) {
+        if (animatedEnemyEnabled()) {
             playPreviewEnemy(battle.enemyHp <= 0 ? 'death' : 'hurt');
 
         }
