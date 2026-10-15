@@ -723,6 +723,13 @@
                 { name: 'Orion, o Draco da Replicação', url: 'images/arena/enemies/storage/orion-draco-replicacao-sheet.webp', ready: true },
             ],
         },
+        {
+            from: 31,
+            to: 40,
+            variants: [
+                { name: 'Nexo-31, o Mecha de Redes', url: 'images/arena/enemies/mecha/nexo-31-mecha-redes-sheet.webp', ready: true },
+            ],
+        },
     ];
     let activeEnemySprite = null;
     function activeCommonEnemyTier() {
