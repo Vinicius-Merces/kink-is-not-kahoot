@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CloudArena | Validação de inimigos</title>
+<style>
+  body { margin: 0; background: #07111f; color: #e9f7ff; font: 16px system-ui; text-align: center; }
+  main { max-width: 900px; margin: auto; padding: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 20px; }
+  .card { background: #10243a; border: 1px solid #31516d; border-radius: 16px; padding: 16px; }
+  canvas { width: 100%; aspect-ratio: 1; background: radial-gradient(circle at 50% 90%,#214b67,#091626 68%); }
+  button { margin: 4px; padding: 9px 13px; color: inherit; background: #173b54; border: 1px solid #4e88ac; border-radius: 8px; }
+</style>
+<main>
+  <h1>Validação local dos inimigos</h1>
+  <p>Idle: 1 s em loop. Attack, Hurt e Death: 0,5 s.</p>
+  <div class="grid" id="grid"></div>
+</main>
+<script>
+const states = { idle: 0, attack: 1, hurt: 2, death: 3 };
+const actors = [
+  ['Sentinela da Fortaleza', '../images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png'],
+  ['Arquimago das Chaves', '../images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png'],
+];
+const grid = document.querySelector('#grid');
+actors.forEach(([name, src]) => {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.innerHTML = `<h2>${name}</h2><canvas width="360" height="360"></canvas><div></div>`;
+  grid.append(card);
+  const canvas = card.querySelector('canvas');
+  const controls = card.querySelector('div');
+  const image = new Image();
+  const actor = { canvas, ctx: canvas.getContext('2d'), image, state: 'idle', started: performance.now(), stopped: false };
+  image.src = src;
+  Object.keys(states).forEach(state => {
+    const button = document.createElement('button');
+    button.textContent = state.toUpperCase();
+    button.onclick = () => Object.assign(actor, { state, started: performance.now(), stopped: false });
+    controls.append(button);
+  });
+  function tick(now) {
+    if (image.complete && image.naturalWidth) {
+      const duration = actor.state === 'idle' ? 1000 : 500;
+      const elapsed = now - actor.started;
+      if (elapsed >= duration && actor.state !== 'idle') {
+        if (actor.state === 'death') actor.stopped = true;
+        else Object.assign(actor, { state: 'idle', started: now });
+      }
+      const progress = actor.stopped ? 1 : ((now - actor.started) % duration) / duration;
+      const frame = actor.stopped ? 3 : Math.min(3, Math.floor(progress * 4));
+      const row = states[actor.state];
+      const x0 = Math.round(frame * image.naturalWidth / 4);
+      const x1 = Math.round((frame + 1) * image.naturalWidth / 4);
+      const y0 = Math.round(row * image.naturalHeight / 4);
+      const y1 = Math.round((row + 1) * image.naturalHeight / 4);
+      actor.ctx.clearRect(0, 0, 360, 360);
+      actor.ctx.drawImage(image, x0, y0, x1 - x0, y1 - y0, 18, 18, 324, 324);
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+});
+</script>
+</html>

@@ -686,16 +686,26 @@
     // Inimigos animados de Arquiteturas Seguras. Os dois dividem o mesmo
     // padrão 4x4 e timings; a escolha alterna por encontro, não por frame.
     const SECURE_ENEMY_VARIANTS = [
-        { name: 'Sentinela da Fortaleza', url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png' },
-        { name: 'Arquimago das Chaves', url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png' },
+        {
+            name: 'Sentinela da Fortaleza',
+            url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png',
+            ready: true,
+        },
+        {
+            name: 'Arquimago das Chaves',
+            url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png',
+            ready: false,
+        },
     ];
     let activeEnemySprite = null;
-    // Não selecionar o Arquimago até o PNG ter sido publicado e carregado.
-    // Isso preserva a Sentinela e evita nome/arte divergentes no site.
-    let mageAssetReady = false;
-    const mageAssetProbe = new Image();
-    mageAssetProbe.onload = () => { mageAssetReady = true; };
-    mageAssetProbe.src = SECURE_ENEMY_VARIANTS[1].url;
+    // Cada novo inimigo entra na rotação apenas depois de seu PNG carregar.
+    // Assim um asset ausente nunca produz nome/arte divergentes no encontro.
+    SECURE_ENEMY_VARIANTS.slice(1).forEach(variant => {
+        const probe = new Image();
+        probe.onload = () => { variant.ready = true; };
+        probe.onerror = () => { variant.ready = false; };
+        probe.src = variant.url;
+    });
     function animatedEnemyEnabled() {
         return battle && battle.certId === 'saa-c03'
             && battle.domain === 'secure-architectures' && !battle.boss;
@@ -706,8 +716,9 @@
         // Congela a variante durante toda a batalha. Nunca exibir nome do
         // Arquimago se o arquivo aprovado ainda não estiver disponível.
         if (!battle._secureEnemyVariant) {
-            const alternate = (a.enemiesDefeated || 0) % 2 === 1 && mageAssetReady;
-            battle._secureEnemyVariant = SECURE_ENEMY_VARIANTS[alternate ? 1 : 0];
+            const available = SECURE_ENEMY_VARIANTS.filter(variant => variant.ready);
+            const index = (a.enemiesDefeated || 0) % available.length;
+            battle._secureEnemyVariant = available[index];
         }
         return battle._secureEnemyVariant;
     }
@@ -1241,14 +1252,14 @@
     function animateEnemyAttack(heroDies, done) {
         const wrap = $('#enemyWrap');
         const img = $('#enemySprite');
-        if (!wrap || (!img && !previewEnemyEnabled())) { if (done) done(); return; }
+        if (!wrap || (!img && !animatedEnemyEnabled())) { if (done) done(); return; }
         const info = enemyInfo(battle.certId, battle.domain, battle.boss);
         const callout = $('#attackCallout');
         if (callout) {
             callout.textContent = `${info.name} ataca com ${battle.attackName}!`;
             callout.classList.add('show');
         }
-        if (!(previewEnemyEnabled() && playPreviewEnemy('attack'))) {
+        if (!(animatedEnemyEnabled() && playPreviewEnemy('attack'))) {
             setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
         }
         wrap.classList.add('enemy-attacking'); // desloca em direção ao herói via CSS
@@ -1258,7 +1269,7 @@
         }, 320);
         setTimeout(() => {
             wrap.classList.remove('enemy-attacking');
-            if (!previewEnemyEnabled() || !activeEnemySprite || !activeEnemySprite.isReady) {
+            if (!animatedEnemyEnabled() || !activeEnemySprite || !activeEnemySprite.isReady) {
                 setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
             }
             if (callout) callout.classList.remove('show');
@@ -1458,7 +1469,7 @@
                     </div>
                     <div class="vs">VS</div>
                     <div class="fighter ${battle.boss ? 'is-boss' : ''}" id="enemyWrap">
-                        ${previewEnemyEnabled() ? '<canvas id="enemyCanvas" class="sprite sprite-sheet" width="180" height="180" style="display:none"></canvas>' : ''}
+                        ${animatedEnemyEnabled() ? '<canvas id="enemyCanvas" class="sprite sprite-sheet" width="180" height="180" style="display:none"></canvas>' : ''}
                         <img id="enemySprite" class="sprite" alt="${esc(info.name)}">
                         <div class="sprite-fallback">${info.emoji}</div>
                         <div class="fighter-name">${esc(info.name)}${battle.boss ? ' 👑' : ''}</div>
@@ -1482,7 +1493,7 @@
             </div>`;
 
         initHeroCanvas();
-        if (previewEnemyEnabled()) startPreviewEnemy();
+        if (animatedEnemyEnabled()) startPreviewEnemy();
         else setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
 

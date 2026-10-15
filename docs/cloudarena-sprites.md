@@ -8,7 +8,7 @@
 - Os **inimigos** ficam à direita, olhando para a esquerda.
 - Inimigos comuns: fantasia com elementos de AWS/nuvem ligados ao nome e ao domínio.
 - Chefes: visual mais épico. Conceito reservado: **Vorgrath, o Corruptor das Arquiteturas Seguras**, para `saa-c03 / secure-architectures`.
-- Primeiro inimigo aprovado: **Sentinela da Fortaleza** (`saa-c03 / secure-architectures`), com martelo de energia azul, escudo e símbolos de proteção.
+- Primeiro inimigo aprovado: **Sentinela da Fortaleza** (`saa-c03 / secure-architectures`), com lança de energia azul, escudo e símbolos de proteção.
 - Herói masculino: guardião de armadura escura/dourada com efeitos ciano. Herói feminino mantém assets legados até haver equivalente aprovado.
 
 ## Formato mestre
@@ -101,4 +101,4 @@ Caminhos dos assets:
 - `images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png`
 - `images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png`
 
-**Situação de publicação:** Código enviado para a `main`. O arquivo do Arquimago ainda precisa ser enviado ao GitHub para habilitar o personagem. A presença de código na `main` não confirma deploy efetivo na SquareCloud. O pacote `cloudarena_2_inimigos_integracao.zip` com os PNGs e teste HTML foi entregue na conversa.
+**Situação de publicação:** os dois PNGs finais transparentes estão versionados na `main`. O Arquimago usa a última arte aprovada, orientada para a esquerda; a prancha de apresentação com fundo e rótulos não é carregada pelo site. A rotação considera somente variantes cujo asset foi carregado e mantém chefes fora dessa lista.
