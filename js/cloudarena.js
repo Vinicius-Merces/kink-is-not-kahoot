@@ -731,6 +731,7 @@
                 { name: 'Bastião-AX, o Mecha de Segurança', url: 'images/arena/enemies/mecha/bastiao-ax-mecha-seguranca-sheet.webp', ready: true },
                 { name: 'Escalador K-9, o Mecha de Auto Scaling', url: 'images/arena/enemies/mecha/escalador-k9-mecha-autoscaling-sheet.webp', ready: true },
                 { name: 'Forja-IO, o Mecha de Processamento', url: 'images/arena/enemies/mecha/forja-io-mecha-processamento-sheet.webp', ready: true },
+                { name: 'Núcleo Vault-7, o Mecha de Armazenamento', url: 'images/arena/enemies/mecha/nucleo-vault-7-mecha-armazenamento-sheet.webp', ready: true },
             ],
         },
     ];
