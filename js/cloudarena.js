@@ -718,6 +718,7 @@
             variants: [
                 { name: 'Draco do Tráfego', url: 'images/arena/enemies/networking/draco-do-trafego-sheet.jpg', ready: true },
                 { name: 'Aegis, o Draco do Firewall', url: 'images/arena/enemies/networking/aegis-draco-firewall-sheet.webp', ready: true },
+                { name: 'Hydra, o Draco do Load Balancer', url: 'images/arena/enemies/networking/hydra-draco-load-balancer-sheet.webp', ready: true },
             ],
         },
     ];
