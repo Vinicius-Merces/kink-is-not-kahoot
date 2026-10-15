@@ -729,6 +729,7 @@
             variants: [
                 { name: 'Nexo-31, o Mecha de Redes', url: 'images/arena/enemies/mecha/nexo-31-mecha-redes-sheet.webp', ready: true },
                 { name: 'Bastião-AX, o Mecha de Segurança', url: 'images/arena/enemies/mecha/bastiao-ax-mecha-seguranca-sheet.webp', ready: true },
+                { name: 'Escalador K-9, o Mecha de Auto Scaling', url: 'images/arena/enemies/mecha/escalador-k9-mecha-autoscaling-sheet.webp', ready: true },
             ],
         },
     ];
