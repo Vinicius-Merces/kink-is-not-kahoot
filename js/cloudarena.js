@@ -121,6 +121,7 @@
             heroLevelUpsThisRun: 0,
             hadGameOver: false,       // para a conquista Backup e Restore
             playDays: [],
+            updatedAt: null,
         };
     }
 
@@ -137,6 +138,12 @@
     }
 
     function saveState() {
+        // A sessão ativa precisa vencer uma cópia antiga de outro dispositivo.
+        // Sem este marcador, um progresso velho de nível alto pode ressuscitar
+        // depois de game over ou de uma nova partida.
+        const now = new Date().toISOString();
+        state.updatedAt = now;
+        Object.values(state.arenas || {}).forEach(arena => { arena.updatedAt = now; });
         try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* cheio/privado */ }
         scheduleSync();
     }
@@ -187,7 +194,11 @@
     function mergeArena(localA, remoteA) {
         const l = Object.assign(freshArenaState(), localA || {});
         const r = Object.assign(freshArenaState(), remoteA || {});
-        const merged = Object.assign({}, (r.enemiesDefeated || 0) > (l.enemiesDefeated || 0) ? r : l);
+        // A sessão mais recente é a fonte da verdade para a run ativa. O
+        // recorde permanece por máximo, mas não pode reviver uma run anterior.
+        const remoteIsNewer = String(r.updatedAt || '') > String(l.updatedAt || '');
+        const merged = Object.assign({}, remoteIsNewer ? r : l);
+        merged.updatedAt = remoteIsNewer ? r.updatedAt : l.updatedAt;
         merged.bestLevelReached = Math.max(l.bestLevelReached || 0, r.bestLevelReached || 0);
         merged.challengeBestLevel = Math.max(l.challengeBestLevel || 0, r.challengeBestLevel || 0);
         merged.bossesDefeated = Array.from(new Set([...(l.bossesDefeated || []), ...(r.bossesDefeated || [])]));
@@ -224,15 +235,17 @@
 
     async function pushState() {
         const user = firebaseUser();
-        if (!user) return;
+        if (!user || typeof db === 'undefined' || !db) return;
         try {
-            const token = await user.getIdToken();
-            await fetch('/api/cloudarena/state', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ state: syncPayload() }),
-            });
-        } catch (e) { /* offline/erro de rede — tenta na próxima alteração */ }
+            // A hospedagem atual não expõe /api/cloudarena/state. Persistimos
+            // diretamente no documento autenticado, preservando o perfil do usuário.
+            await db.collection('users').doc(user.uid).set({
+                cloudArena: syncPayload(),
+                cloudArenaUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+        } catch (e) {
+            console.warn('[CloudArena] não foi possível sincronizar a sessão:', e.message);
+        }
     }
 
     function scheduleSync() {
@@ -242,14 +255,15 @@
     }
 
     async function pullAndMerge(user) {
+        if (typeof db === 'undefined' || !db) return;
         try {
-            const token = await user.getIdToken();
-            const res = await fetch('/api/cloudarena/state', {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            const data = await res.json();
-            if (!data.success) return;
-            const changed = mergeRemoteState(data.state);
+            const snapshot = await db.collection('users').doc(user.uid).get();
+            const remote = snapshot.exists ? snapshot.data().cloudArena : null;
+            if (!remote || typeof remote !== 'object') {
+                await pushState();
+                return;
+            }
+            const changed = mergeRemoteState(remote);
             if (changed) {
                 try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* noop */ }
                 try { localStorage.setItem(ACH_KEY, JSON.stringify(achState)); } catch (e) { /* noop */ }
