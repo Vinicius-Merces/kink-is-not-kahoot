@@ -728,6 +728,7 @@
             to: 40,
             variants: [
                 { name: 'Nexo-31, o Mecha de Redes', url: 'images/arena/enemies/mecha/nexo-31-mecha-redes-sheet.webp', ready: true },
+                { name: 'Bastião-AX, o Mecha de Segurança', url: 'images/arena/enemies/mecha/bastiao-ax-mecha-seguranca-sheet.webp', ready: true },
             ],
         },
     ];
