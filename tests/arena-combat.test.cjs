@@ -26,9 +26,11 @@ const catalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../images/arena/v2
 t.catalog(catalog);
 for(const certId of ['saa-c03','clf-c02','dva-c02','dea-c01']) {
     const arena=t.state.arenas[certId];
-    for(const [level,rounds] of [[10,1],[20,2],[30,3],[40,4],[50,4],[100,4]]) {
+    for(const [level,total] of [[10,2],[20,2],[30,3],[40,3],[50,4],[60,4],[70,5],[80,5],[90,6],[100,6]]) {
         arena.currentLevel=level;arena.inChallenge=false;
-        assert.equal(t.bossHp(certId),rounds*4);
+        assert.equal(t.bossHp(certId,1),Math.floor(total/2)*4);
+        assert.equal(t.bossHp(certId,2),Math.ceil(total/2)*4);
+        assert.equal((t.bossHp(certId,1)+t.bossHp(certId,2))/4,total);
     }
     arena.inChallenge=true;arena.challengePosition=5;assert.equal(t.bossHp(certId),24);
     arena.challengePosition=20;assert.equal(t.bossHp(certId),32);arena.inChallenge=false;
@@ -55,15 +57,16 @@ function flush(ms) {
 for(const boss of catalog.bosses) {
     a.currentLevel=boss.level;
     const before=t.counts();
-    const rounds=Math.min(4,boss.level/10),hp=rounds*4;
+    const total=2+Math.floor((boss.level/10-1)/2);
+    const rounds=Math.floor(total/2),enragedRounds=Math.ceil(total/2),hp=rounds*4;
     const b={certId:'saa-c03',boss:true,bossPhase:1,round:rounds,totalRounds:rounds,
       enemyHp:1,enemyMaxHp:hp,question:{justifications:[{correct:true}]},
       _commonEnemyVariant:boss,disabledJusts:new Set()};
     t.battle(b);t.chooseJustification(0);assert.equal(b.enemyHp,0);
-    flush(1300);assert.equal(b.bossPhase,2);assert.equal(b.enemyHp,hp);assert.equal(b.round,1);
+    flush(1300);assert.equal(b.bossPhase,2);assert.equal(b.enemyHp,enragedRounds*4);assert.equal(b.totalRounds,enragedRounds);assert.equal(b.round,1);
     assert.equal(t.counts().kills,before.kills,'phase one must not award victory');
     flush(550);assert.equal(t.counts().next,before.next+1);
-    b.round=rounds;b.enemyHp=1;b.busy=false;
+    b.round=enragedRounds;b.enemyHp=1;b.busy=false;
     t.chooseJustification(0);flush(1300);assert.equal(t.counts().kills,before.kills+1);
 }
 // Existing level-10 saves must adopt the shorter encounter without losing form.
@@ -74,5 +77,11 @@ for(const phase of [1,2]) {
     a.pendingEncounter={questionId:q.id,boss:true,enemyMaxHp:12,enemyHp:7,totalRounds:3,round:2,bossPhase:phase,visualId:'vorgrath'};
     t.startEncounter('saa-c03');const b=t.getBattle();
     assert.equal(b.totalRounds,1);assert.equal(b.round,1);assert.equal(b.enemyMaxHp,4);assert.equal(b.enemyHp,4);assert.equal(b.bossPhase,phase);
+}
+for(const phase of [1,2]) {
+    a.currentLevel=30;
+    a.pendingEncounter={questionId:q.id,boss:true,enemyMaxHp:12,enemyHp:9,totalRounds:3,round:3,bossPhase:phase,visualId:'aion'};
+    t.startEncounter('saa-c03');const b=t.getBattle();const rounds=phase===2?2:1;
+    assert.equal(b.totalRounds,rounds);assert.equal(b.round,rounds);assert.equal(b.enemyMaxHp,rounds*4);assert.equal(b.bossPhase,phase);
 }
 console.log('PASS: progressive boss HP, saved encounter migration, 400 level mappings, anti-repeat and all four two-phase boss lifecycles');

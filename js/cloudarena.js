@@ -46,7 +46,6 @@
 
     // HP: regra geral — rounds = hp / 4
     const HP_NORMAL = 4;
-    const MAX_STORY_BOSS_ROUNDS = 4;
     const HP_CHALLENGE_BOSS = 24;
     const HP_CHALLENGE_FINAL = 32;
     const HERO_BASE_HP = 10;
@@ -414,14 +413,16 @@
         return level % 10 === 0;
     }
 
-    function bossHp(certId) {
+    function bossHp(certId, phase = 1) {
         const a = state.arenas[certId];
         if (a.inChallenge) {
             return a.challengePosition === CHALLENGE_LENGTH ? HP_CHALLENGE_FINAL : HP_CHALLENGE_BOSS;
         }
-        // One question/round per form at level 10, then 2/3/4 at 20/30/40.
-        // Keep later fights capped: two forms already double the total length.
-        const roundsPerPhase = Math.min(MAX_STORY_BOSS_ROUNDS, Math.max(1, Math.floor(a.currentLevel / 10)));
+        // Two bosses share each difficulty step: total questions 2,2,3,3,...6,6.
+        // Both visual forms remain mandatory; an odd extra round belongs to enrage.
+        const bossIndex = Math.max(1, Math.floor(a.currentLevel / 10));
+        const totalQuestions = 2 + Math.floor((bossIndex - 1) / 2);
+        const roundsPerPhase = phase === 2 ? Math.ceil(totalQuestions / 2) : Math.floor(totalQuestions / 2);
         return HP_NORMAL * roundsPerPhase;
     }
 
@@ -848,12 +849,13 @@
     function startEncounter(certId) {
         const a = state.arenas[certId];
         const boss = isBossLevel(certId, a.currentLevel);
-        const hp = boss ? bossHp(certId) : HP_NORMAL;
+        const pending = a.pendingEncounter;
+        const restoredPhase = pending && pending.bossPhase === 2 ? 2 : 1;
+        const hp = boss ? bossHp(certId, restoredPhase) : HP_NORMAL;
         const totalRounds = hp / 4; // spec: rounds = HP ÷ 4
 
         // Retomada de sessão (spec 7.1): se fechou o navegador no meio de uma
         // batalha, reabre a MESMA pergunta do início (round/HP do chefe também).
-        const pending = a.pendingEncounter;
         if (pending && findQuestionById(certId, pending.questionId)) {
             // Migrate an encounter saved before the progressive boss balance.
             // Keep the question and form, but do not restore an obsolete 3-round
@@ -1063,7 +1065,9 @@
     function beginBossEnrage() {
         const encounter = battle;
         battle.bossPhase = 2;
+        battle.enemyMaxHp = bossHp(battle.certId, 2);
         battle.enemyHp = battle.enemyMaxHp;
+        battle.totalRounds = battle.enemyMaxHp / HP_NORMAL;
         battle.round = 1;
         saveState();
         updateHpBars();
