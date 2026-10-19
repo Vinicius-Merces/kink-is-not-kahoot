@@ -187,7 +187,7 @@ canvas.sprite { height: 220px; width: auto; }
 /* chefe: personagem com arte própria (spec seção 13) — a escala/aura aqui é
    só o reforço visual sutil opcional (~1.2x) por cima da arte do chefe */
 .fighter.is-boss .sprite,
-.fighter.is-boss .sprite-fallback { transform: scale(1.2); filter: saturate(1.4) drop-shadow(0 0 14px rgba(255, 209, 102, 0.65)); }
+.fighter.is-boss .sprite-fallback { filter: drop-shadow(0 0 8px rgba(255, 209, 102, 0.35)); }
 
 .sprite-fallback {
     width: 110px;
@@ -521,9 +521,30 @@ canvas.sprite.sprite-sheet {
     image-rendering: auto;
     flex-shrink: 0;
 }
+
+/* The enemy has one visual surface. No legacy img/emoji can race the canvas.
+   Padding is inside the packed atlas; never enlarge with a CSS transform. */
+.enemy-visual { position: relative; width: min(190px, 100%); aspect-ratio: 1; height: auto; flex: 0 0 auto; }
+.enemy-visual canvas.sprite.sprite-sheet { display: block; width: 100%; height: 100%; }
+.is-boss .enemy-visual { width: min(210px, 100%); }
+.sprite-status { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 0.7rem; color: #9caec4; }
+.sprite-status[hidden] { display: none; }
+.battle-question.is-animating { cursor: wait; }
+.battle-question.is-animating .option-list, .battle-question.is-animating .arena-action { pointer-events: none; }
+#enemyWrap { min-width: 0; flex: 1 1 0; }
+#heroWrap { min-width: 0; flex: 1 1 0; }
+.fighter-name { overflow-wrap: anywhere; max-width: 210px; }
+@media (max-width: 600px) {
+    .enemy-visual { width: min(38vw, 152px, 100%); }
+    .is-boss .enemy-visual { width: min(40vw, 160px, 100%); }
+    .battle-field { gap: 0.15rem; }
+    .vs { font-size: 0.9rem; }
+    .enemy-attacking { transform: translateX(-14px); }
+}
 @media (max-width: 600px) {
     canvas.sprite.sprite-sheet {
         width: 132px;
         height: 132px;
     }
 }
+

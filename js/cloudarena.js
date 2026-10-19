@@ -142,6 +142,13 @@
         // Sem este marcador, um progresso velho de nível alto pode ressuscitar
         // depois de game over ou de uma nova partida.
         const now = new Date().toISOString();
+        if (battle && battle.question && state.arenas[battle.certId].pendingEncounter) {
+            Object.assign(state.arenas[battle.certId].pendingEncounter, {
+                enemyHp: battle.enemyHp, enemyMaxHp: battle.enemyMaxHp,
+                round: battle.round, totalRounds: battle.totalRounds,
+                bossPhase: battle.bossPhase || 1,
+            });
+        }
         state.updatedAt = now;
         Object.values(state.arenas || {}).forEach(arena => { arena.updatedAt = now; });
         try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* cheio/privado */ }
@@ -432,7 +439,7 @@
     // Velocidade legado (6 frames cada): idle/hurt/morte em ciclo de ~2s
     // (3 fps), vitória ~2,4s (2,5 fps), ataque em ~1s (6 fps) — o golpe
     // precisa ser ágil.
-    const HERO_STATE_FPS = { idle: 3, hurt: 3, death: 3, victory: 2.5, attack: 6 };
+    const HERO_STATE_FPS = { idle: 6, hurt: 12, death: 12, victory: 6, attack: 12 };
     const HERO_HIT_FRAME = 4;      // 1-indexado — o VFX de dano dispara aqui
     const HERO_LUNGE_PX = 46;      // deslocamento até a frente do inimigo
 
@@ -697,138 +704,106 @@
     }
 
 
-    // Cada bloco de dez níveis possui uma pool própria. A seleção fica
-    // congelada durante o encontro e evita o mesmo inimigo em aparições seguidas.
-    // Os quatro assets desta primeira pool já estão publicados; os próximos
-    // blocos serão ativados somente junto de suas artes finais, sem fallback.
-    const SAA_COMMON_ENEMY_TIERS = [
-        {
-            from: 1,
-            to: 10,
-            variants: [
-                { name: 'Sentinela GuardDuty', url: 'images/arena/enemies/secure-architectures/sentinela-fortaleza-sheet.png', ready: true },
-                { name: 'Sentinela Multi-AZ', url: 'images/arena/enemies/secure-architectures/sentinela-cloudshield-sheet.png', ready: true },
-                { name: 'Arquimago das Chaves', url: 'images/arena/enemies/secure-architectures/arquimago-chaves-sheet.png', ready: true },
-                { name: 'Guardião de Permissões', url: 'images/arena/enemies/secure-architectures/guardiao-permissoes-sheet.png', ready: true },
-            ],
-        },
-        {
-            from: 21,
-            to: 30,
-            variants: [
-                { name: 'Draco do Tráfego', url: 'images/arena/enemies/networking/draco-do-trafego-sheet.jpg', ready: true },
-                { name: 'Aegis, o Draco do Firewall', url: 'images/arena/enemies/networking/aegis-draco-firewall-sheet.webp', ready: true },
-                { name: 'Hydra, o Draco do Load Balancer', url: 'images/arena/enemies/networking/hydra-draco-load-balancer-sheet.webp', ready: true },
-                { name: 'Atlas, o Draco do Auto Scaling', url: 'images/arena/enemies/compute/atlas-draco-auto-scaling-sheet.webp', ready: true },
-                { name: 'Orion, o Draco da Replicação', url: 'images/arena/enemies/storage/orion-draco-replicacao-sheet.webp', ready: true },
-            ],
-        },
-        {
-            from: 31,
-            to: 40,
-            variants: [
-                { name: 'Nexo-31, o Mecha de Redes', url: 'images/arena/enemies/mecha/nexo-31-mecha-redes-sheet.webp', ready: true },
-                { name: 'Bastião-AX, o Mecha de Segurança', url: 'images/arena/enemies/mecha/bastiao-ax-mecha-seguranca-sheet.webp', ready: true },
-                { name: 'Escalador K-9, o Mecha de Auto Scaling', url: 'images/arena/enemies/mecha/escalador-k9-mecha-autoscaling-sheet.webp', ready: true },
-                { name: 'Forja-IO, o Mecha de Processamento', url: 'images/arena/enemies/mecha/forja-io-mecha-processamento-sheet.webp', ready: true },
-                { name: 'Núcleo Vault-7, o Mecha de Armazenamento', url: 'images/arena/enemies/mecha/nucleo-vault-7-mecha-armazenamento-sheet.webp', ready: true },
-            ],
-        },
-    ];
+    // All approved characters use the same explicit atlas renderer. Legacy
+    // domain filenames must never be requested during an animation transition.
+    let artCatalog = null;
     let activeEnemySprite = null;
-    function activeCommonEnemyTier() {
-        if (!battle || battle.boss || battle.certId !== 'saa-c03') return null;
-        const level = state.arenas[battle.certId]?.currentLevel || 1;
-        return SAA_COMMON_ENEMY_TIERS.find(tier => level >= tier.from && level <= tier.to) || null;
-    }
-    function animatedEnemyEnabled() {
-        return !!activeCommonEnemyTier();
-    }
+    let visualSerial = 0;
+    const enemySpriteCache = new Map();
+    function animatedEnemyEnabled() { return !!artCatalog; }
     function chosenEnemyVariant() {
-        const tier = activeCommonEnemyTier();
-        if (!tier) return null;
+        if (!battle || !artCatalog) return null;
+        if (battle._commonEnemyVariant) return battle._commonEnemyVariant;
         const a = state.arenas[battle.certId];
-        if (!battle._commonEnemyVariant) {
-            const available = tier.variants.filter(variant => variant.ready);
-            const alternatives = available.filter(variant => variant.name !== a.lastCommonEnemyName);
-            const candidates = alternatives.length ? alternatives : available;
-            battle._commonEnemyVariant = candidates[Math.floor(Math.random() * candidates.length)];
-            a.lastCommonEnemyName = battle._commonEnemyVariant.name;
+        if (battle.boss) {
+            const level = a.inChallenge ? a.challengePosition * 2 : a.currentLevel;
+            battle._commonEnemyVariant = artCatalog.bosses.find(v => v.level === level)
+                || artCatalog.bosses[(Math.max(1, Math.floor(level/10))-1) % artCatalog.bosses.length];
+        } else {
+            const band = Math.min(4, Math.max(1, Math.ceil(a.currentLevel/10)));
+            const pool = artCatalog.commons.filter(v => v.band === band);
+            const savedId = battle._restoredVisualId || (a.pendingEncounter && a.pendingEncounter.visualId);
+            const saved = pool.find(v => v.id === savedId);
+            const alternatives = pool.filter(v => v.id !== a.lastCommonEnemyId);
+            const candidates = alternatives.length ? alternatives : pool;
+            battle._commonEnemyVariant = saved || candidates[Math.floor(Math.random()*candidates.length)];
+            a.lastCommonEnemyId = battle._commonEnemyVariant.id;
+        }
+        if (a.pendingEncounter) {
+            a.pendingEncounter.visualId = battle._commonEnemyVariant.id;
             saveState();
         }
         return battle._commonEnemyVariant;
     }
-    class AnimatedArenaEnemy extends FourByFourSprite {
-        constructor(canvas, variant) {
-            super(variant.url);
-            this.attach(canvas);
-        }
-        async load() {
-            await super.load();
-            if (!this.canvas.isConnected) return this;
-            this.canvas.style.display = '';
-            const img = $('#enemySprite');
-            if (img) img.style.display = 'none';
-            const fallback = this.canvas.parentElement.querySelector('.sprite-fallback');
-            if (fallback) fallback.style.display = 'none';
-            this.play('idle', { loop: true });
-            return this;
-        }
-    }
+    function idleEnemyState() { return battle && battle.bossPhase === 2 ? 'idleEnraged' : 'idle'; }
     function startPreviewEnemy() {
         const canvas = $('#enemyCanvas');
         const variant = chosenEnemyVariant();
         if (!canvas || !variant) return;
+        if (activeEnemySprite && activeEnemySprite.canvas === canvas && activeEnemySprite.variant === variant) return;
         if (activeEnemySprite) activeEnemySprite.stop();
-        const anim = new AnimatedArenaEnemy(canvas, variant);
+        let anim = enemySpriteCache.get(variant.id);
+        if (!anim) {
+            anim = new window.CloudArenaSprites.ArenaSprite(variant);
+            enemySpriteCache.set(variant.id, anim);
+        }
         activeEnemySprite = anim;
-        anim.load().catch(error => {
-            console.warn('[CloudArena] Sprite do inimigo não carregou; usando fallback:', error.message);
-            if (!canvas.isConnected || activeEnemySprite !== anim) return;
-            canvas.style.display = 'none';
-            const img = $('#enemySprite');
-            if (img) setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
-        });
+        anim.attach(canvas);
+        const encounter = battle;
+        const activate = () => {
+            if (!canvas.isConnected || battle !== encounter || activeEnemySprite !== anim) return;
+            canvas.style.display = '';
+            const status = canvas.parentElement.querySelector('.sprite-status');
+            if (status) status.hidden = true;
+            if (encounter.boss && !encounter.introPlayed) {
+                encounter.introPlayed = true;
+                setBattleBusy(true);
+                anim.play('intro', { onComplete: () => {
+                    if (battle !== encounter) return;
+                    anim.play(idleEnemyState(), { loop: true });
+                    setBattleBusy(false);
+                }});
+            } else {
+                anim.play(idleEnemyState(), { loop: true });
+                setBattleBusy(false);
+            }
+        };
+        if (anim.isReady) activate();
+        else {
+            setBattleBusy(true);
+            anim.load().then(activate).catch(error => {
+            if (!canvas.isConnected || battle !== encounter) return;
+            console.error('[CloudArena] Arte indisponível:', variant.id, error);
+            const status = canvas.parentElement.querySelector('.sprite-status');
+            if (status) { status.hidden = false; status.textContent = 'Arte indisponível. Recarregue para tentar novamente.'; }
+            setBattleBusy(false);
+            });
+        }
     }
-    function playPreviewEnemy(state, loop = false) {
-        const canvas = $('#enemyCanvas');
+    function playPreviewEnemy(name, loop = false, done = null) {
         const anim = activeEnemySprite;
-        if (!canvas || !anim || anim.canvas !== canvas || !anim.isReady) return false;
-        return anim.play(state, {
-            loop,
-            onComplete: !loop && state !== 'death' ? () => {
-                if (activeEnemySprite === anim && canvas.isConnected) {
-                    anim.play('idle', { loop: true });
-                }
-            } : null,
-        });
+        if (!anim || anim.canvas !== $('#enemyCanvas')) return false;
+        if (battle.bossPhase === 2 && (name === 'hurt' || name === 'attack')) name += 'Enraged';
+        const encounter = battle;
+        return anim.play(name, { loop, onComplete: () => {
+            if (battle !== encounter || activeEnemySprite !== anim || !anim.canvas.isConnected) return;
+            if (!loop && name !== 'death') anim.play(idleEnemyState(), { loop: true });
+            if (done) done();
+        }});
     }
-
-    function enemySpriteUrl(certId, domain, pose, boss) {
-        const dir = certId === 'clf-c02' ? 'images/arena/enemies/clf/' : 'images/arena/enemies/';
-        return `${dir}${domain}${boss ? '-boss' : ''}-${pose}.png`;
+    function enemyInfo() {
+        const variant = chosenEnemyVariant();
+        return { name: variant ? variant.name : 'Carregando inimigo', emoji: '' };
     }
-
-    function setSprite(imgEl, url) {
-        imgEl.onerror = () => {
-            imgEl.style.display = 'none';
-            const fb = imgEl.nextElementSibling;
-            if (fb && fb.classList.contains('sprite-fallback')) fb.style.display = 'flex';
-        };
-        imgEl.onload = () => {
-            imgEl.style.display = '';
-            const fb = imgEl.nextElementSibling;
-            if (fb && fb.classList.contains('sprite-fallback')) fb.style.display = 'none';
-        };
-        imgEl.src = url;
-    }
-
-    function enemyInfo(certId, domain, boss) {
-        const byDomain = DOMAIN_ENEMIES[certId] || {};
-        const entry = byDomain[domain] || FALLBACK_ENEMY;
-        const variant = !boss && battle && battle.certId === certId && battle.domain === domain
-            ? chosenEnemyVariant() : null;
-        return { name: variant ? variant.name : (boss ? entry.boss : entry.common), emoji: entry.emoji };
+    function setBattleBusy(busy) {
+        if (!battle) return;
+        battle.busy = busy;
+        const question = $('.battle-question');
+        if (question) {
+            question.classList.toggle('is-animating', busy);
+            question.inert = busy;
+            question.setAttribute('aria-busy', String(busy));
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -884,6 +859,9 @@
                 tookDamage: false, golpe1Mistake: false,
                 enteredWithHp: a.heroCurrentHp,
                 question: null, domain: null, attackName: null,
+                bossPhase: pending.bossPhase || 1, introPlayed: true,
+                _restoredVisualId: pending.visualId,
+                visualToken: ++visualSerial,
             };
             openQuestion(findQuestionById(certId, pending.questionId));
             return;
@@ -899,6 +877,7 @@
             question: null,
             domain: null,
             attackName: null,
+            bossPhase: 1, introPlayed: false, visualToken: ++visualSerial,
         };
         nextRound();
     }
@@ -925,6 +904,7 @@
     }
 
     function openQuestion(q) {
+        battle.busy = false;
         const a = state.arenas[battle.certId];
         // embaralha as justificativas por batalha — no arquivo a correta vem
         // sempre primeiro, e a ordem fixa entregaria a resposta
@@ -945,6 +925,8 @@
             questionId: q.id, boss: battle.boss, round: battle.round,
             totalRounds: battle.totalRounds,
             enemyHp: battle.enemyHp, enemyMaxHp: battle.enemyMaxHp,
+            bossPhase: battle.bossPhase || 1,
+            visualId: battle._commonEnemyVariant && battle._commonEnemyVariant.id,
         };
         saveState();
         renderBattle();
@@ -974,23 +956,31 @@
      * errou algo) -> morte/game over se o HP zerou.
      */
     function playExchange(didHit, tookHits, died) {
+        const encounter = battle;
+        setBattleBusy(true);
         const steps = [];
         if (didHit) {
-            steps.push(next => heroAttack(() => { animateEnemyHurt(); setTimeout(next, 700); }));
+            steps.push(next => heroAttack(() => {
+                if (battle !== encounter) return;
+                animateEnemyHurt(); setTimeout(next, 700);
+            }));
         }
         if (tookHits > 0) {
             steps.push(next => animateEnemyAttack(died, next));
         }
         let k = 0;
         const next = () => {
+            if (battle !== encounter) return;
             if (k < steps.length) { steps[k++](next); return; }
-            if (died) setTimeout(() => gameOver(battle.certId), 350);
+            if (died) setTimeout(() => { if (battle === encounter) gameOver(encounter.certId); }, 350);
+            else setBattleBusy(false);
         };
         next();
     }
 
     // Golpe 1 — eliminação de exatamente 2
     function confirmElimination() {
+        if (battle.busy) return;
         if (battle.selected.size !== 2) return;
         let hits = 0, mistakes = 0;
         for (const text of battle.selected) {
@@ -1015,6 +1005,7 @@
 
     // Golpe 2 — escolha entre correta e armadilha
     function chooseOption(text) {
+        if (battle.busy) return;
         const opt = battle.question.options.find(o => o.text === text);
         battle.chosenText = text;
         battle.choseCorrect = opt.stage === 'correct';
@@ -1030,20 +1021,28 @@
     // Golpe 3 — justificativa; abate instantâneo só em inimigo normal ou
     // última round do chefe (spec 7.4)
     function chooseJustification(idx) {
+        if (battle.busy) return;
         const just = battle.question.justifications[idx];
         const isLastRound = battle.round === battle.totalRounds;
         if (just.correct) {
+            setBattleBusy(true);
             if (!battle.boss || isLastRound) {
                 battle.enemyHp = 0; // abate garantido
                 updateHpBars();
                 heroAttack(() => animateEnemyHurt());
-                setTimeout(enemyDefeated, 1300); // ataque (~1s) + retorno
+                const encounter = battle;
+                setTimeout(() => {
+                    if (battle !== encounter) return;
+                    if (battle.boss && battle.bossPhase !== 2) beginBossEnrage();
+                    else enemyDefeated();
+                }, 1300);
             } else {
                 heroHit();
                 battle.round++;
+                const encounter = battle;
                 heroAttack(() => animateEnemyHurt());
                 showToast(`Round ${battle.round} de ${battle.totalRounds} — o chefe resiste!`);
-                setTimeout(nextRound, 1500);
+                setTimeout(() => { if (battle === encounter) nextRound(); }, 1500);
             }
         } else {
             battle.disabledJusts.add(idx);
@@ -1051,6 +1050,18 @@
             renderBattle();
             playExchange(false, 1, died);
         }
+    }
+
+    function beginBossEnrage() {
+        const encounter = battle;
+        battle.bossPhase = 2;
+        battle.enemyHp = battle.enemyMaxHp;
+        battle.round = 1;
+        saveState();
+        updateHpBars();
+        showToast('Segunda fase: o chefe entrou em fúria!');
+        playPreviewEnemy('enrage');
+        setTimeout(() => { if (battle === encounter) nextRound(); }, 550);
     }
 
     function enemyDefeated() {
@@ -1110,6 +1121,7 @@
     }
 
     function advanceProgress(certId) {
+        const encounter = battle;
         const a = state.arenas[certId];
         const arena = ARENAS[certId];
 
@@ -1123,7 +1135,7 @@
             a.challengePosition++;
             a.challengeBestLevel = Math.max(a.challengeBestLevel, a.challengePosition - 1);
             saveState();
-            setTimeout(() => startEncounter(certId), 2600); // espera a animação de vitória (~2,4s)
+            setTimeout(() => { if (battle === encounter) startEncounter(certId); }, 2600);
             return;
         }
 
@@ -1157,7 +1169,7 @@
 
         a.currentLevel++;
         saveState();
-        setTimeout(() => startEncounter(certId), 2600); // espera a animação de vitória (~2,4s)
+        setTimeout(() => { if (battle === encounter) startEncounter(certId); }, 2600);
     }
 
     function gameOver(certId) {
@@ -1270,7 +1282,8 @@
 
     function animateEnemyHurt() {
         if (animatedEnemyEnabled()) {
-            playPreviewEnemy(battle.enemyHp <= 0 ? 'death' : 'hurt');
+            const finalDeath = battle.enemyHp <= 0 && (!battle.boss || battle.bossPhase === 2);
+            playPreviewEnemy(finalDeath ? 'death' : 'hurt');
 
         }
         const wrap = $('#enemyWrap');
@@ -1287,27 +1300,25 @@
     // impacto dispara a animação hurt (ou death) do herói.
     function animateEnemyAttack(heroDies, done) {
         const wrap = $('#enemyWrap');
-        const img = $('#enemySprite');
-        if (!wrap || (!img && !animatedEnemyEnabled())) { if (done) done(); return; }
+        if (!wrap) { if (done) done(); return; }
+        const encounter = battle;
         const info = enemyInfo(battle.certId, battle.domain, battle.boss);
         const callout = $('#attackCallout');
         if (callout) {
             callout.textContent = `${info.name} ataca com ${battle.attackName}!`;
             callout.classList.add('show');
         }
-        if (!(animatedEnemyEnabled() && playPreviewEnemy('attack'))) {
-            setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'attack', battle.boss));
-        }
+        const heavy = battle.bossPhase === 2 && Math.random() < 0.5;
+        playPreviewEnemy(heavy ? 'heavy' : 'attack');
         wrap.classList.add('enemy-attacking'); // desloca em direção ao herói via CSS
         setTimeout(() => {
+            if (battle !== encounter) return;
             animateHero(heroDies ? 'death' : 'hurt');
             updateHpBars();
         }, 320);
         setTimeout(() => {
+            if (battle !== encounter) return;
             wrap.classList.remove('enemy-attacking');
-            if (!animatedEnemyEnabled() || !activeEnemySprite || !activeEnemySprite.isReady) {
-                setSprite(img, enemySpriteUrl(battle.certId, battle.domain, 'idle', battle.boss));
-            }
             if (callout) callout.classList.remove('show');
             // se o herói morreu, espera a animação de morte (~2s) terminar
             if (done) setTimeout(done, heroDies ? 1700 : 80);
@@ -1324,6 +1335,7 @@
         const hero = getHeroSprite();
         const activate = () => {
             if (!document.body.contains(canvas)) return; // tela já mudou
+            if (hero.canvas === canvas) return;
             hero.attach(canvas);
             canvas.style.display = '';
             if (fb && fb.classList.contains('sprite-fallback')) fb.style.display = 'none';
@@ -1348,6 +1360,7 @@
     }
 
     function renderHome() {
+        if (activeEnemySprite) activeEnemySprite.stop();
         currentArena = null;
         battle = null;
         Object.values(heroSpriteCache).forEach(h => h.stop());
@@ -1403,7 +1416,8 @@
         app().innerHTML = '<div class="arena-loading">Carregando a arena…</div>';
         getHeroSprite().load().catch(() => { /* fallback de emoji cobre */ });
         try {
-            await loadArenaData(certId);
+            const results = await Promise.all([loadArenaData(certId), window.CloudArenaSprites.loadCatalog()]);
+            artCatalog = results[1];
         } catch (err) {
             app().innerHTML = `<div class="arena-loading">Erro ao carregar: ${esc(err.message)}</div>`;
             return;
@@ -1436,6 +1450,8 @@
     }
 
     function renderBattle() {
+        const previousField = $('.battle-field');
+        const preserveField = previousField && previousField.dataset.encounter === String(battle.visualToken);
         const certId = battle.certId;
         const arena = ARENAS[certId];
         const a = state.arenas[certId];
@@ -1445,7 +1461,7 @@
             ? `Desafio ${a.challengePosition}/20`
             : `Nível ${a.currentLevel}/${arena.maxLevel}`;
         const bossTag = battle.boss
-            ? `<span class="boss-tag">CHEFE — round ${battle.round}/${battle.totalRounds}</span>` : '';
+            ? `<span class="boss-tag">CHEFE · ${battle.bossPhase === 2 ? 'ENRAGED' : 'FASE 1'} · round ${battle.round}/${battle.totalRounds}</span>` : '';
 
         let phaseHtml = '';
         if (battle.phase === 'eliminate') {
@@ -1495,7 +1511,7 @@
                     <span class="battle-level">${arena.name} · ${levelLabel} ${bossTag}</span>
                     <span class="battle-dmg">dano inimigo: ${enemyDamage(certId)}</span>
                 </div>
-                <div class="battle-field">
+                <div class="battle-field" data-encounter="${battle.visualToken}">
                     <div class="attack-callout" id="attackCallout"></div>
                     <div class="fighter" id="heroWrap">
                         <canvas id="heroCanvas" class="sprite ${state.heroChoice === 'masculino' ? 'sprite-sheet' : ''}" width="180" height="${state.heroChoice === 'masculino' ? 180 : 150}" style="display:none"></canvas>
@@ -1505,9 +1521,10 @@
                     </div>
                     <div class="vs">VS</div>
                     <div class="fighter ${battle.boss ? 'is-boss' : ''}" id="enemyWrap">
-                        ${animatedEnemyEnabled() ? '<canvas id="enemyCanvas" class="sprite sprite-sheet" width="180" height="180" style="display:none"></canvas>' : ''}
-                        <img id="enemySprite" class="sprite" alt="${esc(info.name)}">
-                        <div class="sprite-fallback">${info.emoji}</div>
+                        <div class="enemy-visual">
+                            <canvas id="enemyCanvas" class="sprite sprite-sheet" width="256" height="256" role="img" aria-label="${esc(info.name)}"></canvas>
+                            <span class="sprite-status" role="status">Carregando arte…</span>
+                        </div>
                         <div class="fighter-name">${esc(info.name)}${battle.boss ? ' 👑' : ''}</div>
                         ${hpBarHtml('enemyHp', battle.enemyHp, battle.enemyMaxHp, '#ff6b6b')}
                     </div>
@@ -1528,9 +1545,11 @@
                 </div>
             </div>`;
 
+        if (preserveField) $('.battle-field').replaceWith(previousField);
         initHeroCanvas();
-        if (animatedEnemyEnabled()) startPreviewEnemy();
-        else setSprite($('#enemySprite'), enemySpriteUrl(certId, battle.domain, 'idle', battle.boss));
+        startPreviewEnemy();
+        updateHpBars();
+        setBattleBusy(!!battle.busy);
         $('#backHome').addEventListener('click', () => { saveState(); renderHome(); });
 
         // Toggle lista/blocos: troca só a classe (sem re-render, para não
@@ -1559,7 +1578,8 @@
                     } else {
                         battle.selected.delete(text);
                     }
-                    renderBattle();
+                    const confirm = $('#confirmElim');
+                    if (confirm) confirm.disabled = battle.selected.size !== 2;
                 });
             });
             const btn = $('#confirmElim');
@@ -1786,3 +1806,4 @@
 
     document.addEventListener('DOMContentLoaded', init);
 })();
+
