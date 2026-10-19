@@ -18,7 +18,7 @@
 - Retângulos explícitos, proporção preservada e padding transparente. A geração técnica não modifica os originais aprovados. O Draco foi refeito com referência à arte aprovada para completar as quatro ações ausentes na prancha antiga.
 - Idle 1 segundo; ações 0,5 segundo. O hurt de Nexarion mantém os quatro frames por fase aprovados; demais ações de boss têm oito.
 - Primeira derrota do boss inicia enrage, restaura HP e rounds; segunda fase usa ataque padrão/pesado com escolha aleatória 50/50; só a derrota final concede vitória.
-- Balanceamento progressivo: duas formas visuais obrigatórias (normal e enraged), com uma etapa adicional a cada dois bosses. Níveis 10/20: 2 perguntas totais; 30/40: 3; 50/60: 4; 70/80: 5; 90/100: 6. A forma normal recebe metade arredondada para baixo, e a enraged recebe metade arredondada para cima. O Modo Desafio preserva seus valores próprios. Encontros antigos salvos adotam a nova duração sem perder a forma atual.
+- Balanceamento progressivo: duas formas visuais obrigatórias (normal e enraged), com uma etapa adicional a cada dois bosses. Níveis 10/20: 2 perguntas totais; 30/40: 3; 50/60: 4; 70/80: 5; 90/100: 6. Em lutas de 2 ou 3 etapas, o enraged começa na etapa 2; com 4 ou mais etapas, começa na etapa 3 e permanece até o fim. O Modo Desafio preserva seus valores próprios. Encontros antigos salvos adotam a nova duração sem perder a forma atual.
 - A fase e a identidade visual do encontro são mantidas na retomada. Entrada/saída de tela cancela loops; controles ficam bloqueados durante a resolução de ações.
 
 ## Verificação reproduzível

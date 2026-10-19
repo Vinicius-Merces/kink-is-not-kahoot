@@ -28,8 +28,9 @@ for(const certId of ['saa-c03','clf-c02','dva-c02','dea-c01']) {
     const arena=t.state.arenas[certId];
     for(const [level,total] of [[10,2],[20,2],[30,3],[40,3],[50,4],[60,4],[70,5],[80,5],[90,6],[100,6]]) {
         arena.currentLevel=level;arena.inChallenge=false;
-        assert.equal(t.bossHp(certId,1),Math.floor(total/2)*4);
-        assert.equal(t.bossHp(certId,2),Math.ceil(total/2)*4);
+        const normalRounds=total>=4?2:1;
+        assert.equal(t.bossHp(certId,1),normalRounds*4);
+        assert.equal(t.bossHp(certId,2),(total-normalRounds)*4);
         assert.equal((t.bossHp(certId,1)+t.bossHp(certId,2))/4,total);
     }
     arena.inChallenge=true;arena.challengePosition=5;assert.equal(t.bossHp(certId),24);
@@ -58,7 +59,7 @@ for(const boss of catalog.bosses) {
     a.currentLevel=boss.level;
     const before=t.counts();
     const total=2+Math.floor((boss.level/10-1)/2);
-    const rounds=Math.floor(total/2),enragedRounds=Math.ceil(total/2),hp=rounds*4;
+    const rounds=total>=4?2:1,enragedRounds=total-rounds,hp=rounds*4;
     const b={certId:'saa-c03',boss:true,bossPhase:1,round:rounds,totalRounds:rounds,
       enemyHp:1,enemyMaxHp:hp,question:{justifications:[{correct:true}]},
       _commonEnemyVariant:boss,disabledJusts:new Set()};

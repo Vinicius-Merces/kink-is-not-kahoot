@@ -419,10 +419,11 @@
             return a.challengePosition === CHALLENGE_LENGTH ? HP_CHALLENGE_FINAL : HP_CHALLENGE_BOSS;
         }
         // Two bosses share each difficulty step: total questions 2,2,3,3,...6,6.
-        // Both visual forms remain mandatory; an odd extra round belongs to enrage.
+        // Enrage starts on stage 2 for short fights, stage 3 for 4+ stages.
         const bossIndex = Math.max(1, Math.floor(a.currentLevel / 10));
         const totalQuestions = 2 + Math.floor((bossIndex - 1) / 2);
-        const roundsPerPhase = phase === 2 ? Math.ceil(totalQuestions / 2) : Math.floor(totalQuestions / 2);
+        const normalRounds = totalQuestions >= 4 ? 2 : 1;
+        const roundsPerPhase = phase === 2 ? totalQuestions - normalRounds : normalRounds;
         return HP_NORMAL * roundsPerPhase;
     }
 
@@ -1472,8 +1473,11 @@
         const levelLabel = a.inChallenge
             ? `Desafio ${a.challengePosition}/20`
             : `Nível ${a.currentLevel}/${arena.maxLevel}`;
+        const normalBossRounds = battle.boss ? bossHp(certId, 1) / HP_NORMAL : 0;
+        const bossStage = battle.round + (battle.bossPhase === 2 ? normalBossRounds : 0);
+        const bossStages = normalBossRounds + (battle.boss ? bossHp(certId, 2) / HP_NORMAL : 0);
         const bossTag = battle.boss
-            ? `<span class="boss-tag">CHEFE · fase ${battle.bossPhase || 1}/2${battle.bossPhase === 2 ? ' (fúria)' : ''} · rodada ${battle.round}/${battle.totalRounds}</span>` : '';
+            ? `<span class="boss-tag">CHEFE · etapa ${bossStage}/${bossStages} · ${battle.bossPhase === 2 ? 'ENRAGED' : 'NORMAL'}</span>` : '';
 
         let phaseHtml = '';
         if (battle.phase === 'eliminate') {
