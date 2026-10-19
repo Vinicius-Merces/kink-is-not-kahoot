@@ -46,7 +46,7 @@
 
     // HP: regra geral — rounds = hp / 4
     const HP_NORMAL = 4;
-    const HP_BOSS = 12;
+    const MAX_STORY_BOSS_ROUNDS = 4;
     const HP_CHALLENGE_BOSS = 24;
     const HP_CHALLENGE_FINAL = 32;
     const HERO_BASE_HP = 10;
@@ -419,7 +419,10 @@
         if (a.inChallenge) {
             return a.challengePosition === CHALLENGE_LENGTH ? HP_CHALLENGE_FINAL : HP_CHALLENGE_BOSS;
         }
-        return HP_BOSS;
+        // One question/round per form at level 10, then 2/3/4 at 20/30/40.
+        // Keep later fights capped: two forms already double the total length.
+        const roundsPerPhase = Math.min(MAX_STORY_BOSS_ROUNDS, Math.max(1, Math.floor(a.currentLevel / 10)));
+        return HP_NORMAL * roundsPerPhase;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -852,10 +855,15 @@
         // batalha, reabre a MESMA pergunta do início (round/HP do chefe também).
         const pending = a.pendingEncounter;
         if (pending && findQuestionById(certId, pending.questionId)) {
+            // Migrate an encounter saved before the progressive boss balance.
+            // Keep the question and form, but do not restore an obsolete 3-round
+            // level-10 fight or a round index beyond its new limit.
+            const restoredRounds = pending.boss ? totalRounds : pending.totalRounds;
+            const restoredMaxHp = pending.boss ? hp : pending.enemyMaxHp;
             battle = {
                 certId, boss: pending.boss,
-                enemyMaxHp: pending.enemyMaxHp, enemyHp: pending.enemyHp,
-                totalRounds: pending.totalRounds, round: pending.round,
+                enemyMaxHp: restoredMaxHp, enemyHp: Math.min(pending.enemyHp, restoredMaxHp),
+                totalRounds: restoredRounds, round: Math.min(pending.round, restoredRounds),
                 tookDamage: false, golpe1Mistake: false,
                 enteredWithHp: a.heroCurrentHp,
                 question: null, domain: null, attackName: null,
@@ -1461,7 +1469,7 @@
             ? `Desafio ${a.challengePosition}/20`
             : `Nível ${a.currentLevel}/${arena.maxLevel}`;
         const bossTag = battle.boss
-            ? `<span class="boss-tag">CHEFE · ${battle.bossPhase === 2 ? 'ENRAGED' : 'FASE 1'} · round ${battle.round}/${battle.totalRounds}</span>` : '';
+            ? `<span class="boss-tag">CHEFE · fase ${battle.bossPhase || 1}/2${battle.bossPhase === 2 ? ' (fúria)' : ''} · rodada ${battle.round}/${battle.totalRounds}</span>` : '';
 
         let phaseHtml = '';
         if (battle.phase === 'eliminate') {
